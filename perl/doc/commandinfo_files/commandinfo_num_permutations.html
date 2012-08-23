@@ -1,0 +1,40 @@
+<html>
+<head>
+<STYLE TYPE="text/css">
+<!--
+.nounderline A {text-decoration:none}
+-->
+</STYLE>
+<title>PaGE_5.1 Documentation - the --num_permutations command</title>
+</head>
+<body>
+<DIV CLASS="nounderline">
+<h2>PaGE_5.1 Documentation - the <tt>--num_permutations</tt> command</h2>
+<p>
+The PaGE confidence measure is permutation based.  This option changes the default number of permutations.
+<p>
+<b>The 2-sample unpaired case</b>.  When there are two groups and the data is unpaired, and there aren't too many replicates, then PaGE uses all ways of switching the columns of data between the two groups.  If the groups have size <i>n</i> and <i>m</i> then there are <i>n</i>+<i>m</i> choose <i>n</i> permutations.
+
+<p>
+<b>The direct comparison case</b>.  In the direct comparison case, unlogged data, the data consist of ratios.  A permutation consists of taking a subset of these ratios and forming their reciprocals.  If there are <i>n</i> replicates, then there are 2<sup>n</sup> such permutations.  If working with the logged data, a permutation consits of taking a subest of the M values and multiplying them by negative one.
+
+<p>
+<b>The paired case</b>.  In the paired case, if unlogged data, pairwise ratios are formed, or if logged data then pairwise differences are formed.  The data are thus reduced to the direct comparison case.
+
+<p>
+<b>Note</b>: If there are more than 200 permutations then PaGE will just use 200 random permutations.  If you want to raise the default number above 200 (for greater accuracy), or below 200 (for greater speed), then use the <tt>--num_permutations</tt> command.
+
+<p>
+</DIV>
+<p>
+This command takes one argument of type integer, which must be greater than 2.
+
+<h3>Example: 
+</h3>
+<pre>
+> perl PaGE_5.1.6.pl --num_permutations 500
+</pre>
+
+
+</body>
+</html>

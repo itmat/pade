@@ -1,0 +1,10 @@
+PaGE - Patterns from Gene Expression
+
+This is the Perl version of PaGE. Please run the perl executable
+to see the help information.
+
+   $ perl PaGE.pl --help
+
+The "doc" directory contains more documentation on the algorithm,
+command line options, and example data sets.
+

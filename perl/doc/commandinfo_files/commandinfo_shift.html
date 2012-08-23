@@ -1,0 +1,36 @@
+<html>
+<head>
+<STYLE TYPE="text/css">
+<!--
+.nounderline A {text-decoration:none}
+-->
+</STYLE>
+<title>PaGE_5.1 Documentation - the --shift command</title>
+</head>
+<body>
+<DIV CLASS="nounderline">
+<h2>PaGE_5.1 Documentation - the <tt>--shift</tt> command</h2>
+<p>
+
+<p>
+When using the <tt><a href="commandinfo_means.html">--means</a></tt> option, shifting the data can have an effect on the results.  You normally shouldn't need to shift your data, however if it contains negative intensities, then to use the <tt><a href="commandinfo_means.html">--means</a></tt> option you must shift.
+
+<p>
+<b>Note 1</b>: Shifting biases against genes that are differentially expressed in the low intensity range.
+
+<b>Note 2</b>: Shifting has no effect when using the <i>t</i>-statistic.
+
+<p>
+</DIV>
+<p>
+This command takes one argument of type float.  
+
+<h3>Example: 
+</h3>
+<pre>
+> perl PaGE_5.1.6.pl --shift 250
+</pre>
+
+
+</body>
+</html>

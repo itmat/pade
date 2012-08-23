@@ -1,0 +1,31 @@
+<html>
+<head>
+<STYLE TYPE="text/css">
+<!--
+.nounderline A {text-decoration:none}
+-->
+</STYLE>
+<title>PaGE_5.1 Documentation - the --tstat_tuning_parameter command</title>
+</head>
+<body>
+<DIV CLASS="nounderline">
+<h2>PaGE_5.1 Documentation - the <tt>--tstat_tuning_parameter</tt> command</h2>
+<p>
+
+<p>
+Different statistics are sensitive to different kinds of false positives and false negatives.  The <i>t</i>-statistic is very sensitive to the incidentally small variances that occur when there are relatively few replicates.  The degree of this sensitivity can be controlled with the a tuning parameter added to the denominator of the <i>t</i>-stat formula.  As a rule the power of the results goes up as this parameter goes up from zero, and it goes down as it increases without bound.  Maximum power occurs with some moderate value of this parameter.  PaGE sets this parameter for you automatically, as twice the mean value of the unadjusted denominator.  This moderate value gives good general performance.  You can override this default value using the <tt>--tstat_tuning_parameter_tuning_parameter</tt> command.  For more on this parameter, see <a href="../PaGE_documentation_technical_manual.pdf">the technical manual</a>.
+
+<p>
+</DIV>
+<p>
+This command takes one argument of type float.  It must be positive.
+
+<h3>Example: 
+</h3>
+<pre>
+> perl PaGE_5.1.6.pl --tstat_tuning_parameter 1.75
+</pre>
+
+
+</body>
+</html>

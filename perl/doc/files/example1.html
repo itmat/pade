@@ -1,0 +1,327 @@
+<html>
+<title>PaGE 5.1 Example</title>
+<STYLE TYPE="text/css">
+<!--
+.nounderline A {text-decoration:none}
+-->
+</STYLE>
+<body>
+
+<font color=blue size=+2><b>PaGE 5.1 Example - simulated dataset</b></font>
+
+<p>
+This illustrates running PaGE on a simple example.  The data file consists of 
+<ul>
+<li> 1000 "genes"
+<li>4 conditions
+<li>4 replicates per condition
+</ul>
+<a href="4_class_testdata_header1.txt">Click here</a> to see the dataset.  The first 50 genes, with ID's 0-49, are differentially expressed across the four conditions.  The rest are generated with the same distribution across all 16 columns.  
+<p>
+<b>Two Conditions</b>: We will first run PaGE comparing conditions 0 and 1.  So we replace the header in the file with <a href="example1_header2.txt">this header</a> which has the columns for conditions 2 and 3 headed with an "i" (for "ignore").
+<ul>
+<li>
+<DIV CLASS="nounderline">
+There is <a href="testdata_names.txt">a mock file which maps ID's to names</a>, 
+so we will tell PaGE that using the command line option <tt><a href="../commandinfo_files/commandinfo_id2info.html">--id2info</a></tt>.  
+</div>
+<li> We want to specify the name of the output file to be PaGE-results-for-2class_test1.html, so we tell PaGE that using the command line option <tt>--outfile</tt>.
+<li> Though it is not necessary, we also tell PaGE the name of the infile using the command line option <tt>--infile</tt> (if this is not given, PaGE will ask for it during execution).
+</ul>
+We now start up PaGE with the following command:
+<pre>
+> perl PaGE_5.1.6.pl --infile 4_class_testdata_header2.txt --id2info testdata_names.txt --outfile PaGE-results-for-2class_test1
+</pre>
+And this is what should come up on the screen:
+<br>&nbsp;<br>
+<center>
+<table border=1 cellpadding=10 width=100% bgcolor=beige><tr><td>
+<pre>
+-------------------------------------------------------------------------------
+|                            Welcome to PaGE 5.1                               |
+|                          microarray analysis tool                            |
+-------------------------------------------------------------------------------
+Include a tab delimited file mapping ID's to URL's with
+      --id2url <filename>
+
+For help use PaGE_5.1.6.pl --help
+
+How Many Channels?  
+</td></tr></table>
+</center>
+<br>
+PaGE has started up, it is letting you know how to access the quick command line help, and that you can include a file mapping ID's to urls if you have it.  It is then going to ask a few questions.  We are going to tell it we have 1-channel data, that the data is unpaired, and that the data is not log transformed.  It will then read in the data file and report the number of conditions and replicates per condition:
+
+<br>&nbsp;<br>
+<center>
+<table border=1 cellpadding=10 width=100% bgcolor=beige><tr><td>
+<pre>
+How Many Channels?  1
+
+Are the arrays paired? (enter Y or N): n
+
+Is the data log transformed? (enter Y or N): n
+
+   There are 2 conditions
+
+   There are 4 replicates in condition 0
+   There are 4 replicates in condition 1
+
+</td></tr></table>
+</center>
+<br>
+You should check that this agrees with what you expect.
+<p>
+PaGE will now ask for the level confidence, and the number of non-missing values per condition.  We will tell use <b>.8</b> confidence, and <b>3</b> for the number of non-missing values.  It will then ask for your choice of statistic.  We will use the <i>t</i>-statistic (input "0").  And finally it will ask if we want to run the algoirithm on the log transformed data.  We will choose yes.
+<br>&nbsp;<br>
+<center>
+<table border=1 cellpadding=10 width=100% bgcolor=beige><tr><td>
+<pre>
+Please enter the level confidence (a number between 0 and 1)
+(or L to give the confidence later): 
+</td></tr></table>
+</center>
+<br>
+If you know the level confidence you want you can enter it now, but often you will use the "L" option
+to specify this later.  We will use the "L" option here.  
+<br>&nbsp;<br>
+The next question regards the missing values.  We will set it so that rows with no more than 3 values
+in a group will be ignored.
+<br>&nbsp;<br>
+<table border=1 cellpadding=10 width=100% bgcolor=beige><tr><td>
+<pre>
+Please enter the min number of non-missing values there must be in each
+condition for a row to not be ignored (a positive integer greater than 1)
+(or enter S to specify a separate one for each condition) 3
+
+Min presence required for condition 0: 3
+Min presence required for condition 1: 3
+</td></tr></table>
+</center>
+<br>
+
+The next questions regard the statistic to use and whether to perform the algorithm on the logged or the unlogged data.  We will use the <i>t</i>-statistic on the logged data.
+<br>&nbsp;<br>
+<table border=1 cellpadding=10 width=100% bgcolor=beige><tr><td>
+<pre>
+What statistic would you like to use?
+The T-statistic (enter 0)
+The Ratio with means (enter 1)
+0
+
+Do you want to run algorithm on the log transformed data? (Y or N): y
+</td></tr></table>
+</center>
+<br>
+PaGE will now work through the 70 permutations.
+Finally it will report the breakdown of how many genes are found at each confidence:
+<br>&nbsp;<br>
+<center>
+<table border=1 cellpadding=10 width=100% bgcolor=beige><tr><td>
+<pre>
+
+------------------------
+condition 1
+conf.   num.up  num.down
+------------------------
+0.5     75      2
+0.55    70      0
+0.6     66      0
+0.65    60      0
+0.7     56      0
+0.75    50      0
+0.8     48      0
+0.85    40      0
+0.9     40      0
+0.95    25      0
+
+
+NOTE: The above summary is to help you choose the level confidence.
+NOTE: You can use any number between 0 and 1 as the level confidence.
+</td></tr></table>
+</center>
+<br>
+This breakdown is to help choose the level confidence.  In this case
+we will choose .8.
+
+<br>&nbsp;<br>
+<center>
+<table border=1 cellpadding=10 width=100% bgcolor=beige><tr><td>
+<pre>
+Results will be output to PaGE-results-for-2class_test1.html
+
+Run time: 3 minutes 36 seconds.
+</td></tr></table>
+</center>
+<br>
+
+Your run time will vary.  <a href="PaGE-results-for-2class_test1.html" target="_blank">Click here</a> for the results.  You'll notice PaGE also write a file called&nbsp; <tt>PaGE-results-for-2class_test1_intensities1.html</tt>&nbsp; which contains intensity information linked to from the main report.  PaGE will write several auxiliary files if the output is large.
+
+<p>
+At the top of the report some information is given specific to this run:
+<ul>
+<li>The input parameters
+<li>The default <i>t</i>-statistic tuning parameter
+<li>The range of the statistic for the input data
+<li>The cutoffs for a gene to be in level -1 or lower (the lower cutratio), or 1 or higher (the upper cutratio).
+<li>Next it gives the levels that genes actually fell into.  In this case 1, 2, and 3.  There is always a level 0, but those are the uninteresting genes.
+<li>It next tells how many genes were found upregulated in condition 1 versus condition 0, and how many were found downregulated.  In this case 42, and 0, respectively.
+</ul>
+Now starts the main part of the report that gives the actual 42 genes found.
+Each gene is reported with
+<ul>
+<li>Its ID
+<li>The confidence that it is differentially expressed
+<li>The mean intensity in each group
+<li>The value of the statistic
+<li>The name or description given in the id2info file
+<li>A link to the actual intensities - this is useful for reality checking the intensities for obvious artifacts such as outliers or incidentally vanishing variance
+</ul>
+Recall there genes with IDs 0-49 are the truly differentially expressed genes.  Notice there are six false positives, 860, which landed in level 2, and 474, 466, 861, 296, and 734 which landed in level 1.  This is not a mistake of the algorithm, in fact we should be concerned if we didn't find false positives, since we set the confidence to <b>.8</b>.  We therefore expect to see <b>.2 x 42 = 8.4</b> false-positives on average.  The fact that we saw six means the algorithm was slightly conservative in this case.  
+<p>
+If we just look at the genes with confidence <b>.9</b> or higher, it is 37 genes, with 4 false positives.  Again very close to the expected value.
+<p>
+If we are looking to find more genes, then we can lower the confidence, or we can play with the parameters, perhaps run on the unlogged data, or use the means statistic.  Of course in this case we are not going to find much more because there is not much more to find, there are only 50 truly differentially expressed genes.
+
+<p>
+<hr>
+<b>Four Conditions</b>: We now run PaGE on all four groups, generating patterns of length 3, instead of just levels.
+<br>&nbsp;<br>
+<center>
+<table border=1 cellpadding=10 width=100% bgcolor=beige><tr><td>
+<pre>
+
+-------------------------------------------------------------------------------
+|                            Welcome to PaGE 5.1                               |
+|                          microarray analysis tool                            |
+-------------------------------------------------------------------------------
+
+ ****  PLEASE SET YOUR TERMINAL WINDOW TO AT LEAST 80 COLUMNS  ****
+
+Include a tab delimited file mapping ID's to URL's with
+      --id2url <filename>
+
+For help use PaGE_5.1.6.pl --help
+
+
+Are the arrays 1-Channel or 2-Channel arrays?  (enter "1" or "2")  1
+
+Are the arrays paired? (enter Y or N): n
+
+Is the data log transformed? (enter Y or N): n
+
+   There are 4 conditions
+
+   There are 4 replicates in condition 0
+   There are 4 replicates in condition 1
+   There are 4 replicates in condition 2
+   There are 4 replicates in condition 3
+
+Please enter the level confidence (a number between 0 and 1)
+(or enter S to specify a separate confidence for each group
+or enter L to give the confidence later): l
+
+Please enter the min number of non-missing values there must be in each
+condition for a row to not be ignored (a positive integer greater than 1)
+(or enter S to specify a separate one for each condition): 3
+
+Min presence required for condition 0: 3
+Min presence required for condition 1: 3
+Min presence required for condition 2: 3
+Min presence required for condition 3: 3
+
+What statistic would you like to use?
+The T-statistic (enter 0)
+The Ratio with means (enter 1)
+0
+
+Do you want to run algorithm on the log transformed data? (Y or N): y
+
+there are 1000 rows in your data file
+</td></tr></table>
+</center>
+
+<br>
+PaGE will now work through three sets of 70 permutations, one set for each comparison.  After this it will report the breakdown of how many genes are found at each confidence:
+
+<br>&nbsp;<br>
+<center>
+<table border=1 cellpadding=10 width=100% bgcolor=beige><tr><td>
+<pre>
+------------------------
+condition 1
+conf.   num.up  num.down
+------------------------
+0.5     75      2
+0.55    70      0
+0.6     66      0
+0.65    60      0
+0.7     56      0
+0.75    50      0
+0.8     48      0
+0.85    40      0
+0.9     40      0
+0.95    25      0
+------------------------
+condition 2
+conf.   num.up  num.down
+------------------------
+0.5     64      17
+0.55    64      8
+0.6     59      6
+0.65    58      6
+0.7     49      7
+0.75    46      6
+0.8     40      6
+0.85    36      5
+0.9     33      0
+0.95    30      0
+------------------------
+condition 3
+conf.   num.up  num.down
+------------------------
+0.5     51      0
+0.55    46      0
+0.6     44      0
+0.65    41      0
+0.7     39      0
+0.75    36      0
+0.8     34      0
+0.85    34      0
+0.9     32      0
+0.95    23      0
+
+
+
+NOTE: The above summary is to help you choose the level confidence(s).
+NOTE: You can use any number(s) between 0 and 1 as the level confidence(s).
+
+Please enter the level confidence (a number between 0 and 1)
+(or enter S to specify a separate confidence for each group): .8
+</td></tr></table>
+</center>
+
+<br> We use .8 in this case for all three.
+
+<br>&nbsp;<br>
+<center>
+<table border=1 cellpadding=10 width=100% bgcolor=beige><tr><td>
+<pre>
+Results will be output to PaGE-results-for-4class_test1.html
+
+Run time: 6 minutes 28 seconds.
+</td></tr></table>
+</center>
+<br>
+<a href="PaGE-results-for-4class_test1.html" target="_blank">Click here</a> for the results.
+<p>
+The output is similar to the two-class example above, but now the report is broken into patters each of length three.  Near the top is the list of patterns.  These are live links to the genes in the pattern.  
+
+<p>
+Notice that now four means are given (one for each condition), and three statistics (one for each comparison).
+
+
+</body>
+</html>
+
+

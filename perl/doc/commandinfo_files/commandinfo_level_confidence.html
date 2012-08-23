@@ -1,0 +1,53 @@
+<html>
+<title>PaGE_5.1 Documentation - the --level_confidence command</title>
+<STYLE TYPE="text/css">
+<!--
+.nounderline A {text-decoration:none}
+-->
+</STYLE>
+<body>
+<h2>PaGE_5.1 Documentation - the <tt>--level_confidence</tt> command</h2>
+<p>
+This is the most important parameter to use when running PaGE.  
+<p>
+The level_confidence is a number between zero and one and gives the confidence at which the levels are generated.  Positive levels in PaGE output indicate up-regulation from the reference condition (condition 0), while negative levels indicate down-regulation from the reference condition.  
+<p>
+A level_confidence of <i>x</i> means that we expect 100<i>x</i>% of the set of all genes with positive levels to be truely up, and 100(1-<i>x</i>)% to be false-positives.  (Similarly for the negative levels and down-regulation.)
+<p>
+Confidence <i>x</i> means that roughly 100<i>x</i>% of the predictions should be true.  So for those familiar with the False Discovery Rate (FDR), the confidence <i>x</i> = 1 - FDR. 
+
+<p>
+This command takes one argument of type float, which must be strictly between 0 and 1.
+
+<ul>
+
+<li><b>User Strategy</b>.  The lower you set the level_confidence, the more genes will be predicted and more levels will be generated.  The trick is to find a level_confidence that gives a "reasonable" amount of genes.  PaGE allows you to set this parameter <i><b>after</i></b> the confidences have been calculated and the program displays a summary of the number of genes found over a range of confidences.
+In short, this parameter is like the volume on radio: the higher you turn it, the more you hear, while when turned low you only hear the loudest noises.
+
+<li><b>The Meaning of the Levels</b>: Levels are generated as follows:  If the statistic used is the <i>t</i>-statistic, a value of <i>C</i> is found so that the <i>set</i> of all genes with <i>t</i>-statistic greater than <i>C</i> is expected to have 100<i>x</i>% true positives and (1-<i>x</i>)100% false positives.  Anything with statistic between 0 and <i>C</i> is given level 0, anything with statistic between <i>C</i> and <i>2C</i> is given level 1, anything with statistic between <i>2C</i> and <i>3C</i> is given level 2.  Etc.  Negative levels are generated similarly.  
+
+Levels are generated to make the results easier to digest, however they only have a rigorous statistical confidence if interpreted to apply to the difference between level 0 and greater than zero, or likewise between 0 and less than zero.  Indeed the set of genes with level "2" will generally have higher confidence than the set with level "1", and "3" even higher, etc.  It is simply the set of all genes with positive levels which constitute a set of confidence <i>x</i>.  And similarly for down-regulation.
+
+The above discussion was in terms of the <i>t</i>-statistic.  If instead the statistic is the ratio of the means, then a similar multiplicative version of this argument gives the levels.  In other words a <i>C</i> is determined so that the set of genes with ratio of means greater than 1 have 100<i>x</i>% false-positives, and genes whose ratio of meansis between 1 and <i>C</i> are given level 1, those between <i>C</i> and <i>C</i><sup>2</sup> are given level 2, between <i>C</i><sup>2</sup> and <i>C</i><sup>3</sup> give level 3.  Etc.  Negative levels are generated similarly.
+
+This is how PaGE generates patterns across conditions.
+
+<li><b>Gene Confidences</b>: As seen in above, for each cutoff <i>C</i> there is a resultant set of predictions and a confidence for that set.  Confidences are also applied to the individual gene as follows:  Note that each cutoff <i>C</i> has a corresponding confidence.  If the up-regulated gene has statistic <i>S</i>, then it is given the maximum confidence for all cutoffs <i>C</i>><i>S</i>.  And similarly for down-regulated.  These are the confidences given in the PaGE report.
+
+</ul>
+<p>
+<DIV CLASS="nounderline">
+<b>Note</b>: If you have more than two conditions and you use <tt>--level_confidence</tt> then that confidence will be applied to all positions in the pattern.  To apply a separate level_confidence to each position in the patterns use <tt><a href="commandinfo_level_confidence_list.html">--level_confidence_list</a></tt>.
+</div>
+
+<p> See the <a href="../PaGE_documentation_technical_manual.pdf">technical manual</a> for more detailed information on how the confidence is determined.
+
+<h3>Example: 
+</h3>
+<pre>
+> perl PaGE_5.1.6.pl --level_confidence .8
+</pre>
+
+
+</body>
+</html>

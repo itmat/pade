@@ -1,0 +1,36 @@
+<html>
+<title>PaGE_5.1 Documentation - the --id2url command</title>
+<body>
+<h2>PaGE_5.1 Documentation - the <tt>--id2url</tt> command</h2>
+<p>
+Use this command to give the name of a file which specifies URL's linking to pages with further information relating to the ID's.  These will be included in the output file as links, for easier intpretation of the results.
+<p>
+This command takes one argument of type string.
+<p>
+<b>Note 1:</b> It is not necessary that the file id2info contain info for every ID, those for which there isn't information should be omitted from the file.  There should not be lines with just an ID and no description.<br>
+<b>Note 2:</b> The rows in the id2info file do not need to be in the same order as the rows in the data file.
+
+
+<h3>Example: This includes the file named "my_urls".
+</h3>
+<pre>
+> perl PaGE_5.1.6.pl --id2url my_urls
+</pre>
+
+Example of what the file my_urls might look like:
+
+<pre>
+GX13      http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?db=unigene&cmd=search&term=L14787
+AR15      http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?db=unigene&cmd=search&term=D78155
+LM16      http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?db=unigene&cmd=search&term=U16954
+EN17      http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?db=unigene&cmd=search&term=D90224
+IN18      http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?db=unigene&cmd=search&term=AB051553
+EM19      http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?db=unigene&cmd=search&term=S78187
+OM20      http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?db=unigene&cmd=search&term=AJ298105
+OE21      http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?db=unigene&cmd=search&term=AF006043
+MO23      http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?db=unigene&cmd=search&term=BC002614
+...
+</pre>
+
+</body>
+</html>

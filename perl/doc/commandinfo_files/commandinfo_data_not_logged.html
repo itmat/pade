@@ -1,0 +1,30 @@
+<html>
+<head>
+<STYLE TYPE="text/css">
+<!--
+.nounderline A {text-decoration:none}
+-->
+</STYLE>
+<title>PaGE_5.1 Documentation - the --data_not_logged command</title>
+</head>
+<body>
+<h2>PaGE_5.1 Documentation - the <tt>--data_not_logged</tt> command</h2>
+<p>
+Use this option to indicate that the date file contains unlogged data.
+<p>
+This command takes no arguments.
+<p>
+<b>Note 1</b>: In the case of 2-channel data then this indicates the data file log ratios.<br>
+<DIV CLASS="nounderline">
+<b>Note 2</b>: If your data is unlogged, but contains negative values, then there are restrictions on the kinds of analyses you can perform.  For example, if there are negative intensities, then any analysis based on fold change (i.e. ratios) is meaningless.  If any such analysis is requested, you will first be asked to shift the data to be all positive.  For more on this see <tt><a href="commandinfo_shift.html">--shift</a></tt> and <tt><a href="commandinfo_means.html">--means</a></tt>.
+</DIV>
+
+<h3>Example: 
+</h3>
+<pre>
+> perl PaGE_5.1.6.pl --data_not_logged
+</pre>
+
+
+</body>
+</html>

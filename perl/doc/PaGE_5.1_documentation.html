@@ -1,0 +1,345 @@
+<html>
+<head>
+<title>PaGE 5.1 Documentation and Examples</title>
+<STYLE TYPE="text/css">
+<!--
+.nounderline A {text-decoration:none}
+-->
+</STYLE>
+
+</head>
+<body>
+
+<h1>
+PaGE 5.1 Documentation
+</h1>
+
+This document gives basic user documentation of the Perl version of PaGE 5.1.<br>
+<p>
+See <a href="PaGE_documentation_technical_manual.pdf">the technical manual</a> for the complete details of the algorithm, and expanded discussion of all issues.  
+This document is meant to be a relatively quick introduction to the software.  See also <a href="files/example1.html">the examples</a> for a walk though the usage on acutal data.
+
+<h2>Index</h2>
+<ul>
+<li><a href="#intro">Introduction</a>
+<li><a href="#inputdata">Intput Data</a>
+<ul>
+<li><a href="#studydesign">Study Design</a>
+<li><a href="#dataformat">Data Format</a>
+</ul>
+<li><a href="#runningpage">Running PaGE</a>
+<ul>
+<li><a href="#commands">Commands summary
+</ul>
+<li><a href="#examples">Examples</a>
+</ul>
+
+<h2>
+<a name="intro">
+Introduction
+</h2>
+
+<p>
+PaGE is a tool for analyzing microarray data that is used to:
+<ul>
+<li> Find differentially expressed genes between two conditions, 
+<li> To attach descriptive, easily interpretable,  and dependable expression patterns to genes in a collection of (replicated) microarray experiments across several experimental conditions.
+</ul>
+The patterns are derived from comparisons to a reference group.  So if there are <i>n</i> groups, then the patterns have length <i>n-1</i>.  For example suppose there are four groups, with 3, 2, 3, and 4 replicates, respectively.  The data might look like this:
+<br>&nbsp;<br>
+
+<center>
+<table border cellpadding=3>
+<tr><td>id</td><td bgcolor=#CCFFCC>c0r1</td><td bgcolor=#CCFFCC>c0r2</td><td bgcolor=#CCFFCC>c0r3</td><td bgcolor=#99FFCC>c1r1</td><td bgcolor=#99FFCC>c1r2</td><td bgcolor=#CCFFCC>c2r1</td><td bgcolor=#CCFFCC>c2r2</td><td bgcolor=#CCFFCC>c2r3</td><td bgcolor=#99FFCC>c3r1</td><td bgcolor=#99FFCC>c3r2</td><td bgcolor=#99FFCC>c3r3</td><td bgcolor=#99FFCC>c3r4</td></tr>
+<tr><td>G1</td><td bgcolor=#CCFFCC>0.907</td><td bgcolor=#CCFFCC>0.964</td><td bgcolor=#CCFFCC>1.075</td><td bgcolor=#99FFCC>2.410</td><td bgcolor=#99FFCC>1.897</td><td bgcolor=#CCFFCC>2.556</td><td bgcolor=#CCFFCC>3.238</td><td bgcolor=#CCFFCC>2.923</td><td bgcolor=#99FFCC>0.993</td><td bgcolor=#99FFCC>0.972</td><td bgcolor=#99FFCC>0.983</td><td bgcolor=#99FFCC>1.071</td></tr>
+<tr><td>G2</td><td bgcolor=#CCFFCC>1.136</td><td bgcolor=#CCFFCC>1.114</td><td bgcolor=#CCFFCC>1.069</td><td bgcolor=#99FFCC>7.311</td><td bgcolor=#99FFCC>6.197</td><td bgcolor=#CCFFCC>1.114</td><td bgcolor=#CCFFCC>0.874</td><td bgcolor=#CCFFCC>1.192</td><td bgcolor=#99FFCC>3.310</td><td bgcolor=#99FFCC>3.399</td><td bgcolor=#99FFCC>3.860</td><td bgcolor=#99FFCC>4.077</td></tr>
+<tr><td>G3</td><td bgcolor=#CCFFCC>10.288</td><td bgcolor=#CCFFCC>10.008</td><td bgcolor=#CCFFCC>12.023</td><td bgcolor=#99FFCC>25.507</td><td bgcolor=#99FFCC>24.694</td><td bgcolor=#CCFFCC>4.459</td><td bgcolor=#CCFFCC>6.234</td><td bgcolor=#CCFFCC>4.234</td><td bgcolor=#99FFCC>11.332</td><td bgcolor=#99FFCC>12.323</td><td bgcolor=#99FFCC>8.243</td><td bgcolor=#99FFCC>14.230</td></tr>
+<tr><td>G4</td><td bgcolor=#CCFFCC>5.234</td><td bgcolor=#CCFFCC>6.493</td><td bgcolor=#CCFFCC>2.330</td><td bgcolor=#99FFCC>4.570</td><td bgcolor=#99FFCC>8.498</td><td bgcolor=#CCFFCC>4.349</td><td bgcolor=#CCFFCC>8.323</td><td bgcolor=#CCFFCC>6.384</td><td bgcolor=#99FFCC>21.937</td><td bgcolor=#99FFCC>25.788</td><td bgcolor=#99FFCC>18.847</td><td bgcolor=#99FFCC>14.324</td></tr>
+<tr><td colspan=13>Etc...</td></tr>
+</table>
+</center>
+<br>
+The patterns attached to these genes might look like this.
+
+<center>
+<table border cellpadding=3>
+<tr><td>id</td><td bgcolor=#99FFCC>&nbsp;&nbsp;&nbsp;c1&nbsp;&nbsp;&nbsp;</td><td bgcolor=#CCFFCC>&nbsp;&nbsp;&nbsp;c2&nbsp;&nbsp;&nbsp;</td><td bgcolor=#99FFCC>&nbsp;&nbsp;&nbsp;c3&nbsp;&nbsp;&nbsp;</td></tr>
+<tr><td>G1</td><td bgcolor=#99FFCC><center>2</td><td bgcolor=#CCFFCC><center>3</td><td bgcolor=#99FFCC><center>0</td></tr>
+<tr><td>G2</td><td bgcolor=#99FFCC><center>3</td><td bgcolor=#CCFFCC><center>0</td><td bgcolor=#99FFCC><center>1</td></tr>
+<tr><td>G3</td><td bgcolor=#99FFCC><center>2</td><td bgcolor=#CCFFCC><center>-1</td><td bgcolor=#99FFCC><center>0</td></tr>
+<tr><td>G4</td><td bgcolor=#99FFCC><center>0</td><td bgcolor=#CCFFCC><center>0</td><td bgcolor=#99FFCC><center>5</td></tr>
+</table>
+</center>
+
+<p>
+Positive integers represent upregulation and negative integers represent downregulation.  Higher positive number represent greater differential expression <i>however they are not meant to represent actual fold-change</i>.  A zero means there was insufficient evidence to make a differential expression call at the desired confidence level.  The difference between levels 1,2,3,... of upregulation, and -1,-2,-3,... of downregulation, will be explained below.
+
+<p>
+The statistical confidence measures used in PaGE are False Discovery Rate (FDR) type measures.  Therefore what is controlled is the percentage of false predictions in the set of all predictions.  The FDR approach is widely accepted as being the most appropriate for gene expression analysis.   
+
+<p>
+Note that an FDR is fundamentally different from a p-value.  It is not unreasonable to use an FDR of .5, while a p-value of .5 would be unreasonable.  For example, if there are 10,000 elements on an array and only 100 are differentially expressed, then it will be virtually impossible to find them by PCR verification.  However, if we can find a set of 200 genes with FDR of .5 then one out of every two genes in this set will verify.  
+
+<p>
+PaGE works with the "confidence" rather than the FDR.  The confidence equals 1 - FDR.  A confidence of .99, or even .95, is often higher than necessary and many genes will be missed.  Usually you will want to choose the confidence based on the size of the result set.  Therefore PaGE allows you to set this parameter after the confidences have been calculated.  In this case the program displays a summary of the number of genes found over a range of confidences.
+
+<p>
+Unfortunately microarray analysis is not a push-button exercise, every data set is unique and requires special considerations.  Differential expression analysis is best performed interactively with an algorithm flexible enough to allow looking at the data from different angles.  See the <a href="PaGE_documentation_technical_manual.pdf">the technical manual</a> for a more detailed discussion of this.
+
+<p>
+Microarray data come in many formats and there are many ways to design a microarray experiment when looking for differential expression.  Therefore there are numerous options in PaGE required to tell it exactly what kind of data and study you are entering. 
+
+<h2>
+<a name="inputdata">
+Input Data
+</h2>
+
+<h3>
+<a name="studydesign">
+Study Design
+</h3>
+
+<p>
+PaGE takes as input microarray data from two or more conditions.  There must be at least two replicates per condition.  Possible designs are:
+
+<ul>
+<li> One channel data:
+<ul>
+<li> Several replicates of each of two or more conditions.
+<li> Note: Affymetrix data is considered one-channel data.
+</ul>
+<li> Two channel data with:
+<ul>
+<li> <b>Direct Comparison Design</b>  One condition in one channel and the other condition in the other channel, and the data consist of ratios of the two channels.  
+<li> <b>Reference Design</b> Two or more conditions in one channel and an identical common reference used in the other channel for every array.  The data consist of ratios of the experimental channel to the reference channel.
+</ul>
+</ul>
+
+<h3>
+<a name="dataformat">
+Data and File Format
+</h3>
+
+<ul>
+<li>Data may be input either logged or unlogged - unless of course the raw data contain negative intensities (which is possible with Affymetrix data). 
+<li> Data is usually normalized, so that normalized intensities, or ratios, might be input.  PaGE does not do any normalization and assumes this has been done prior.
+<li> Data must be in a tab delimited file, with rows representing genes (array elements) and columns representing arrays, except the first column which gives the ID's (ID's must be unique and not contain tabs).  
+<li> The header of condition i, replicate j must be the string "cirj".  The "c" stands for "condition" and the "r" for replicate.
+<ul>
+<li> For example if there are three conditions, with 3, 3, and 2 replicates respectively, then the header is:<br>
+<pre>
+id	c0r1	c0r2	c0r3	c1r1	c1r2	c1r3	c2r1	c2r2
+</pre>
+<li> The header is case insensitive.
+<li> The columns can appear in any order.
+<li> To ignore a column use the header string "I" (for "ignore), or use the empty string.
+<li> <a href="files/datafile_examples.html">See example data file headers</a>.
+</ul>
+</ul>
+
+<h2>
+<a name="runningpage">
+Running PaGE
+</h2>
+PaGE is invoked on the command line with the command 
+<pre>
+> perl PaGE_5.1.6.pl
+</pre>
+<p>
+It is not necessary to specify any on the command line, they will be requested while the program is running, however if you want to include descriptions and links in the output, files mapping ID's to descriptions and ID's to URL's must be specified on the command line. 
+<h3>Including gene information and links in the output</h3>
+<ul>
+<li>The description file must be tab delimited with each line consisting of an ID, a tab, and a description.
+<li>The URL file must be tab delimited with each line consisting of an ID, a tab, and a URL.
+<li>These are specified on the command line using the commands --id2info and --id2url. For example if the files are my_info and my_urls, then invoke PaGE with the command:
+<pre>
+perl PaGE_5.1.6.pl --id2info my_info --id2url my_urls
+</pre>
+</ul>
+<h3>
+PaGE options and parameters
+</h3>
+<p>When you run PaGE, you will be asked for all of the necessary options and parameters.  If you are running PaGE repeatedly with many of the same options or parameters then you may want to specify them on the command line to avoid having to answer the same questions over and over.
+<p>
+Use the --help option to get <a href="PaGE_5.1_documentation_commandssummary.html">a brief summary of the commands</a>.  
+<pre>
+> perl PaGE_5.1.6.pl --help
+</pre>
+<center>
+<table border cellpadding=5>
+<tr><td bgcolor=beige>
+<b>NOTE:</b> The most important parameter to adjust is the level confidence.
+Every dataset is particular, so 
+it is difficult to guess ahead of time what will be the best level confidence.  
+Therefore PaGE allows you to set this parameter <b><i>after</i></b> the confidences have been calculated 
+and the program displays a summary of the number of genes found over a range of confidences. 
+<p>
+The confidence is very different from a <i>p</i>-value, so that even a confidence as low as .5 might
+be useful if there are very few genes differentially expressed, or if the data are very noisy.
+
+<p>Conversely, if there is a large number of differentially expressed
+genes, then the user may want to set the the level
+confidence higher to see just the most confident predictions.  
+In such a case one might raise the level confidence as high as .95, or even .99.
+</td>
+</tr>
+</table>
+</center>
+
+
+
+
+<p>
+PaGE commands break into five categories.  
+<br>&nbsp;<br>
+<a name="commands">
+<font color=red size=+1><b>Click on command for detailed information.</b></font>
+<ul>
+<DIV CLASS="nounderline">
+<li>Formatting and file locations
+<tt>
+<ul>
+<li><a href="commandinfo_files/commandinfo_infile.html">--infile</a>
+<li><a href="commandinfo_files/commandinfo_outfile.html">--outfile</a>
+<li><a href="commandinfo_files/commandinfo_id2info.html">--id2info</a>
+<li><a href="commandinfo_files/commandinfo_id2url.html">--id2url</a>
+<li><a href="commandinfo_files/commandinfo_id_filter_file.html">--id_filter_file</a>
+</ul>
+</tt>
+<li>Output Options
+<tt>
+<ul>
+<li><a href="commandinfo_files/commandinfo_output_gene_confidence_list.html">--output_gene_confidence_list</a>
+<li><a href="commandinfo_files/commandinfo_output_text.html">--output_text</a>
+<li><a href="commandinfo_files/commandinfo_note.html">--note</a>
+<li><a href="commandinfo_files/commandinfo_aux_page_size.html">--aux_page_size</a>
+</ul>
+</tt>
+<li>Study Design and Nature of the Input Data
+<tt>
+<ul>
+<li><a href="commandinfo_files/commandinfo_num_channels.html">--num_channels</a>
+<li><a href="commandinfo_files/commandinfo_design.html">--design</a>
+<li><a href="commandinfo_files/commandinfo_data_is_logged.html">--data_is_logged</a>
+<li><a href="commandinfo_files/commandinfo_data_not_logged.html">--data_not_logged</a>
+<li><a href="commandinfo_files/commandinfo_paired.html">--paired</a>
+<li><a href="commandinfo_files/commandinfo_unpaired.html">--unpaired</a>
+<li><a href="commandinfo_files/commandinfo_missing_value.html">--missing_value</a>
+</tt>
+</ul>
+<li>Statistics and Parameter Settings
+<tt>
+<ul>
+<li><a href="commandinfo_files/commandinfo_level_confidence.html">--level_confidence</a>
+<li><a href="commandinfo_files/commandinfo_level_confidence_list.html">--level_confidence_list</a>
+<li><a href="commandinfo_files/commandinfo_min_presence.html">--min_presence</a>
+<li><a href="commandinfo_files/commandinfo_min_presence_list.html">--min_presence_list</a>
+<li><a href="commandinfo_files/commandinfo_use_logged_data.html">--use_logged_data</a>
+<li><a href="commandinfo_files/commandinfo_use_unlogged_data.html">--use_unlogged_data</a>
+<li><a href="commandinfo_files/commandinfo_tstat.html">--tstat</a>
+<li><a href="commandinfo_files/commandinfo_means.html">--means</a>
+<li><a href="commandinfo_files/commandinfo_tstat_tuning_parameter.html">--tstat_tuning_parameter</a>
+<li><a href="commandinfo_files/commandinfo_shift.html">--shift</a> 
+</ul>
+</tt>
+<li>Configuration
+<tt>
+<ul>
+<li><a href="commandinfo_files/commandinfo_silent_mode.html">--silent_mode</a>
+<li><a href="commandinfo_files/commandinfo_num_permutations.html">--num_permutations</a>
+<li><a href="commandinfo_files/commandinfo_num_bins.html">--num_bins</a>
+</tt>
+</ul>
+</ul>
+</DIV>
+
+<a name="examples">
+<h2>Examples</h2>
+<ul>
+<li><a href="files/example1.html">Simulated data examples</a> two condition and four condition examples</a>
+</ul>
+
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+&nbsp;<br>
+
+
+
+
+
+</body>
+</html>
+
+

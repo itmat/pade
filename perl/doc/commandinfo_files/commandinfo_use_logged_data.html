@@ -1,0 +1,38 @@
+<html>
+<head>
+<STYLE TYPE="text/css">
+<!--
+.nounderline A {text-decoration:none}
+-->
+</STYLE>
+<title>PaGE_5.1 Documentation - the --use_logged_data command</title>
+</head>
+<body>
+<h2>PaGE_5.1 Documentation - the <tt>--use_logged_data</tt> command</h2>
+<p>
+
+<p>
+When using the <i>t</i>-statistic you can apply it either to the unlogged data, or to the logged data.  This is true regardless of number of channels or the design.  If it is 2-channel data then the algorithm assumes the log ratios are input (what are normally called the "M values").  
+<p>
+Use this command to indicate you want to run on the logged data.
+<p>
+This command takes no arguments
+<p>
+<DIV CLASS="nounderline">
+<b>Note 1</b>: Using the logged versus the unlogged data can make a difference to the results.  Unfortunately there is no general indication of which is preferrable, and in fact each might find genes the other does not (see <a href="../PaGE_documentation_technical_manual.pdf">the technical manual</a> for examples).  So this is a parameter that you might want to try both ways and see which gives more satisfactory results.  Note that the results are valid in either case, what can be affected is the power of the test.
+<p>
+<b>Note 2</b>: If you use this argument and your input data is unlogged, but contains non-positive values, then the program will complain.  You can proceed only if you shift the data to be all positive, and the program will suggest a moderate shift to accomplish this.  
+<ul>
+<li> Shifting data, however, has subtle consequences to the results, so should be done with care.
+<li> The only kind of data we are aware of that currently produces unlogged negative intensities is that output for Affymetrix arrays by Probe Profiler, or from any of the Affymetrix MAS 4.0 algorithms or earlier.
+</ul>
+<h3>Example: 
+</h3>
+<pre>
+> perl PaGE_5.1.6.pl --use_logged_data
+</pre>
+</dif>
+
+
+</body>
+</html>
