@@ -404,7 +404,6 @@ def dostuff(data):
 #    for line in config.infile:
 #        row = line.split("\t")
 #        print row
-        
 
 if __name__ == 'main':
     main()
