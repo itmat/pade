@@ -356,9 +356,38 @@ def unpermuted_means(data):
     return res
 
 def compute_s(v1, v2, mp1, mp2):
-    sd1 = std(v1)
-    sd2 = std(v2)
-    return sqrt((sd1 ** 2 * len(v1) + sd2 ** 2 * len(v2)) / (len(v1) + len(v2)))
+    sd1 = std(v1, ddof=1)
+    sd2 = std(v2, ddof=1)
+    return sqrt((sd1 ** 2 * (len(v1) - 1) +
+                 sd2 ** 2 * (len(v2) - 1)) / (len(v1) + len(v2) - 2))
+
+def find_default_alpha(data):
+
+    baseline_cols = data.replicates(0)
+    baseline_data = data.table[:,baseline_cols]
+
+    alphas = empty(data.num_conditions() - 1)
+
+    for c in range(1, data.num_conditions()):
+        cols = data.replicates(c)
+        condition_data = data.table[:,cols]
+        
+        values = array([compute_s(condition_data[i],
+                            baseline_data[i],
+                            None,
+                            None) for i in range(len(condition_data))])
+
+        the_mean = mean(values)
+
+        lt_mean = values[values < the_mean]
+        residuals = lt_mean - the_mean
+
+        sd = sqrt(sum(residuals ** 2) / (len(residuals) - 1))
+        print "mean is %f, sd is %f, num is %d" % (the_mean, sd, len(lt_mean))
+
+        alphas[c-1] = the_mean * 2 / sqrt(len(cols) + len(baseline_cols))
+
+    return alphas
 
 def dostuff(data):
     means = unpermuted_means(data)
@@ -373,4 +402,5 @@ def dostuff(data):
 #        print row
         
 
-main()
+if __name__ == 'main':
+    main()
