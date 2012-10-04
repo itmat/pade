@@ -1,7 +1,9 @@
 import argparse
 import re
-from numpy import *
 import numpy as np
+import itertools 
+from numpy import *
+
 from scipy.misc import comb
 
 stat_tstat = 0
@@ -403,7 +405,7 @@ def find_default_alpha(data):
 def dostuff(data):
     means = unpermuted_means(data)
 
-tuning_param_range_vales = [
+tuning_param_range_values = [
     0.0001,
     0.01,
     0.1,
@@ -419,8 +421,12 @@ tuning_param_range_vales = [
 
 def v_tstat(v1, v2, tstat_tuning_param_default, axis=0):
     """
-    Computes the t-statistic for the two vectors. v1 and v2 are both
-    1-d arrays.
+    Computes the t-statistic for two 2-D arrays. v1 is an m x n1 array
+    and v2 is an m x n2 array, where m is the number of features, n1
+    is the number of replicates in the condition represented by v1,
+    and n2 is the number of conditions for v2. Returns an (m x p)
+    array, where m again is the number of features, and p is the
+    number of values in the tuning_param_range_values array.
     """
 
     sd1 = std(v1, ddof=1, axis=axis)
@@ -431,15 +437,32 @@ def v_tstat(v1, v2, tstat_tuning_param_default, axis=0):
 
     S = sqrt((sd1**2*(len1-1) + sd2**2*(len2-1))/(len1 + len2 - 2))
 
-    result = np.zeros((len(v1), len(tuning_param_range_vales)))
+    result = np.zeros((len(v1), len(tuning_param_range_values)))
     numer  = (mean(v1, axis=axis) - mean(v2, axis=axis)) * sqrt(len1 * len2)
     denom  = tstat_tuning_param_default * sqrt(len1 + len2)
 
-    for i in range(0, len(tuning_param_range_vales)):
-        x = tuning_param_range_vales[i]
+    for i in range(0, len(tuning_param_range_values)):
+        x = tuning_param_range_values[i]
         rhs = numer / ((x * tstat_tuning_param_default + S) * sqrt(len1 + len2))
         result[:,i] = rhs
 
+    return result
+
+def all_subsets(n, k):
+
+    """
+    Return a 2-D 
+    """
+
+    indexes = arange(n)
+    m = comb(n, k)
+    result = zeros((m, n))
+
+    i = 0
+    for subset in itertools.combinations(indexes, k):
+        for j in subset:
+            result[i,j] = 1
+        i += 1
     return result
 
 def min_max_stat(data, default_alphas):
@@ -447,7 +470,7 @@ def min_max_stat(data, default_alphas):
     m = len(data.row_ids)
     n = data.num_conditions()
 
-    table = zeros((m, len(tuning_param_range_vales), n))
+    table = zeros((m, len(tuning_param_range_values), n))
 
     for j in range(1, n):
         table[:,:,j] = v_tstat(data.table[:,data.replicates(j)],

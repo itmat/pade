@@ -99,6 +99,10 @@ class PageTest(unittest.TestCase):
         self.assertTrue(all(abs(mins  - e_mins)  < 0.00001))
         self.assertTrue(all(abs(maxes - e_maxes) < 0.00001))
 
+
+    def test_all_subsets(self):
+        print page.all_subsets(8, 4)
+
 unittest.main()
 
 2.71876197315371
