@@ -3,6 +3,10 @@ import re
 from numpy import *
 from scipy.misc import comb
 
+stat_tstat = 0
+stat_means = 1
+stat_medians = 2
+
 class Config:
     def __init__(self, args):
         self.num_channels = None
@@ -398,13 +402,34 @@ def find_default_alpha(data):
 def dostuff(data):
     means = unpermuted_means(data)
 
-#    print res
-#    print len(mean(res, axis=1))
-#    print "%d conditions and %d features" % (num_conditions, num_features)
-#    for line in config.infile:
-#        row = line.split("\t")
-#        print row
-        
+def v_tstat(v1, v2, tstat_tuning_param_default):
+    tuning_param_range_vales = [
+        0.0001,
+        0.01,
+        0.1,
+        0.3,
+        0.5,
+        1,
+        1.5,
+        2,
+        3,
+        10,
+        ]
+    
+    sd1 = std(v1, ddof=1)
+    sd2 = std(v2, ddof=1)
+    S = sqrt((sd1**2*(len(v1)-1) + sd2**2*(len(v2)-1))/(len(v1) + len(v2) - 2))
+
+    print "SDs are %f, %f. S is %f" % (sd1, sd2, S)
+
+    result = []
+
+    numer  = (mean(v1) - mean(v2)) * sqrt(len(v1) * len(v2))
+    denom  = tstat_tuning_param_default * sqrt(len(v1) + len(v2))
+    return [numer / 
+            ((x * tstat_tuning_param_default + S) * sqrt(len(v1) + len(v2)))
+            for x in tuning_param_range_vales]
+
 
 if __name__ == 'main':
     main()
