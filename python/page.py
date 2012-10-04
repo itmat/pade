@@ -394,7 +394,7 @@ def find_default_alpha(data):
         residuals = lt_mean - the_mean
 
         sd = sqrt(sum(residuals ** 2) / (len(residuals) - 1))
-        print "mean is %f, sd is %f, num is %d" % (the_mean, sd, len(lt_mean))
+#        print "mean is %f, sd is %f, num is %d" % (the_mean, sd, len(lt_mean))
 
         alphas[c] = the_mean * 2 / sqrt(len(cols) + len(baseline_cols))
 
@@ -417,23 +417,30 @@ tuning_param_range_vales = [
     ]
 
 
-def v_tstat(v1, v2, tstat_tuning_param_default):
+def v_tstat(v1, v2, tstat_tuning_param_default, axis=0):
     """
     Computes the t-statistic for the two vectors. v1 and v2 are both
     1-d arrays.
     """
-    
-    sd1 = std(v1, ddof=1)
-    sd2 = std(v2, ddof=1)
-    S = sqrt((sd1**2*(len(v1)-1) + sd2**2*(len(v2)-1))/(len(v1) + len(v2) - 2))
 
-    result = []
+    sd1 = std(v1, ddof=1, axis=axis)
+    sd2 = std(v2, ddof=1, axis=axis)
 
-    numer  = (mean(v1) - mean(v2)) * sqrt(len(v1) * len(v2))
-    denom  = tstat_tuning_param_default * sqrt(len(v1) + len(v2))
-    return [numer / 
-            ((x * tstat_tuning_param_default + S) * sqrt(len(v1) + len(v2)))
-            for x in tuning_param_range_vales]
+    len1 = np.array([len(row) for row in v1])
+    len2 = np.array([len(row) for row in v2])
+
+    S = sqrt((sd1**2*(len1-1) + sd2**2*(len2-1))/(len1 + len2 - 2))
+
+    result = np.zeros((len(v1), len(tuning_param_range_vales)))
+    numer  = (mean(v1, axis=axis) - mean(v2, axis=axis)) * sqrt(len1 * len2)
+    denom  = tstat_tuning_param_default * sqrt(len1 + len2)
+
+    for i in range(0, len(tuning_param_range_vales)):
+        x = tuning_param_range_vales[i]
+        rhs = numer / ((x * tstat_tuning_param_default + S) * sqrt(len1 + len2))
+        result[:,i] = rhs
+
+    return result
 
 def min_max_stat(data, default_alphas):
     
@@ -442,19 +449,15 @@ def min_max_stat(data, default_alphas):
 
     table = zeros((m, len(tuning_param_range_vales), n))
 
-    print "Alphas are " + str(default_alphas)
-
-    for i in range(0, m):
-        for j in range(1, n):
-            table[i,:,j] = v_tstat(data.table[i,data.replicates(j)],
-                                 data.table[i,data.replicates(0)],
-                                 default_alphas[j])
+    for j in range(1, n):
+        table[:,:,j] = v_tstat(data.table[:,data.replicates(j)],
+                               data.table[:,data.replicates(0)],
+                               default_alphas[j],
+                               axis=1)
 
     mins  = np.min(table, axis=0)
     maxes = np.max(table, axis=0)
     
-    print "Mins are " + str(mins)
-
     return (mins, maxes)
 
 if __name__ == 'main':
