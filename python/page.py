@@ -33,6 +33,7 @@ class Input:
         self.table      = ma.masked_array(table, zeros(shape(table)))
 #        self.table      = table
         self.column_indices = {}
+        self.num_bins = 1000
 
         pat = re.compile("c(\d+)r(\d+)")
         columns = []
@@ -481,7 +482,12 @@ def init_perms(data):
     return perms
 
 def min_max_stat(data, default_alphas):
-    
+    """
+    Returns a tuple (mins, maxes) where both mins and maxes are (m x
+    n) matrices, m being the length of default_alphas, and n being the
+    number of conditions.
+    """
+
     m = len(data.row_ids)
     n = data.num_conditions()
 
@@ -492,10 +498,10 @@ def min_max_stat(data, default_alphas):
                                data.table[:,data.replicates(0)],
                                default_alphas[j],
                                axis=1)
-
+        
     mins  = np.min(table, axis=0)
     maxes = np.max(table, axis=0)
-    
+
     return (mins, maxes)
 
 def do_confidences_by_cutoff(data, default_alphas):
@@ -516,26 +522,55 @@ def do_confidences_by_cutoff(data, default_alphas):
         l = len(perms)
         m = len(data.row_ids)
         n = len(master_indexes)
-        
-        permuted_data = zeros((len(perms), len(data.row_ids), len(master_indexes)))
+        n2 = len(tuning_param_range_values)
+
+        permuted_data = zeros((l, m, n))
         print shape(permuted_data)
 
         permuted_indexes = zeros((l, n), dtype=int)
 
+        stats = zeros((l, m, n2))
+
+        print "  Permuting indexes"
         for perm_num, perm in enumerate(perms):
             permuted_indexes[perm_num,0:base_len] = master_indexes[perm]
             permuted_indexes[perm_num,base_len:]  = master_indexes[~perm]
 
+        print "  Permuting data"
         for perm_num, perm in enumerate(perms):
             permuted_data[perm_num, :] = data.table[:, permuted_indexes[perm_num]]
-            
 
+        print "  Getting stats"
         for perm_num, perm in enumerate(perms):
             v1 = permuted_data[perm_num, : , : base_len]
             v2 = permuted_data[perm_num, : , base_len :]
-            stats = v_tstat(v2, v1, default_alphas[c], axis=1)
-            
+            stats[perm_num, : ] = v_tstat(v2, v1, default_alphas[c], axis=1)
 
+        (mins, maxes) = min_max_stat(data, default_alphas)
+
+        up   = np.zeros((l, n2, data.num_bins + 1), int)
+        down = np.zeros((l, n2, data.num_bins + 1), int)
+
+        print "  Counting up- and down-regulated features"
+        for perm_num, perm in enumerate(perms):
+            print "    %d of %d" % (perm_num , l)
+            for rowid in range(len(data.row_ids)):
+
+                for i in range(len(tuning_param_range_values)):
+                    val = stats[perm_num, rowid, i]
+                        
+                    if val >= 0:
+                        scale = min(val / maxes[i, c], 1)
+                        up[perm_num, i, data.num_bins * scale] += 1
+                        down[perm_num, i, 0] += 1
+                    if val <= 0:
+                        scale = min(val / mins[i, c], 1)
+                        down[perm_num, i, data.num_bins * scale] += 1
+                        up[perm_num, i, 0] += 1
+
+        for j in range(n2):
+            for i in range(data.num_bins + 1):
+                print "temp_up_vect[%d][%d] = %d", (j, i, up[0, j, i])
 
         print permuted_data[0, 0]
 
