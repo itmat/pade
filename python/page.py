@@ -301,7 +301,8 @@ def main():
     args = parser.parse_args()
     config = validate_args(args)
     data = load_input(config)
-    dostuff(data)
+    alphas = find_default_alpha(data)
+    do_confidences_by_cutoff(data, alphas)
     print config
 
 def validate_args(args):
@@ -402,8 +403,6 @@ def find_default_alpha(data):
 
     return alphas
 
-def dostuff(data):
-    means = unpermuted_means(data)
 
 tuning_param_range_values = [
     0.0001,
@@ -451,19 +450,35 @@ def v_tstat(v1, v2, tstat_tuning_param_default, axis=0):
 def all_subsets(n, k):
 
     """
-    Return a 2-D 
+    
+    Return an (m x n) matrix where n is the size of the set, n is the
+    number of subsets of
     """
 
     indexes = arange(n)
     m = comb(n, k)
-    result = zeros((m, n))
+    result = zeros((m, n), dtype=bool)
 
     i = 0
-    for subset in itertools.combinations(indexes, k):
+
+    for i, subset in enumerate(itertools.combinations(indexes, k)):
         for j in subset:
-            result[i,j] = 1
-        i += 1
+            result[i,j] = True
+
     return result
+
+def init_perms(data):
+    perms = [None]
+
+    baseline_len = len(data.replicates(0))
+
+    for c in range(1, data.num_conditions()):
+        this_len = len(data.replicates(c))
+        n = baseline_len + this_len
+        k = min(baseline_len, this_len)
+        perms.append(all_subsets(n, k))
+
+    return perms
 
 def min_max_stat(data, default_alphas):
     
@@ -483,5 +498,47 @@ def min_max_stat(data, default_alphas):
     
     return (mins, maxes)
 
-if __name__ == 'main':
+def do_confidences_by_cutoff(data, default_alphas):
+    all_perms = init_perms(data)
+
+    base_len = len(data.replicates(0))
+    for c in range(1, data.num_conditions()):
+        print 'Working on condition %d of %d' % (c, data.num_conditions() - 1)
+        perms = all_perms[c]
+
+        # This is the list of all indexes into data.table for
+        # replicates of condition 0 and condition c.
+        master_indexes = []
+        master_indexes.extend(data.replicates(0))
+        master_indexes.extend(data.replicates(c))
+        master_indexes = array(master_indexes)
+
+        l = len(perms)
+        m = len(data.row_ids)
+        n = len(master_indexes)
+        
+        permuted_data = zeros((len(perms), len(data.row_ids), len(master_indexes)))
+        print shape(permuted_data)
+
+        permuted_indexes = zeros((l, n), dtype=int)
+
+        for perm_num, perm in enumerate(perms):
+            permuted_indexes[perm_num,0:base_len] = master_indexes[perm]
+            permuted_indexes[perm_num,base_len:]  = master_indexes[~perm]
+
+        for perm_num, perm in enumerate(perms):
+            permuted_data[perm_num, :] = data.table[:, permuted_indexes[perm_num]]
+            
+
+        for perm_num, perm in enumerate(perms):
+            v1 = permuted_data[perm_num, : , : base_len]
+            v2 = permuted_data[perm_num, : , base_len :]
+            stats = v_tstat(v2, v1, default_alphas[c], axis=1)
+            
+
+
+        print permuted_data[0, 0]
+
+if __name__ == '__main__':
+    print "In here"
     main()

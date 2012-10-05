@@ -101,7 +101,13 @@ class PageTest(unittest.TestCase):
 
 
     def test_all_subsets(self):
-        print page.all_subsets(8, 4)
+        subsets = page.all_subsets(8, 4)
+        # There should be 70 rows and 8 columns
+        self.assertEquals(shape(subsets), (70, 4))
+        # There should be 4 1s and 4 0s in each row
+#        self.assertTrue(all(sum(subsets, axis=1) == 4))
+
+
 
 unittest.main()
 
