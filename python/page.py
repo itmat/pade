@@ -1,7 +1,12 @@
 import argparse
 import re
 from numpy import *
+import numpy as np
 from scipy.misc import comb
+
+stat_tstat = 0
+stat_means = 1
+stat_medians = 2
 
 class Config:
     def __init__(self, args):
@@ -375,7 +380,7 @@ def find_default_alpha(data):
     baseline_cols = data.replicates(0)
     baseline_data = data.table[:,baseline_cols]
 
-    alphas = empty(data.num_conditions() - 1)
+    alphas = zeros(data.num_conditions())
 
     for c in range(1, data.num_conditions()):
         cols = data.replicates(c)
@@ -391,19 +396,66 @@ def find_default_alpha(data):
         sd = sqrt(sum(residuals ** 2) / (len(residuals) - 1))
         print "mean is %f, sd is %f, num is %d" % (the_mean, sd, len(lt_mean))
 
-        alphas[c-1] = the_mean * 2 / sqrt(len(cols) + len(baseline_cols))
+        alphas[c] = the_mean * 2 / sqrt(len(cols) + len(baseline_cols))
 
     return alphas
 
 def dostuff(data):
     means = unpermuted_means(data)
 
-#    print res
-#    print len(mean(res, axis=1))
-#    print "%d conditions and %d features" % (num_conditions, num_features)
-#    for line in config.infile:
-#        row = line.split("\t")
-#        print row
+tuning_param_range_vales = [
+    0.0001,
+    0.01,
+    0.1,
+    0.3,
+    0.5,
+    1,
+    1.5,
+    2,
+    3,
+    10,
+    ]
+
+
+def v_tstat(v1, v2, tstat_tuning_param_default):
+    """
+    Computes the t-statistic for the two vectors. v1 and v2 are both
+    1-d arrays.
+    """
+    
+    sd1 = std(v1, ddof=1)
+    sd2 = std(v2, ddof=1)
+    S = sqrt((sd1**2*(len(v1)-1) + sd2**2*(len(v2)-1))/(len(v1) + len(v2) - 2))
+
+    result = []
+
+    numer  = (mean(v1) - mean(v2)) * sqrt(len(v1) * len(v2))
+    denom  = tstat_tuning_param_default * sqrt(len(v1) + len(v2))
+    return [numer / 
+            ((x * tstat_tuning_param_default + S) * sqrt(len(v1) + len(v2)))
+            for x in tuning_param_range_vales]
+
+def min_max_stat(data, default_alphas):
+    
+    m = len(data.row_ids)
+    n = data.num_conditions()
+
+    table = zeros((m, len(tuning_param_range_vales), n))
+
+    print "Alphas are " + str(default_alphas)
+
+    for i in range(0, m):
+        for j in range(1, n):
+            table[i,:,j] = v_tstat(data.table[i,data.replicates(j)],
+                                 data.table[i,data.replicates(0)],
+                                 default_alphas[j])
+
+    mins  = np.min(table, axis=0)
+    maxes = np.max(table, axis=0)
+    
+    print "Mins are " + str(mins)
+
+    return (mins, maxes)
 
 if __name__ == 'main':
     main()
