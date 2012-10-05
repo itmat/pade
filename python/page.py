@@ -551,7 +551,11 @@ def do_confidences_by_cutoff(data, default_alphas):
         up   = np.zeros((l, n2, data.num_bins + 1), int)
         down = np.zeros((l, n2, data.num_bins + 1), int)
 
+
         print "  Counting up- and down-regulated features"
+        print "  up bins for %d and %f are " % (data.num_bins, maxes[0, 1])
+        print get_bins(data.num_bins, maxes[0, 1])
+
         for perm_num, perm in enumerate(perms):
             print "    %d of %d" % (perm_num , l)
             for rowid in range(len(data.row_ids)):
@@ -568,11 +572,111 @@ def do_confidences_by_cutoff(data, default_alphas):
                         down[perm_num, i, data.num_bins * scale] += 1
                         up[perm_num, i, 0] += 1
 
-        for j in range(n2):
-            for i in range(data.num_bins + 1):
-                print "temp_up_vect[%d][%d] = %d", (j, i, up[0, j, i])
+        print "  Getting cumulative sums for bins"
+        num_unpooled_up_vect   = zeros((n2, data.num_conditions(), data.num_bins + 1), int)
+        num_unpooled_down_vect = zeros((n2, data.num_conditions(), data.num_bins + 1), int)
+        for perm_num, perm in enumerate(perms):
+            for j in range(n2):
+                for i in reversed(range(0, data.num_bins)):
+                    up  [perm_num, j, i] += up  [perm_num, j, i + 1]
+                    down[perm_num, j, i] += down[perm_num, j, i + 1]
 
-        print permuted_data[0, 0]
+                for i in range(data.num_bins + 1):
+                    num_unpooled_up_vect  [j, c, i] +=   up[perm_num, j, i]
+                    num_unpooled_down_vect[j, c, i] += down[perm_num, j, i]
+
+        mean_perm_up_vect   = num_unpooled_up_vect   / l
+        mean_perm_down_vect = num_unpooled_down_vect / l
+        
+        #for j in range(n2):
+        #    for i in range(data.num_bins + 1):
+        #        print "up[%d][%d] = %d" % (j, i, up[0, j, i])
+
+        #print permuted_data[0, 0]
+
+
+def dist_unpermuted_stats(data):
+    """
+    Returns a tuple of three items, (up, down, stats). up is an (l x m
+    x n) array where l is the number of tuning parameters, m is the
+    number of conditions, and n is the number of bins. op[i,j,k] is
+    the number of features that would be reported upregulated in
+    condition i with tuning param j, in bin k. down is a similar array
+    for downregulated features. stats is an (m x l) matrix where m is
+    the number of features and l is the number of tuning parameters.
+    """
+
+    l = len(tuning_param_range_values)
+    m = data.num_conditions()
+    n = data.num_bins + 1
+
+
+    u = array((l, m, n), int)
+    d = array((l, m, n), int)
+
+    center = 0
+
+    for c in range(data.num_conditions()):
+        v1 = data.table[data.replicates[0], : ]
+        v2 = data.table[data.replicates[c], : ]
+        stats = v_tstat(v2, v1, tuning_param_range_values)
+        for i in range(len(data.row_ids)):
+            for j in range(len(tuning_param_range_values)):
+                val = stats[i, j]
+                if val >= center:
+                    bin_num = int(num_bins * (val - center) / (maxes[i][c] - center))
+                    u[j, c, bin_num] += 1
+                    d[j, c, 0]       += 1
+                if val <= center:
+                    bin_num = int(num_bins * (val - center) / (mins[i][c] - center))
+                    d[j, c, bin_num] += 1
+                    u[j, c, 0]       += 1
+
+    return (d, u, stats)
+
+def get_bins(n, maxval):
+    bins = [-inf]
+    step = maxval / n
+    bins.extend(arange(0, maxval, step))
+    bins.append(bins[-1] + step)
+    return bins
+
+
+def make_bins(stats, maxes, mins, num_bins):
+    """
+    stats is an (l x m) array where l is the number of features and m
+    is the number of tuning params.
+
+    Maxes and mins are both (m x n) matrix where m is the number of
+    tuning params and n is the number of conditions.
+
+    Returns an (m x n x num_bins) array where m is the number of
+    tuning params, n is the number of conditions, and num_bins is the
+    number of bins.
+    """
+    pass
+#    (l, m) = shape(stats)
+    
+#    (m2, n) = shape(maxes)
+
+#    res = zeros((m, n, num_bins))
+
+#    if m != m2: 
+#        raise Exception("Ms aren't equal")
+
+
+
+
+#    get_bins = [-inf, arange
+
+#    for c in range(n): # Conditions
+#        for i in range(l): # Features
+#            for j in range(m): # Tuning params
+#                val = stats[i, j]
+#                if val >= center:
+#                    bin_num = int(num_bins * (val - center) / (maxes[j, c] - center))
+#                    u[j, c, bin_num] += 1
+    
 
 if __name__ == '__main__':
     print "In here"
