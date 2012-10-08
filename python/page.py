@@ -504,6 +504,11 @@ def min_max_stat(data, default_alphas):
 
     return (mins, maxes)
 
+def dimsum(a, axis):
+    res = cumsum(a[:,:,::-1], axis=axis)[:,:,::-1]
+    print "Res is " + str(shape(res))
+    return res
+
 def do_confidences_by_cutoff(data, default_alphas):
     all_perms = init_perms(data)
 
@@ -560,7 +565,7 @@ def do_confidences_by_cutoff(data, default_alphas):
                 down_bins = get_bins(data.num_bins, -mins[i, c])
                 vals      = stats[perm_num, :, i]
                 (u_hist, u_edges) = histogram(vals, bins=up_bins)
-                (d_hist, d_edges) = histogram(vals, bins=down_bins)
+                (d_hist, d_edges) = histogram(-vals, bins=down_bins)
                 up  [perm_num, i] = u_hist
                 down[perm_num, i] = d_hist
 
@@ -572,22 +577,25 @@ def do_confidences_by_cutoff(data, default_alphas):
         # Bins 1 through 999 are for features that were upregulated
         # Bin 1000 is for any features that were upregulated above the max from the unmpermuted data (max, inf)
 
-        for perm_num, perm in enumerate(perms):
+        up   = dimsum(up, axis=2)
+        down = dimsum(down, axis=2)
+
+        for i in range(l):
             for j in range(n2):
-#                for k in range(len(up[perm_num, j])):
-#                    print "up[%d][%d] = %d" % (j, k, up[perm_num, j, k])
-#                up[perm_num, j]   = cumsum(up[perm_num, j][::-1])[::-1]
-#                down[perm_num, j] = cumsum(down[perm_num, j][::-1])[::-1]
+                for k in range(data.num_bins + 1):
+                    print "up[%d][%d][%d] = %f" % (i, j, k, up[i, j, k])
 
+        for perm_num, perm in enumerate(perms):
+            for j, param in enumerate(tuning_param_range_values):
+                num_unpooled_up_vect[j, c]   += up[perm_num, j]
+                num_unpooled_down_vect[j, c] += down[perm_num, j]
 
-#                num_unpooled_down_vect[j, c] += up[perm_num, j]
-
-                for i in range(data.num_bins + 1):
-                    num_unpooled_up_vect  [j, c, i] +=   up[perm_num, j, i]
-                    num_unpooled_down_vect[j, c, i] += down[perm_num, j, i]
+        print "Up is " + str(up)
 
         mean_perm_up_vect   = num_unpooled_up_vect   / float(l)
         mean_perm_down_vect = num_unpooled_down_vect / float(l)
+
+    (num_unperm_up, num_unperm_down, unperm_stats) = dist_unpermuted_stats(data, mins, maxes, default_alphas)
 
 #        for j in range(len(tuning_param_range_values)):
 #            for i in range(data.num_bins + 1):
@@ -602,7 +610,7 @@ def do_confidences_by_cutoff(data, default_alphas):
         #print permuted_data[0, 0]
 
 
-def dist_unpermuted_stats(data):
+def dist_unpermuted_stats(data, mins, maxes, default_alphas):
     """
     Returns a tuple of three items, (up, down, stats). up is an (l x m
     x n) array where l is the number of tuning parameters, m is the
@@ -617,27 +625,33 @@ def dist_unpermuted_stats(data):
     m = data.num_conditions()
     n = data.num_bins + 1
 
-
-    u = array((l, m, n), int)
-    d = array((l, m, n), int)
+    u = zeros((l, m, n), dtype=int)
+    d = zeros((l, m, n), dtype=int)
 
     center = 0
 
-    for c in range(data.num_conditions()):
-        v1 = data.table[data.replicates[0], : ]
-        v2 = data.table[data.replicates[c], : ]
-        stats = v_tstat(v2, v1, tuning_param_range_values)
-        for i in range(len(data.row_ids)):
-            for j in range(len(tuning_param_range_values)):
-                val = stats[i, j]
-                if val >= center:
-                    bin_num = int(num_bins * (val - center) / (maxes[i][c] - center))
-                    u[j, c, bin_num] += 1
-                    d[j, c, 0]       += 1
-                if val <= center:
-                    bin_num = int(num_bins * (val - center) / (mins[i][c] - center))
-                    d[j, c, bin_num] += 1
-                    u[j, c, 0]       += 1
+    stats = np.zeros((l, len(data.table), m, l))
+    
+    print "Mins are " + str(shape(mins)) + " and maxes are " + str(shape(maxes))
+
+    for c in range(1, data.num_conditions()):
+        v1 = data.table[:, data.replicates(0)]
+        v2 = data.table[:, data.replicates(c)]
+        print "V1 is " + str(shape(v1))
+        print "V2 is " + str(shape(v2))
+        these = v_tstat(v2, v1, default_alphas[c], axis=1)
+        print "These are " + str(shape(these))
+        stats[:, :, c]  = these
+
+        for j in range(l):
+            u_bins = get_bins(data.num_bins, maxes[j, c])
+            d_bins = get_bins(data.num_bins, -mins[j, c])
+            u_vals = stats[j, :, c]
+            d_vals = - stats[j, :, c]
+            (u_hist, u_edges) = histogram(u_vals, u_bins)
+            (d_hist, d_edges) = histogram(d_vals, d_bins)
+            d[j, c, :] = d_hist
+            u[j, c, :] = u_hist
 
     return (d, u, stats)
 
