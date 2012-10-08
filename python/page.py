@@ -551,46 +551,53 @@ def do_confidences_by_cutoff(data, default_alphas):
         up   = np.zeros((l, n2, data.num_bins + 1), int)
         down = np.zeros((l, n2, data.num_bins + 1), int)
 
-
         print "  Counting up- and down-regulated features"
-        print "  up bins for %d and %f are " % (data.num_bins, maxes[0, 1])
-        print get_bins(data.num_bins, maxes[0, 1])
 
+        print "Getting perms"
         for perm_num, perm in enumerate(perms):
-            print "    %d of %d" % (perm_num , l)
-            for rowid in range(len(data.row_ids)):
+            for i in range(len(tuning_param_range_values)):
+                up_bins   = get_bins(data.num_bins, maxes[i, c])
+                down_bins = get_bins(data.num_bins, -mins[i, c])
+                vals      = stats[perm_num, :, i]
+                (u_hist, u_edges) = histogram(vals, bins=up_bins)
+                (d_hist, d_edges) = histogram(vals, bins=down_bins)
+                up  [perm_num, i] = u_hist
+                down[perm_num, i] = d_hist
 
-                for i in range(len(tuning_param_range_values)):
-                    val = stats[perm_num, rowid, i]
-                        
-                    if val >= 0:
-                        scale = min(val / maxes[i, c], 1)
-                        up[perm_num, i, data.num_bins * scale] += 1
-                        down[perm_num, i, 0] += 1
-                    if val <= 0:
-                        scale = min(val / mins[i, c], 1)
-                        down[perm_num, i, data.num_bins * scale] += 1
-                        up[perm_num, i, 0] += 1
-
-        print "  Getting cumulative sums for bins"
+        print "Done"
         num_unpooled_up_vect   = zeros((n2, data.num_conditions(), data.num_bins + 1), int)
         num_unpooled_down_vect = zeros((n2, data.num_conditions(), data.num_bins + 1), int)
+
+        # Bin 0 is for features that were downregulated (-inf, 0)
+        # Bins 1 through 999 are for features that were upregulated
+        # Bin 1000 is for any features that were upregulated above the max from the unmpermuted data (max, inf)
+
         for perm_num, perm in enumerate(perms):
             for j in range(n2):
-                for i in reversed(range(0, data.num_bins)):
-                    up  [perm_num, j, i] += up  [perm_num, j, i + 1]
-                    down[perm_num, j, i] += down[perm_num, j, i + 1]
+#                for k in range(len(up[perm_num, j])):
+#                    print "up[%d][%d] = %d" % (j, k, up[perm_num, j, k])
+#                up[perm_num, j]   = cumsum(up[perm_num, j][::-1])[::-1]
+#                down[perm_num, j] = cumsum(down[perm_num, j][::-1])[::-1]
+
+
+#                num_unpooled_down_vect[j, c] += up[perm_num, j]
 
                 for i in range(data.num_bins + 1):
                     num_unpooled_up_vect  [j, c, i] +=   up[perm_num, j, i]
                     num_unpooled_down_vect[j, c, i] += down[perm_num, j, i]
 
-        mean_perm_up_vect   = num_unpooled_up_vect   / l
-        mean_perm_down_vect = num_unpooled_down_vect / l
+        mean_perm_up_vect   = num_unpooled_up_vect   / float(l)
+        mean_perm_down_vect = num_unpooled_down_vect / float(l)
+
+#        for j in range(len(tuning_param_range_values)):
+#            for i in range(data.num_bins + 1):
+#                print "mean_perm_up_vect[%d][%d][%d]= %f" % (j, c, i, mean_perm_up_vect[j, c, i])
+#            for i in range(data.num_bins + 1):
+#                print "mean_perm_down_vect[%d][%d][%d]= %f" % (j, c, i, mean_perm_down_vect[j, c, i])
         
-        #for j in range(n2):
-        #    for i in range(data.num_bins + 1):
-        #        print "up[%d][%d] = %d" % (j, i, up[0, j, i])
+#        for j in range(n2):
+#            for i in range(data.num_bins + 1):
+#                print "up[%d][%d] = %d" % (j, i, up[0, j, i])
 
         #print permuted_data[0, 0]
 
@@ -635,10 +642,14 @@ def dist_unpermuted_stats(data):
     return (d, u, stats)
 
 def get_bins(n, maxval):
+
+    # Bin 0 in the "up" histogram is for features that were down-regulated
     bins = [-inf]
-    step = maxval / n
-    bins.extend(arange(0, maxval, step))
-    bins.append(bins[-1] + step)
+    bins.extend(linspace(0, maxval, n))
+
+    # Bin "numbin" in the "up" histogram is for features that were
+    # above the max observed in the unpermuted data
+    bins.append(inf)
     return bins
 
 
