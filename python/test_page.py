@@ -3,6 +3,7 @@ import page
 import unittest
 from numpy import *
 import numpy.ma as ma
+import unpermuted_stats
 
 class PageTest(unittest.TestCase):
 
@@ -18,7 +19,7 @@ class PageTest(unittest.TestCase):
 
     def test_default_alpha(self):
         data = page.load_input(self.config)
-        alphas = page.find_default_alpha(data)
+        alphas = page.find_default_alpha(data.table, data.conditions())
 
         self.assertAlmostEqual(alphas[1], 1.62026604316528)
         self.assertAlmostEqual(alphas[2], 1.61770701155527)
@@ -35,6 +36,7 @@ class PageTest(unittest.TestCase):
         v1 = array(v1)
         v2 = array(v2)
         alpha = 1.62026604316528
+        alphas = page.tuning_param_range_values * alpha
         expected = [
             [
                 6.62845904788559,
@@ -61,14 +63,14 @@ class PageTest(unittest.TestCase):
                 0.0970668755330585,
                 ]]
 
-        self.assertAlmostEqual(sum(page.v_tstat(v1, v2, alpha, axis=1)),
+        self.assertAlmostEqual(sum(page.v_tstat(v1, v2, alphas, axis=1)),
                                sum(expected),
                                )
 
 
     def test_min_max_tstat(self):
         data = page.load_input(self.config)
-        alphas = page.find_default_alpha(data)
+        alphas = page.find_default_alpha(data.table, data.conditions())
         (mins, maxes) = page.min_max_stat(data, alphas)
         
         e_mins = array([
@@ -107,7 +109,17 @@ class PageTest(unittest.TestCase):
         # There should be 4 1s and 4 0s in each row
 #        self.assertTrue(all(sum(subsets, axis=1) == 4))
 
-
+    def test_unpermuted_stats(self):
+        (u, d, stats) = page.dist_unpermuted_stats(
+            unpermuted_stats.data,
+            [[ 0,  1,  2,  3],
+             [ 4,  5,  6,  7],
+             [ 8,  9, 10, 11],
+             [12, 13, 14, 15]],
+            unpermuted_stats.mins,
+            unpermuted_stats.maxes,
+            unpermuted_stats.alpha_default)
+        self.assertAlmostEqual(sum(stats), sum(unpermuted_stats.stats))
 
 unittest.main()
 

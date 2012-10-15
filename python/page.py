@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import argparse
 import re
 import numpy as np
@@ -5,6 +7,8 @@ import itertools
 from numpy import *
 
 from scipy.misc import comb
+
+__version__ = '6.0.0'
 
 stat_tstat = 0
 stat_means = 1
@@ -58,8 +62,28 @@ class Input:
 
     def replicates(self, condition):
         return sorted(self.columns[condition])[1:]
-    
-def main():
+
+    def conditions(self):
+        res = []
+        for c in range(self.num_conditions()):
+            res.append(self.replicates(c))
+        return res
+
+def show_banner():
+    print """
+------------------------------------------------------------------------------
+
+                       Welcome to PaGE {version}
+                   Microarray and RNA-Seq analysis tool
+
+------------------------------------------------------------------------------
+
+For help, please use {script} --help or {script} -h
+""".format(version=__version__,
+           script=__file__)
+
+def get_arguments():
+
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
@@ -299,11 +323,18 @@ def main():
         data).  See the documentation for more on  why you might use
         this parameter. """)
 
-    args = parser.parse_args()
+    return parser.parse_args()
+    
+    
+def main():
+
+    show_banner()
+    args = get_arguments()
     config = validate_args(args)
     data = load_input(config)
-    alphas = find_default_alpha(data)
+    alphas = find_default_alpha(data.table, data.conditions())
     do_confidences_by_cutoff(data, alphas)
+    
     print config
 
 def validate_args(args):
@@ -379,16 +410,18 @@ def compute_s(v1, v2, mp1, mp2, axis=0):
     return sqrt((sd1 ** 2 * s1 +
                  sd2 ** 2 * s2)  / (s1 + s2))
 
-def find_default_alpha(data):
+def find_default_alpha(table, conditions):
 
-    baseline_cols = data.replicates(0)
-    baseline_data = data.table[:,baseline_cols]
+    baseline_cols = conditions[0]
+    baseline_data = table[:,baseline_cols]
 
-    alphas = zeros(data.num_conditions())
+    alphas = zeros(len(conditions))
 
-    for c in range(1, data.num_conditions()):
-        cols = data.replicates(c)
-        condition_data = data.table[:,cols]
+    for (c, cols) in enumerate(conditions):
+        if c == 0: 
+            continue
+
+        condition_data = table[:,cols]
         
         values = compute_s(condition_data, baseline_data, None, None, axis=1)
 
@@ -398,37 +431,37 @@ def find_default_alpha(data):
         residuals = lt_mean - the_mean
 
         sd = sqrt(sum(residuals ** 2) / (len(residuals) - 1))
-#        print "mean is %f, sd is %f, num is %d" % (the_mean, sd, len(lt_mean))
 
         alphas[c] = the_mean * 2 / sqrt(len(cols) + len(baseline_cols))
 
     return alphas
 
 
-tuning_param_range_values = [
+tuning_param_range_values = np.array([
     0.0001,
     0.01,
     0.1,
     0.3,
     0.5,
-    1,
+    1.0,
     1.5,
-    2,
-    3,
+    2.0,
+    3.0,
     10,
-    ]
+    ])
 
 
-def v_tstat(v1, v2, tstat_tuning_param_default, axis=0):
+def v_tstat(v1, v2, alphas, axis=0):
     """
     Computes the t-statistic for two 2-D arrays. v1 is an m x n1 array
     and v2 is an m x n2 array, where m is the number of features, n1
     is the number of replicates in the condition represented by v1,
     and n2 is the number of conditions for v2. Returns an (m x p)
     array, where m again is the number of features, and p is the
-    number of values in the tuning_param_range_values array.
+    number of values in the alphas array.
     """
 
+    # Standard deviations of v1 and v2 with one degree of freedom
     sd1 = std(v1, ddof=1, axis=axis)
     sd2 = std(v2, ddof=1, axis=axis)
 
@@ -437,13 +470,11 @@ def v_tstat(v1, v2, tstat_tuning_param_default, axis=0):
 
     S = sqrt((sd1**2*(len1-1) + sd2**2*(len2-1))/(len1 + len2 - 2))
 
-    result = np.zeros((len(v1), len(tuning_param_range_values)))
+    result = np.zeros((len(v1), len(alphas)))
     numer  = (mean(v1, axis=axis) - mean(v2, axis=axis)) * sqrt(len1 * len2)
-    denom  = tstat_tuning_param_default * sqrt(len1 + len2)
 
-    for i in range(0, len(tuning_param_range_values)):
-        x = tuning_param_range_values[i]
-        rhs = numer / ((x * tstat_tuning_param_default + S) * sqrt(len1 + len2))
+    for i in range(0, len(alphas)):
+        rhs = numer / ((alphas[i] + S) * sqrt(len1 + len2))
         result[:,i] = rhs
 
     return result
@@ -496,7 +527,7 @@ def min_max_stat(data, default_alphas):
     for j in range(1, n):
         table[:,:,j] = v_tstat(data.table[:,data.replicates(j)],
                                data.table[:,data.replicates(0)],
-                               default_alphas[j],
+                               default_alphas[j] * tuning_param_range_values,
                                axis=1)
         
     mins  = np.min(table, axis=0)
@@ -506,10 +537,12 @@ def min_max_stat(data, default_alphas):
 
 def dimsum(a, axis):
     res = cumsum(a[:,:,::-1], axis=axis)[:,:,::-1]
-    print "Res is " + str(shape(res))
     return res
 
-def do_confidences_by_cutoff(data, default_alphas):
+def do_confidences_by_cutoff(
+    data, 
+    default_alphas,
+    ):
     all_perms = init_perms(data)
 
     base_len = len(data.replicates(0))
@@ -549,7 +582,7 @@ def do_confidences_by_cutoff(data, default_alphas):
         for perm_num, perm in enumerate(perms):
             v1 = permuted_data[perm_num, : , : base_len]
             v2 = permuted_data[perm_num, : , base_len :]
-            stats[perm_num, : ] = v_tstat(v2, v1, default_alphas[c], axis=1)
+            stats[perm_num, : ] = v_tstat(v2, v1, default_alphas[c] * tuning_param_range_values, axis=1)
 
         (mins, maxes) = min_max_stat(data, default_alphas)
 
@@ -580,22 +613,24 @@ def do_confidences_by_cutoff(data, default_alphas):
         up   = dimsum(up, axis=2)
         down = dimsum(down, axis=2)
 
-        for i in range(l):
-            for j in range(n2):
-                for k in range(data.num_bins + 1):
-                    print "up[%d][%d][%d] = %f" % (i, j, k, up[i, j, k])
+#        for i in range(l):
+#            for j in range(n2):
+#                for k in range(data.num_bins + 1):
+#                    print "up[%d][%d][%d] = %f" % (i, j, k, up[i, j, k])
 
         for perm_num, perm in enumerate(perms):
             for j, param in enumerate(tuning_param_range_values):
                 num_unpooled_up_vect[j, c]   += up[perm_num, j]
                 num_unpooled_down_vect[j, c] += down[perm_num, j]
 
-        print "Up is " + str(up)
+ #       print "Up is " + str(up)
 
         mean_perm_up_vect   = num_unpooled_up_vect   / float(l)
         mean_perm_down_vect = num_unpooled_down_vect / float(l)
 
     (num_unperm_up, num_unperm_down, unperm_stats) = dist_unpermuted_stats(data, mins, maxes, default_alphas)
+    
+    print "Num unperm up is " + str(num_unperm_up)
 
 #        for j in range(len(tuning_param_range_values)):
 #            for i in range(data.num_bins + 1):
@@ -610,7 +645,7 @@ def do_confidences_by_cutoff(data, default_alphas):
         #print permuted_data[0, 0]
 
 
-def dist_unpermuted_stats(data, mins, maxes, default_alphas):
+def dist_unpermuted_stats(table, conditions, mins, maxes, default_alphas, num_bins=1000):
     """
     Returns a tuple of three items, (up, down, stats). up is an (l x m
     x n) array where l is the number of tuning parameters, m is the
@@ -622,37 +657,36 @@ def dist_unpermuted_stats(data, mins, maxes, default_alphas):
     """
 
     l = len(tuning_param_range_values)
-    m = data.num_conditions()
-    n = data.num_bins + 1
+    m = len(conditions)
+    n = num_bins + 1
 
     u = zeros((l, m, n), dtype=int)
     d = zeros((l, m, n), dtype=int)
 
     center = 0
 
-    stats = np.zeros((l, len(data.table), m, l))
+    stats = np.zeros((l, len(table), m, l))
     
     print "Mins are " + str(shape(mins)) + " and maxes are " + str(shape(maxes))
 
-    for c in range(1, data.num_conditions()):
-        v1 = data.table[:, data.replicates(0)]
-        v2 = data.table[:, data.replicates(c)]
-        print "V1 is " + str(shape(v1))
-        print "V2 is " + str(shape(v2))
-        these = v_tstat(v2, v1, default_alphas[c], axis=1)
-        print "These are " + str(shape(these))
+    for c in range(1, len(conditions)):
+
+        alphas = default_alphas[c] * tuning_param_range_values
+
+        v1 = table[:, conditions[0]]
+        v2 = table[:, conditions[c]]
+        these = v_tstat(v2, v1, alphas, axis=1)
         stats[:, :, c]  = these
 
-        for j in range(l):
-            u_bins = get_bins(data.num_bins, maxes[j, c])
-            d_bins = get_bins(data.num_bins, -mins[j, c])
+        for j in range(len(tuning_param_range_values)):
+            u_bins = get_bins(num_bins, maxes[j, c])
+            d_bins = get_bins(num_bins, -mins[j, c])
             u_vals = stats[j, :, c]
             d_vals = - stats[j, :, c]
             (u_hist, u_edges) = histogram(u_vals, u_bins)
             (d_hist, d_edges) = histogram(d_vals, d_bins)
             d[j, c, :] = d_hist
             u[j, c, :] = u_hist
-
     return (d, u, stats)
 
 def get_bins(n, maxval):
@@ -704,5 +738,4 @@ def make_bins(stats, maxes, mins, num_bins):
     
 
 if __name__ == '__main__':
-    print "In here"
     main()

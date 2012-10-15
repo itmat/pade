@@ -10,6 +10,67 @@
 use strict;
 use IO::File;
 use Getopt::Long;
+use Data::Dumper;
+
+sub shape {
+    my $data = shift;
+    
+    my @dims;
+
+  I: for my $i (0 .. @{ $data } - 1) {
+        if ($i > $dims[0]) {
+            $dims[0] = $i;
+        }
+        next I if ! ref $data->[$i];
+
+      J: for my $j ( 0 .. @{ $data->[$i] } - 1 ) {
+            if ($j > $dims[1]) {
+                $dims[1] = $j;
+            }
+            next J if ! ref $data->[$i][$j];
+
+            for my $k ( 0 .. @{ $data->[$i][$j] - 1} ) {
+                if ($k > $dims[2]) {
+                    $dims[2] = $k;
+                }
+            }
+        }
+    }
+
+    return \@dims;
+}
+
+sub declaration {
+    my ($name, $shape) = @_;
+    return "$name = np.zeros((" . join(', ', @{ $shape } ) . "))\n";
+}
+
+sub np_array {
+    my ($name, $items) = @_;
+    my @items = map { $_ || 0 } @{ $items };
+    return "$name = np.array([" . join(', ', @items) . "])\n";
+}
+
+sub assign_array {
+    my ($name, $data, @indexes) = @_;
+    my $res = '';
+    if (ref($data)) {
+        for my $i (0 .. @{ $data } - 1) {
+            if ($data->[$i]) {
+                $res .= assign_array($name, $data->[$i], @indexes, $i);
+            }
+        }
+    }
+    else {
+        $res = $name . '[' . join(', ', @indexes) . '] = ' . $data . "\n";
+    }
+    return $res;
+}
+
+sub declare_and_assign {
+    my ($name, $data) = @_;
+    return declaration($name, shape($data)) . assign_array($name, $data);
+}
 
 $| = 1;
 
@@ -1155,6 +1216,15 @@ sub DoConfidencesByCutoff {
 
     if($stat == 0 && !($tstat_tuning_param =~ /\S/)) {
 	($num_unpermuted_up_vect_ref, $num_unpermuted_down_vect_ref, $unpermuted_stat_vect_ref) = FindDistUnpermutedStatVect(\@data, $stat, $num_conds, $missing_value_designator, \@max_vect, \@min_vect, \@min_presence_array, $design, \@alpha, $data_is_logged, $use_logged_data, $alpha_default_ref, $paired);
+
+        open my $up_fh,  '>', 'perl_unperm_up';
+        open my $down_fh,  '>', 'perl_unperm_down';
+        open my $stats_fh,  '>', 'perl_unperm_stats';
+
+        print $up_fh    Dumper($num_unpermuted_up_vect_ref);
+        print $down_fh  Dumper($num_unpermuted_down_vect_ref);
+        print $stats_fh Dumper($unpermuted_stat_vect_ref);
+
 	@num_unpermuted_up_vect = @{$num_unpermuted_up_vect_ref};
 	@num_unpermuted_down_vect = @{$num_unpermuted_down_vect_ref};
 	@unpermuted_stat_vect = @{$unpermuted_stat_vect_ref};
@@ -1842,10 +1912,41 @@ sub FindDistUnpermutedStat {
 
 sub FindDistUnpermutedStatVect {
 
+    my @args = @_;
+
 # This finds the distribution into bins of the statistic to be used, over the
 # unpermuted data.
 
-    my ($data_ref, $stat, $num_conds, $missing_value_designator, $max_vect_ref, $min_vect_ref, $min_presence_array_ref, $design, $alpha_ref, $data_is_logged, $use_logged_data, $alpha_default_ref, $paired) = @_;
+    my ($data_ref, $stat, $num_conds, $missing_value_designator, $max_vect_ref, $min_vect_ref, $min_presence_array_ref, $design, $alpha_ref, $data_is_logged, $use_logged_data, $alpha_default_ref, $paired) = @args;
+
+    open my $out_fh, '>', 'unpermuted_stats.py';
+
+    print $out_fh "import numpy as np\n";
+    print $out_fh declaration('data', [scalar @{ $data_ref }, 16 ]);
+
+    my @pydata ;
+
+    for my $i (0 .. @{ $data_ref } - 1) {
+        my @row;
+        for my $j (0 .. 3) {
+            for my $k (1 .. 4) {
+                push @row, $data_ref->[$i][$j][$k];
+            }
+        }
+        push @pydata, \@row;
+    }
+    
+    print $out_fh assign_array('data', \@pydata);
+
+    print $out_fh declaration('maxes', shape($max_vect_ref));
+    print $out_fh assign_array('maxes', $max_vect_ref);
+
+    print $out_fh declaration('mins', shape($min_vect_ref));
+    print $out_fh assign_array('mins', $min_vect_ref);
+
+    print $out_fh np_array('alphas', $alpha_ref);
+    print $out_fh np_array('alpha_default', $alpha_default_ref);
+
     my @alpha_default = @{$alpha_default_ref};
     my @data = @{$data_ref};
     my @min_presence_array = @{$min_presence_array_ref};
@@ -1938,13 +2039,10 @@ sub FindDistUnpermutedStatVect {
 	    }
 	}
     }
-	for(my $j=0; $j<$num_range_values; $j++) {
-	    for(my $bin=0; $bin<$num_bins; $bin++) {
-#		print "dist_up_vect[$j][0][$bin]=$dist_up_vect[$j][0][$bin]\n";
-#		print "dist_down_vect[$j][0][$bin]=$dist_down_vect[$j][0][$bin]\n";
-#		print "unpermuted_stat_vect[$j][0][$bin]=$unpermuted_stat_vect[$j][0][$bin]\n";
-	    }
-	}
+
+    print $out_fh declare_and_assign('dist_up', \@dist_up_vect);
+    print $out_fh declare_and_assign('dist_down', \@dist_down_vect);
+    print $out_fh declare_and_assign('stats', \@unpermuted_stat_vect);
 
     return (\@dist_up_vect, \@dist_down_vect, \@unpermuted_stat_vect);
 }
