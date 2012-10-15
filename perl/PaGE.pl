@@ -23,13 +23,13 @@ sub shape {
         }
         next I if ! ref $data->[$i];
 
-      J: for my $j ( 0 .. @{ $data->[$i] } - 1 ) {
+      J: for my $j ( 0 .. @{ $data->[$i] } -1 ) {
             if ($j > $dims[1]) {
                 $dims[1] = $j;
             }
             next J if ! ref $data->[$i][$j];
 
-            for my $k ( 0 .. @{ $data->[$i][$j] - 1} ) {
+            for my $k ( 0 .. @{ $data->[$i][$j] } -1 ) {
                 if ($k > $dims[2]) {
                     $dims[2] = $k;
                 }
@@ -37,7 +37,7 @@ sub shape {
         }
     }
 
-    return \@dims;
+    return [ map { $_ + 1 } @dims ];
 }
 
 sub declaration {
