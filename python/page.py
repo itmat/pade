@@ -3,8 +3,8 @@
 import argparse
 import re
 import numpy as np
+from numpy import std, arange, sqrt, mean, ma, shape, size, inf, linspace, histogram
 import itertools 
-from numpy import *
 
 from scipy.misc import comb
 
@@ -34,7 +34,7 @@ class Input:
     def __init__(self, row_ids, col_ids, table):
         self.row_ids    = row_ids
         self.column_ids = col_ids
-        self.table      = ma.masked_array(table, zeros(shape(table)))
+        self.table      = ma.masked_array(table, np.zeros(shape(table)))
 #        self.table      = table
         self.column_indices = {}
         self.num_bins = 1000
@@ -377,7 +377,7 @@ def load_input(config):
         ids.append(rowid)
         table.append(values)
 
-    table = array(table)
+    table = np.array(table)
 
     return Input(ids, headers[1:], table)
 
@@ -385,7 +385,7 @@ def unpermuted_means(data):
     num_conditions = data.num_conditions()
     num_features   = len(data.row_ids)
 
-    res = zeros((num_features, num_conditions))
+    res = np.zeros((num_features, num_conditions))
 
     for c in range(num_conditions):
         cols = data.replicates(c)
@@ -415,7 +415,7 @@ def find_default_alpha(table, conditions):
     baseline_cols = conditions[0]
     baseline_data = table[:,baseline_cols]
 
-    alphas = zeros(len(conditions))
+    alphas = np.zeros(len(conditions))
 
     for (c, cols) in enumerate(conditions):
         if c == 0: 
@@ -470,12 +470,12 @@ def v_tstat(v1, v2, alphas, axis=0):
 
     S = sqrt((sd1**2*(len1-1) + sd2**2*(len2-1))/(len1 + len2 - 2))
 
-    result = np.zeros((len(v1), len(alphas)))
+    result = np.zeros((len(alphas), len(v1)))
     numer  = (mean(v1, axis=axis) - mean(v2, axis=axis)) * sqrt(len1 * len2)
 
     for i in range(0, len(alphas)):
         rhs = numer / ((alphas[i] + S) * sqrt(len1 + len2))
-        result[:,i] = rhs
+        result[i,:] = rhs
 
     return result
 
@@ -489,7 +489,7 @@ def all_subsets(n, k):
 
     indexes = arange(n)
     m = comb(n, k)
-    result = zeros((m, n), dtype=bool)
+    result = np.zeros((m, n), dtype=bool)
 
     i = 0
 
@@ -512,26 +512,27 @@ def init_perms(data):
 
     return perms
 
-def min_max_stat(data, default_alphas):
+def min_max_stat(data, conditions, default_alphas):
     """
     Returns a tuple (mins, maxes) where both mins and maxes are (m x
     n) matrices, m being the length of default_alphas, and n being the
     number of conditions.
     """
 
-    m = len(data.row_ids)
-    n = data.num_conditions()
+    table = np.zeros((len(conditions),
+                   len(tuning_param_range_values), 
+                   len(data)))
 
-    table = zeros((m, len(tuning_param_range_values), n))
+    for j in range(1, len(conditions)):
+        alphas = default_alphas[j] * tuning_param_range_values
 
-    for j in range(1, n):
-        table[:,:,j] = v_tstat(data.table[:,data.replicates(j)],
-                               data.table[:,data.replicates(0)],
-                               default_alphas[j] * tuning_param_range_values,
+        table[j,:,:] = v_tstat(data[:,conditions[j]],
+                               data[:,conditions[0]],
+                               alphas,
                                axis=1)
         
-    mins  = np.min(table, axis=0)
-    maxes = np.max(table, axis=0)
+    mins  = np.min(table, axis=2)
+    maxes = np.max(table, axis=2)
 
     return (mins, maxes)
 
@@ -555,19 +556,18 @@ def do_confidences_by_cutoff(
         master_indexes = []
         master_indexes.extend(data.replicates(0))
         master_indexes.extend(data.replicates(c))
-        master_indexes = array(master_indexes)
+        master_indexes = np.array(master_indexes)
 
         l = len(perms)
         m = len(data.row_ids)
         n = len(master_indexes)
         n2 = len(tuning_param_range_values)
 
-        permuted_data = zeros((l, m, n))
-        print shape(permuted_data)
+        permuted_data = np.zeros((l, m, n))
 
-        permuted_indexes = zeros((l, n), dtype=int)
+        permuted_indexes = np.zeros((l, n), dtype=int)
 
-        stats = zeros((l, m, n2))
+        stats = np.zeros((l, m, n2))
 
         print "  Permuting indexes"
         for perm_num, perm in enumerate(perms):
@@ -603,8 +603,8 @@ def do_confidences_by_cutoff(
                 down[perm_num, i] = d_hist
 
         print "Done"
-        num_unpooled_up_vect   = zeros((n2, data.num_conditions(), data.num_bins + 1), int)
-        num_unpooled_down_vect = zeros((n2, data.num_conditions(), data.num_bins + 1), int)
+        num_unpooled_up_vect   = np.zeros((n2, data.num_conditions(), data.num_bins + 1), int)
+        num_unpooled_down_vect = np.zeros((n2, data.num_conditions(), data.num_bins + 1), int)
 
         # Bin 0 is for features that were downregulated (-inf, 0)
         # Bins 1 through 999 are for features that were upregulated
@@ -655,44 +655,52 @@ def dist_unpermuted_stats(table, conditions, mins, maxes, default_alphas, num_bi
     for downregulated features. stats is an (m x l) matrix where m is
     the number of features and l is the number of tuning parameters.
     """
-
-    l = len(tuning_param_range_values)
     m = len(conditions)
     n = num_bins + 1
 
-    u = zeros((l, m, n), dtype=int)
-    d = zeros((l, m, n), dtype=int)
+    l = len(tuning_param_range_values)
+
+    u = np.zeros((l, m, n), dtype=int)
+    d = np.zeros((l, m, n), dtype=int)
 
     center = 0
 
-    stats = np.zeros((l, len(table), m, l))
+    stats = np.zeros((len(tuning_param_range_values),
+                      len(table),
+                      len(conditions)))
     
-    print "Mins are " + str(shape(mins)) + " and maxes are " + str(shape(maxes))
-
     for c in range(1, len(conditions)):
 
         alphas = default_alphas[c] * tuning_param_range_values
 
         v1 = table[:, conditions[0]]
         v2 = table[:, conditions[c]]
-        these = v_tstat(v2, v1, alphas, axis=1)
-        stats[:, :, c]  = these
+        stats[:, :, c] = v_tstat(v2, v1, alphas, axis=1)
 
         for j in range(len(tuning_param_range_values)):
-            u_bins = get_bins(num_bins, maxes[j, c])
-            d_bins = get_bins(num_bins, -mins[j, c])
-            u_vals = stats[j, :, c]
-            d_vals = - stats[j, :, c]
-            (u_hist, u_edges) = histogram(u_vals, u_bins)
-            (d_hist, d_edges) = histogram(d_vals, d_bins)
+
+            # Compute the bin boundaries
+            u_bins = get_bins(num_bins + 1, maxes[j, c])
+            d_bins = get_bins(num_bins + 1, -mins[j, c])
+
+            # Vals is a 1-d array of the tstats, one for each feature,
+            # for condition c using alpha j.
+            vals = stats[j, :, c]
+
+            (u_hist, u_edges) = histogram(vals, u_bins)
+            (d_hist, d_edges) = histogram( -vals, d_bins)
+            u_hist[0] += len(vals[vals < 0.0])
+            d_hist[0] += len(vals[vals > 0.0])
+
             d[j, c, :] = d_hist
             u[j, c, :] = u_hist
-    return (d, u, stats)
+
+    return (u, d, stats)
 
 def get_bins(n, maxval):
 
     # Bin 0 in the "up" histogram is for features that were down-regulated
-    bins = [-inf]
+    bins = []
     bins.extend(linspace(0, maxval, n))
 
     # Bin "numbin" in the "up" histogram is for features that were

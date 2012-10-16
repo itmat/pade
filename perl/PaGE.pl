@@ -2003,6 +2003,11 @@ sub FindDistUnpermutedStatVect {
 		    if($value ne "NA") {
 			if($value>=$center) {
 			    my $bin=int($num_bins * ($value - $center) / ($max_vect[$i][$cond] - $center));
+                            if ($i == 0 && $cond == 1 && $bin == 1) {
+                                my $boundary = $max_vect[$i][$cond] / $num_bins;
+                                
+                                print "up[$i][$cond][$bin] for $value under $boundary, num bins = $num_bins, center = $center, max is $max_vect[$i][$cond]\n";
+                            }
 			    $dist_up_vect[$i][$cond][$bin]++;
 			    $dist_down_vect[$i][$cond][0]++;
 			}
@@ -2039,11 +2044,11 @@ sub FindDistUnpermutedStatVect {
 	    }
 	}
     }
-
+    
     print $out_fh declare_and_assign('dist_up', \@dist_up_vect);
     print $out_fh declare_and_assign('dist_down', \@dist_down_vect);
     print $out_fh declare_and_assign('stats', \@unpermuted_stat_vect);
-
+    exit;
     return (\@dist_up_vect, \@dist_down_vect, \@unpermuted_stat_vect);
 }
 
