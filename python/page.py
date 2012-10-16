@@ -567,7 +567,7 @@ def do_confidences_by_cutoff(
 
         permuted_indexes = np.zeros((l, n), dtype=int)
 
-        stats = np.zeros((l, m, n2))
+        stats = np.zeros((l, len(tuning_param_range_values), len(data.table)))
 
         print "  Permuting indexes"
         for perm_num, perm in enumerate(perms):
@@ -583,8 +583,7 @@ def do_confidences_by_cutoff(
             v1 = permuted_data[perm_num, : , : base_len]
             v2 = permuted_data[perm_num, : , base_len :]
             stats[perm_num, : ] = v_tstat(v2, v1, default_alphas[c] * tuning_param_range_values, axis=1)
-
-        (mins, maxes) = min_max_stat(data, default_alphas)
+        (mins, maxes) = min_max_stat(data.table, data.conditions(), default_alphas)
 
         up   = np.zeros((l, n2, data.num_bins + 1), int)
         down = np.zeros((l, n2, data.num_bins + 1), int)
@@ -645,6 +644,20 @@ def do_confidences_by_cutoff(
         #print permuted_data[0, 0]
 
 
+def assign_bins(vals, num_bins, minval, maxval):
+    """
+    Computes two histograms for the given values.
+    """
+    u_bins = get_bins(num_bins + 1, maxval)
+    d_bins = get_bins(num_bins + 1, -minval)
+
+    (u_hist, u_edges) = histogram(vals, u_bins)
+    (d_hist, d_edges) = histogram( -vals, d_bins)
+    u_hist[0] += len(vals[vals < 0.0])
+    d_hist[0] += len(vals[vals > 0.0])
+
+    return (u_hist, d_hist)
+
 def dist_unpermuted_stats(table, conditions, mins, maxes, default_alphas, num_bins=1000):
     """
     Returns a tuple of three items, (up, down, stats). up is an (l x m
@@ -679,23 +692,13 @@ def dist_unpermuted_stats(table, conditions, mins, maxes, default_alphas, num_bi
 
         for j in range(len(tuning_param_range_values)):
 
-            # Compute the bin boundaries
-            u_bins = get_bins(num_bins + 1, maxes[j, c])
-            d_bins = get_bins(num_bins + 1, -mins[j, c])
-
-            # Vals is a 1-d array of the tstats, one for each feature,
-            # for condition c using alpha j.
-            vals = stats[j, :, c]
-
-            (u_hist, u_edges) = histogram(vals, u_bins)
-            (d_hist, d_edges) = histogram( -vals, d_bins)
-            u_hist[0] += len(vals[vals < 0.0])
-            d_hist[0] += len(vals[vals > 0.0])
-
+            (u_hist, d_hist) = assign_bins(stats[j, :, c], num_bins, mins[j, c], maxes[j, c])
             d[j, c, :] = d_hist
             u[j, c, :] = u_hist
 
     return (u, d, stats)
+
+    
 
 def get_bins(n, maxval):
 
