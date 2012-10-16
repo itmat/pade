@@ -3,7 +3,7 @@
 import argparse
 import re
 import numpy as np
-from numpy import std, arange, sqrt, mean, ma, shape, size, inf, linspace, histogram
+from numpy import std, arange, sqrt, mean, ma, shape, size, inf, linspace, histogram, cumsum
 import itertools 
 
 from scipy.misc import comb
@@ -520,8 +520,8 @@ def min_max_stat(data, conditions, default_alphas):
     """
 
     table = np.zeros((len(conditions),
-                   len(tuning_param_range_values), 
-                   len(data)))
+                      len(tuning_param_range_values), 
+                      len(data)))
 
     for j in range(1, len(conditions)):
         alphas = default_alphas[j] * tuning_param_range_values
@@ -530,13 +530,14 @@ def min_max_stat(data, conditions, default_alphas):
                                data[:,conditions[0]],
                                alphas,
                                axis=1)
-        
     mins  = np.min(table, axis=2)
     maxes = np.max(table, axis=2)
+    print "Shape of mins is " + str(shape(mins))
 
-    return (mins, maxes)
+    return (np.transpose(mins), np.transpose(maxes))
 
 def dimsum(a, axis):
+    
     res = cumsum(a[:,:,::-1], axis=axis)[:,:,::-1]
     return res
 
@@ -567,7 +568,7 @@ def do_confidences_by_cutoff(
 
         permuted_indexes = np.zeros((l, n), dtype=int)
 
-        stats = np.zeros((l, m, n2))
+        stats = np.zeros((l, len(tuning_param_range_values), len(data.table)))
 
         print "  Permuting indexes"
         for perm_num, perm in enumerate(perms):
@@ -583,8 +584,8 @@ def do_confidences_by_cutoff(
             v1 = permuted_data[perm_num, : , : base_len]
             v2 = permuted_data[perm_num, : , base_len :]
             stats[perm_num, : ] = v_tstat(v2, v1, default_alphas[c] * tuning_param_range_values, axis=1)
-
-        (mins, maxes) = min_max_stat(data, default_alphas)
+        (mins, maxes) = min_max_stat(data.table, data.conditions(), default_alphas)
+        print "Shape of mins is " + str(shape(mins))
 
         up   = np.zeros((l, n2, data.num_bins + 1), int)
         down = np.zeros((l, n2, data.num_bins + 1), int)
@@ -594,11 +595,9 @@ def do_confidences_by_cutoff(
         print "Getting perms"
         for perm_num, perm in enumerate(perms):
             for i in range(len(tuning_param_range_values)):
-                up_bins   = get_bins(data.num_bins, maxes[i, c])
-                down_bins = get_bins(data.num_bins, -mins[i, c])
-                vals      = stats[perm_num, :, i]
-                (u_hist, u_edges) = histogram(vals, bins=up_bins)
-                (d_hist, d_edges) = histogram(-vals, bins=down_bins)
+                print "Shape of stats is " + str(shape(stats))
+                (u_hist, d_hist) = assign_bins(stats[perm_num, i, :], data.num_bins, 
+                                               mins[i, c], maxes[i, c])
                 up  [perm_num, i] = u_hist
                 down[perm_num, i] = d_hist
 
@@ -610,8 +609,14 @@ def do_confidences_by_cutoff(
         # Bins 1 through 999 are for features that were upregulated
         # Bin 1000 is for any features that were upregulated above the max from the unmpermuted data (max, inf)
 
-        up   = dimsum(up, axis=2)
-        down = dimsum(down, axis=2)
+        for perm_num, perm in enumerate(perms):
+            for i in range(len(tuning_param_range_values)):
+                bins = up[perm_num, i]
+                print "Bins are " + str(bins)
+
+                up[perm_num, i] = cumsum(bins[::-1])[::-1]
+                bins = down[perm_num, i]
+                down[perm_num, i] = cumsum(bins[::-1])[::-1]
 
 #        for i in range(l):
 #            for j in range(n2):
@@ -623,14 +628,13 @@ def do_confidences_by_cutoff(
                 num_unpooled_up_vect[j, c]   += up[perm_num, j]
                 num_unpooled_down_vect[j, c] += down[perm_num, j]
 
- #       print "Up is " + str(up)
+        print "Up is " + str(up)
 
         mean_perm_up_vect   = num_unpooled_up_vect   / float(l)
         mean_perm_down_vect = num_unpooled_down_vect / float(l)
 
-    (num_unperm_up, num_unperm_down, unperm_stats) = dist_unpermuted_stats(data, mins, maxes, default_alphas)
+    (num_unperm_up, num_unperm_down, unperm_stats) = dist_unpermuted_stats(data.table, data.conditions(), mins, maxes, default_alphas)
     
-    print "Num unperm up is " + str(num_unperm_up)
 
 #        for j in range(len(tuning_param_range_values)):
 #            for i in range(data.num_bins + 1):
@@ -644,6 +648,21 @@ def do_confidences_by_cutoff(
 
         #print permuted_data[0, 0]
 
+
+def assign_bins(vals, num_bins, minval, maxval):
+    """
+    Computes two histograms for the given values.
+    """
+    print "Assigning bins for " + str(shape(vals))
+    u_bins = get_bins(num_bins + 1, maxval)
+    d_bins = get_bins(num_bins + 1, -minval)
+
+    (u_hist, u_edges) = histogram(vals, u_bins)
+    (d_hist, d_edges) = histogram( -vals, d_bins)
+    u_hist[0] += len(vals[vals < 0.0])
+    d_hist[0] += len(vals[vals > 0.0])
+
+    return (u_hist, d_hist)
 
 def dist_unpermuted_stats(table, conditions, mins, maxes, default_alphas, num_bins=1000):
     """
@@ -678,24 +697,13 @@ def dist_unpermuted_stats(table, conditions, mins, maxes, default_alphas, num_bi
         stats[:, :, c] = v_tstat(v2, v1, alphas, axis=1)
 
         for j in range(len(tuning_param_range_values)):
-
-            # Compute the bin boundaries
-            u_bins = get_bins(num_bins + 1, maxes[j, c])
-            d_bins = get_bins(num_bins + 1, -mins[j, c])
-
-            # Vals is a 1-d array of the tstats, one for each feature,
-            # for condition c using alpha j.
-            vals = stats[j, :, c]
-
-            (u_hist, u_edges) = histogram(vals, u_bins)
-            (d_hist, d_edges) = histogram( -vals, d_bins)
-            u_hist[0] += len(vals[vals < 0.0])
-            d_hist[0] += len(vals[vals > 0.0])
-
+            (u_hist, d_hist) = assign_bins(stats[j, :, c], num_bins, mins[j, c], maxes[j, c])
             d[j, c, :] = d_hist
             u[j, c, :] = u_hist
 
     return (u, d, stats)
+
+    
 
 def get_bins(n, maxval):
 
@@ -707,43 +715,6 @@ def get_bins(n, maxval):
     # above the max observed in the unpermuted data
     bins.append(inf)
     return bins
-
-
-def make_bins(stats, maxes, mins, num_bins):
-    """
-    stats is an (l x m) array where l is the number of features and m
-    is the number of tuning params.
-
-    Maxes and mins are both (m x n) matrix where m is the number of
-    tuning params and n is the number of conditions.
-
-    Returns an (m x n x num_bins) array where m is the number of
-    tuning params, n is the number of conditions, and num_bins is the
-    number of bins.
-    """
-    pass
-#    (l, m) = shape(stats)
-    
-#    (m2, n) = shape(maxes)
-
-#    res = zeros((m, n, num_bins))
-
-#    if m != m2: 
-#        raise Exception("Ms aren't equal")
-
-
-
-
-#    get_bins = [-inf, arange
-
-#    for c in range(n): # Conditions
-#        for i in range(l): # Features
-#            for j in range(m): # Tuning params
-#                val = stats[i, j]
-#                if val >= center:
-#                    bin_num = int(num_bins * (val - center) / (maxes[j, c] - center))
-#                    u[j, c, bin_num] += 1
-    
 
 if __name__ == '__main__':
     main()
