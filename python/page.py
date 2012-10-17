@@ -333,7 +333,7 @@ def main():
     config = validate_args(args)
     data = load_input(config)
     alphas = find_default_alpha(data.table, data.conditions())
-    do_confidences_by_cutoff(data, alphas)
+    do_confidences_by_cutoff(data.table, data.conditions(), alphas, data.num_bins)
     
     print config
 
@@ -499,13 +499,13 @@ def all_subsets(n, k):
 
     return result
 
-def init_perms(data):
+def init_perms(conditions):
     perms = [None]
 
-    baseline_len = len(data.replicates(0))
+    baseline_len = len(conditions[0])
 
-    for c in range(1, data.num_conditions()):
-        this_len = len(data.replicates(c))
+    for c in range(1, len(conditions)):
+        this_len = len(conditions[c])
         n = baseline_len + this_len
         k = min(baseline_len, this_len)
         perms.append(all_subsets(n, k))
@@ -532,7 +532,6 @@ def min_max_stat(data, conditions, default_alphas):
                                axis=1)
     mins  = np.min(table, axis=2)
     maxes = np.max(table, axis=2)
-    print "Shape of mins is " + str(shape(mins))
 
     return (np.transpose(mins), np.transpose(maxes))
 
@@ -542,25 +541,27 @@ def dimsum(a, axis):
     return res
 
 def do_confidences_by_cutoff(
-    data, 
+    table,
+    conditions,
     default_alphas,
+    num_bins
     ):
-    all_perms = init_perms(data)
+    all_perms = init_perms(conditions)
 
-    base_len = len(data.replicates(0))
-    for c in range(1, data.num_conditions()):
-        print 'Working on condition %d of %d' % (c, data.num_conditions() - 1)
+    base_len = len(conditions[0])
+    for c in range(1, len(conditions)):
+        print 'Working on condition %d of %d' % (c, len(conditions) - 1)
         perms = all_perms[c]
 
-        # This is the list of all indexes into data.table for
+        # This is the list of all indexes into table for
         # replicates of condition 0 and condition c.
         master_indexes = []
-        master_indexes.extend(data.replicates(0))
-        master_indexes.extend(data.replicates(c))
+        master_indexes.extend(conditions[0])
+        master_indexes.extend(conditions[c])
         master_indexes = np.array(master_indexes)
 
         l = len(perms)
-        m = len(data.row_ids)
+        m = len(table)
         n = len(master_indexes)
         n2 = len(tuning_param_range_values)
 
@@ -568,7 +569,7 @@ def do_confidences_by_cutoff(
 
         permuted_indexes = np.zeros((l, n), dtype=int)
 
-        stats = np.zeros((l, len(tuning_param_range_values), len(data.table)))
+        stats = np.zeros((l, len(tuning_param_range_values), len(table)))
 
         print "  Permuting indexes"
         for perm_num, perm in enumerate(perms):
@@ -577,33 +578,31 @@ def do_confidences_by_cutoff(
 
         print "  Permuting data"
         for perm_num, perm in enumerate(perms):
-            permuted_data[perm_num, :] = data.table[:, permuted_indexes[perm_num]]
+            permuted_data[perm_num, :] = table[:, permuted_indexes[perm_num]]
 
         print "  Getting stats"
         for perm_num, perm in enumerate(perms):
             v1 = permuted_data[perm_num, : , : base_len]
             v2 = permuted_data[perm_num, : , base_len :]
             stats[perm_num, : ] = v_tstat(v2, v1, default_alphas[c] * tuning_param_range_values, axis=1)
-        (mins, maxes) = min_max_stat(data.table, data.conditions(), default_alphas)
-        print "Shape of mins is " + str(shape(mins))
+        (mins, maxes) = min_max_stat(table, conditions, default_alphas)
 
-        up   = np.zeros((l, n2, data.num_bins + 1), int)
-        down = np.zeros((l, n2, data.num_bins + 1), int)
+        up   = np.zeros((l, n2, num_bins + 1), int)
+        down = np.zeros((l, n2, num_bins + 1), int)
 
         print "  Counting up- and down-regulated features"
 
         print "Getting perms"
         for perm_num, perm in enumerate(perms):
             for i in range(len(tuning_param_range_values)):
-                print "Shape of stats is " + str(shape(stats))
-                (u_hist, d_hist) = assign_bins(stats[perm_num, i, :], data.num_bins, 
+                (u_hist, d_hist) = assign_bins(stats[perm_num, i, :], num_bins, 
                                                mins[i, c], maxes[i, c])
                 up  [perm_num, i] = u_hist
                 down[perm_num, i] = d_hist
 
         print "Done"
-        num_unpooled_up_vect   = np.zeros((n2, data.num_conditions(), data.num_bins + 1), int)
-        num_unpooled_down_vect = np.zeros((n2, data.num_conditions(), data.num_bins + 1), int)
+        num_unpooled_up_vect   = np.zeros((n2, len(conditions), num_bins + 1), int)
+        num_unpooled_down_vect = np.zeros((n2, len(conditions), num_bins + 1), int)
 
         # Bin 0 is for features that were downregulated (-inf, 0)
         # Bins 1 through 999 are for features that were upregulated
@@ -633,9 +632,8 @@ def do_confidences_by_cutoff(
         mean_perm_up_vect   = num_unpooled_up_vect   / float(l)
         mean_perm_down_vect = num_unpooled_down_vect / float(l)
 
-    (num_unperm_up, num_unperm_down, unperm_stats) = dist_unpermuted_stats(data.table, data.conditions(), mins, maxes, default_alphas)
+    (num_unperm_up, num_unperm_down, unperm_stats) = dist_unpermuted_stats(table, conditions, mins, maxes, default_alphas)
     
-
 #        for j in range(len(tuning_param_range_values)):
 #            for i in range(data.num_bins + 1):
 #                print "mean_perm_up_vect[%d][%d][%d]= %f" % (j, c, i, mean_perm_up_vect[j, c, i])
@@ -647,13 +645,12 @@ def do_confidences_by_cutoff(
 #                print "up[%d][%d] = %d" % (j, i, up[0, j, i])
 
         #print permuted_data[0, 0]
-
+    print "Mean perm up is " + str(mean_perm_up_vect)
 
 def assign_bins(vals, num_bins, minval, maxval):
     """
     Computes two histograms for the given values.
     """
-    print "Assigning bins for " + str(shape(vals))
     u_bins = get_bins(num_bins + 1, maxval)
     d_bins = get_bins(num_bins + 1, -minval)
 

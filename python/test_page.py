@@ -5,6 +5,7 @@ from numpy import *
 import numpy as np
 import numpy.ma as ma
 import unpermuted_stats
+import mean_perm_up
 
 class PageTest(unittest.TestCase):
 
@@ -138,6 +139,9 @@ class PageTest(unittest.TestCase):
 
         self.assertTrue(all(u_diffs == 0))
         self.assertTrue(all(d_diffs == 0))
+
+    def test_mean_perm_up(self):
+
 
 unittest.main()
 

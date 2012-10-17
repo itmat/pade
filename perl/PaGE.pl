@@ -713,6 +713,11 @@ sub CheckForNegsSpecialCase {
 sub DoConfidencesByCutoff {
 
     my ($data_ref, $permutations_ref, $num_reps_ref, $num_bins, $data_is_logged, $use_logged_data, $shift, $num_conds, $paired, $missing_value_designator, $min_presence_array_ref, $stat, $pool, $design, $ids_ref, $level_confidence_ref, $alpha_ref, $level_confidence, $alpha_default_ref, $tstat_tuning_param) = @_;
+    open my $mean_perm_up_fh, '>', 'mean_perm_up.py';
+    print $mean_perm_up_fh "import numpy as np\n";
+    print $mean_perm_up_fh declare_and_assign('data', $data_ref);
+    print $mean_perm_up_fh declare_and_assign('default_alphas', $alpha_default_ref);
+
     my @alpha_default = @{$alpha_default_ref};
     my @ids = @{$ids_ref};
     my @data = @{$data_ref};
@@ -1172,6 +1177,7 @@ sub DoConfidencesByCutoff {
 		}
 	    }
 	}
+
 # DEBUG
 #	print "******************************************\n";
 #	    for(my $j=0; $j<$num_range_values; $j++) {
@@ -1197,6 +1203,11 @@ sub DoConfidencesByCutoff {
 # DEBUG
 
     }
+
+
+    print $mean_perm_up_fh declare_and_assign('mean_perm_up', \@mean_perm_up_vect);
+
+
     my $num_unpermuted_up_ref;
     my $num_unpermuted_down_ref;
     my @num_unpermuted_up;
