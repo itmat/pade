@@ -680,8 +680,40 @@ def do_confidences_by_cutoff(
     (gene_conf_up, gene_conf_down) = get_gene_confidences(
         table, unperm_stats, mins, maxes, conf_bins_up, conf_bins_down)
     
-    (up_by_conf, down_by_conf) = get_count_by_conf_level(gene_conf_up, gene_conf_down)
+    (levels, up_by_conf, down_by_conf) = get_count_by_conf_level(gene_conf_up, gene_conf_down)
+
+    max_up_params   = np.argmax(up_by_conf, axis=0)
+    max_down_params = np.argmax(down_by_conf, axis=0)
+ 
+    best_up = up_by_conf[max_up_params]
     print "Up by conf is " + str(up_by_conf)
+    print "Best up is " + str(max_up_params)
+
+    breakdown = np.zeros((len(conditions),
+                          len(levels),
+                          3))
+
+    for c in range(1, len(conditions)):
+            
+        breakdown[c, :, 0] = levels
+        for i in range(len(levels)):
+            breakdown[c, i, 1] = up_by_conf[max_up_params[c, i], c, i]
+            breakdown[c, i, 2] = down_by_conf[max_down_params[c, i], c, i]
+
+#        breakdown[c, :, 1] = best_up
+#        breakdown[c, :, 2] = down_by_conf[max_down_params[c], c]
+
+    for c in range(1, len(conditions)):
+        print """
+----------------------------
+condition {:d}
+{:10s} {:7s} {:7s}
+----------------------------
+""".format(c, 'confidence', 'num. up', 'num. down')
+
+        for row in breakdown[c]:
+            (level, up, down) = row
+            print "{:10.2f} {:7d} {:9d}".format(level, int(up), int(down))
 
     return (conf_bins_up, conf_bins_down)
 
@@ -707,7 +739,7 @@ def get_count_by_conf_level(gene_conf_up, gene_conf_down):
                 up_by_conf  [i, j, k] = len(up_conf  [up_conf   > level])
                 down_by_conf[i, j, k] = len(down_conf[down_conf > level])
 
-    return (up_by_conf, down_by_conf)
+    return (ranges, up_by_conf, down_by_conf)
 
 def get_gene_confidences(table, unperm_stats, mins, maxes, conf_bins_up, conf_bins_down):
     
