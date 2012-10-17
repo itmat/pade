@@ -676,17 +676,29 @@ def do_confidences_by_cutoff(
                                                  conf_bins_up[i, c, binnum])
                 conf_bins_down[i, c, binnum] = max(conf_bins_down[i, c, binnum - 1],
                                                    conf_bins_down[i, c, binnum])
+    
+    (gene_conf_up, gene_conf_down) = get_gene_confidences(
+        table, unperm_stats, mins, maxes, conf_bins_up, conf_bins_down)
 
-    gene_conf_shape = (len(tuning_param_range_values),
-                       len(table),
-                       len(conditions))
+    return (conf_bins_up, conf_bins_down)
 
+def get_gene_confidences(table, unperm_stats, mins, maxes, conf_bins_up, conf_bins_down):
+    
+    (num_range_values, num_genes, num_conditions) = np.shape(unperm_stats)
+    num_bins = np.shape(conf_bins_up)[2] - 1
+
+    gene_conf_shape = (num_range_values,
+                       num_genes,
+                       num_conditions)
+    
+    # gene_conf_up[i, j, k] indicates the confidence with which gene j
+    # is upregulated in condition k using the ith alpha multiplier.
     gene_conf_up   = np.zeros(gene_conf_shape)
     gene_conf_down = np.zeros(gene_conf_shape)
 
-    for c in range(1, len(conditions)):
-        for i in range(len(tuning_param_range_values)):
-            for j in range(len(table)):
+    for c in range(1, num_conditions):
+        for i in range(num_range_values):
+            for j in range(num_genes):
                 if unperm_stats[i, j, c] >= 0:			
                     binnum = int(num_bins * unperm_stats[i, j, c] / maxes[i, c])
                     gene_conf_up[i, j, c] = conf_bins_up[i, c, binnum]
@@ -694,14 +706,7 @@ def do_confidences_by_cutoff(
                     binnum = int(num_bins * unperm_stats[i, j, c] / mins[i, c])
                     gene_conf_down[i, j, c] = conf_bins_down[i, c, binnum]
 
-    print "Gene conf up is " + str(gene_conf_up)
-
-    stats = np.zeros((len(tuning_param_range_values),
-                      len(table),
-                      len(conditions)))
-
-
-    return (conf_bins_up, conf_bins_down)
+    return (gene_conf_up, gene_conf_down)
 
 def adjust_num_diff(V0, R, num_ids):
     V = np.zeros(6)
