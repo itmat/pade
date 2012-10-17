@@ -19,16 +19,24 @@ class PageTest(unittest.TestCase):
         s = page.compute_s(self.v1, self.v2, 10, 10)
         self.assertAlmostEqual(s, 2.57012753682683)
 
+    def test_load_input(self):
+        (data, row_ids, conditions) = page.load_input(self.config)
+        self.assertEquals(len(row_ids), 1000)
+        expected_conditions = np.reshape(np.arange(16), (4, 4))
+        diffs = expected_conditions - conditions
+        self.assertTrue(np.all(diffs == 0))
+
     def test_default_alpha(self):
-        data = page.load_input(self.config)
-        alphas = page.find_default_alpha(data.table, data.conditions())
+        (data, row_ids, conditions) = page.load_input(self.config)
+
+        alphas = page.find_default_alpha(data, conditions)
 
         self.assertAlmostEqual(alphas[1], 1.62026604316528)
         self.assertAlmostEqual(alphas[2], 1.61770701155527)
         self.assertAlmostEqual(alphas[3], 1.60540468969643)
 
-        page.compute_s(data.table[:,(0,1,2,3)],
-                         data.table[:,(4,5,6,7)], 10, 10)
+        page.compute_s(data[:,(0,1,2,3)],
+                         data[:,(4,5,6,7)], 10, 10)
 
     def test_vectorized_tstat(self):
         v1 = [[2.410962, 1.897421, 2.421239, 1.798668],
@@ -69,11 +77,10 @@ class PageTest(unittest.TestCase):
                                sum(expected),
                                )
 
-
     def test_min_max_tstat(self):
-        data = page.load_input(self.config)
-        alphas = page.find_default_alpha(data.table, data.conditions())
-        (mins, maxes) = page.min_max_stat(data.table, data.conditions(), alphas)
+        (data, row_ids, conditions) = page.load_input(self.config)
+        alphas = page.find_default_alpha(data, conditions)
+        (mins, maxes) = page.min_max_stat(data, conditions, alphas)
         
         e_mins = np.array(
             [
@@ -103,7 +110,6 @@ class PageTest(unittest.TestCase):
         
         self.assertTrue(all(abs(mins  - e_mins)  < 0.00001))
         self.assertTrue(all(abs(maxes - e_maxes) < 0.00001))
-
 
     def test_all_subsets(self):
         subsets = page.all_subsets(8, 4)

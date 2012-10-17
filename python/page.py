@@ -31,42 +31,6 @@ class Config:
     def __repr__(self):
         return "Config(" + repr(self.__dict__) + ")"
 
-class Input:
-    def __init__(self, row_ids, col_ids, table):
-        self.row_ids    = row_ids
-        self.column_ids = col_ids
-        self.table      = np.ma.masked_array(table, np.zeros(np.shape(table)))
-
-        pat = re.compile("c(\d+)r(\d+)")
-        columns = []
-        counter = 0
-        for s in col_ids:
-            m = pat.match(s)
-            if m is None:
-                raise Exception("Bad column id " + s)
-            c = int(m.group(1))
-            r = int(m.group(2))
-
-            while len(columns) <= c:
-                columns.append([])
-            while len(columns[c]) <= r:
-                columns[c].append(None)
-            columns[c][r] = counter
-            counter += 1
-        self.columns = columns
-
-    def num_conditions(self):
-        return len(self.columns)
-
-    def replicates(self, condition):
-        return sorted(self.columns[condition])[1:]
-
-    def conditions(self):
-        res = []
-        for c in range(self.num_conditions()):
-            res.append(self.replicates(c))
-        return res
-
 def show_banner():
     print """
 ------------------------------------------------------------------------------
@@ -337,9 +301,9 @@ def main():
     show_banner()
     args = get_arguments()
     config = validate_args(args)
-    data = load_input(config)
-    alphas = find_default_alpha(data.table, data.conditions())
-    do_confidences_by_cutoff(data.table, data.conditions(), alphas, config.num_bins)
+    (data, row_ids, conditions) = load_input(config)
+    alphas = find_default_alpha(data, conditions)
+    do_confidences_by_cutoff(data, conditions, alphas, config.num_bins)
     
     print config
 
@@ -383,9 +347,27 @@ def load_input(config):
         ids.append(rowid)
         table.append(values)
 
+    pat = re.compile("c(\d+)r(\d+)")
+    columns = []
+    counter = 0
+
+    for s in headers[1:]:
+        m = pat.match(s)
+        if m is None:
+            raise Exception("Bad column id " + s)
+        c = int(m.group(1))
+        r = int(m.group(2))
+        r -= 1
+        while len(columns) <= c:
+            columns.append([])
+        while len(columns[c]) <= r:
+            columns[c].append(None)
+        columns[c][r] = counter
+        counter += 1
+
     table = np.array(table)
 
-    return Input(ids, headers[1:], table)
+    return (table, ids, columns)
 
 #def unpermuted_means(data):
 #    num_conditions = data.num_conditions()
