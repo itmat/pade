@@ -3,7 +3,6 @@
 import argparse
 import re
 import numpy as np
-from numpy import std, arange, sqrt, mean, ma, shape, size, inf, linspace, histogram, cumsum
 import itertools 
 
 from scipy.misc import comb
@@ -23,6 +22,8 @@ class Config:
             self.num_channels = args.num_channels
         if 'infile' in args:
             self.infile = args.infile
+        if 'num_bins' in args:
+            self.num_bins = args.num_bins
 
     def __str__(self):
         return str(self.__dict__)
@@ -34,10 +35,7 @@ class Input:
     def __init__(self, row_ids, col_ids, table):
         self.row_ids    = row_ids
         self.column_ids = col_ids
-        self.table      = ma.masked_array(table, np.zeros(shape(table)))
-#        self.table      = table
-        self.column_indices = {}
-        self.num_bins = 1000
+        self.table      = np.ma.masked_array(table, np.zeros(np.shape(table)))
 
         pat = re.compile("c(\d+)r(\d+)")
         columns = []
@@ -161,7 +159,7 @@ def get_arguments():
             output file.""")
 
     output_options.add_argument(
-            "--aux-page-size", 
+            "--aux-page-np.size", 
             type=int,
             default=500,
             help="""A whole number greater than zero.  This specifies
@@ -172,6 +170,14 @@ def get_arguments():
 
     design = parser.add_argument_group(
         "Study design and nature of the input data")
+
+    design.add_argument(
+        "--num-bins",
+        type=int,
+        default=1000,        
+        help="""The number of bins to use in granularizing the
+        statistic over its range. This is set to a default of 1000 and
+        you probably shouldn't need to change it.""")
 
     design.add_argument(
         "--num-channels",
@@ -333,7 +339,7 @@ def main():
     config = validate_args(args)
     data = load_input(config)
     alphas = find_default_alpha(data.table, data.conditions())
-    do_confidences_by_cutoff(data.table, data.conditions(), alphas, data.num_bins)
+    do_confidences_by_cutoff(data.table, data.conditions(), alphas, config.num_bins)
     
     print config
 
@@ -381,33 +387,33 @@ def load_input(config):
 
     return Input(ids, headers[1:], table)
 
-def unpermuted_means(data):
-    num_conditions = data.num_conditions()
-    num_features   = len(data.row_ids)
+#def unpermuted_means(data):
+#    num_conditions = data.num_conditions()
+#    num_features   = len(data.row_ids)
 
-    res = np.zeros((num_features, num_conditions))
+#    res = np.zeros((num_features, num_conditions))
 
-    for c in range(num_conditions):
-        cols = data.replicates(c)
-        print "Computing mean for condition %d using replicates %s" % (c, cols)
-        cols = data.table[:,cols]
-        means = mean(cols, axis=1)
-        print "%s -> %s" % (shape(cols), shape(means))
-        res[:,c] = means
-    return res
+#    for c in range(num_conditions):
+#        cols = data.replicates(c)
+#        print "Computing mean for condition %d using replicates %s" % (c, cols)
+#        cols = data.table[:,cols]
+#        means = np.mean(cols, axis=1)
+#        print "%s -> %s" % (np.shape(cols), np.shape(means))
+#        res[:,c] = means
+#    return res
 
 def compute_s(v1, v2, mp1, mp2, axis=0):
     """
     v1 and v2 should have the same number of rows.
     """
 
-    sd1 = std(v1, ddof=1, axis=axis)
-    sd2 = std(v2, ddof=1, axis=axis)
+    sd1 = np.std(v1, ddof=1, axis=axis)
+    sd2 = np.std(v2, ddof=1, axis=axis)
     
-    s1 = size(v1, axis=axis) - 1
-    s2 = size(v2, axis=axis) - 1
+    s1 = np.size(v1, axis=axis) - 1
+    s2 = np.size(v2, axis=axis) - 1
 
-    return sqrt((sd1 ** 2 * s1 +
+    return np.sqrt((sd1 ** 2 * s1 +
                  sd2 ** 2 * s2)  / (s1 + s2))
 
 def find_default_alpha(table, conditions):
@@ -425,14 +431,14 @@ def find_default_alpha(table, conditions):
         
         values = compute_s(condition_data, baseline_data, None, None, axis=1)
 
-        the_mean = mean(values)
+        the_mean = np.mean(values)
 
         lt_mean = values[values < the_mean]
         residuals = lt_mean - the_mean
 
-        sd = sqrt(sum(residuals ** 2) / (len(residuals) - 1))
+        sd = np.sqrt(sum(residuals ** 2) / (len(residuals) - 1))
 
-        alphas[c] = the_mean * 2 / sqrt(len(cols) + len(baseline_cols))
+        alphas[c] = the_mean * 2 / np.sqrt(len(cols) + len(baseline_cols))
 
     return alphas
 
@@ -462,19 +468,19 @@ def v_tstat(v1, v2, alphas, axis=0):
     """
 
     # Standard deviations of v1 and v2 with one degree of freedom
-    sd1 = std(v1, ddof=1, axis=axis)
-    sd2 = std(v2, ddof=1, axis=axis)
+    sd1 = np.std(v1, ddof=1, axis=axis)
+    sd2 = np.std(v2, ddof=1, axis=axis)
 
     len1 = np.array([len(row) for row in v1])
     len2 = np.array([len(row) for row in v2])
 
-    S = sqrt((sd1**2*(len1-1) + sd2**2*(len2-1))/(len1 + len2 - 2))
+    S = np.sqrt((sd1**2*(len1-1) + sd2**2*(len2-1))/(len1 + len2 - 2))
 
     result = np.zeros((len(alphas), len(v1)))
-    numer  = (mean(v1, axis=axis) - mean(v2, axis=axis)) * sqrt(len1 * len2)
+    numer  = (np.mean(v1, axis=axis) - np.mean(v2, axis=axis)) * np.sqrt(len1 * len2)
 
     for i in range(0, len(alphas)):
-        rhs = numer / ((alphas[i] + S) * sqrt(len1 + len2))
+        rhs = numer / ((alphas[i] + S) * np.sqrt(len1 + len2))
         result[i,:] = rhs
 
     return result
@@ -487,7 +493,7 @@ def all_subsets(n, k):
     number of subsets of
     """
 
-    indexes = arange(n)
+    indexes = np.arange(n)
     m = comb(n, k)
     result = np.zeros((m, n), dtype=bool)
 
@@ -537,7 +543,7 @@ def min_max_stat(data, conditions, default_alphas):
 
 def dimsum(a, axis):
     
-    res = cumsum(a[:,:,::-1], axis=axis)[:,:,::-1]
+    res = np.cumsum(a[:,:,::-1], axis=axis)[:,:,::-1]
     return res
 
 def do_confidences_by_cutoff(
@@ -613,9 +619,9 @@ def do_confidences_by_cutoff(
                 bins = up[perm_num, i]
                 print "Bins are " + str(bins)
 
-                up[perm_num, i] = cumsum(bins[::-1])[::-1]
+                up[perm_num, i] = np.cumsum(bins[::-1])[::-1]
                 bins = down[perm_num, i]
-                down[perm_num, i] = cumsum(bins[::-1])[::-1]
+                down[perm_num, i] = np.cumsum(bins[::-1])[::-1]
 
 #        for i in range(l):
 #            for j in range(n2):
@@ -649,13 +655,13 @@ def do_confidences_by_cutoff(
 
 def assign_bins(vals, num_bins, minval, maxval):
     """
-    Computes two histograms for the given values.
+    Computes two np.histograms for the given values.
     """
     u_bins = get_bins(num_bins + 1, maxval)
     d_bins = get_bins(num_bins + 1, -minval)
 
-    (u_hist, u_edges) = histogram(vals, u_bins)
-    (d_hist, d_edges) = histogram( -vals, d_bins)
+    (u_hist, u_edges) = np.histogram(vals, u_bins)
+    (d_hist, d_edges) = np.histogram( -vals, d_bins)
     u_hist[0] += len(vals[vals < 0.0])
     d_hist[0] += len(vals[vals > 0.0])
 
@@ -706,11 +712,11 @@ def get_bins(n, maxval):
 
     # Bin 0 in the "up" histogram is for features that were down-regulated
     bins = []
-    bins.extend(linspace(0, maxval, n))
+    bins.extend(np.linspace(0, maxval, n))
 
     # Bin "numbin" in the "up" histogram is for features that were
     # above the max observed in the unpermuted data
-    bins.append(inf)
+    bins.append(np.inf)
     return bins
 
 if __name__ == '__main__':
