@@ -6,6 +6,7 @@ import numpy as np
 import numpy.ma as ma
 import unpermuted_stats
 import mean_perm_up
+import conf_bins_up_down
 
 class PageTest(unittest.TestCase):
 
@@ -145,10 +146,18 @@ class PageTest(unittest.TestCase):
 
         self.assertTrue(all(u_diffs == 0))
         self.assertTrue(all(d_diffs == 0))
+
     def test_adjust_num_diff(self):
         self.assertAlmostEqual(page.adjust_num_diff(7.07142857142857, 5, 1000),
                                7.08618085029828)
+    
+    def test_conf_bins(self):
+        (data, row_ids, conditions) = page.load_input(self.config)
+        alphas = page.find_default_alpha(data, conditions)
+        (conf_bins_up, conf_bins_down) = page.do_confidences_by_cutoff(data, conditions, alphas, 1000)
 
+        self.assertTrue(np.all(conf_bins_up - conf_bins_up_down.conf_up < 0.00001))
+        self.assertTrue(np.all(conf_bins_down - conf_bins_up_down.conf_down < 0.00001))
 
 unittest.main()
 

@@ -5,7 +5,12 @@ import re
 import numpy as np
 import itertools 
 
-from scipy.misc import comb
+import scipy.misc
+
+########################################################################
+###
+### Constants
+###
 
 __version__ = '6.0.0'
 
@@ -13,6 +18,23 @@ stat_tstat = 0
 stat_means = 1
 stat_medians = 2
 
+tuning_param_range_values = np.array([
+    0.0001,
+    0.01,
+    0.1,
+    0.3,
+    0.5,
+    1.0,
+    1.5,
+    2.0,
+    3.0,
+    10,
+    ])
+
+########################################################################
+###
+### Classes
+###
 
 class Config:
     def __init__(self, args):
@@ -27,6 +49,11 @@ class Config:
 
     def __repr__(self):
         return "Config(" + repr(self.__dict__) + ")"
+
+########################################################################
+###
+### Functions
+###
 
 def show_banner():
     print """
@@ -312,7 +339,7 @@ def validate_args(args):
 
     if 'num_channels' in args:
         if args.num_channels == 1 and 'design' in args:
-            raise Exception("Error: if the number of channels is 1, do not specify the design type\n\n")
+            raise Exception("Error: if the number of channels is 1, do not specify the design type")
     elif 'design' in args:
         c.num_channels = 2
 
@@ -422,18 +449,7 @@ def find_default_alpha(table, conditions):
     return alphas
 
 
-tuning_param_range_values = np.array([
-    0.0001,
-    0.01,
-    0.1,
-    0.3,
-    0.5,
-    1.0,
-    1.5,
-    2.0,
-    3.0,
-    10,
-    ])
+
 
 
 def v_tstat(v1, v2, alphas, axis=0):
@@ -473,7 +489,7 @@ def all_subsets(n, k):
     """
 
     indexes = np.arange(n)
-    m = comb(n, k)
+    m = scipy.misc.comb(n, k)
     result = np.zeros((m, n), dtype=bool)
 
     i = 0
@@ -638,7 +654,23 @@ def do_confidences_by_cutoff(
                     num_unperm_down[i, c, binnum],
                     len(table))
                 
-    print "Null up is " + str(num_null_up)
+    conf_bins_up = np.zeros(null_shape)
+    conf_bins_down = np.zeros(null_shape)
+
+    for i in range(len(tuning_param_range_values)):
+        for c in range(len(conditions)):
+            for binnum in range(num_bins + 1):
+                unperm_up = num_unperm_up[i, c, binnum]
+                unperm_down = num_unperm_down[i, c, binnum]
+                if unperm_up > 0:
+                    conf_bins_up[i, c, binnum] = (unperm_up - num_null_up[i, c, binnum]) / unperm_up
+                if unperm_down > 0:
+                    conf_bins_down[i, c, binnum] = (unperm_down - num_null_down[i, c, binnum]) / unperm_down
+
+    #conf_bins_up   = np.max(conf_bins_up, 0.0)
+    #conf_bins_down = np.max(conf_bins_down, 0.0)
+
+    return (conf_bins_up, conf_bins_down)
 
 def adjust_num_diff(V0, R, num_ids):
     V = np.zeros(6)
@@ -700,7 +732,6 @@ def dist_unpermuted_stats(table, conditions, mins, maxes, default_alphas, num_bi
             u[j, c, :] = u_hist
 
     return (u, d, stats)
-
     
 
 def get_bins(n, maxval):

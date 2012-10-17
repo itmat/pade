@@ -1326,7 +1326,12 @@ sub DoConfidencesByCutoff {
 			$CONF_bins_down_vect[$j][$cond][$bin] = 0;
 		    }
 		}
-	    }
+	      }
+
+	    open my $conf_bins_up_down_fh, '>', 'conf_bins_up_down.py';
+	    print $conf_bins_up_down_fh "import numpy as np\n";
+	    print $conf_bins_up_down_fh declare_and_assign('conf_up', \@CONF_bins_up_vect);
+	    print $conf_bins_up_down_fh declare_and_assign('conf_down', \@CONF_bins_down_vect);
 # DEBUG
 #	for(my $j=0; $j<$num_range_values; $j++) {
 #	    for(my $bin=0; $bin<$num_bins+1; $bin++) {
@@ -1810,13 +1815,11 @@ sub DoConfidencesByCutoff {
 
 sub AdjustNumDiff {
     my ($V, $R, $num_ids) = @_;
-    print "AdjustNumDiff($V, $R, $num_ids)\n";
     my @V;
     $V[0] = $V;
     for(my $i=1; $i<6; $i++) {
 	$V[$i] = $V[0]-$V[0]/$num_ids*($R-$V[$i-1]);
     }
-    print "Is $V[5]\n";
     return $V[5];
 
 }
