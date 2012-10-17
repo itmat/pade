@@ -1475,7 +1475,9 @@ sub DoConfidencesByCutoff {
 		}
 	    }
 	}
-      
+
+	print Dumper(\@gene_confidences_up_vect);
+
 	my $fewio = $alpha_default[1];
 
 	for(my $i=0; $i<$num_range_values;$i++) {

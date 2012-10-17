@@ -677,6 +677,30 @@ def do_confidences_by_cutoff(
                 conf_bins_down[i, c, binnum] = max(conf_bins_down[i, c, binnum - 1],
                                                    conf_bins_down[i, c, binnum])
 
+    gene_conf_shape = (len(tuning_param_range_values),
+                       len(table),
+                       len(conditions))
+
+    gene_conf_up   = np.zeros(gene_conf_shape)
+    gene_conf_down = np.zeros(gene_conf_shape)
+
+    for c in range(1, len(conditions)):
+        for i in range(len(tuning_param_range_values)):
+            for j in range(len(table)):
+                if unperm_stats[i, j, c] >= 0:			
+                    binnum = int(num_bins * unperm_stats[i, j, c] / maxes[i, c])
+                    gene_conf_up[i, j, c] = conf_bins_up[i, c, binnum]
+                else:
+                    binnum = int(num_bins * unperm_stats[i, j, c] / mins[i, c])
+                    gene_conf_down[i, j, c] = conf_bins_down[i, c, binnum]
+
+    print "Gene conf up is " + str(gene_conf_up)
+
+    stats = np.zeros((len(tuning_param_range_values),
+                      len(table),
+                      len(conditions)))
+
+
     return (conf_bins_up, conf_bins_down)
 
 def adjust_num_diff(V0, R, num_ids):
