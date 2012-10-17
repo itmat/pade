@@ -679,8 +679,35 @@ def do_confidences_by_cutoff(
     
     (gene_conf_up, gene_conf_down) = get_gene_confidences(
         table, unperm_stats, mins, maxes, conf_bins_up, conf_bins_down)
+    
+    (up_by_conf, down_by_conf) = get_count_by_conf_level(gene_conf_up, gene_conf_down)
+    print "Up by conf is " + str(up_by_conf)
 
     return (conf_bins_up, conf_bins_down)
+
+
+def get_count_by_conf_level(gene_conf_up, gene_conf_down):
+
+    (num_range_values, num_genes, num_conditions) = np.shape(gene_conf_up)
+
+    num_levels = 10
+    
+    shape = (num_range_values, num_conditions, num_levels)
+
+    ranges = np.linspace(0.5, 0.95, num_levels)
+
+    up_by_conf   = np.zeros(shape)
+    down_by_conf = np.zeros(shape)
+    
+    for i in range(num_range_values):
+        for j in range(num_conditions):
+            up_conf   = gene_conf_up  [i, :, j]
+            down_conf = gene_conf_down[i, :, j]
+            for (k, level) in enumerate(ranges):
+                up_by_conf  [i, j, k] = len(up_conf  [up_conf   > level])
+                down_by_conf[i, j, k] = len(down_conf[down_conf > level])
+
+    return (up_by_conf, down_by_conf)
 
 def get_gene_confidences(table, unperm_stats, mins, maxes, conf_bins_up, conf_bins_down):
     
