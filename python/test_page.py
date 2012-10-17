@@ -145,6 +145,9 @@ class PageTest(unittest.TestCase):
 
         self.assertTrue(all(u_diffs == 0))
         self.assertTrue(all(d_diffs == 0))
+    def test_adjust_num_diff(self):
+        self.assertAlmostEqual(page.adjust_num_diff(7.07142857142857, 5, 1000),
+                               7.08618085029828)
 
 
 unittest.main()

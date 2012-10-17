@@ -11,6 +11,7 @@ use strict;
 use IO::File;
 use Getopt::Long;
 use Data::Dumper;
+use autodie;
 
 sub shape {
     my $data = shift;
@@ -1203,11 +1204,9 @@ sub DoConfidencesByCutoff {
 # DEBUG
 
     }
-
-
     print $mean_perm_up_fh declare_and_assign('mean_perm_up', \@mean_perm_up_vect);
 
-
+  
     my $num_unpermuted_up_ref;
     my $num_unpermuted_down_ref;
     my @num_unpermuted_up;
@@ -1222,13 +1221,13 @@ sub DoConfidencesByCutoff {
     my $unpermuted_stat_ref;
     my @unpermuted_stat;
 
-
 # The folowing computes statistics for the unpermuted data
 
     if($stat == 0 && !($tstat_tuning_param =~ /\S/)) {
-	($num_unpermuted_up_vect_ref, $num_unpermuted_down_vect_ref, $unpermuted_stat_vect_ref) = FindDistUnpermutedStatVect(\@data, $stat, $num_conds, $missing_value_designator, \@max_vect, \@min_vect, \@min_presence_array, $design, \@alpha, $data_is_logged, $use_logged_data, $alpha_default_ref, $paired);
+      warn "Got into first block\n";
+      ($num_unpermuted_up_vect_ref, $num_unpermuted_down_vect_ref, $unpermuted_stat_vect_ref) = FindDistUnpermutedStatVect(\@data, $stat, $num_conds, $missing_value_designator, \@max_vect, \@min_vect, \@min_presence_array, $design, \@alpha, $data_is_logged, $use_logged_data, $alpha_default_ref, $paired);
 
-        open my $up_fh,  '>', 'perl_unperm_up';
+      open my $up_fh,  '>', 'perl_unperm_up';
         open my $down_fh,  '>', 'perl_unperm_down';
         open my $stats_fh,  '>', 'perl_unperm_stats';
 
@@ -1254,13 +1253,13 @@ sub DoConfidencesByCutoff {
 # DEBUG
     }
     else {
+      warn "Got into second block";
 	($num_unpermuted_up_ref, $num_unpermuted_down_ref, $unpermuted_stat_ref) = FindDistUnpermutedStat(\@data, $stat, $num_conds, $missing_value_designator, \@max, \@min, \@min_presence_array, $design, \@alpha, $data_is_logged, $use_logged_data, $paired);
 	@num_unpermuted_up = @{$num_unpermuted_up_ref};
 	@num_unpermuted_down = @{$num_unpermuted_down_ref};
 	@unpermuted_stat = @{$unpermuted_stat_ref};
     }
-
-
+    warn "Got past there";
 
     for(my $cond=$start; $cond<$num_conds; $cond++) {
 	if($stat == 0 && !($tstat_tuning_param =~ /\S/)) {
@@ -1278,8 +1277,9 @@ sub DoConfidencesByCutoff {
 		    $R_vect[$j] = $num_unpermuted_down_vect[$j][$cond][$bin];
 		    $num_null_down_vect[$j][$cond][$bin] = AdjustNumDiff($V_vect[$j],$R_vect[$j],$num_ids);
 		}
-	    }
-	}
+	      }
+	  }
+
 	else {
 	    for(my $bin=$num_bins; $bin>=0; $bin--) {
 		$num_unpermuted_up[$cond][$bin] = $num_unpermuted_up[$cond][$bin] + $num_unpermuted_up[$cond][$bin+1];
@@ -1303,7 +1303,7 @@ sub DoConfidencesByCutoff {
 #	    }
 #	}
 # DEBUG
-
+      
 	if($stat == 0 && !($tstat_tuning_param =~ /\S/)) {
             for(my $j=0; $j<$num_range_values; $j++) {
 		for(my $bin=0; $bin<$num_bins+1; $bin++) {
@@ -1439,6 +1439,11 @@ sub DoConfidencesByCutoff {
 	    }
 	}
     }
+    print "Here I am: stat is $stat, tuning param is $tstat_tuning_param!!!\n";
+    open my $null_up_down, '>', 'null_up_down.py';
+    print $null_up_down declare_and_assign('num_null_up', \@num_null_up_vect);
+
+
     if($stat == 0 && !($tstat_tuning_param =~ /\S/)) {
 	for(my $cond=$start; $cond<$num_conds; $cond++) {
 	    for(my $j=0; $j<$num_range_values; $j++) {
@@ -1463,7 +1468,7 @@ sub DoConfidencesByCutoff {
 		}
 	    }
 	}
-
+      
 	my $fewio = $alpha_default[1];
 
 	for(my $i=0; $i<$num_range_values;$i++) {
@@ -1611,10 +1616,9 @@ sub DoConfidencesByCutoff {
 	print "\n$breakdown";
     }
 
-
 # if level confidence originally requested to be set "later"
 
-if($level_confidence =~ /(l|L)/) {
+    if($level_confidence =~ /(l|L)/) {
 	if($num_conds>1+$start) {
 	    print "\n\nNOTE: The above summary is to help you choose the level confidence(s).\n";
 	    print "NOTE: You can use any number(s) between 0 and 1 as the level confidence(s).\n";
@@ -1806,12 +1810,15 @@ if($level_confidence =~ /(l|L)/) {
 
 sub AdjustNumDiff {
     my ($V, $R, $num_ids) = @_;
+    print "AdjustNumDiff($V, $R, $num_ids)\n";
     my @V;
     $V[0] = $V;
     for(my $i=1; $i<6; $i++) {
 	$V[$i] = $V[0]-$V[0]/$num_ids*($R-$V[$i-1]);
     }
+    print "Is $V[5]\n";
     return $V[5];
+
 }
 
 sub FindDistUnpermutedStat {
@@ -2059,7 +2066,6 @@ sub FindDistUnpermutedStatVect {
     print $out_fh declare_and_assign('dist_up', \@dist_up_vect);
     print $out_fh declare_and_assign('dist_down', \@dist_down_vect);
     print $out_fh declare_and_assign('stats', \@unpermuted_stat_vect);
-    exit;
     return (\@dist_up_vect, \@dist_down_vect, \@unpermuted_stat_vect);
 }
 

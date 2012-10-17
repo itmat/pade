@@ -614,19 +614,39 @@ def do_confidences_by_cutoff(
         mean_perm_down_vect[:, c, :] = np.mean(down, axis=0)
 
     (num_unperm_up, num_unperm_down, unperm_stats) = dist_unpermuted_stats(table, conditions, mins, maxes, default_alphas)
-    
-#        for j in range(len(tuning_param_range_values)):
-#            for i in range(data.num_bins + 1):
-#                print "mean_perm_up_vect[%d][%d][%d]= %f" % (j, c, i, mean_perm_up_vect[j, c, i])
-#            for i in range(data.num_bins + 1):
-#                print "mean_perm_down_vect[%d][%d][%d]= %f" % (j, c, i, mean_perm_down_vect[j, c, i])
-        
-#        for j in range(n2):
-#            for i in range(data.num_bins + 1):
-#                print "up[%d][%d] = %d" % (j, i, up[0, j, i])
 
-        #print permuted_data[0, 0]
-    print "Mean perm up is " + str(mean_perm_up_vect)
+    for i in range(len(tuning_param_range_values)):
+        for (c, cols) in enumerate(conditions):
+            bins = num_unperm_up[i, c]
+            num_unperm_up[i, c] = np.cumsum(bins[::-1])[::-1]
+            bins = num_unperm_down[i, c]
+            num_unperm_down[i, c] = np.cumsum(bins[::-1])[::-1]
+
+    null_shape = (len(tuning_param_range_values), len(conditions), num_bins + 1)
+    num_null_up   = np.zeros(null_shape)
+    num_null_down = np.zeros(null_shape)
+
+    for (c, cols) in enumerate(conditions):
+        for i in range(len(tuning_param_range_values)):
+            for binnum in range(num_bins + 1):
+                num_null_up[i, c, binnum] = adjust_num_diff(
+                    mean_perm_up_vect[i, c, binnum],
+                    num_unperm_up[i, c, binnum],
+                    len(table))
+                num_null_down[i, c, binnum] = adjust_num_diff(
+                    mean_perm_down_vect[i, c, binnum],
+                    num_unperm_down[i, c, binnum],
+                    len(table))
+                
+    print "Null up is " + str(num_null_up)
+
+def adjust_num_diff(V0, R, num_ids):
+    V = np.zeros(6)
+    V[0] = V0
+    for i in range(1, 6):
+        V[i] = V[0] - V[0] / num_ids * (R - V[i - 1])
+    return V[5];
+
 
 def assign_bins(vals, num_bins, minval, maxval):
     """
@@ -652,13 +672,13 @@ def dist_unpermuted_stats(table, conditions, mins, maxes, default_alphas, num_bi
     for downregulated features. stats is an (m x l) matrix where m is
     the number of features and l is the number of tuning parameters.
     """
-    m = len(conditions)
-    n = num_bins + 1
 
-    l = len(tuning_param_range_values)
+    hist_shape = (len(tuning_param_range_values),
+                  len(conditions),
+                  num_bins + 1)
 
-    u = np.zeros((l, m, n), dtype=int)
-    d = np.zeros((l, m, n), dtype=int)
+    u = np.zeros(hist_shape, dtype=int)
+    d = np.zeros(hist_shape, dtype=int)
 
     center = 0
 
