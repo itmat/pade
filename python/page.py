@@ -13,17 +13,14 @@ stat_tstat = 0
 stat_means = 1
 stat_medians = 2
 
+
 class Config:
     def __init__(self, args):
-        self.num_channels = None
-        self.infile = None
 
-        if 'num_channels' in args:
-            self.num_channels = args.num_channels
-        if 'infile' in args:
-            self.infile = args.infile
-        if 'num_bins' in args:
-            self.num_bins = args.num_bins
+        for field in ['num_channels', 'infile', 'num_bins']:
+            self.__dict__[field] = None
+            if field in args:
+                self.__dict__[field] = args.__dict__[field]
 
     def __str__(self):
         return str(self.__dict__)
@@ -52,7 +49,7 @@ def get_arguments():
     file_locations = parser.add_argument_group("File locations")
 
     file_locations.add_argument(
-        '--infile',
+        'infile',
         help="""Name of the input file containing the table of
         data. Must conform to the format in the README file.""",
         default=argparse.SUPPRESS,
@@ -537,6 +534,15 @@ def do_confidences_by_cutoff(
     all_perms = init_perms(conditions)
 
     base_len = len(conditions[0])
+
+    mean_perm_up_vect = np.zeros((len(tuning_param_range_values),
+                                  len(conditions),
+                                  num_bins + 1))
+
+    mean_perm_down_vect = np.zeros((len(tuning_param_range_values),
+                                    len(conditions),
+                                    num_bins + 1))
+
     for c in range(1, len(conditions)):
         print 'Working on condition %d of %d' % (c, len(conditions) - 1)
         perms = all_perms[c]
@@ -599,26 +605,13 @@ def do_confidences_by_cutoff(
         for perm_num, perm in enumerate(perms):
             for i in range(len(tuning_param_range_values)):
                 bins = up[perm_num, i]
-                print "Bins are " + str(bins)
 
                 up[perm_num, i] = np.cumsum(bins[::-1])[::-1]
                 bins = down[perm_num, i]
                 down[perm_num, i] = np.cumsum(bins[::-1])[::-1]
 
-#        for i in range(l):
-#            for j in range(n2):
-#                for k in range(data.num_bins + 1):
-#                    print "up[%d][%d][%d] = %f" % (i, j, k, up[i, j, k])
-
-        for perm_num, perm in enumerate(perms):
-            for j, param in enumerate(tuning_param_range_values):
-                num_unpooled_up_vect[j, c]   += up[perm_num, j]
-                num_unpooled_down_vect[j, c] += down[perm_num, j]
-
-        print "Up is " + str(up)
-
-        mean_perm_up_vect   = num_unpooled_up_vect   / float(l)
-        mean_perm_down_vect = num_unpooled_down_vect / float(l)
+        mean_perm_up_vect  [:, c, :] = np.mean(up, axis=0)
+        mean_perm_down_vect[:, c, :] = np.mean(down, axis=0)
 
     (num_unperm_up, num_unperm_down, unperm_stats) = dist_unpermuted_stats(table, conditions, mins, maxes, default_alphas)
     
