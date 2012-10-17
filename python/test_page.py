@@ -155,9 +155,10 @@ class PageTest(unittest.TestCase):
         (data, row_ids, conditions) = page.load_input(self.config)
         alphas = page.find_default_alpha(data, conditions)
         (conf_bins_up, conf_bins_down) = page.do_confidences_by_cutoff(data, conditions, alphas, 1000)
-
+        print "Conf bins down is " + str(conf_bins_down - conf_bins_up_down.conf_down > 0.0001)
         self.assertTrue(np.all(conf_bins_up - conf_bins_up_down.conf_up < 0.00001))
         self.assertTrue(np.all(conf_bins_down - conf_bins_up_down.conf_down < 0.00001))
+
 
 unittest.main()
 

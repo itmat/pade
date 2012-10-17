@@ -667,8 +667,15 @@ def do_confidences_by_cutoff(
                 if unperm_down > 0:
                     conf_bins_down[i, c, binnum] = (unperm_down - num_null_down[i, c, binnum]) / unperm_down
 
-    #conf_bins_up   = np.max(conf_bins_up, 0.0)
-    #conf_bins_down = np.max(conf_bins_down, 0.0)
+    # Does this just make sure the bins are monotonically
+    # increasing?
+    for c in range(len(conditions)):
+        for i in range(len(tuning_param_range_values)):
+            for binnum in range(1, num_bins + 1):
+                conf_bins_up[i, c, binnum] = max(conf_bins_up[i, c, binnum - 1],
+                                                 conf_bins_up[i, c, binnum])
+                conf_bins_down[i, c, binnum] = max(conf_bins_down[i, c, binnum - 1],
+                                                   conf_bins_down[i, c, binnum])
 
     return (conf_bins_up, conf_bins_down)
 
