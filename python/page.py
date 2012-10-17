@@ -56,6 +56,7 @@ class Config:
 ###
 
 def show_banner():
+    """Print the PaGE banner."""
     print """
 ------------------------------------------------------------------------------
 
@@ -69,6 +70,8 @@ For help, please use {script} --help or {script} -h
            script=__file__)
 
 def get_arguments():
+    """Parse the command line options and return an argparse args
+    object."""
 
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -325,7 +328,7 @@ def main():
     show_banner()
     args = get_arguments()
     config = validate_args(args)
-    (data, row_ids, conditions) = load_input(config)
+    (data, row_ids, conditions) = load_input(config.infile)
     alphas = find_default_alpha(data, conditions)
     do_confidences_by_cutoff(data, conditions, alphas, config.num_bins)
     
@@ -354,17 +357,29 @@ def validate_args(args):
     return c
 
 
-def load_input(config):
-    f = config.infile
-    if type(f) == str:
-        f = open(f, 'r')
+def load_input(fh):
 
-    headers = f.next().rstrip().split("\t")
+    """Read input from the given filehandle and return the data, the
+    feature ids, and the layout of the conditions and replicates.
+
+    Returns a tuple of three items: (table, row_ids,
+    conditions). Table is an (m x n) array of floats, where m is the
+    number of features and n is the total number of replicates for all
+    conditions. row_ids is an array of length m, where the ith entry
+    is the name of the ith feature in the table. conditions is a list
+    of lists. The ith list gives the column indices for the replicates
+    of the ith condition. 
+    """
+
+    if type(fh) == str:
+        fh = open(fh, 'r')
+
+    headers = fh.next().rstrip().split("\t")
 
     ids = []
     table = []
 
-    for line in f:
+    for line in fh:
         row = line.rstrip().split("\t")
         rowid = row[0]
         values = [float(x) for x in row[1:]]
@@ -449,10 +464,7 @@ def find_default_alpha(table, conditions):
     return alphas
 
 
-
-
-
-def v_tstat(v1, v2, alphas, axis=0):
+def tstat(v1, v2, alphas, axis=0):
     """
     Computes the t-statistic for two 2-D arrays. v1 is an m x n1 array
     and v2 is an m x n2 array, where m is the number of features, n1
@@ -527,7 +539,7 @@ def min_max_stat(data, conditions, default_alphas):
     for j in range(1, len(conditions)):
         alphas = default_alphas[j] * tuning_param_range_values
 
-        table[j,:,:] = v_tstat(data[:,conditions[j]],
+        table[j,:,:] = tstat(data[:,conditions[j]],
                                data[:,conditions[0]],
                                alphas,
                                axis=1)
@@ -535,11 +547,6 @@ def min_max_stat(data, conditions, default_alphas):
     maxes = np.max(table, axis=2)
 
     return (np.transpose(mins), np.transpose(maxes))
-
-def dimsum(a, axis):
-    
-    res = np.cumsum(a[:,:,::-1], axis=axis)[:,:,::-1]
-    return res
 
 def do_confidences_by_cutoff(
     table,
@@ -581,28 +588,26 @@ def do_confidences_by_cutoff(
 
         stats = np.zeros((l, len(tuning_param_range_values), len(table)))
 
-        print "  Permuting indexes"
+        # print "  Permuting indexes"
         for perm_num, perm in enumerate(perms):
             permuted_indexes[perm_num,0:base_len] = master_indexes[perm]
             permuted_indexes[perm_num,base_len:]  = master_indexes[~perm]
 
-        print "  Permuting data"
+        # print "  Permuting data"
         for perm_num, perm in enumerate(perms):
             permuted_data[perm_num, :] = table[:, permuted_indexes[perm_num]]
 
-        print "  Getting stats"
+        # print "  Getting stats"
         for perm_num, perm in enumerate(perms):
             v1 = permuted_data[perm_num, : , : base_len]
             v2 = permuted_data[perm_num, : , base_len :]
-            stats[perm_num, : ] = v_tstat(v2, v1, default_alphas[c] * tuning_param_range_values, axis=1)
+            stats[perm_num, : ] = tstat(v2, v1, default_alphas[c] * tuning_param_range_values, axis=1)
         (mins, maxes) = min_max_stat(table, conditions, default_alphas)
 
         up   = np.zeros((l, n2, num_bins + 1), int)
         down = np.zeros((l, n2, num_bins + 1), int)
 
-        print "  Counting up- and down-regulated features"
-
-        print "Getting perms"
+        # print "  Building histograms for each permutation"
         for perm_num, perm in enumerate(perms):
             for i in range(len(tuning_param_range_values)):
                 (u_hist, d_hist) = assign_bins(stats[perm_num, i, :], num_bins, 
@@ -610,9 +615,8 @@ def do_confidences_by_cutoff(
                 up  [perm_num, i] = u_hist
                 down[perm_num, i] = d_hist
 
-        print "Done"
-        num_unpooled_up_vect   = np.zeros((n2, len(conditions), num_bins + 1), int)
-        num_unpooled_down_vect = np.zeros((n2, len(conditions), num_bins + 1), int)
+                # num_unpooled_up_vect   = np.zeros((n2, len(conditions), num_bins + 1), int)
+                # num_unpooled_down_vect = np.zeros((n2, len(conditions), num_bins + 1), int)
 
         # Bin 0 is for features that were downregulated (-inf, 0)
         # Bins 1 through 999 are for features that were upregulated
@@ -629,6 +633,7 @@ def do_confidences_by_cutoff(
         mean_perm_up_vect  [:, c, :] = np.mean(up, axis=0)
         mean_perm_down_vect[:, c, :] = np.mean(down, axis=0)
 
+    print "Getting stats for unpermuted data"
     (num_unperm_up, num_unperm_down, unperm_stats) = dist_unpermuted_stats(table, conditions, mins, maxes, default_alphas)
 
     for i in range(len(tuning_param_range_values)):
@@ -677,9 +682,11 @@ def do_confidences_by_cutoff(
                 conf_bins_down[i, c, binnum] = max(conf_bins_down[i, c, binnum - 1],
                                                    conf_bins_down[i, c, binnum])
     
+    print "Computing confidence scores"
     (gene_conf_up, gene_conf_down) = get_gene_confidences(
         table, unperm_stats, mins, maxes, conf_bins_up, conf_bins_down)
     
+    print "Counting up- and down-regulated features in each level"
     (levels, up_by_conf, down_by_conf) = get_count_by_conf_level(gene_conf_up, gene_conf_down)
 
     max_up_params   = np.argmax(up_by_conf, axis=0)
@@ -819,7 +826,7 @@ def dist_unpermuted_stats(table, conditions, mins, maxes, default_alphas, num_bi
 
         v1 = table[:, conditions[0]]
         v2 = table[:, conditions[c]]
-        stats[:, :, c] = v_tstat(v2, v1, alphas, axis=1)
+        stats[:, :, c] = tstat(v2, v1, alphas, axis=1)
 
         for j in range(len(tuning_param_range_values)):
             (u_hist, d_hist) = assign_bins(stats[j, :, c], num_bins, mins[j, c], maxes[j, c])

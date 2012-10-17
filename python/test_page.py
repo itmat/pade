@@ -21,14 +21,14 @@ class PageTest(unittest.TestCase):
         self.assertAlmostEqual(s, 2.57012753682683)
 
     def test_load_input(self):
-        (data, row_ids, conditions) = page.load_input(self.config)
+        (data, row_ids, conditions) = page.load_input(self.config.infile)
         self.assertEquals(len(row_ids), 1000)
         expected_conditions = np.reshape(np.arange(16), (4, 4))
         diffs = expected_conditions - conditions
         self.assertTrue(np.all(diffs == 0))
 
     def test_default_alpha(self):
-        (data, row_ids, conditions) = page.load_input(self.config)
+        (data, row_ids, conditions) = page.load_input(self.config.infile)
 
         alphas = page.find_default_alpha(data, conditions)
 
@@ -74,12 +74,12 @@ class PageTest(unittest.TestCase):
                 0.0970668755330585,
                 ]]
 
-        self.assertAlmostEqual(sum(page.v_tstat(v1, v2, alphas, axis=1)),
+        self.assertAlmostEqual(sum(page.tstat(v1, v2, alphas, axis=1)),
                                sum(expected),
                                )
 
     def test_min_max_tstat(self):
-        (data, row_ids, conditions) = page.load_input(self.config)
+        (data, row_ids, conditions) = page.load_input(self.config.infile)
         alphas = page.find_default_alpha(data, conditions)
         (mins, maxes) = page.min_max_stat(data, conditions, alphas)
         
@@ -152,7 +152,7 @@ class PageTest(unittest.TestCase):
                                7.08618085029828)
     
     def test_conf_bins(self):
-        (data, row_ids, conditions) = page.load_input(self.config)
+        (data, row_ids, conditions) = page.load_input(self.config.infile)
         alphas = page.find_default_alpha(data, conditions)
         (conf_bins_up, conf_bins_down) = page.do_confidences_by_cutoff(data, conditions, alphas, 1000)
         self.assertTrue(np.all(conf_bins_up - conf_bins_up_down.conf_up < 0.00001))
