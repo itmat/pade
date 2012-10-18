@@ -1,4 +1,6 @@
-import page
+import sys, os
+
+sys.path.insert(0, os.path.dirname(__file__) + "/../..")
 
 import unittest
 from numpy import *
@@ -7,6 +9,7 @@ import numpy.ma as ma
 import unpermuted_stats
 import mean_perm_up
 import conf_bins_up_down
+import page
 
 class PageTest(unittest.TestCase):
 

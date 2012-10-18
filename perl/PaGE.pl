@@ -714,7 +714,7 @@ sub CheckForNegsSpecialCase {
 sub DoConfidencesByCutoff {
 
     my ($data_ref, $permutations_ref, $num_reps_ref, $num_bins, $data_is_logged, $use_logged_data, $shift, $num_conds, $paired, $missing_value_designator, $min_presence_array_ref, $stat, $pool, $design, $ids_ref, $level_confidence_ref, $alpha_ref, $level_confidence, $alpha_default_ref, $tstat_tuning_param) = @_;
-    open my $mean_perm_up_fh, '>', 'mean_perm_up.py';
+    open my $mean_perm_up_fh, '>', 'page/test/mean_perm_up.py';
     print $mean_perm_up_fh "import numpy as np\n";
     print $mean_perm_up_fh declare_and_assign('data', $data_ref);
     print $mean_perm_up_fh declare_and_assign('default_alphas', $alpha_default_ref);
@@ -1227,14 +1227,6 @@ sub DoConfidencesByCutoff {
       warn "Got into first block\n";
       ($num_unpermuted_up_vect_ref, $num_unpermuted_down_vect_ref, $unpermuted_stat_vect_ref) = FindDistUnpermutedStatVect(\@data, $stat, $num_conds, $missing_value_designator, \@max_vect, \@min_vect, \@min_presence_array, $design, \@alpha, $data_is_logged, $use_logged_data, $alpha_default_ref, $paired);
 
-      open my $up_fh,  '>', 'perl_unperm_up';
-        open my $down_fh,  '>', 'perl_unperm_down';
-        open my $stats_fh,  '>', 'perl_unperm_stats';
-
-        print $up_fh    Dumper($num_unpermuted_up_vect_ref);
-        print $down_fh  Dumper($num_unpermuted_down_vect_ref);
-        print $stats_fh Dumper($unpermuted_stat_vect_ref);
-
 	@num_unpermuted_up_vect = @{$num_unpermuted_up_vect_ref};
 	@num_unpermuted_down_vect = @{$num_unpermuted_down_vect_ref};
 	@unpermuted_stat_vect = @{$unpermuted_stat_vect_ref};
@@ -1440,14 +1432,14 @@ sub DoConfidencesByCutoff {
 	    }
 	}
     }
-    open my $conf_bins_up_down_fh, '>', 'conf_bins_up_down.py';
+    open my $conf_bins_up_down_fh, '>', 'page/test/conf_bins_up_down.py';
     print $conf_bins_up_down_fh "import numpy as np\n";
     print $conf_bins_up_down_fh declare_and_assign('conf_up', \@CONF_bins_up_vect);
     print $conf_bins_up_down_fh declare_and_assign('conf_down', \@CONF_bins_down_vect);
     close $conf_bins_up_down_fh;
 
     print "Here I am: stat is $stat, tuning param is $tstat_tuning_param!!!\n";
-    open my $null_up_down, '>', 'null_up_down.py';
+    open my $null_up_down, '>', 'page/test/null_up_down.py';
     print $null_up_down declare_and_assign('num_null_up', \@num_null_up_vect);
 
 
@@ -1942,7 +1934,7 @@ sub FindDistUnpermutedStatVect {
 
     my ($data_ref, $stat, $num_conds, $missing_value_designator, $max_vect_ref, $min_vect_ref, $min_presence_array_ref, $design, $alpha_ref, $data_is_logged, $use_logged_data, $alpha_default_ref, $paired) = @args;
 
-    open my $out_fh, '>', 'unpermuted_stats.py';
+    open my $out_fh, '>', 'page/test/unpermuted_stats.py';
 
     print $out_fh "import numpy as np\n";
     print $out_fh declaration('data', [scalar @{ $data_ref }, 16 ]);
