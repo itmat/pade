@@ -81,7 +81,7 @@ class PageTest(unittest.TestCase):
                 0.0970668755330585,
                 ]]
 
-        self.assertAlmostEqual(sum(page.tstat(v1, v2, alphas, axis=1)),
+        self.assertAlmostEqual(sum(page.tstat(v1, v2, alphas)),
                                sum(expected),
                                )
 

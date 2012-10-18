@@ -472,7 +472,7 @@ def find_default_alpha(table, conditions):
     return alphas
 
 
-def tstat(v1, v2, alphas, axis=1):
+def tstat(v1, v2, alphas):
     """
     Computes the t-statistic across two vertical slices of the data
     table, with different values of alpha.
@@ -487,8 +487,8 @@ def tstat(v1, v2, alphas, axis=1):
     # Variance for each row of v1 and v2 with one degree of
     # freedom. var1 and var2 will be 1-d arrays, one variance for each
     # feature in the input.
-    var1 = np.var(v1, ddof=1, axis=axis)
-    var2 = np.var(v2, ddof=1, axis=axis)
+    var1 = np.var(v1, ddof=1, axis=1)
+    var2 = np.var(v2, ddof=1, axis=1)
 
     # The length of each row.  TODO: When we start using masked values
     # we will need to use the number of unmasked values in each
@@ -498,14 +498,21 @@ def tstat(v1, v2, alphas, axis=1):
 
     S = np.sqrt((var1 * (len1-1) + var2 * (len2-1)) /(len1 + len2 - 2))
 
-    result = np.zeros((len(alphas), len(v1)))
-    numer  = (np.mean(v1, axis=axis) - np.mean(v2, axis=axis)) * np.sqrt(len1 * len2)
+    m = len(alphas)
+    n = len(S)
 
-    for i in range(0, len(alphas)):
-        rhs = numer / ((alphas[i] + S) * np.sqrt(len1 + len2))
-        result[i,:] = rhs
+    result = np.zeros((m, n))
 
-    return result
+    # This just makes an m x n array where each column is a copy of
+    # alpha, and another m x n array where each row is a copy of S. We
+    # do this so they're the same shape, so we can add them.
+    alphas = np.tile(alphas, (n, 1)).transpose()
+    S      = np.tile(S, (m, 1))
+
+    numer  = (np.mean(v1, axis=1) - np.mean(v2, axis=1)) * np.sqrt(len1 * len2)
+    denom = (alphas + S) * np.sqrt(len1 + len2)
+
+    return numer / denom
 
 def all_subsets(n, k):
     """
@@ -557,8 +564,7 @@ def min_max_stat(data, conditions, default_alphas):
 
         table[j,:,:] = tstat(data[:,conditions[j]],
                              data[:,conditions[0]],
-                             alphas,
-                             axis=1)
+                             alphas)
     mins  = np.min(table, axis=2)
     maxes = np.max(table, axis=2)
 
@@ -617,7 +623,7 @@ def do_confidences_by_cutoff(
         for perm_num, perm in enumerate(perms):
             v1 = permuted_data[perm_num, : , : base_len]
             v2 = permuted_data[perm_num, : , base_len :]
-            stats[perm_num, : ] = tstat(v2, v1, default_alphas[c] * tuning_param_range_values, axis=1)
+            stats[perm_num, : ] = tstat(v2, v1, default_alphas[c] * tuning_param_range_values)
         (mins, maxes) = min_max_stat(table, conditions, default_alphas)
 
         up   = np.zeros((l, n2, num_bins + 1), int)
@@ -842,7 +848,7 @@ def dist_unpermuted_stats(table, conditions, mins, maxes, default_alphas, num_bi
 
         v1 = table[:, conditions[0]]
         v2 = table[:, conditions[c]]
-        stats[:, :, c] = tstat(v2, v1, alphas, axis=1)
+        stats[:, :, c] = tstat(v2, v1, alphas)
 
         for j in range(len(tuning_param_range_values)):
             (u_hist, d_hist) = assign_bins(stats[j, :, c], num_bins, mins[j, c], maxes[j, c])
