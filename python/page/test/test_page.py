@@ -167,7 +167,7 @@ class PageTest(unittest.TestCase):
         self.assertTrue(np.all(conf_bins_down - conf_bins_up_down.conf_down < 0.00001))
 
 def load_tests(loader, tests, ignore):
-    tests.addTests(doctest.DocTestSuite(page.page))
+    tests.addTests(doctest.DocTestSuite(page))
     return tests
 
 unittest.main()

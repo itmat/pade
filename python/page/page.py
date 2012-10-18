@@ -101,7 +101,7 @@ def get_arguments():
 
     file_locations.add_argument(
         "--id2url",  
-        help="""Name ot the file containing a mapping of gene id's to urls.""",
+        help="""Name of the file containing a mapping of gene id's to urls.""",
         default=argparse.SUPPRESS,
         type=file)
 
@@ -332,9 +332,7 @@ def get_arguments():
         print e
         print ""
         exit(1)
-        
-    
-    
+            
 def main():
     """Run PaGE."""
     show_banner()
@@ -343,8 +341,6 @@ def main():
     (data, row_ids, conditions) = load_input(config.infile)
     alphas = find_default_alpha(data, conditions)
     do_confidences_by_cutoff(data, conditions, alphas, config.num_bins)
-    
-    print config
 
 def validate_args(args):
     """Validate command line args and prompt user for any missing args.
@@ -476,20 +472,27 @@ def find_default_alpha(table, conditions):
     return alphas
 
 
-def tstat(v1, v2, alphas, axis=0):
+def tstat(v1, v2, alphas, axis=1):
     """
-    Computes the t-statistic for two 2-D arrays. v1 is an m x n1 array
-    and v2 is an m x n2 array, where m is the number of features, n1
-    is the number of replicates in the condition represented by v1,
-    and n2 is the number of conditions for v2. Returns an (m x p)
-    array, where m again is the number of features, and p is the
-    number of values in the alphas array.
+    Computes the t-statistic across two vertical slices of the data
+    table, with different values of alpha.
+
+    v1 is an m x n1 array and v2 is an m x n2 array, where m is the
+    number of features, n1 is the number of replicates in the
+    condition represented by v1, and n2 is the number of replicates
+    for v2. Returns an (m x p) array, where m again is the number of
+    features, and p is the number of values in the alphas array.
     """
 
-    # Standard deviations of v1 and v2 with one degree of freedom
+    # Variance for each row of v1 and v2 with one degree of
+    # freedom. var1 and var2 will be 1-d arrays, one variance for each
+    # feature in the input.
     var1 = np.var(v1, ddof=1, axis=axis)
     var2 = np.var(v2, ddof=1, axis=axis)
 
+    # The length of each row.  TODO: When we start using masked values
+    # we will need to use the number of unmasked values in each
+    # row. Until then, all the lengths are the same.
     len1 = np.array([len(row) for row in v1])
     len2 = np.array([len(row) for row in v2])
 
@@ -556,9 +559,9 @@ def min_max_stat(data, conditions, default_alphas):
         alphas = default_alphas[j] * tuning_param_range_values
 
         table[j,:,:] = tstat(data[:,conditions[j]],
-                               data[:,conditions[0]],
-                               alphas,
-                               axis=1)
+                             data[:,conditions[0]],
+                             alphas,
+                             axis=1)
     mins  = np.min(table, axis=2)
     maxes = np.max(table, axis=2)
 
@@ -886,4 +889,4 @@ if __name__ == '__main__':
 #        res[:,c] = means
 #    return res
 
-p
+    
