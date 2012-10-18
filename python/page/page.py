@@ -426,18 +426,18 @@ def load_input(fh):
 
     return (table, ids, columns)
 
-def compute_s(v1, v2, mp1, mp2, axis=0):
+def compute_s(v1, v2, axis=0):
     """
     v1 and v2 should have the same number of rows.
     """
 
-    sd1 = np.std(v1, ddof=1, axis=axis)
-    sd2 = np.std(v2, ddof=1, axis=axis)
+    var1 = np.var(v1, ddof=1, axis=axis)
+    var2 = np.var(v2, ddof=1, axis=axis)
     
     s1 = np.size(v1, axis=axis) - 1
     s2 = np.size(v2, axis=axis) - 1
 
-    return np.sqrt((sd1 ** 2 * s1 + sd2 ** 2 * s2)
+    return np.sqrt((var1 * s1 + var2 * s2)
                    / (s1 + s2))
 
 def find_default_alpha(table, conditions):
@@ -453,7 +453,7 @@ def find_default_alpha(table, conditions):
 
         condition_data = table[:,cols]
         
-        values = compute_s(condition_data, baseline_data, None, None, axis=1)
+        values = compute_s(condition_data, baseline_data, axis=1)
 
         the_mean = np.mean(values)
 
