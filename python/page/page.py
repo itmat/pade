@@ -324,7 +324,7 @@ def get_arguments():
     
     
 def main():
-
+    """Run PaGE."""
     show_banner()
     args = get_arguments()
     config = validate_args(args)
@@ -335,6 +335,15 @@ def main():
     print config
 
 def validate_args(args):
+    """Validate command line args and prompt user for any missing args.
+    
+    args is a Namespace object as returned by get_arguments(). Checks
+    to make sure there are no conflicting arguments. Prompts user for
+    values of any missing arguments. Returns a Config object
+    representing the configuration of the job, taking into account
+    both the command-line options and the values we had to prompt the
+    user for.
+    """
 
     c = Config(args)
 
@@ -368,7 +377,16 @@ def load_input(fh):
     conditions. row_ids is an array of length m, where the ith entry
     is the name of the ith feature in the table. conditions is a list
     of lists. The ith list gives the column indices for the replicates
-    of the ith condition. 
+    of the ith condition. For example:
+
+    [[0,1],
+     [2,3,4],
+     [5,6,7,8]]
+
+    indicates that there are three conditions. The first has two
+    replicates, in columns 0 and 1; the second has three replicates,
+    in columns 2, 3, and 4; the third has four replicates, in columns
+    5 through 8.
     """
 
     if type(fh) == str:
@@ -408,21 +426,6 @@ def load_input(fh):
 
     return (table, ids, columns)
 
-#def unpermuted_means(data):
-#    num_conditions = data.num_conditions()
-#    num_features   = len(data.row_ids)
-
-#    res = np.zeros((num_features, num_conditions))
-
-#    for c in range(num_conditions):
-#        cols = data.replicates(c)
-#        print "Computing mean for condition %d using replicates %s" % (c, cols)
-#        cols = data.table[:,cols]
-#        means = np.mean(cols, axis=1)
-#        print "%s -> %s" % (np.shape(cols), np.shape(means))
-#        res[:,c] = means
-#    return res
-
 def compute_s(v1, v2, mp1, mp2, axis=0):
     """
     v1 and v2 should have the same number of rows.
@@ -434,8 +437,8 @@ def compute_s(v1, v2, mp1, mp2, axis=0):
     s1 = np.size(v1, axis=axis) - 1
     s2 = np.size(v2, axis=axis) - 1
 
-    return np.sqrt((sd1 ** 2 * s1 +
-                 sd2 ** 2 * s2)  / (s1 + s2))
+    return np.sqrt((sd1 ** 2 * s1 + sd2 ** 2 * s2)
+                   / (s1 + s2))
 
 def find_default_alpha(table, conditions):
 
@@ -849,3 +852,24 @@ def get_bins(n, maxval):
 
 if __name__ == '__main__':
     main()
+
+########################################################################
+###
+### Unneeded code translated from Perl version?
+###
+
+#def unpermuted_means(data):
+#    num_conditions = data.num_conditions()
+#    num_features   = len(data.row_ids)
+
+#    res = np.zeros((num_features, num_conditions))
+
+#    for c in range(num_conditions):
+#        cols = data.replicates(c)
+#        print "Computing mean for condition %d using replicates %s" % (c, cols)
+#        cols = data.table[:,cols]
+#        means = np.mean(cols, axis=1)
+#        print "%s -> %s" % (np.shape(cols), np.shape(means))
+#        res[:,c] = means
+#    return res
+
