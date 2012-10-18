@@ -187,15 +187,16 @@ def get_arguments():
         (see the documentation for more  information on this
         setting). """)
 
-    design.add_argument(
+    logged = design.add_mutually_exclusive_group()
+
+    logged.add_argument(
         "--data-is-logged", 
         default=argparse.SUPPRESS,
-        action='store_const',
+        action='store_true',
         dest='data_is_logged',
-        const=True,
         help="Use this option if your data has already been log transformed.")
 
-    design.add_argument(
+    logged.add_argument(
         """--data-not-logged""",
         action='store_const',
         dest='data_is_logged',
@@ -274,9 +275,12 @@ def get_arguments():
         discarded.  E.g. if there are three  conditions, the list
         might be 4,6,3 """)
 
-    stats.add_argument(
+    use_logged = design.add_mutually_exclusive_group()
+
+    use_logged.add_argument(
         "--use-logged-data",
         default=argparse.SUPPRESS,
+        action='store_true',
         help="""Use this option to run the algorithm on the logged
         data (you can only  use this option if using the t-statistic
         as statistic).  Logging the  data usually give better
@@ -286,15 +290,17 @@ def get_arguments():
         both ways and see if it makes much difference.  Both ways give
         valid  results, what can be effected is the power. """)
 
-    stats.add_argument(
+    use_logged.add_argument(
         "--use-unlogged-data",
         default=argparse.SUPPRESS,
+        action='store_true',
         help="""Use this option to run the algorithm on the unlogged
         data.  (See  --use-loggged-data option above for more
         information.) """)
 
     stats.add_argument(
         "--tstat",
+        action='store_true',
         default=argparse.SUPPRESS,
         help="Use the t-statistic as statistic. ")
 
@@ -320,7 +326,13 @@ def get_arguments():
         data).  See the documentation for more on  why you might use
         this parameter. """)
 
-    return parser.parse_args()
+    try:
+        return parser.parse_args()
+    except IOError as e:
+        print e
+        print ""
+        exit(1)
+        
     
     
 def main():
@@ -441,6 +453,10 @@ def compute_s(v1, v2, axis=0):
                    / (s1 + s2))
 
 def find_default_alpha(table, conditions):
+    """
+    Return a default value for alpha, using the given data table and
+    condition layout.
+    """
 
     baseline_cols = conditions[0]
     baseline_data = table[:,baseline_cols]
@@ -451,18 +467,11 @@ def find_default_alpha(table, conditions):
         if c == 0: 
             continue
 
-        condition_data = table[:,cols]
-        
-        values = compute_s(condition_data, baseline_data, axis=1)
-
-        the_mean = np.mean(values)
-
-        lt_mean = values[values < the_mean]
-        residuals = lt_mean - the_mean
-
+        values = compute_s(table[:,cols], baseline_data, axis=1)
+        mean = np.mean(values)
+        residuals = values[values < mean] - mean
         sd = np.sqrt(sum(residuals ** 2) / (len(residuals) - 1))
-
-        alphas[c] = the_mean * 2 / np.sqrt(len(cols) + len(baseline_cols))
+        alphas[c] = mean * 2 / np.sqrt(len(cols) + len(baseline_cols))
 
     return alphas
 
@@ -478,13 +487,13 @@ def tstat(v1, v2, alphas, axis=0):
     """
 
     # Standard deviations of v1 and v2 with one degree of freedom
-    sd1 = np.std(v1, ddof=1, axis=axis)
-    sd2 = np.std(v2, ddof=1, axis=axis)
+    var1 = np.var(v1, ddof=1, axis=axis)
+    var2 = np.var(v2, ddof=1, axis=axis)
 
     len1 = np.array([len(row) for row in v1])
     len2 = np.array([len(row) for row in v2])
 
-    S = np.sqrt((sd1**2*(len1-1) + sd2**2*(len2-1))/(len1 + len2 - 2))
+    S = np.sqrt((var1 * (len1-1) + var2 * (len2-1)) /(len1 + len2 - 2))
 
     result = np.zeros((len(alphas), len(v1)))
     numer  = (np.mean(v1, axis=axis) - np.mean(v2, axis=axis)) * np.sqrt(len1 * len2)
@@ -496,23 +505,27 @@ def tstat(v1, v2, alphas, axis=0):
     return result
 
 def all_subsets(n, k):
-
     """
-    
-    Return an (m x n) matrix where n is the size of the set, n is the
-    number of subsets of
+    Return an (m x n) array where n is the size of the set, and m is
+    the number of subsets of size k from a set of size n. 
+
+    Each row is an array of booleans, with k values set to True. For example:
+
+    >>> x = all_subsets(3, 2)
+    >>> np.shape(x)
+    (3, 3)
+    >>> x
+    array([[ True,  True, False],
+           [ True, False,  True],
+           [False,  True,  True]], dtype=bool)
     """
 
     indexes = np.arange(n)
-    m = scipy.misc.comb(n, k)
-    result = np.zeros((m, n), dtype=bool)
-
-    i = 0
-
-    for i, subset in enumerate(itertools.combinations(indexes, k)):
-        for j in subset:
-            result[i,j] = True
-
+    combinations = list(itertools.combinations(indexes, k))
+    result = np.zeros((len(combinations), n), dtype=bool)
+    for i, subset in enumerate(combinations):
+        result[i, subset] = True
+    
     return result
 
 def init_perms(conditions):
@@ -873,3 +886,4 @@ if __name__ == '__main__':
 #        res[:,c] = means
 #    return res
 
+p

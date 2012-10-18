@@ -10,68 +10,6 @@
 use strict;
 use IO::File;
 use Getopt::Long;
-use Data::Dumper;
-use autodie;
-
-sub shape {
-    my $data = shift;
-    
-    my @dims;
-
-  I: for my $i (0 .. @{ $data } - 1) {
-        if ($i > $dims[0]) {
-            $dims[0] = $i;
-        }
-        next I if ! ref $data->[$i];
-
-      J: for my $j ( 0 .. @{ $data->[$i] } -1 ) {
-            if ($j > $dims[1]) {
-                $dims[1] = $j;
-            }
-            next J if ! ref $data->[$i][$j];
-
-            for my $k ( 0 .. @{ $data->[$i][$j] } -1 ) {
-                if ($k > $dims[2]) {
-                    $dims[2] = $k;
-                }
-            }
-        }
-    }
-
-    return [ map { $_ + 1 } @dims ];
-}
-
-sub declaration {
-    my ($name, $shape) = @_;
-    return "$name = np.zeros((" . join(', ', @{ $shape } ) . "))\n";
-}
-
-sub np_array {
-    my ($name, $items) = @_;
-    my @items = map { $_ || 0 } @{ $items };
-    return "$name = np.array([" . join(', ', @items) . "])\n";
-}
-
-sub assign_array {
-    my ($name, $data, @indexes) = @_;
-    my $res = '';
-    if (ref($data)) {
-        for my $i (0 .. @{ $data } - 1) {
-            if ($data->[$i]) {
-                $res .= assign_array($name, $data->[$i], @indexes, $i);
-            }
-        }
-    }
-    else {
-        $res = $name . '[' . join(', ', @indexes) . '] = ' . $data . "\n";
-    }
-    return $res;
-}
-
-sub declare_and_assign {
-    my ($name, $data) = @_;
-    return declaration($name, shape($data)) . assign_array($name, $data);
-}
 
 $| = 1;
 
@@ -714,11 +652,6 @@ sub CheckForNegsSpecialCase {
 sub DoConfidencesByCutoff {
 
     my ($data_ref, $permutations_ref, $num_reps_ref, $num_bins, $data_is_logged, $use_logged_data, $shift, $num_conds, $paired, $missing_value_designator, $min_presence_array_ref, $stat, $pool, $design, $ids_ref, $level_confidence_ref, $alpha_ref, $level_confidence, $alpha_default_ref, $tstat_tuning_param) = @_;
-    open my $mean_perm_up_fh, '>', 'page/test/mean_perm_up.py';
-    print $mean_perm_up_fh "import numpy as np\n";
-    print $mean_perm_up_fh declare_and_assign('data', $data_ref);
-    print $mean_perm_up_fh declare_and_assign('default_alphas', $alpha_default_ref);
-
     my @alpha_default = @{$alpha_default_ref};
     my @ids = @{$ids_ref};
     my @data = @{$data_ref};
@@ -1178,7 +1111,6 @@ sub DoConfidencesByCutoff {
 		}
 	    }
 	}
-
 # DEBUG
 #	print "******************************************\n";
 #	    for(my $j=0; $j<$num_range_values; $j++) {
@@ -1204,9 +1136,6 @@ sub DoConfidencesByCutoff {
 # DEBUG
 
     }
-    print $mean_perm_up_fh declare_and_assign('mean_perm_up', \@mean_perm_up_vect);
-
-  
     my $num_unpermuted_up_ref;
     my $num_unpermuted_down_ref;
     my @num_unpermuted_up;
@@ -1221,12 +1150,11 @@ sub DoConfidencesByCutoff {
     my $unpermuted_stat_ref;
     my @unpermuted_stat;
 
+
 # The folowing computes statistics for the unpermuted data
 
     if($stat == 0 && !($tstat_tuning_param =~ /\S/)) {
-      warn "Got into first block\n";
-      ($num_unpermuted_up_vect_ref, $num_unpermuted_down_vect_ref, $unpermuted_stat_vect_ref) = FindDistUnpermutedStatVect(\@data, $stat, $num_conds, $missing_value_designator, \@max_vect, \@min_vect, \@min_presence_array, $design, \@alpha, $data_is_logged, $use_logged_data, $alpha_default_ref, $paired);
-
+	($num_unpermuted_up_vect_ref, $num_unpermuted_down_vect_ref, $unpermuted_stat_vect_ref) = FindDistUnpermutedStatVect(\@data, $stat, $num_conds, $missing_value_designator, \@max_vect, \@min_vect, \@min_presence_array, $design, \@alpha, $data_is_logged, $use_logged_data, $alpha_default_ref, $paired);
 	@num_unpermuted_up_vect = @{$num_unpermuted_up_vect_ref};
 	@num_unpermuted_down_vect = @{$num_unpermuted_down_vect_ref};
 	@unpermuted_stat_vect = @{$unpermuted_stat_vect_ref};
@@ -1245,13 +1173,13 @@ sub DoConfidencesByCutoff {
 # DEBUG
     }
     else {
-      warn "Got into second block";
 	($num_unpermuted_up_ref, $num_unpermuted_down_ref, $unpermuted_stat_ref) = FindDistUnpermutedStat(\@data, $stat, $num_conds, $missing_value_designator, \@max, \@min, \@min_presence_array, $design, \@alpha, $data_is_logged, $use_logged_data, $paired);
 	@num_unpermuted_up = @{$num_unpermuted_up_ref};
 	@num_unpermuted_down = @{$num_unpermuted_down_ref};
 	@unpermuted_stat = @{$unpermuted_stat_ref};
     }
-    warn "Got past there";
+
+
 
     for(my $cond=$start; $cond<$num_conds; $cond++) {
 	if($stat == 0 && !($tstat_tuning_param =~ /\S/)) {
@@ -1269,9 +1197,8 @@ sub DoConfidencesByCutoff {
 		    $R_vect[$j] = $num_unpermuted_down_vect[$j][$cond][$bin];
 		    $num_null_down_vect[$j][$cond][$bin] = AdjustNumDiff($V_vect[$j],$R_vect[$j],$num_ids);
 		}
-	      }
-	  }
-
+	    }
+	}
 	else {
 	    for(my $bin=$num_bins; $bin>=0; $bin--) {
 		$num_unpermuted_up[$cond][$bin] = $num_unpermuted_up[$cond][$bin] + $num_unpermuted_up[$cond][$bin+1];
@@ -1295,7 +1222,7 @@ sub DoConfidencesByCutoff {
 #	    }
 #	}
 # DEBUG
-      
+
 	if($stat == 0 && !($tstat_tuning_param =~ /\S/)) {
             for(my $j=0; $j<$num_range_values; $j++) {
 		for(my $bin=0; $bin<$num_bins+1; $bin++) {
@@ -1318,8 +1245,7 @@ sub DoConfidencesByCutoff {
 			$CONF_bins_down_vect[$j][$cond][$bin] = 0;
 		    }
 		}
-	      }
-
+	    }
 # DEBUG
 #	for(my $j=0; $j<$num_range_values; $j++) {
 #	    for(my $bin=0; $bin<$num_bins+1; $bin++) {
@@ -1432,17 +1358,6 @@ sub DoConfidencesByCutoff {
 	    }
 	}
     }
-    open my $conf_bins_up_down_fh, '>', 'page/test/conf_bins_up_down.py';
-    print $conf_bins_up_down_fh "import numpy as np\n";
-    print $conf_bins_up_down_fh declare_and_assign('conf_up', \@CONF_bins_up_vect);
-    print $conf_bins_up_down_fh declare_and_assign('conf_down', \@CONF_bins_down_vect);
-    close $conf_bins_up_down_fh;
-
-    print "Here I am: stat is $stat, tuning param is $tstat_tuning_param!!!\n";
-    open my $null_up_down, '>', 'page/test/null_up_down.py';
-    print $null_up_down declare_and_assign('num_null_up', \@num_null_up_vect);
-
-
     if($stat == 0 && !($tstat_tuning_param =~ /\S/)) {
 	for(my $cond=$start; $cond<$num_conds; $cond++) {
 	    for(my $j=0; $j<$num_range_values; $j++) {
@@ -1615,9 +1530,10 @@ sub DoConfidencesByCutoff {
 	print "\n$breakdown";
     }
 
+
 # if level confidence originally requested to be set "later"
 
-    if($level_confidence =~ /(l|L)/) {
+if($level_confidence =~ /(l|L)/) {
 	if($num_conds>1+$start) {
 	    print "\n\nNOTE: The above summary is to help you choose the level confidence(s).\n";
 	    print "NOTE: You can use any number(s) between 0 and 1 as the level confidence(s).\n";
@@ -1815,7 +1731,6 @@ sub AdjustNumDiff {
 	$V[$i] = $V[0]-$V[0]/$num_ids*($R-$V[$i-1]);
     }
     return $V[5];
-
 }
 
 sub FindDistUnpermutedStat {
@@ -1927,41 +1842,10 @@ sub FindDistUnpermutedStat {
 
 sub FindDistUnpermutedStatVect {
 
-    my @args = @_;
-
 # This finds the distribution into bins of the statistic to be used, over the
 # unpermuted data.
 
-    my ($data_ref, $stat, $num_conds, $missing_value_designator, $max_vect_ref, $min_vect_ref, $min_presence_array_ref, $design, $alpha_ref, $data_is_logged, $use_logged_data, $alpha_default_ref, $paired) = @args;
-
-    open my $out_fh, '>', 'page/test/unpermuted_stats.py';
-
-    print $out_fh "import numpy as np\n";
-    print $out_fh declaration('data', [scalar @{ $data_ref }, 16 ]);
-
-    my @pydata ;
-
-    for my $i (0 .. @{ $data_ref } - 1) {
-        my @row;
-        for my $j (0 .. 3) {
-            for my $k (1 .. 4) {
-                push @row, $data_ref->[$i][$j][$k];
-            }
-        }
-        push @pydata, \@row;
-    }
-    
-    print $out_fh assign_array('data', \@pydata);
-
-    print $out_fh declaration('maxes', shape($max_vect_ref));
-    print $out_fh assign_array('maxes', $max_vect_ref);
-
-    print $out_fh declaration('mins', shape($min_vect_ref));
-    print $out_fh assign_array('mins', $min_vect_ref);
-
-    print $out_fh np_array('alphas', $alpha_ref);
-    print $out_fh np_array('alpha_default', $alpha_default_ref);
-
+    my ($data_ref, $stat, $num_conds, $missing_value_designator, $max_vect_ref, $min_vect_ref, $min_presence_array_ref, $design, $alpha_ref, $data_is_logged, $use_logged_data, $alpha_default_ref, $paired) = @_;
     my @alpha_default = @{$alpha_default_ref};
     my @data = @{$data_ref};
     my @min_presence_array = @{$min_presence_array_ref};
@@ -2018,11 +1902,6 @@ sub FindDistUnpermutedStatVect {
 		    if($value ne "NA") {
 			if($value>=$center) {
 			    my $bin=int($num_bins * ($value - $center) / ($max_vect[$i][$cond] - $center));
-                            if ($i == 0 && $cond == 1 && $bin == 1) {
-                                my $boundary = $max_vect[$i][$cond] / $num_bins;
-                                
-                                print "up[$i][$cond][$bin] for $value under $boundary, num bins = $num_bins, center = $center, max is $max_vect[$i][$cond]\n";
-                            }
 			    $dist_up_vect[$i][$cond][$bin]++;
 			    $dist_down_vect[$i][$cond][0]++;
 			}
@@ -2059,10 +1938,14 @@ sub FindDistUnpermutedStatVect {
 	    }
 	}
     }
-    
-    print $out_fh declare_and_assign('dist_up', \@dist_up_vect);
-    print $out_fh declare_and_assign('dist_down', \@dist_down_vect);
-    print $out_fh declare_and_assign('stats', \@unpermuted_stat_vect);
+	for(my $j=0; $j<$num_range_values; $j++) {
+	    for(my $bin=0; $bin<$num_bins; $bin++) {
+#		print "dist_up_vect[$j][0][$bin]=$dist_up_vect[$j][0][$bin]\n";
+#		print "dist_down_vect[$j][0][$bin]=$dist_down_vect[$j][0][$bin]\n";
+#		print "unpermuted_stat_vect[$j][0][$bin]=$unpermuted_stat_vect[$j][0][$bin]\n";
+	    }
+	}
+
     return (\@dist_up_vect, \@dist_down_vect, \@unpermuted_stat_vect);
 }
 

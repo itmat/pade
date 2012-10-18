@@ -3,13 +3,17 @@ import sys, os
 sys.path.insert(0, os.path.dirname(__file__) + "/../..")
 
 import unittest
+import doctest
+
 from numpy import *
 import numpy as np
 import numpy.ma as ma
 import unpermuted_stats
 import mean_perm_up
 import conf_bins_up_down
+
 import page
+
 
 class PageTest(unittest.TestCase):
 
@@ -116,6 +120,7 @@ class PageTest(unittest.TestCase):
         self.assertTrue(all(abs(maxes - e_maxes) < 0.00001))
 
     def test_all_subsets(self):
+        print page.all_subsets(3, 2)
         subsets = page.all_subsets(8, 4)
         # There should be 70 rows and 8 columns
         self.assertEquals(shape(subsets), (70, 8))
@@ -161,6 +166,9 @@ class PageTest(unittest.TestCase):
         self.assertTrue(np.all(conf_bins_up - conf_bins_up_down.conf_up < 0.00001))
         self.assertTrue(np.all(conf_bins_down - conf_bins_up_down.conf_down < 0.00001))
 
+def load_tests(loader, tests, ignore):
+    tests.addTests(doctest.DocTestSuite(page.page))
+    return tests
 
 unittest.main()
 
