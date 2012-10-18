@@ -5,5 +5,5 @@ clean :
 	rm -f *.toc *.log *.aux pres.pdf *.html *.nav *.out *.snm *~
 
 time_perl_version : 
-	perl PaGE_demo.pl --infile ../../sample_data/4_class_testdata_header1.txt --num_channels 1 --unpaired --data_not_logged --use_unlogged_data --level_confidence L --min_presence 4 --tstat
+	time perl PaGE_demo.pl --infile ../../sample_data/4_class_testdata_header1.txt --num_channels 1 --unpaired --data_not_logged --use_unlogged_data --level_confidence L --min_presence 4 --tstat
 

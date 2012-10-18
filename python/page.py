@@ -514,10 +514,7 @@ def all_subsets(n, k):
 
     Each row is an array of booleans, with k values set to True. For example:
 
-    >>> x = all_subsets(3, 2)
-    >>> np.shape(x)
-    (3, 3)
-    >>> x
+    >>> all_subsets(3, 2)
     array([[ True,  True, False],
            [ True, False,  True],
            [False,  True,  True]], dtype=bool)
