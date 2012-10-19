@@ -39,7 +39,7 @@ tuning_param_range_values = np.array([
 class Config:
     def __init__(self, args):
 
-        for field in ['num_channels', 'infile', 'num_bins']:
+        for field in ['channels', 'infile', 'num_bins']:
             self.__dict__[field] = None
             if field in args:
                 self.__dict__[field] = args.__dict__[field]
@@ -171,7 +171,7 @@ def get_arguments():
         you probably shouldn't need to change it.""")
 
     design.add_argument(
-        "--num-channels",
+        "--channels",
         type=int,
         default=argparse.SUPPRESS,        
         choices=[1,2],
@@ -359,19 +359,19 @@ def validate_args(args):
 
     pos_int_re = re.compile("\d+")
 
-    if 'num_channels' in args:
-        if args.num_channels == 1 and 'design' in args:
+    if 'channels' in args:
+        if args.channels == 1 and 'design' in args:
             raise Exception("Error: if the number of channels is 1, do not specify the design type")
     elif 'design' in args:
-        c.num_channels = 2
+        c.channels = 2
 
-    while c.num_channels is None:
+    while c.channels is None:
         s = raw_input("Are the arrays 1-channel or 2-channel arrays? (Enter 1 or 2): ")
         if pos_int_re.match(s) is not None:
             channels = int(s)
 
             if channels == 1 or channels == 2:
-                c.num_channels = channels
+                c.channels = channels
 
     return c
 
@@ -717,8 +717,6 @@ def do_confidences_by_cutoff(
     max_down_params = np.argmax(down_by_conf, axis=0)
  
     best_up = up_by_conf[max_up_params]
-    print "Up by conf is " + str(up_by_conf)
-    print "Best up is " + str(max_up_params)
 
     breakdown = np.zeros((len(conditions),
                           len(levels),
