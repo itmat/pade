@@ -150,7 +150,7 @@ def get_arguments():
             output file.""")
 
     output_options.add_argument(
-            "--aux-page-np.size", 
+            "--aux-page-size", 
             type=int,
             default=500,
             help="""A whole number greater than zero.  This specifies
@@ -298,21 +298,24 @@ def get_arguments():
         data.  (See  --use-loggged-data option above for more
         information.) """)
 
-    stats.add_argument(
+    the_stat = stats.add_mutually_exclusive_group()
+
+    the_stat.add_argument(
         "--tstat",
         action='store_true',
         default=argparse.SUPPRESS,
         help="Use the t-statistic as statistic. ")
 
-    stats.add_argument(
+    the_stat.add_argument(
         "--means",
+        action='store_true',
         default=argparse.SUPPRESS,
         help="Use the ratio of the means of the two groups as statistic. ")
 
     stats.add_argument(
         "--tstat-tuning-parameter",
         default=argparse.SUPPRESS,
-        help="""Optional.  The value of the t-statistic tuning
+        help="""The value of the t-statistic tuning
         parameter.  This is set to  a default value determined
         separately for each pattern position, but can be  set by hand
         using this command.  See the documentation for more 
@@ -321,10 +324,9 @@ def get_arguments():
     stats.add_argument(
         "--shift",
         default=argparse.SUPPRESS,
-        help="""Optional.  A real number greater than zero.  This
-        number will be added to  all intensities (of the unlogged
-        data).  See the documentation for more on  why you might use
-        this parameter. """)
+        help="""A real number greater than zero.  This number will be
+        added to all intensities (of the unlogged data).  See the
+        documentation for more on why you might use this parameter.""")
 
     try:
         return parser.parse_args()
