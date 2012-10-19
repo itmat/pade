@@ -1,23 +1,22 @@
 import sys, os
 
 sys.path.insert(0, os.path.dirname(__file__) + "/../..")
-
 import unittest
 import doctest
-
-from numpy import *
 import numpy as np
 import numpy.ma as ma
-from data import unpermuted_stats, mean_perm_up, conf_bins_up_down
-
 import page
 
+from numpy import *
+from data import unpermuted_stats, mean_perm_up, conf_bins_up_down
 
 class PageTest(unittest.TestCase):
 
     def setUp(self):
-        self.v1 = ma.masked_array([float(x) for x in [1, 6, 5, 3, 8, 9, 6, 3, 6, 8]], ma.nomask)
-        self.v2 = ma.masked_array([float(x) for x in [7, 4, 9, 6, 2, 4, 7, 4, 2, 1]], ma.nomask)
+        self.v1 = ma.masked_array(
+            [float(x) for x in [1, 6, 5, 3, 8, 9, 6, 3, 6, 8]], ma.nomask)
+        self.v2 = ma.masked_array(
+            [float(x) for x in [7, 4, 9, 6, 2, 4, 7, 4, 2, 1]], ma.nomask)
         self.config = page.Config({})
         self.config.infile = 'sample_data/4_class_testdata_header1.txt'
 
@@ -44,7 +43,7 @@ class PageTest(unittest.TestCase):
         page.compute_s(data[:,(0,1,2,3)],
                          data[:,(4,5,6,7)])
 
-    def test_vectorized_tstat(self):
+    def test_tstat(self):
         v1 = [[2.410962, 1.897421, 2.421239, 1.798668],
               [2.410962, 1.897421, 2.421239, 1.798668]]
         v2 = [[0.90775,  0.964438, 1.07578,  1.065872],
@@ -163,7 +162,7 @@ def load_tests(loader, tests, ignore):
     tests.addTests(doctest.DocTestSuite(page))
     return tests
 
-unittest.main()
+#unittest.main()
 
 
 #Mean is 2.29140221289693

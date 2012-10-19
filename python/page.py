@@ -503,8 +503,6 @@ def tstat(v1, v2, alphas):
     m = len(alphas)
     n = len(S)
 
-    result = np.zeros((m, n))
-
     # This just makes an m x n array where each column is a copy of
     # alpha, and another m x n array where each row is a copy of S. We
     # do this so they're the same shape, so we can add them.
