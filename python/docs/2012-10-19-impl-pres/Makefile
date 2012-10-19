@@ -1,4 +1,4 @@
-pres.pdf :
+pres :
 	pdflatex pres.tex
 
 clean : 
