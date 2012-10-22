@@ -727,9 +727,6 @@ def do_confidences_by_cutoff(
             breakdown[c, i, 1] = up_by_conf[max_up_params[c, i], c, i]
             breakdown[c, i, 2] = down_by_conf[max_down_params[c, i], c, i]
 
-#        breakdown[c, :, 1] = best_up
-#        breakdown[c, :, 2] = down_by_conf[max_down_params[c], c]
-
     for c in range(1, len(conditions)):
         print """
 ----------------------------
@@ -742,7 +739,7 @@ condition {:d}
             (level, up, down) = row
             print "{:10.2f} {:7d} {:9d}".format(level, int(up), int(down))
 
-    return (conf_bins_up, conf_bins_down)
+    return (conf_bins_up, conf_bins_down, breakdown)
 
 
 def get_count_by_conf_level(gene_conf_up, gene_conf_down):

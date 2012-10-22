@@ -154,15 +154,60 @@ class PageTest(unittest.TestCase):
     def test_conf_bins(self):
         (data, row_ids, conditions) = page.load_input(self.config.infile)
         alphas = page.find_default_alpha(data, conditions)
-        (conf_bins_up, conf_bins_down) = page.do_confidences_by_cutoff(data, conditions, alphas, 1000)
+        (conf_bins_up, conf_bins_down, breakdown) = page.do_confidences_by_cutoff(data, conditions, alphas, 1000)
         self.assertTrue(np.all(conf_bins_up - conf_bins_up_down.conf_up < 0.00001))
         self.assertTrue(np.all(conf_bins_down - conf_bins_up_down.conf_down < 0.00001))
+
+        expected_breakdown = np.array([[[  0.  ,   0.  ,   0.  ],
+        [  0.  ,   0.  ,   0.  ],
+        [  0.  ,   0.  ,   0.  ],
+        [  0.  ,   0.  ,   0.  ],
+        [  0.  ,   0.  ,   0.  ],
+        [  0.  ,   0.  ,   0.  ],
+        [  0.  ,   0.  ,   0.  ],
+        [  0.  ,   0.  ,   0.  ],
+        [  0.  ,   0.  ,   0.  ],
+        [  0.  ,   0.  ,   0.  ]],
+
+       [[  0.5 ,  73.  ,   0.  ],
+        [  0.55,  70.  ,   0.  ],
+        [  0.6 ,  66.  ,   0.  ],
+        [  0.65,  59.  ,   0.  ],
+        [  0.7 ,  47.  ,   0.  ],
+        [  0.75,  44.  ,   0.  ],
+        [  0.8 ,  36.  ,   0.  ],
+        [  0.85,  29.  ,   0.  ],
+        [  0.9 ,  24.  ,   0.  ],
+        [  0.95,  14.  ,   0.  ]],
+
+       [[  0.5 ,  70.  ,  23.  ],
+        [  0.55,  65.  ,  22.  ],
+        [  0.6 ,  61.  ,  21.  ],
+        [  0.65,  54.  ,  13.  ],
+        [  0.7 ,  47.  ,  11.  ],
+        [  0.75,  42.  ,  10.  ],
+        [  0.8 ,  35.  ,   9.  ],
+        [  0.85,  31.  ,   7.  ],
+        [  0.9 ,  24.  ,   2.  ],
+        [  0.95,  20.  ,   1.  ]],
+
+       [[  0.5 ,  56.  ,   7.  ],
+        [  0.55,  46.  ,   5.  ],
+        [  0.6 ,  45.  ,   0.  ],
+        [  0.65,  42.  ,   0.  ],
+        [  0.7 ,  40.  ,   0.  ],
+        [  0.75,  38.  ,   0.  ],
+        [  0.8 ,  35.  ,   0.  ],
+        [  0.85,  32.  ,   0.  ],
+        [  0.9 ,  29.  ,   0.  ],
+        [  0.95,  24.  ,   0.  ]]])
+        self.assertTrue(np.all(expected_breakdown - breakdown) == 0)
 
 def load_tests(loader, tests, ignore):
     tests.addTests(doctest.DocTestSuite(page))
     return tests
 
-#unittest.main()
+unittest.main()
 
 
 #Mean is 2.29140221289693
