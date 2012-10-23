@@ -1,5 +1,16 @@
 #!/usr/bin/env python
 
+"""
+m is the number of features
+n is the number of conditions
+n_i is the number of replicates in the ith condition
+
+h is the number of bins
+r is the number of permutations
+s is the number of tuning param range values
+
+"""
+
 import argparse
 import re
 import numpy as np
@@ -14,11 +25,7 @@ import scipy.misc
 
 __version__ = '6.0.0'
 
-stat_tstat = 0
-stat_means = 1
-stat_medians = 2
-
-tuning_param_range_values = np.array([
+TUNING_PARAM_RANGE_VALUES = np.array([
     0.0001,
     0.01,
     0.1,
@@ -55,8 +62,12 @@ class Config:
 ### Functions
 ###
 
+
 def show_banner():
-    """Print the PaGE banner."""
+    """Print the PaGE banner.
+    
+    """
+
     print """
 ------------------------------------------------------------------------------
 
@@ -68,6 +79,7 @@ def show_banner():
 For help, please use {script} --help or {script} -h
 """.format(version=__version__,
            script=__file__)
+
 
 def get_arguments():
     """Parse the command line options and return an argparse args
@@ -335,6 +347,7 @@ def get_arguments():
         print ""
         exit(1)
             
+
 def main():
     """Run PaGE."""
     show_banner()
@@ -343,6 +356,7 @@ def main():
     (data, row_ids, conditions) = load_input(config.infile)
     alphas = find_default_alpha(data, conditions)
     do_confidences_by_cutoff(data, conditions, alphas, config.num_bins)
+
 
 def validate_args(args):
     """Validate command line args and prompt user for any missing args.
@@ -482,9 +496,17 @@ def tstat(v1, v2, alphas):
     v1 is an m x n1 array and v2 is an m x n2 array, where m is the
     number of features, n1 is the number of replicates in the
     condition represented by v1, and n2 is the number of replicates
-    for v2. Returns an (m x p) array, where m again is the number of
-    features, and p is the number of values in the alphas array.
+    for v2. Returns an (m x s) array, where m again is the number of
+    features, and s is the length of the tuning param array.
     """
+
+    # n1 and n2 are the length of each row. TODO: When we start using
+    # masked values we will need to use the number of unmasked values
+    # in each row. Until then, all the lengths are the same.
+    s = len(alphas)
+    m = len(v1)
+    n1 = np.array([len(row) for row in v1])
+    n2 = np.array([len(row) for row in v2])
 
     # Variance for each row of v1 and v2 with one degree of
     # freedom. var1 and var2 will be 1-d arrays, one variance for each
@@ -492,25 +514,16 @@ def tstat(v1, v2, alphas):
     var1 = np.var(v1, ddof=1, axis=1)
     var2 = np.var(v2, ddof=1, axis=1)
 
-    # The length of each row.  TODO: When we start using masked values
-    # we will need to use the number of unmasked values in each
-    # row. Until then, all the lengths are the same.
-    len1 = np.array([len(row) for row in v1])
-    len2 = np.array([len(row) for row in v2])
+    S = np.sqrt((var1 * (n1-1) + var2 * (n2-1)) /(n1 + n2 - 2))
 
-    S = np.sqrt((var1 * (len1-1) + var2 * (len2-1)) /(len1 + len2 - 2))
-
-    m = len(alphas)
-    n = len(S)
-
-    # This just makes an m x n array where each column is a copy of
-    # alpha, and another m x n array where each row is a copy of S. We
+    # This just makes an s x n array where each column is a copy of
+    # alpha, and another s x n array where each row is a copy of foo. We
     # do this so they're the same shape, so we can add them.
-    alphas = np.tile(alphas, (n, 1)).transpose()
-    S      = np.tile(S, (m, 1))
+    alphas = np.tile(alphas, (m, 1)).transpose()
+    S      = np.tile(S, (s, 1))
 
-    numer  = (np.mean(v1, axis=1) - np.mean(v2, axis=1)) * np.sqrt(len1 * len2)
-    denom = (alphas + S) * np.sqrt(len1 + len2)
+    numer  = (np.mean(v1, axis=1) - np.mean(v2, axis=1)) * np.sqrt(n1 * n2)
+    denom = (alphas + S) * np.sqrt(n1 + n2)
 
     return numer / denom
 
@@ -550,107 +563,90 @@ def init_perms(conditions):
 
 def min_max_stat(data, conditions, default_alphas):
     """
-    Returns a tuple (mins, maxes) where both mins and maxes are (m x
-    n) matrices, m being the length of default_alphas, and n being the
+    Returns a tuple (mins, maxes) where both mins and maxes are (s x
+    n) matrices, s being the length of default_alphas, and n being the
     number of conditions.
     """
 
-    table = np.zeros((len(conditions),
-                      len(tuning_param_range_values), 
-                      len(data)))
+    m = len(data)
+    n = len(conditions)
+    s = len(TUNING_PARAM_RANGE_VALUES)
 
-    for j in range(1, len(conditions)):
-        alphas = default_alphas[j] * tuning_param_range_values
+    table = np.zeros((n, s, m))
 
+    for j in range(1, n):
+        alphas = default_alphas[j] * TUNING_PARAM_RANGE_VALUES
         table[j,:,:] = tstat(data[:,conditions[j]],
                              data[:,conditions[0]],
                              alphas)
+
     mins  = np.min(table, axis=2)
     maxes = np.max(table, axis=2)
 
     return (np.transpose(mins), np.transpose(maxes))
 
-def do_confidences_by_cutoff(
-    table,
-    conditions,
-    default_alphas,
-    num_bins
-    ):
+def accumulate_bins(bins):
+    return np.cumsum(bins[::-1])[::-1]
+
+def do_confidences_by_cutoff(table, conditions, default_alphas, num_bins):
+
     all_perms = init_perms(conditions)
 
-    base_len = len(conditions[0])
+    m = len(table)
+    s = len(TUNING_PARAM_RANGE_VALUES)
+    h = num_bins
+    n = len(conditions)
+    
+    n0 = len(conditions[0])
 
-    mean_perm_up_vect = np.zeros((len(tuning_param_range_values),
-                                  len(conditions),
-                                  num_bins + 1))
+    mean_perm_up_vect = np.zeros((s, n, h + 1))
 
-    mean_perm_down_vect = np.zeros((len(tuning_param_range_values),
+    mean_perm_down_vect = np.zeros((len(TUNING_PARAM_RANGE_VALUES),
                                     len(conditions),
-                                    num_bins + 1))
+                                    h + 1))
 
-    for c in range(1, len(conditions)):
-        print 'Working on condition %d of %d' % (c, len(conditions) - 1)
+    for c in range(1, n):
+        print 'Working on condition %d of %d' % (c, n - 1)
         perms = all_perms[c]
+        r  = len(perms)
+        nc = len(conditions[c])
 
         # This is the list of all indexes into table for
         # replicates of condition 0 and condition c.
-        master_indexes = []
-        master_indexes.extend(conditions[0])
-        master_indexes.extend(conditions[c])
-        master_indexes = np.array(master_indexes)
+        master_indexes = np.zeros((n0 + nc), dtype=int)
+        master_indexes[:n0] = conditions[0]
+        master_indexes[n0:] = conditions[c]
 
-        l = len(perms)
-        m = len(table)
-        n = len(master_indexes)
-        n2 = len(tuning_param_range_values)
-
-        permuted_data = np.zeros((l, m, n))
-
-        permuted_indexes = np.zeros((l, n), dtype=int)
-
-        stats = np.zeros((l, len(tuning_param_range_values), len(table)))
+        stats = np.zeros((r, s, m))
 
         # print "  Permuting indexes"
         for perm_num, perm in enumerate(perms):
-            permuted_indexes[perm_num,0:base_len] = master_indexes[perm]
-            permuted_indexes[perm_num,base_len:]  = master_indexes[~perm]
-
-        # print "  Permuting data"
-        for perm_num, perm in enumerate(perms):
-            permuted_data[perm_num, :] = table[:, permuted_indexes[perm_num]]
-
-        # print "  Getting stats"
-        for perm_num, perm in enumerate(perms):
-            v1 = permuted_data[perm_num, : , : base_len]
-            v2 = permuted_data[perm_num, : , base_len :]
-            stats[perm_num, : ] = tstat(v2, v1, default_alphas[c] * tuning_param_range_values)
+            v1 = table[:, master_indexes[perm]]
+            v2 = table[:, master_indexes[~perm]]
+            stats[perm_num, : ] = tstat(v2, v1, default_alphas[c] * TUNING_PARAM_RANGE_VALUES)
         (mins, maxes) = min_max_stat(table, conditions, default_alphas)
 
-        up   = np.zeros((l, n2, num_bins + 1), int)
-        down = np.zeros((l, n2, num_bins + 1), int)
+        # Histogram is (permutations x alpha tuning params x bins)
+        hist_shape = (r, s, h + 1)
+        up   = np.zeros(hist_shape, int)
+        down = np.zeros(hist_shape, int)
 
         # print "  Building histograms for each permutation"
         for perm_num, perm in enumerate(perms):
-            for i in range(len(tuning_param_range_values)):
-                (u_hist, d_hist) = assign_bins(stats[perm_num, i, :], num_bins, 
+            for i in range(s):
+                (u_hist, d_hist) = assign_bins(stats[perm_num, i, :], h, 
                                                mins[i, c], maxes[i, c])
                 up  [perm_num, i] = u_hist
                 down[perm_num, i] = d_hist
-
-                # num_unpooled_up_vect   = np.zeros((n2, len(conditions), num_bins + 1), int)
-                # num_unpooled_down_vect = np.zeros((n2, len(conditions), num_bins + 1), int)
 
         # Bin 0 is for features that were downregulated (-inf, 0)
         # Bins 1 through 999 are for features that were upregulated
         # Bin 1000 is for any features that were upregulated above the max from the unmpermuted data (max, inf)
 
         for perm_num, perm in enumerate(perms):
-            for i in range(len(tuning_param_range_values)):
-                bins = up[perm_num, i]
-
-                up[perm_num, i] = np.cumsum(bins[::-1])[::-1]
-                bins = down[perm_num, i]
-                down[perm_num, i] = np.cumsum(bins[::-1])[::-1]
+            for i in range(s):
+                up[perm_num, i]   = accumulate_bins(up[perm_num, i])
+                down[perm_num, i] = accumulate_bins(down[perm_num, i])
 
         mean_perm_up_vect  [:, c, :] = np.mean(up, axis=0)
         mean_perm_down_vect[:, c, :] = np.mean(down, axis=0)
@@ -658,51 +654,49 @@ def do_confidences_by_cutoff(
     print "Getting stats for unpermuted data"
     (num_unperm_up, num_unperm_down, unperm_stats) = dist_unpermuted_stats(table, conditions, mins, maxes, default_alphas)
 
-    for i in range(len(tuning_param_range_values)):
+    for i in range(s):
         for (c, cols) in enumerate(conditions):
-            bins = num_unperm_up[i, c]
-            num_unperm_up[i, c] = np.cumsum(bins[::-1])[::-1]
-            bins = num_unperm_down[i, c]
-            num_unperm_down[i, c] = np.cumsum(bins[::-1])[::-1]
+            num_unperm_up[i, c] = accumulate_bins(num_unperm_up[i, c])
+            num_unperm_down[i, c] = accumulate_bins(num_unperm_down[i, c])
 
-    null_shape = (len(tuning_param_range_values), len(conditions), num_bins + 1)
+    null_shape = (s, n, h + 1)
     num_null_up   = np.zeros(null_shape)
     num_null_down = np.zeros(null_shape)
 
     for (c, cols) in enumerate(conditions):
-        for i in range(len(tuning_param_range_values)):
-            for binnum in range(num_bins + 1):
-                num_null_up[i, c, binnum] = adjust_num_diff(
-                    mean_perm_up_vect[i, c, binnum],
-                    num_unperm_up[i, c, binnum],
-                    len(table))
-                num_null_down[i, c, binnum] = adjust_num_diff(
-                    mean_perm_down_vect[i, c, binnum],
-                    num_unperm_down[i, c, binnum],
-                    len(table))
+        for i in range(s):
+            for b in range(h + 1):
+                num_null_up[i, c, b] = adjust_num_diff(
+                    mean_perm_up_vect[i, c, b],
+                    num_unperm_up[i, c, b],
+                    m)
+                num_null_down[i, c, b] = adjust_num_diff(
+                    mean_perm_down_vect[i, c, b],
+                    num_unperm_down[i, c, b],
+                    m)
                 
     conf_bins_up = np.zeros(null_shape)
     conf_bins_down = np.zeros(null_shape)
 
-    for i in range(len(tuning_param_range_values)):
-        for c in range(len(conditions)):
-            for binnum in range(num_bins + 1):
-                unperm_up = num_unperm_up[i, c, binnum]
-                unperm_down = num_unperm_down[i, c, binnum]
+    for i in range(s):
+        for c in range(n):
+            for b in range(h + 1):
+                unperm_up = num_unperm_up[i, c, b]
+                unperm_down = num_unperm_down[i, c, b]
                 if unperm_up > 0:
-                    conf_bins_up[i, c, binnum] = (unperm_up - num_null_up[i, c, binnum]) / unperm_up
+                    conf_bins_up[i, c, b] = (unperm_up - num_null_up[i, c, b]) / unperm_up
                 if unperm_down > 0:
-                    conf_bins_down[i, c, binnum] = (unperm_down - num_null_down[i, c, binnum]) / unperm_down
+                    conf_bins_down[i, c, b] = (unperm_down - num_null_down[i, c, b]) / unperm_down
 
     # Does this just make sure the bins are monotonically
     # increasing?
-    for c in range(len(conditions)):
-        for i in range(len(tuning_param_range_values)):
-            for binnum in range(1, num_bins + 1):
-                conf_bins_up[i, c, binnum] = max(conf_bins_up[i, c, binnum - 1],
-                                                 conf_bins_up[i, c, binnum])
-                conf_bins_down[i, c, binnum] = max(conf_bins_down[i, c, binnum - 1],
-                                                   conf_bins_down[i, c, binnum])
+    for c in range(n):
+        for i in range(s):
+            for b in range(1, h + 1):
+                conf_bins_up[i, c, b] = max(conf_bins_up[i, c, b - 1],
+                                                 conf_bins_up[i, c, b])
+                conf_bins_down[i, c, b] = max(conf_bins_down[i, c, b - 1],
+                                                   conf_bins_down[i, c, b])
     
     print "Computing confidence scores"
     (gene_conf_up, gene_conf_down) = get_gene_confidences(
@@ -716,18 +710,16 @@ def do_confidences_by_cutoff(
  
     best_up = up_by_conf[max_up_params]
 
-    breakdown = np.zeros((len(conditions),
-                          len(levels),
-                          3))
+    breakdown = np.zeros((n, len(levels), 3))
 
-    for c in range(1, len(conditions)):
+    for c in range(1, n):
             
         breakdown[c, :, 0] = levels
         for i in range(len(levels)):
             breakdown[c, i, 1] = up_by_conf[max_up_params[c, i], c, i]
             breakdown[c, i, 2] = down_by_conf[max_down_params[c, i], c, i]
 
-    for c in range(1, len(conditions)):
+    for c in range(1, n):
         print """
 ----------------------------
 condition {:d}
@@ -824,7 +816,7 @@ def dist_unpermuted_stats(table, conditions, mins, maxes, default_alphas, num_bi
     the number of features and l is the number of tuning parameters.
     """
 
-    hist_shape = (len(tuning_param_range_values),
+    hist_shape = (len(TUNING_PARAM_RANGE_VALUES),
                   len(conditions),
                   num_bins + 1)
 
@@ -833,19 +825,19 @@ def dist_unpermuted_stats(table, conditions, mins, maxes, default_alphas, num_bi
 
     center = 0
 
-    stats = np.zeros((len(tuning_param_range_values),
+    stats = np.zeros((len(TUNING_PARAM_RANGE_VALUES),
                       len(table),
                       len(conditions)))
     
     for c in range(1, len(conditions)):
 
-        alphas = default_alphas[c] * tuning_param_range_values
+        alphas = default_alphas[c] * TUNING_PARAM_RANGE_VALUES
 
         v1 = table[:, conditions[0]]
         v2 = table[:, conditions[c]]
         stats[:, :, c] = tstat(v2, v1, alphas)
 
-        for j in range(len(tuning_param_range_values)):
+        for j in range(len(TUNING_PARAM_RANGE_VALUES)):
             (u_hist, d_hist) = assign_bins(stats[j, :, c], num_bins, mins[j, c], maxes[j, c])
             d[j, c, :] = d_hist
             u[j, c, :] = u_hist

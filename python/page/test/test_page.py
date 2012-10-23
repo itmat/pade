@@ -51,7 +51,7 @@ class PageTest(unittest.TestCase):
         v1 = array(v1)
         v2 = array(v2)
         alpha = 1.62026604316528
-        alphas = page.tuning_param_range_values * alpha
+        alphas = page.TUNING_PARAM_RANGE_VALUES * alpha
         expected = [
             [
                 6.62845904788559,
