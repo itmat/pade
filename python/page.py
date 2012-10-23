@@ -592,18 +592,16 @@ def do_confidences_by_cutoff(table, conditions, default_alphas, num_bins):
 
     all_perms = init_perms(conditions)
 
-    m = len(table)
-    s = len(TUNING_PARAM_RANGE_VALUES)
-    h = num_bins
-    n = len(conditions)
-    
+    m  = len(table)
+    s  = len(TUNING_PARAM_RANGE_VALUES)
+    h  = num_bins
+    n  = len(conditions)
     n0 = len(conditions[0])
 
-    mean_perm_up_vect = np.zeros((s, n, h + 1))
-
-    mean_perm_down_vect = np.zeros((len(TUNING_PARAM_RANGE_VALUES),
-                                    len(conditions),
-                                    h + 1))
+    # tuning params x conditions x bins typically 10 x 2 x 1000 =
+    # 20000. Not too big.
+    mean_perm_up   = np.zeros((s, n, h + 1))
+    mean_perm_down = np.zeros((s, n, h + 1))
 
     for c in range(1, n):
         print 'Working on condition %d of %d' % (c, n - 1)
@@ -617,22 +615,23 @@ def do_confidences_by_cutoff(table, conditions, default_alphas, num_bins):
         master_indexes[:n0] = conditions[0]
         master_indexes[n0:] = conditions[c]
 
+        # permutations x tuning params x features. Maybe 200 x 10 x
+        # 1,000,000 = 1,000,000,000. Very big.
         stats = np.zeros((r, s, m))
-
-        # print "  Permuting indexes"
-        for perm_num, perm in enumerate(perms):
-            v1 = table[:, master_indexes[perm]]
-            v2 = table[:, master_indexes[~perm]]
-            stats[perm_num, : ] = tstat(v2, v1, default_alphas[c] * TUNING_PARAM_RANGE_VALUES)
-        (mins, maxes) = min_max_stat(table, conditions, default_alphas)
 
         # Histogram is (permutations x alpha tuning params x bins)
         hist_shape = (r, s, h + 1)
         up   = np.zeros(hist_shape, int)
         down = np.zeros(hist_shape, int)
 
-        # print "  Building histograms for each permutation"
+        (mins, maxes) = min_max_stat(table, conditions, default_alphas)
+
+        # print "  Permuting indexes"
         for perm_num, perm in enumerate(perms):
+            v1 = table[:, master_indexes[perm]]
+            v2 = table[:, master_indexes[~perm]]
+            stats[perm_num, : ] = tstat(v2, v1, default_alphas[c] * TUNING_PARAM_RANGE_VALUES)
+
             for i in range(s):
                 (u_hist, d_hist) = assign_bins(stats[perm_num, i, :], h, 
                                                mins[i, c], maxes[i, c])
@@ -648,8 +647,8 @@ def do_confidences_by_cutoff(table, conditions, default_alphas, num_bins):
                 up[perm_num, i]   = accumulate_bins(up[perm_num, i])
                 down[perm_num, i] = accumulate_bins(down[perm_num, i])
 
-        mean_perm_up_vect  [:, c, :] = np.mean(up, axis=0)
-        mean_perm_down_vect[:, c, :] = np.mean(down, axis=0)
+        mean_perm_up  [:, c, :] = np.mean(up, axis=0)
+        mean_perm_down[:, c, :] = np.mean(down, axis=0)
 
     print "Getting stats for unpermuted data"
     (num_unperm_up, num_unperm_down, unperm_stats) = dist_unpermuted_stats(table, conditions, mins, maxes, default_alphas)
@@ -667,11 +666,11 @@ def do_confidences_by_cutoff(table, conditions, default_alphas, num_bins):
         for i in range(s):
             for b in range(h + 1):
                 num_null_up[i, c, b] = adjust_num_diff(
-                    mean_perm_up_vect[i, c, b],
+                    mean_perm_up[i, c, b],
                     num_unperm_up[i, c, b],
                     m)
                 num_null_down[i, c, b] = adjust_num_diff(
-                    mean_perm_down_vect[i, c, b],
+                    mean_perm_down[i, c, b],
                     num_unperm_down[i, c, b],
                     m)
                 
