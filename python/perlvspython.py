@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+import matplotlib
+matplotlib.use('pdf')
+
 import numpy as np
 import argparse 
 import unittest
@@ -8,11 +11,13 @@ import subprocess
 import StringIO
 import time
 import itertools
+import matplotlib.pyplot as plt
 
 DIR = 'profile'
 STDOUT_FILENAME = DIR + '/stdout'
 STDERR_FILENAME = DIR + '/stderr'
 STATS_FILENAME  = DIR + '/stats'
+REPORT_FILENAME = 'report.tex'
 
 ########################################################################
 ###
@@ -100,9 +105,53 @@ def make_report(args):
     python = version_idx['python']
 
     ns = np.array(sorted(n_set))
-    print ns
-    print real_times[:, perl] / real_times[:, python]
-    print rss[:, python] / rss[:, perl]
+    versions = np.array(version_set)
+
+    suffix = '(2 classes, 4 reps per class)'
+
+
+    # Plot running times
+    perl_minutes   = real_times[:, perl] / 60.0
+    python_minutes = real_times[:, python] / 60.0
+    plt.plot(ns, perl_minutes, label='perl')
+    plt.plot(ns, python_minutes, label='python')
+    plt.title('Running times ' + suffix)
+    plt.xlabel('Features')
+    plt.semilogx()
+    plt.ylabel('Minutes')
+    plt.text(ns[3], perl_minutes[3], 'perl')
+    plt.text(ns[3], python_minutes[3], 'python')
+    plt.savefig('runningtime')
+
+    # Plot memory usage
+    plt.clf()
+    perl_gigs   = rss[:, perl] / 1000000000.0
+    python_gigs = rss[:, python] / 1000000000.0
+    plt.plot(ns, perl_gigs, label='perl')
+    plt.plot(ns, python_gigs, label='python')
+    plt.text(ns[3], perl_gigs[3], 'perl')
+    plt.text(ns[3], python_gigs[3], 'python')
+    plt.xlabel('Features')
+    plt.ylabel('Memory (GB)')
+    plt.semilogx()
+    plt.title('Max resident set size')
+    plt.legend()
+    plt.savefig('rss')
+
+    # Plot improvement of running time and memory usage
+
+    rss_improvement = rss[:, perl] / rss[:,python]
+    time_improvement = real_times[:, perl] / real_times[:,python]
+    plt.clf()
+    plt.plot(ns, rss_improvement, label='Memory usage')
+    plt.plot(ns, time_improvement, label='Running time')
+    plt.text(ns[3], rss_improvement[3], 'Memory usage')
+    plt.text(ns[3], time_improvement[3], 'Running time')
+    plt.xlabel('Features')
+    plt.ylabel('perl / python')
+    plt.semilogx()
+    plt.title('Improvement (perl / python)')
+    plt.savefig('improvement')
 
 ########################################################################
 ###
