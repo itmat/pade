@@ -615,10 +615,6 @@ def do_confidences_by_cutoff(table, conditions, default_alphas, num_bins):
         master_indexes[:n0] = conditions[0]
         master_indexes[n0:] = conditions[c]
 
-        # permutations x tuning params x features. Maybe 200 x 10 x
-        # 1,000,000 = 1,000,000,000. Very big.
-        stats = np.zeros((r, s, m))
-
         # Histogram is (permutations x alpha tuning params x bins)
         hist_shape = (r, s, h + 1)
         up   = np.zeros(hist_shape, int)
@@ -628,12 +624,13 @@ def do_confidences_by_cutoff(table, conditions, default_alphas, num_bins):
 
         # print "  Permuting indexes"
         for perm_num, perm in enumerate(perms):
+
             v1 = table[:, master_indexes[perm]]
             v2 = table[:, master_indexes[~perm]]
-            stats[perm_num, : ] = tstat(v2, v1, default_alphas[c] * TUNING_PARAM_RANGE_VALUES)
+            stats = tstat(v2, v1, default_alphas[c] * TUNING_PARAM_RANGE_VALUES)
 
             for i in range(s):
-                (u_hist, d_hist) = assign_bins(stats[perm_num, i, :], h, 
+                (u_hist, d_hist) = assign_bins(stats[i, :], h, 
                                                mins[i, c], maxes[i, c])
                 up  [perm_num, i] = u_hist
                 down[perm_num, i] = d_hist
