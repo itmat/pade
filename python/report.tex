@@ -1,24 +1,33 @@
-\documentclass[10pt]{report}
+\documentclass[10pt,twocolumn]{report}
 
 \usepackage{graphicx}
+\usepackage{subfigure}
 
 \begin{document}
 
 \begin{figure}
-  \includegraphics[scale=0.6]{runningtime}  
+  \centering
+  \includegraphics[scale=0.4]{runningtime}  
   \caption{Running time}
 \end{figure}
 
 \begin{figure}
-  \includegraphics[scale=0.6]{rss}  
+  \centering
+  \includegraphics[scale=0.4]{rss}  
   \caption{Memory usage}
 \end{figure}
 
 
 \begin{figure}
-  \includegraphics[scale=0.6]{improvement}  
+  \centering
+  \includegraphics[scale=0.4]{improvement}  
   \caption{This shows, for each metric collected (running time and
-    memory usage), the Perl metric divided by the Python metric. The Python version shows a 2x improvement in running time for the 1,000 feature input, and a 16x improvement for the 100,000 feature data set. The Python version uses a little more memory for the smallest data set, but we see a 5x improvement in memory usage for the 100,000 feature input.}
+    memory usage), the Perl metric divided by the Python metric. The
+    Python version shows a 2x improvement in running time for the
+    1,000 feature input, and a 16x improvement for the 100,000 feature
+    data set. The Python version uses a little more memory for the
+    smallest data set, but we see a 5x improvement in memory usage for
+    the 100,000 feature input.}
   
 \end{figure}
 

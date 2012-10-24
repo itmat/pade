@@ -109,7 +109,6 @@ def make_report(args):
 
     suffix = '(2 classes, 4 reps per class)'
 
-
     # Plot running times
     perl_minutes   = real_times[:, perl] / 60.0
     python_minutes = real_times[:, python] / 60.0
@@ -119,8 +118,8 @@ def make_report(args):
     plt.xlabel('Features')
     plt.semilogx()
     plt.ylabel('Minutes')
-    plt.text(ns[3], perl_minutes[3], 'perl')
-    plt.text(ns[3], python_minutes[3], 'python')
+    plt.text(ns[3], perl_minutes[3] - 0.5, 'perl')
+    plt.text(ns[3], python_minutes[3] + 0.5, 'python')
     plt.savefig('runningtime')
 
     # Plot memory usage
@@ -129,13 +128,12 @@ def make_report(args):
     python_gigs = rss[:, python] / 1000000000.0
     plt.plot(ns, perl_gigs, label='perl')
     plt.plot(ns, python_gigs, label='python')
-    plt.text(ns[3], perl_gigs[3], 'perl')
-    plt.text(ns[3], python_gigs[3], 'python')
+    plt.text(ns[3], perl_gigs[3] - 0.05, 'perl')
+    plt.text(ns[3], python_gigs[3] + 0.05, 'python')
     plt.xlabel('Features')
     plt.ylabel('Memory (GB)')
     plt.semilogx()
-    plt.title('Max resident set size')
-    plt.legend()
+    plt.title('Memory usage ' + suffix)
     plt.savefig('rss')
 
     # Plot improvement of running time and memory usage
@@ -145,8 +143,8 @@ def make_report(args):
     plt.clf()
     plt.plot(ns, rss_improvement, label='Memory usage')
     plt.plot(ns, time_improvement, label='Running time')
-    plt.text(ns[3], rss_improvement[3], 'Memory usage')
-    plt.text(ns[3], time_improvement[3], 'Running time')
+    plt.text(ns[3], rss_improvement[3] - 1, 'Memory usage')
+    plt.text(ns[3], time_improvement[3] - 1, 'Running time')
     plt.xlabel('Features')
     plt.ylabel('perl / python')
     plt.semilogx()
