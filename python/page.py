@@ -15,8 +15,9 @@ import argparse
 import re
 import numpy as np
 import itertools 
-
+import cmd
 import scipy.misc
+import sys
 
 ########################################################################
 ###
@@ -37,6 +38,110 @@ TUNING_PARAM_RANGE_VALUES = np.array([
     3.0,
     10,
     ])
+
+###
+### Schema editor
+###
+
+class SchemaException(Exception):
+    pass
+
+class Schema:
+    def __init__(self):
+        self.column_names = []
+        self.column_index = {}
+        self.factor_values = {}
+        self.column_factor = []
+        
+    def add_column(self, name):
+        self.column_index[name] = len(self.column_index)
+        self.column_names.append(name)
+        self.column_factor.append({})
+
+    def add_factor(self, factor, values=None):
+        self.factor_values[factor] = values
+
+    def set_column_factor(self, column, factor, value):
+        if column not in self.column_index:
+            raise SchemaException(
+                "\"{0}\" is not a valid column".format(column))
+        if factor not in self.factor_values:
+            raise SchemaException(
+                "\"{0}\" is not a valid factor".format(factor))
+        if value not in self.factor_values[factor]:
+            raise SchemaException(
+                "\"{0}\" is not a valid value for factor \"{1}\"".format(value, factor))
+        i = self.column_index[column]
+
+        self.column_factor[i][factor] = value
+
+    def get_column_factor(self, c, f):
+        if type(c) is not int:
+            c = self.column_index[c]
+        return self.column_factor[c][f]
+
+class SchemaEditor(cmd.Cmd):
+    
+    def __init__(self, headers):
+        cmd.Cmd.__init__(self)
+        self.schema = Schema()
+        for h in headers:
+            self.schema.add_column(h)
+
+    def do_factor(self, line):
+        fields = line.split()
+        fields = line.split()
+        factor = fields[0]
+        values = fields[1:]
+        print "Adding factor " + factor + " with values " + str(values)
+        self.schema.add_factor(factor, values)
+
+    def do_factors(self, line):
+        print "Factors are: "
+        for f in self.schema.factor_values:
+            print "  " + f + ": " + str(self.schema.factor_values[f])
+
+    def complete_column(self, text, line, begidx, endidx):
+        return [c for c in self.columns if c.startswith(text)]
+
+    def do_column(self, line):
+        values = line.split()
+        column = values[0]
+        factor_vals = values[1:]
+
+        for i in range(0, len(factor_vals), 2):
+            factor = factor_vals[i]
+            value  = factor_vals[i + 1]
+            try:
+                self.schema.set_column_factor(column, factor, value)
+            except SchemaException as e:
+                print e
+
+def do_setup(args):
+    """Ask the user for the list of factors, the values for each
+    factor, and mapping from column name to factor values. Also
+    establish whether the input file has a header line and a feature
+    id column.
+    """
+
+    print "Here I am"
+    header_line = args.infile.next().rstrip()
+    headers = header_line.split("\t")
+
+    c = SchemaEditor(headers)
+    c.cmdloop("""
+I am going to help you set up a PaGE job for your input file.  First
+we need to make the list of factors involved. Enter 'factor <name>
+<values>...'. For example, to include sex as a factor, you would enter
+  
+  factor sex male female
+
+
+""")
+
+    print headers
+
+
 
 ########################################################################
 ###
@@ -80,13 +185,28 @@ For help, please use {script} --help or {script} -h
 """.format(version=__version__,
            script=__file__)
 
-
 def get_arguments():
     """Parse the command line options and return an argparse args
     object."""
 
-    parser = argparse.ArgumentParser(
+    uberparser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    subparsers = uberparser.add_subparsers()
+
+    setup_parser = subparsers.add_parser('setup')
+    setup_parser.add_argument(
+        'infile',
+        help="""Name of input file""",
+        default=argparse.SUPPRESS,
+        type=file)
+    setup_parser.add_argument(
+        'schema',
+        help="""Location to write schema file""",
+        default=argparse.SUPPRESS)
+    setup_parser.set_defaults(func=do_setup)
+    
+    parser = subparsers.add_parser('run')
 
     file_locations = parser.add_argument_group("File locations")
 
@@ -341,17 +461,20 @@ def get_arguments():
         documentation for more on why you might use this parameter.""")
 
     try:
-        return parser.parse_args()
+        return uberparser.parse_args()
     except IOError as e:
         print e
         print ""
         exit(1)
-            
+
 
 def main():
     """Run PaGE."""
     show_banner()
     args = get_arguments()
+    args.func(args)
+
+def do_run(args):
     config = validate_args(args)
     (data, row_ids, conditions) = load_input(config.infile)
     alphas = find_default_alpha(data, conditions)
@@ -635,10 +758,10 @@ def do_confidences_by_cutoff(table, conditions, default_alphas, num_bins):
                 up  [perm_num, i] = u_hist
                 down[perm_num, i] = d_hist
 
-        # Bin 0 is for features that were downregulated (-inf, 0)
-        # Bins 1 through 999 are for features that were upregulated
-        # Bin 1000 is for any features that were upregulated above the max from the unmpermuted data (max, inf)
-
+        # Bin 0 is for features that were downregulated (-inf, 0) Bins
+        # 1 through 999 are for features that were upregulated Bin
+        # 1000 is for any features that were upregulated above the max
+        # from the unmpermuted data (max, inf)
         for perm_num, perm in enumerate(perms):
             for i in range(s):
                 up[perm_num, i]   = accumulate_bins(up[perm_num, i])
@@ -851,6 +974,7 @@ def get_bins(n, maxval):
     # above the max observed in the unpermuted data
     bins.append(np.inf)
     return bins
+
 
 if __name__ == '__main__':
     main()
