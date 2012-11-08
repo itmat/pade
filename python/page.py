@@ -514,7 +514,7 @@ def do_run(args):
     
     groups = schema.sample_groups(schema.attribute_names[0])
     
-    (data, row_ids, conditions) = load_input(config.infile)
+    (data, row_ids) = load_input(config.infile)
     conditions = groups.values()
 
     alphas = find_default_alpha(data, conditions)
@@ -590,27 +590,9 @@ def load_input(fh):
         ids.append(rowid)
         table.append(values)
 
-    pat = re.compile("c(\d+)r(\d+)")
-    columns = []
-    counter = 0
-
-    for s in headers[1:]:
-        m = pat.match(s)
-        if m is None:
-            raise Exception("Bad column id " + s)
-        c = int(m.group(1))
-        r = int(m.group(2))
-        r -= 1
-        while len(columns) <= c:
-            columns.append([])
-        while len(columns[c]) <= r:
-            columns[c].append(None)
-        columns[c][r] = counter
-        counter += 1
-
     table = np.array(table)
 
-    return (table, ids, columns)
+    return (table, ids)
 
 def compute_s(v1, v2, axis=0):
     """
