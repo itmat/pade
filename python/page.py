@@ -48,7 +48,25 @@ TUNING_PARAM_RANGE_VALUES = np.array([
 class SchemaException(Exception):
     pass
 
-class Schema:
+class Schema(object):
+
+    """Describes the structure of the input file.
+
+        >>> schema = Schema()
+        
+        >>> schema.add_factor("sex",     ["male", "female"])
+        >>> schema.add_factor("treated", ["yes", "no"])
+
+        >>> schema.add_sample("sample1", 1)
+        >>> schema.add_sample("sample2", 2)
+        >>> schema.add_sample("sample3", 3)
+        >>> schema.add_sample("sample4", 4)
+
+        >>> schema.set_column_factor("sample1", "sex", "male")
+        >>> schema.get_column_factor("sample1", "sex")
+        'male'
+"""
+
     def __init__(self, filename=None, load=False):
         self.filename = filename
         self.column_names = []
@@ -56,25 +74,31 @@ class Schema:
         self.factor_values = {}
         self.column_factor = []
 
+
         if load and filename is not None:
 
+            # Load the YAML
             doc = None
             with open(self.filename) as fh:
                 print "Loading schema from " + self.filename
                 doc = yaml.load(fh)
 
+            # Populate my factors
             for factor in doc['factors']:
                 values = doc['factors'][factor]['values']
                 self.add_factor(factor, values)
+
+            # Fill out my assignments of factor values for samples
             for sample in doc['samples']:
                 column = doc['samples'][sample]['column']
-                self.add_column(sample, column)
+                self.add_sample(sample, column)
                 for factor in doc['samples'][sample]['factors']:
                     value = doc['samples'][sample]['factors'][factor]
                     if value is not None:
                         self.set_column_factor(sample, factor, value)
 
-    def add_column(self, name, column):
+    def add_sample(self, name, column):
+        """Add a sample with the given name and column number."""
         while len(self.column_names) <= column:
             self.column_names.append(None)
             self.column_factor.append({})
@@ -84,29 +108,45 @@ class Schema:
     def add_factor(self, factor, values=None):
         self.factor_values[factor] = values
 
-    def set_column_factor(self, column, factor, value):
+    def _check_sample(self, column):
         if column not in self.column_index:
             raise SchemaException(
                 "\"{0}\" is not a valid column".format(column))
+
+    def _check_factor(self, factor):
         if factor not in self.factor_values:
             raise SchemaException(
                 "\"{0}\" is not a valid factor".format(factor))
+
+    def _check_factor_value(self, factor, value):
         if value not in self.factor_values[factor]:
             raise SchemaException(
                 "\"{0}\" is not a valid value for factor \"{1}\"".format(value, factor))
-        i = self.column_index[column]
 
+    def set_column_factor(self, sample, factor, value):
+        """Set the value of the given factor for the sample with the given name."""
+        self._check_sample(sample)
+        self._check_factor(factor)
+        self._check_factor_value(factor, value)
+
+        i = self.column_index[sample]
         self.column_factor[i][factor] = value
 
-    def get_column_factor(self, c, f):
-        if type(c) is not int:
-            c = self.column_index[c]
-        if f in self.column_factor[c]:
-            return self.column_factor[c][f]
+    def get_column_factor(self, s, f):
+        """Return the value of factor f for sample s, or None if the
+        factor is not set. Raises SchemaException if s is not the name
+        of a known sample or f is not the name of a factor.
+        """
+
+        if type(s) is not int:
+            s = self.column_index[s]
+        if f in self.column_factor[s]:
+            return self.column_factor[s][f]
         return None
 
     def save(self):
-        """Save the schenma"""
+        """Save the schema to the filename given by self.filename."""
+
         doc = {}
         doc['factors'] = {}
         doc['samples'] = {}
@@ -139,7 +179,7 @@ class SchemaEditor(cmd.Cmd):
                              load=True)
         counter = 0
         for h in headers:
-            self.schema.add_column(h, counter)
+            self.schema.add_sample(h, counter)
             counter += 1
 
     def do_set(self, line):
@@ -184,7 +224,6 @@ class SchemaEditor(cmd.Cmd):
     def do_show(self, line):
         schema = self.schema
         factors = [f for f in schema.factor_values]
-
 
         grouped = {}
         for sample in schema.column_names:
@@ -599,7 +638,6 @@ def do_run(args):
     (data, row_ids, conditions) = load_input(config.infile)
     alphas = find_default_alpha(data, conditions)
     do_confidences_by_cutoff(data, conditions, alphas, config.num_bins)
-
 
 def validate_args(args):
     """Validate command line args and prompt user for any missing args.

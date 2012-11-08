@@ -7,10 +7,10 @@ from page import Schema, SchemaException
 
 class SchemaTest(unittest.TestCase):
 
-    def test_add_column(self):
+    def test_add_sample(self):
         schema = Schema()
-        schema.add_column('sample1')
-        schema.add_column('sample2')
+        schema.add_sample('sample1', 1)
+        schema.add_sample('sample2', 2)
         self.assertTrue('sample1' in schema.column_index)
         self.assertTrue('sample2' in schema.column_index)
 
@@ -21,8 +21,8 @@ class SchemaTest(unittest.TestCase):
 
     def test_set_column_factor_value(self):
         schema = page.Schema()
-        schema.add_column('sample1')
-        schema.add_column('sample2')
+        schema.add_sample('sample1', 1)
+        schema.add_sample('sample2', 2)
 
         schema.add_factor('sex', values=['male', 'female'])
         schema.set_column_factor('sample1', 'sex', 'male')
