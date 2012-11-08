@@ -5,7 +5,7 @@ import unittest
 import page
 import io
 
-from page import Schema, SchemaException
+from page.schema import Schema
 
 class SchemaTest(unittest.TestCase):
 
