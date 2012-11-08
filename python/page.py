@@ -269,7 +269,6 @@ is_sample are false will simply be ignored.
         return self.sample_name_index[sample_name]
 
 
-
 class AttributePrompt(cmd.Cmd):
 
     def __init__(self, schema):
@@ -453,7 +452,7 @@ def get_arguments():
         default=argparse.SUPPRESS)
 
     parser = subparsers.add_parser('run')
-
+    parser.set_defaults(func=do_run)
     file_locations = parser.add_argument_group("File locations")
 
     file_locations.add_argument(
