@@ -48,6 +48,27 @@ TUNING_PARAM_RANGE_VALUES = np.array([
 class SchemaException(Exception):
     pass
 
+# 1. Prompt the user for which column contains the feature ids, and
+# which columns are intensities.
+
+# 2. Prompt the user for the factor names
+
+# 3. Let the user fill out the table giving values for column / factor
+# combinations
+
+
+class NewSchema(object):
+
+    def __init__(self, factors=None, column_indexes=None, filename=None):
+        dtype = [(name, 'S100') for name in factors]
+        table = []
+        for sample in range(num_samples):
+            row = tuple()
+            for factor in factors:
+                row += ("",)
+            table += row
+        print "Table is " + str(np.array(table, dtype=dtype))
+
 class Schema(object):
 
     """Describes the structure of the input file.
@@ -67,13 +88,22 @@ class Schema(object):
         'male'
 """
 
-    def __init__(self, filename=None, load=False):
+    def __init__(self, filename=None, load=False, factors=None, num_samples=None):
         self.filename = filename
         self.column_names = []
         self.column_index = {}
         self.factor_values = {}
         self.column_factor = []
 
+        if factors is not None and num_samples is not None:
+            dtype = [(name, 'S100') for name in factors]
+            table = []
+            for sample in range(num_samples):
+                row = tuple()
+                for factor in factors:
+                    row += ("",)
+                table += row
+            print "Table is " + str(np.array(table, dtype=dtype))
 
         if load and filename is not None:
 
@@ -288,16 +318,40 @@ def do_setup(args):
     header_line = args.infile.next().rstrip()
     headers = header_line.split("\t")
 
-    c = SchemaEditor(headers)
-    c.cmdloop("""
-I am going to help you set up a PaGE job for your input file.  First
-we need to make the list of factors involved. Enter 'factor <name>
-<values>...'. For example, to include sex as a factor, you would enter
+#    c = SchemaEditor(headers)
+#    c.cmdloop("""
+#I am going to help you set up a PaGE job for your input file.  First
+#2#Bwe need to make the list of factors involved. Enter 'factor <name>
+#<values>...'. For example, to include sex as a factor, you would enter
   
-  factor sex male female
+#  factor sex male female
 
-""")
+#""")
 
+
+    has_header = None
+
+    class HeaderLineAsker(cmd.Cmd):
+        def do_yes(self, line):
+            self.has_header = True
+        def do_no(self, line):
+            self.has_header = False
+        def postcmd(self, stop, line):
+            return self.has_header is not None
+
+    header_line_asker = HeaderLineAsker()
+    header_line_asker.has_header = None
+    header_line_asker.prompt = "Does the input file have a header line (yes or no): "
+    header_line_asker.cmdloop()
+
+    
+
+#    class ColumnChooser(cmd.Cmd):
+#        def do_sample(self, line):
+#            print "Line is " + line
+
+#    column_chooser = ColumnChooser()
+#    column_chooser.cmdloop("")
     print headers
 
 
