@@ -57,6 +57,7 @@ is_sample are false will simply be ignored.
         for (name, dtype) in attributes:
             self.add_attribute(name, dtype)
 
+    @property
     def attribute_names(self):
         """Return a list of the attribute names for this schema."""
 
@@ -215,6 +216,18 @@ is_sample are false will simply be ignored.
         sample."""
 
         return self.sample_name_index[sample_name]
+
+    def sample_groups(self, attribute=None):
+        """Returns a dictionary mapping each value of attribute to the
+        list of sample numbers that have that value set."""
+
+        grouping = {}
+        for i, val in enumerate(self.table[attribute]):
+            if val not in grouping:
+                grouping[val] = []
+            grouping[val].append(i)
+
+        return grouping
 
 
 def write_yaml_block_comment(fh, comment):

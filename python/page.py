@@ -244,6 +244,11 @@ def get_arguments():
         type=file)
 
     file_locations.add_argument(
+        'schema',
+        help="""Path to the schema describing the input file""",
+        type=file)
+
+    file_locations.add_argument(
         '--outfile',
         help="""Name of the output file. If not specified outfile name will be
         derived from the infile name.""",
@@ -502,7 +507,16 @@ def main():
 
 def do_run(args):
     config = validate_args(args)
+    schema = Schema.load(args.schema)
+
+    if len(schema.attribute_names) > 1:
+        raise UsageException("I currently only support schemas with one attribute")
+    
+    groups = schema.sample_groups(schema.attribute_names[0])
+    
     (data, row_ids, conditions) = load_input(config.infile)
+    conditions = groups.values()
+
     alphas = find_default_alpha(data, conditions)
     do_confidences_by_cutoff(data, conditions, alphas, config.num_bins)
 

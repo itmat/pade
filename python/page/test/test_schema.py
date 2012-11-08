@@ -9,8 +9,7 @@ from page.schema import Schema
 
 class SchemaTest(unittest.TestCase):
 
-    def test_newschema(self):
-
+    def setUp(self):
         sample_nums = range(1, 13)
 
         colnames = ["gene_id"] + ["sample" + str(x) for x in sample_nums]
@@ -41,6 +40,10 @@ class SchemaTest(unittest.TestCase):
                     schema.set_attribute(name, 'sex',     sex)
                     schema.set_attribute(name, 'age',     age)
                     schema.set_attribute(name, 'treated', treated)
+        self.schema = schema
+
+    def test_attributes(self):
+        schema = self.schema
 
         self.assertEquals(schema.get_attribute("sample1", "sex"), "male")
         self.assertEquals(schema.get_attribute("sample1", "age"), 2)
@@ -52,11 +55,13 @@ class SchemaTest(unittest.TestCase):
         names = sorted(schema.attribute_names())
         self.assertEquals(names[0], "age")
 
+
+    def test_yaml(self):
         # Save the schema, load it, and save it again. Compare the two
         # versions to make sure they're the same, so that we know we
         # can round-trip.
         out = io.StringIO()
-        schema.save(out)
+        self.schema.save(out)
 
         loaded = Schema.load(out.getvalue())
 
@@ -65,4 +70,22 @@ class SchemaTest(unittest.TestCase):
 
         self.assertEquals(out.getvalue(),
                           out2.getvalue())
+
+    def test_sample_groups(self):
+        groups = self.schema.sample_groups("sex")
+        self.assertEquals(groups,
+                          { "female" : range(6, 12),
+                            "male"   : range(0, 6) })
+
+        groups = self.schema.sample_groups("age")
+        self.assertEquals(groups,
+                          { 2  : [0, 1, 6, 7],
+                            20 : [2, 3, 8, 9],
+                            55 : [4, 5, 10, 11] })
+
+        groups = self.schema.sample_groups("treated")
+        self.assertEquals(groups,
+                          { False : [1, 3, 5, 7, 9, 11],
+                            True  : [0, 2, 4, 6, 8, 10] })
+                           
 unittest.main()
