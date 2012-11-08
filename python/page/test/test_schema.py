@@ -55,4 +55,6 @@ class SchemaTest(unittest.TestCase):
         out = io.StringIO()
         schema.save(out)
 
+        loaded = Schema.load(out.getvalue())
+
 unittest.main()

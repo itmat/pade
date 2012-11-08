@@ -146,7 +146,7 @@ is_sample are false will simply be ignored.
         del self.attributes[name]
 
     @classmethod
-    def load(stream):
+    def load(cls, stream):
         """Load a schema from the specified stream, which must
         represent a YAML document in the format produced by
         Schema.dump. The type of stream can be any type accepted by
@@ -154,6 +154,30 @@ is_sample are false will simply be ignored.
 
         doc = yaml.load(stream)
 
+        # Build the arrayrs of column names, feature id booleans, and
+        # sample booleans
+        cols = doc['columns']
+        col_names = [col['name'] for col in cols]
+        col_types = np.array([col['type'] for col in cols])
+        is_feature_id = col_types == 'feature_id'
+        is_sample     = col_types == 'sample'
+
+        schema = Schema(
+            column_names=col_names,
+            is_feature_id=is_feature_id,
+            is_sample=is_sample)
+
+        # Now add all the attributes and their types
+        attributes = doc['attributes']
+        for attribute in attributes:
+            schema.add_attribute(attribute['name'], 
+                                 attribute['dtype'])
+
+        for sample, attrs in doc['sample_attribute_mapping'].iteritems():
+            for name, value in attrs.iteritems():
+                schema.set_attribute(sample, name, value)
+
+        return schema
     
     def save(self, out):
         """Save the schema to the specified file."""
