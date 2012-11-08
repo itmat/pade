@@ -52,9 +52,17 @@ class SchemaTest(unittest.TestCase):
         names = sorted(schema.attribute_names())
         self.assertEquals(names[0], "age")
 
+        # Save the schema, load it, and save it again. Compare the two
+        # versions to make sure they're the same, so that we know we
+        # can round-trip.
         out = io.StringIO()
         schema.save(out)
 
         loaded = Schema.load(out.getvalue())
 
+        out2 = io.StringIO()
+        loaded.save(out2)
+
+        self.assertEquals(out.getvalue(),
+                          out2.getvalue())
 unittest.main()
