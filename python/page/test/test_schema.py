@@ -1,6 +1,3 @@
-import sys, os
-
-sys.path.insert(0, os.path.dirname(__file__) + "/../..")
 import unittest
 import page
 import io
@@ -52,7 +49,7 @@ class SchemaTest(unittest.TestCase):
         self.assertEquals(schema.get_attribute("sample10", "age"), 20)
         self.assertEquals(schema.get_attribute("sample10", "treated"), False)
 
-        names = sorted(schema.attribute_names())
+        names = sorted(schema.attribute_names)
         self.assertEquals(names[0], "age")
 
 
@@ -87,5 +84,4 @@ class SchemaTest(unittest.TestCase):
         self.assertEquals(groups,
                           { False : [1, 3, 5, 7, 9, 11],
                             True  : [0, 2, 4, 6, 8, 10] })
-                           
-unittest.main()
+

@@ -21,7 +21,7 @@ import sys
 from textwrap import fill
 from io import StringIO
 from numpy.lib.recfunctions import append_fields
-from page.schema import Schema
+from schema import Schema
 
 ########################################################################
 ###

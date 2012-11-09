@@ -1,4 +1,5 @@
 import numpy as np
+from collections import OrderedDict
 from textwrap import fill
 from io import StringIO
 from numpy.lib.recfunctions import append_fields
@@ -217,18 +218,19 @@ is_sample are false will simply be ignored.
 
         return self.sample_name_index[sample_name]
 
-    def sample_groups(self, attribute=None):
+    def sample_groups(self, attribute):
         """Returns a dictionary mapping each value of attribute to the
         list of sample numbers that have that value set."""
 
-        grouping = {}
+        grouping = OrderedDict()
+        
+        print self.table
         for i, val in enumerate(self.table[attribute]):
             if val not in grouping:
                 grouping[val] = []
             grouping[val].append(i)
 
         return grouping
-
 
 def write_yaml_block_comment(fh, comment):
     fh.write(unicode(fill(comment,
