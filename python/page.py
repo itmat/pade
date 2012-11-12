@@ -22,6 +22,7 @@ import sys
 import yaml
 from textwrap import fill
 from io import StringIO
+from numpy.lib.recfunctions import append_fields
 
 ########################################################################
 ###
@@ -68,7 +69,7 @@ def write_yaml_block_comment(fh, comment):
 class NewSchema(object):
 
     def __init__(self, 
-                 attributes=None,
+                 attributes=[],
                  is_feature_id=None,
                  is_sample=None,
                  column_names=None):
@@ -101,32 +102,46 @@ is_sample are false will simply be ignored.
         else:
             column_names = np.array(column_names)
 
-        self.attributes    = attributes
+        self.attributes = {}
         self.is_feature_id = np.array(is_feature_id, dtype=bool)
         self.is_sample     = np.array(is_sample,     dtype=bool)
         self.column_names  = column_names
         self.table = None
-
-        sample_to_column = []
-        sample_name_index = {}
+        self.sample_to_column  = []
+        self.sample_name_index = {}
 
         for i in range(len(self.is_sample)):
             if self.is_sample[i]:
-                sample_name_index[column_names[i]] = len(sample_to_column)
-                sample_to_column.append(i)
+                n = len(self.sample_to_column)
+                self.sample_name_index[column_names[i]] = n
+                self.sample_to_column.append(i)
 
-        self.sample_to_column = sample_to_column
-        self.sample_name_index = sample_name_index
+        for (name, dtype) in attributes:
+            self.add_attribute(name, dtype)
 
-        sample_colnames = self.column_names[self.is_sample]
+    def sample_column_names(self):
+        return self.column_names[self.is_sample]
 
-        dtype = [(name, 'S100') for name in attributes]
-        table = []
-        for colname in sample_colnames:
-            table += tuple(["" for a in attributes])
-            
-        self.table = np.array(table, dtype=dtype)
+    def add_attribute(self, name, dtype):
+        default = None
+        if dtype == "int":
+            default = 0
+        else:
+            default = ""
+        values = [default for sample in self.sample_column_names()]
+
+        if self.table is None:
+            self.table = [(value,) for value in values]
+            self.table = np.array(self.table, dtype=[(name, dtype)])
+        else:
+            self.table=(append_fields(self.table, name, values, dtype))
+
+        self.attributes[name] = dtype
         
+    def drop_attributes(self, name):
+        self.table = drop_fields(name)
+        del self.attributes[name]
+
     @classmethod
     def load(filename):
         pass
@@ -152,12 +167,14 @@ is_sample are false will simply be ignored.
                 sample_cols[name] = dict([(x, None) for x in self.attributes])
             columns.append(col)
 
+        attributes = [ { "name"  : name, "dtype" : type_ } 
+                       for (name, type_) in self.attributes.iteritems()]
+
         doc = {
-            "attributes"               : self.attributes,
+            "attributes"               : attributes,
             "columns"                  : columns,
             "sample_attribute_mapping" : sample_cols,
             }
-
 
         data = yaml.dump(doc, default_flow_style=False)
 
@@ -431,12 +448,46 @@ class SchemaEditor(cmd.Cmd):
 
 class AttributePrompt(cmd.Cmd):
 
-    def __init__(self):
+    def __init__(self, schema):
         cmd.Cmd.__init__(self)
-        self.attributes = []
+        self.schema = schema
 
-    def default(self, line):
-        self.attributes.extend(line.split())
+    def do_add(self, line):
+        """Add an attribute, optionally with a type.
+
+Usage:
+
+  add ATTR [TYPE]
+
+If type is supplied, it must be a valid numpy dtype, like S100, float,
+or int.
+
+"""
+
+        tokens = line.split()
+
+        type_ = "S100"
+
+        if len(tokens) > 1:
+            type_ = tokens[1]
+            
+        self.schema.add_attribute(tokens[0], type_)
+
+    def do_remove(self, line):
+        """Remove an attribute.
+
+Usage:
+
+  remove ATTR
+"""
+        schema.drop_attribute(line)
+
+    def do_show(self, line):
+        """Show the attributes that are currently defined."""
+
+        print "\nAttributes are " + str(self.schema.attributes) + "\n"
+
+    def do_quit(self, line):
         return True
 
 class SchemaPrompt(cmd.Cmd):
@@ -465,7 +516,6 @@ class SchemaPrompt(cmd.Cmd):
                 factor, value, str(columns))
             for column in columns:
                 self.schema.set_column_factor(column, factor, value)
-
 
 def do_setup(args):
     """Ask the user for the list of factors, the values for each
@@ -503,17 +553,14 @@ need to reformat your input file.
 
     print ""
 
-    prompt = AttributePrompt()
-    prompt.prompt = "attributes: "
-    prompt.cmdloop("Enter a space-delimited list of attributes (factors)")
-
     schema = NewSchema(
-        attributes=prompt.attributes,
         is_feature_id=is_feature_id,
         is_sample=is_sample,
         column_names=headers)
 
-    print "Attributes are " + str(prompt.attributes)
+    prompt = AttributePrompt(schema)
+    prompt.prompt = "attributes: "
+    prompt.cmdloop("Enter a space-delimited list of attributes (factors)")
 
     schema.save(args.schema)
 
@@ -581,6 +628,17 @@ def get_arguments():
         default=argparse.SUPPRESS)
     setup_parser.set_defaults(func=do_setup)
     
+    check_parser = subparsers.add_parser("check")
+    check_parser.add_argument(
+        'infile',
+        help="""Name of input file""",
+        default=argparse.SUPPRESS,
+        type=file)
+    check_parser.add_argument(
+        'schema',
+        help="""Location to read schema file from""",
+        default=argparse.SUPPRESS)
+
     parser = subparsers.add_parser('run')
 
     file_locations = parser.add_argument_group("File locations")
