@@ -119,6 +119,9 @@ is_sample are false will simply be ignored.
         for (name, dtype) in attributes:
             self.add_attribute(name, dtype)
 
+    def attribute_names(self):
+        return [x for x in self.attributes]
+
     def sample_column_names(self):
         return self.column_names[self.is_sample]
 
@@ -164,7 +167,14 @@ is_sample are false will simply be ignored.
 
             elif self.is_sample[i]:
                 col["type"] = "sample"
-                sample_cols[name] = dict([(x, None) for x in self.attributes])
+                
+                sample_cols[name] = {}
+                for attribute in self.attributes:
+                    value = self.get_attribute(name, attribute)
+                    if self.attributes[attribute].startswith("S"):
+                        value = str(value)
+                    sample_cols[name][attribute] = value
+
             columns.append(col)
 
         attributes = [ { "name"  : name, "dtype" : type_ } 
@@ -200,11 +210,12 @@ is_sample are false will simply be ignored.
         """Set an attribute for a sample, identified by sample number"""
         sample_num = self.sample_num(sample_name)
         self.table[sample_num][attribute] = value
+        print self.table
 
     def get_attribute(self, sample_name, attribute):
         """Get an attribute for a sample, identified by sample number"""
         sample_num = self.sample_num(sample_name)
-        return self.table[sample_num][attribute]
+        return str(self.table[sample_num][attribute])
 
     def sample_num(self, sample_name):
         return self.sample_name_index[sample_name]
@@ -292,159 +303,6 @@ class Schema(object):
             raise SchemaException(
                 "\"{0}\" is not a valid value for factor \"{1}\"".format(value, factor))
 
-    def set_column_factor(self, sample, factor, value):
-        """Set the value of the given factor for the sample with the given name."""
-        self._check_sample(sample)
-        self._check_factor(factor)
-        self._check_factor_value(factor, value)
-
-        i = self.column_index[sample]
-        self.column_factor[i][factor] = value
-
-    def get_column_factor(self, s, f):
-        """Return the value of factor f for sample s, or None if the
-        factor is not set. Raises SchemaException if s is not the name
-        of a known sample or f is not the name of a factor.
-        """
-
-        if type(s) is not int:
-            s = self.column_index[s]
-        if f in self.column_factor[s]:
-            return self.column_factor[s][f]
-        return None
-
-    def save(self):
-        """Save the schema to the filename given by self.filename."""
-
-        doc = {}
-        doc['factors'] = {}
-        doc['samples'] = {}
-
-        for f in sorted(self.factor_values):
-            doc['factors'][f] = {
-                'values' : self.factor_values[f]
-                }
-
-        for c in self.column_names:
-            col = {
-                'column'  : self.column_index[c],
-                'factors' : {}
-                }
-            for f in sorted(self.factor_values):
-                col['factors'][f] = None
-                i = self.column_index[c]
-                if f in self.column_factor[i]:
-                    col['factors'][f] = self.column_factor[i][f]
-            doc['samples'][c] = col
-
-        with open(self.filename, 'w') as out:
-            yaml.dump(doc, out, default_flow_style=False)
-
-class SchemaEditor(cmd.Cmd):
-    
-    def __init__(self, headers):
-        cmd.Cmd.__init__(self)
-        self.schema = Schema(filename='page_schema.yaml',
-                             load=True)
-        counter = 0
-        for h in headers:
-            self.schema.add_sample(h, counter)
-            counter += 1
-
-    def do_set(self, line):
-        tokens = line.split()
-
-        settings = {}
-        columns  = []
-
-        for token in tokens:
-            parts = token.split('=')
-            if len(parts) == 2:
-                settings[parts[0]] = parts[1]
-            else:
-                columns.append(parts[0])
-
-        print "I would set " + str(settings) + " for columns " + str(columns)
-        for factor in settings:
-            value = settings[factor]
-            print "Setting {0} to {1} for samples {2}".format(
-                factor, value, str(columns))
-            for column in columns:
-                self.schema.set_column_factor(column, factor, value)
-
-
-    def do_factor(self, line):
-        fields = line.split()
-        fields = line.split()
-        factor = fields[0]
-        values = fields[1:]
-        print "Adding factor " + factor + " with values " + str(values)
-        self.schema.add_factor(factor, values)
-
-    def do_factors(self, line):
-        print "Factors are: "
-        for f in self.schema.factor_values:
-            print "  " + f + ": " + str(self.schema.factor_values[f])
-
-    def do_columns(self, line):
-        for c in self.schema.column_names:
-            print c
-
-    def do_show(self, line):
-        schema = self.schema
-        factors = [f for f in schema.factor_values]
-
-        grouped = {}
-        for sample in schema.column_names:
-            key = ()
-            for factor in factors:
-                value = schema.get_column_factor(sample, factor)
-                key += (value,)
-            if key not in grouped:
-                grouped[key] = []
-            grouped[key].append(sample)
-
-        print schema.column_factor
-
-        for key, samples in grouped.iteritems():
-            keys = [factors[i] + "=" + key[i] for i in range(len(factors)) if key[i] is not None]
-            keystr = ", ".join(keys)
-            samplestr = ", ".join(samples)
-            print keystr + ": " + samplestr
-
-    def complete_column(self, text, line, begidx, endidx):
-        prefix = line[:begidx]
-        tokens = prefix.split()
-
-        if len(tokens) == 1:
-            return [c for c in self.schema.column_names if c.startswith(text)]
-        elif (len(tokens) % 2) == 1:
-            factor = tokens[-1]
-            values = self.schema.factor_values[factor]
-            return [v for v in values if v.startswith(text)]
-        else:
-            return [f for f in self.schema.factor_values if f.startswith(text)]
-
-    def do_column(self, line):
-        values = line.split()
-
-        if (len(line) < 3):
-            print "Usage: column <column-name> <factor> <value> ..."
-            return
-
-        column = values[0]
-        factor_vals = values[1:]
-
-        for i in range(0, len(factor_vals), 2):
-            factor = factor_vals[i]
-            value  = factor_vals[i + 1]
-            try:
-                self.schema.set_column_factor(column, factor, value)
-            except SchemaException as e:
-                print e
-
-    def do_save(self, line):
-        self.schema.save()
 
 class AttributePrompt(cmd.Cmd):
 
@@ -487,14 +345,13 @@ Usage:
 
         print "\nAttributes are " + str(self.schema.attributes) + "\n"
 
+
     def do_quit(self, line):
         return True
 
-class SchemaPrompt(cmd.Cmd):
-    
-    def __init__(self, schema):
-        cmd.Cmd.__init__(self)
-        self.schema = schema
+    def complete_set(self, text, line, begidx, endidx):
+        values = self.schema.sample_column_names()
+        return [v for v in values if v.startswith(text)]
 
     def do_set(self, line):
         tokens = line.split()
@@ -515,7 +372,7 @@ class SchemaPrompt(cmd.Cmd):
             print "Setting {0} to {1} for samples {2}".format(
                 factor, value, str(columns))
             for column in columns:
-                self.schema.set_column_factor(column, factor, value)
+                self.schema.set_attribute(column, factor, value)
 
 def do_setup(args):
     """Ask the user for the list of factors, the values for each

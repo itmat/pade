@@ -47,4 +47,7 @@ class SchemaTest(unittest.TestCase):
         self.assertEquals(schema.get_attribute("sample10", "age"), 20)
         self.assertEquals(schema.get_attribute("sample10", "treated"), False)
 
+        names = sorted(schema.attribute_names())
+        self.assertEquals(names[0], "age")
+
 unittest.main()
