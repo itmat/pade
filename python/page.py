@@ -208,14 +208,18 @@ is_sample are false will simply be ignored.
         
     def set_attribute(self, sample_name, attribute, value):
         """Set an attribute for a sample, identified by sample number"""
+
         sample_num = self.sample_num(sample_name)
         self.table[sample_num][attribute] = value
-        print self.table
 
     def get_attribute(self, sample_name, attribute):
         """Get an attribute for a sample, identified by sample number"""
         sample_num = self.sample_num(sample_name)
-        return str(self.table[sample_num][attribute])
+        value = self.table[sample_num][attribute]
+        if self.attributes[attribute].startswith("S"):
+            value = str(value)
+        return value
+
 
     def sample_num(self, sample_name):
         return self.sample_name_index[sample_name]
