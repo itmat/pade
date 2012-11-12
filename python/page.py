@@ -20,6 +20,8 @@ import cmd
 import scipy.misc
 import sys
 import yaml
+from textwrap import fill
+from io import StringIO
 
 ########################################################################
 ###
@@ -57,17 +59,138 @@ class SchemaException(Exception):
 # combinations
 
 
+def write_yaml_block_comment(fh, comment):
+    fh.write(fill(comment,
+                  initial_indent="# ",
+                  subsequent_indent="# "))
+    fh.write("\n")
+
 class NewSchema(object):
 
-    def __init__(self, factors=None, column_indexes=None, filename=None):
-        dtype = [(name, 'S100') for name in factors]
+    def __init__(self, 
+                 attributes=None,
+                 is_feature_id=None,
+                 is_sample=None,
+                 column_names=None):
+        """Construct a Schema. 
+
+  attributes    - a list of allowable attributes for the sample.
+
+  column_names  - a list of strings, giving names for the columns.
+
+  is_feature_id - a list of booleans of the same length as
+                  column_names. is_feature_id[i] indicates if the ith
+                  column contains feature ids (e.g. gene names).
+
+  is_sample     - a list of booleans of the same length as
+                  column_names. is_sample[i] indicates if the ith
+                  column contains a sample.
+
+  filename      - the filename for the schema.
+
+Any columns for which is_feature_id is true will be treated as feature
+ids, and any for which is_sample is true will be assumed to contain
+intensity values. No column should have both is_feature_id and
+is_sample set to true. Any columns where both is_feature_id and
+is_sample are false will simply be ignored.
+
+  """
+
+        if column_names is None:
+            raise Exception("I need column names")
+        else:
+            column_names = np.array(column_names)
+
+        self.attributes    = attributes
+        self.is_feature_id = np.array(is_feature_id, dtype=bool)
+        self.is_sample     = np.array(is_sample,     dtype=bool)
+        self.column_names  = column_names
+        self.table = None
+
+        sample_to_column = []
+        sample_name_index = {}
+
+        for i in range(len(self.is_sample)):
+            if self.is_sample[i]:
+                sample_name_index[column_names[i]] = len(sample_to_column)
+                sample_to_column.append(i)
+
+        self.sample_to_column = sample_to_column
+        self.sample_name_index = sample_name_index
+
+        sample_colnames = self.column_names[self.is_sample]
+
+        dtype = [(name, 'S100') for name in attributes]
         table = []
-        for sample in range(num_samples):
-            row = tuple()
-            for factor in factors:
-                row += ("",)
-            table += row
-        print "Table is " + str(np.array(table, dtype=dtype))
+        for colname in sample_colnames:
+            table += tuple(["" for a in attributes])
+            
+        self.table = np.array(table, dtype=dtype)
+        
+    @classmethod
+    def load(filename):
+        pass
+    
+    def save(self, filename):
+        """Save the schema to the given filename."""
+
+        sample_cols = {}
+
+        names = [str(name) for name in self.column_names]
+
+        columns = []
+
+        for i, name in enumerate(names):
+
+            col = { "name" : name }
+
+            if self.is_feature_id[i]:
+                col["type"] = "feature_id"
+
+            elif self.is_sample[i]:
+                col["type"] = "sample"
+                sample_cols[name] = dict([(x, None) for x in self.attributes])
+            columns.append(col)
+
+        doc = {
+            "attributes"               : self.attributes,
+            "columns"                  : columns,
+            "sample_attribute_mapping" : sample_cols,
+            }
+
+
+        data = yaml.dump(doc, default_flow_style=False)
+
+        with open(filename, 'w') as out:
+            for line in data.splitlines():
+                if (line == "attributes:"):
+                    write_yaml_block_comment(out, """This lists all the attributes defined for this file.
+""")
+
+                elif (line == "columns:"):
+                    out.write("\n")
+                    write_yaml_block_comment(out, """This lists all of the columns present in the input file, each with its name and type. name is taken directly from the input file's header line. Type must be either "feature_id", "sample", or null.
+""")
+
+                elif (line == "sample_attribute_mapping:"):
+                    out.write("\n")
+                    write_yaml_block_comment(out, """This maps each column name (for columns that represent samples) to a mapping from attribute name to value.""")
+
+                out.write(line + "\n")
+
+        
+    def set_attribute(self, sample_name, attribute, value):
+        """Set an attribute for a sample, identified by sample number"""
+        sample_num = self.sample_num(sample_name)
+        self.table[sample_num][attribute] = value
+
+    def get_attribute(self, sample_name, attribute):
+        """Get an attribute for a sample, identified by sample number"""
+        sample_num = self.sample_num(sample_name)
+        return self.table[sample_num][attribute]
+
+    def sample_num(self, sample_name):
+        return self.sample_name_index[sample_name]
 
 class Schema(object):
 
@@ -103,7 +226,6 @@ class Schema(object):
                 for factor in factors:
                     row += ("",)
                 table += row
-            print "Table is " + str(np.array(table, dtype=dtype))
 
         if load and filename is not None:
 
@@ -307,6 +429,44 @@ class SchemaEditor(cmd.Cmd):
     def do_save(self, line):
         self.schema.save()
 
+class AttributePrompt(cmd.Cmd):
+
+    def __init__(self):
+        cmd.Cmd.__init__(self)
+        self.attributes = []
+
+    def default(self, line):
+        self.attributes.extend(line.split())
+        return True
+
+class SchemaPrompt(cmd.Cmd):
+    
+    def __init__(self, schema):
+        cmd.Cmd.__init__(self)
+        self.schema = schema
+
+    def do_set(self, line):
+        tokens = line.split()
+
+        settings = {}
+        columns  = []
+
+        for token in tokens:
+            parts = token.split('=')
+            if len(parts) == 2:
+                settings[parts[0]] = parts[1]
+            else:
+                columns.append(parts[0])
+
+        print "I would set " + str(settings) + " for columns " + str(columns)
+        for factor in settings:
+            value = settings[factor]
+            print "Setting {0} to {1} for samples {2}".format(
+                factor, value, str(columns))
+            for column in columns:
+                self.schema.set_column_factor(column, factor, value)
+
+
 def do_setup(args):
     """Ask the user for the list of factors, the values for each
     factor, and mapping from column name to factor values. Also
@@ -328,32 +488,34 @@ def do_setup(args):
 
 #""")
 
+    is_feature_id = [i == 0 for i in range(len(headers))]
+    is_sample     = [i != 0 for i in range(len(headers))]
 
-    has_header = None
+    print fill("""
+I am assuming that the input file is tab-delimited, with a header
+line. I am also assuming that the first column ({0}) contains feature
+identifiers, and that the rest of the columns ({1}) contain expression
+levels. In a future release, we will be more flexible about input
+formats. In the meantime, if this assumption is not true, you will
+need to reformat your input file.
+""".format(headers[0],
+           ", ".join(headers[1:])))
 
-    class HeaderLineAsker(cmd.Cmd):
-        def do_yes(self, line):
-            self.has_header = True
-        def do_no(self, line):
-            self.has_header = False
-        def postcmd(self, stop, line):
-            return self.has_header is not None
+    print ""
 
-    header_line_asker = HeaderLineAsker()
-    header_line_asker.has_header = None
-    header_line_asker.prompt = "Does the input file have a header line (yes or no): "
-    header_line_asker.cmdloop()
+    prompt = AttributePrompt()
+    prompt.prompt = "attributes: "
+    prompt.cmdloop("Enter a space-delimited list of attributes (factors)")
 
-    
+    schema = NewSchema(
+        attributes=prompt.attributes,
+        is_feature_id=is_feature_id,
+        is_sample=is_sample,
+        column_names=headers)
 
-#    class ColumnChooser(cmd.Cmd):
-#        def do_sample(self, line):
-#            print "Line is " + line
+    print "Attributes are " + str(prompt.attributes)
 
-#    column_chooser = ColumnChooser()
-#    column_chooser.cmdloop("")
-    print headers
-
+    schema.save(args.schema)
 
 
 ########################################################################
