@@ -11,15 +11,14 @@ s is the number of tuning param range values
 
 """
 
-from collections import OrderedDict
 import argparse
 import re
 import numpy as np
 import itertools 
 import cmd
-import scipy.misc
 import sys
 import yaml
+
 from textwrap import fill
 from io import StringIO
 from numpy.lib.recfunctions import append_fields
@@ -51,22 +50,13 @@ TUNING_PARAM_RANGE_VALUES = np.array([
 class SchemaException(Exception):
     pass
 
-# 1. Prompt the user for which column contains the feature ids, and
-# which columns are intensities.
-
-# 2. Prompt the user for the factor names
-
-# 3. Let the user fill out the table giving values for column / factor
-# combinations
-
-
 def write_yaml_block_comment(fh, comment):
-    fh.write(fill(comment,
+    fh.write(unicode(fill(comment,
                   initial_indent="# ",
-                  subsequent_indent="# "))
-    fh.write("\n")
+                  subsequent_indent="# ")))
+    fh.write(unicode("\n"))
 
-class NewSchema(object):
+class Schema(object):
 
     def __init__(self, 
                  attributes=[],
@@ -120,12 +110,20 @@ is_sample are false will simply be ignored.
             self.add_attribute(name, dtype)
 
     def attribute_names(self):
+        """Return a list of the attribute names for this schema."""
+
         return [x for x in self.attributes]
 
     def sample_column_names(self):
+        """Return a list of the names of columns that contain
+        intensities."""
+
         return self.column_names[self.is_sample]
 
     def add_attribute(self, name, dtype):
+        """Add an attribute with the given name and data type, which
+        must be a valid numpy dtype."""
+
         default = None
         if dtype == "int":
             default = 0
@@ -141,21 +139,26 @@ is_sample are false will simply be ignored.
 
         self.attributes[name] = dtype
         
-    def drop_attributes(self, name):
+    def drop_attribute(self, name):
+        """Remove the attribute with the given name."""
+
         self.table = drop_fields(name)
         del self.attributes[name]
 
     @classmethod
     def load(filename):
+        """Load a schema from the specified file."""
+
         pass
     
-    def save(self, filename):
-        """Save the schema to the given filename."""
+    def save(self, out):
+        """Save the schema to the specified file."""
 
-        sample_cols = {}
-
+        # Need to convert column names to strings, from whatever numpy
+        # type they're stored as.
         names = [str(name) for name in self.column_names]
 
+        sample_cols = {}
         columns = []
 
         for i, name in enumerate(names):
@@ -173,6 +176,14 @@ is_sample are false will simply be ignored.
                     value = self.get_attribute(name, attribute)
                     if self.attributes[attribute].startswith("S"):
                         value = str(value)
+
+                    if type(value) == str:
+                        pass
+                    elif type(value) == np.int32:
+                        value = int(value)
+                    elif type(value) == np.bool_:
+                        value = bool(value)
+                    
                     sample_cols[name][attribute] = value
 
             columns.append(col)
@@ -186,127 +197,48 @@ is_sample are false will simply be ignored.
             "sample_attribute_mapping" : sample_cols,
             }
 
-        data = yaml.dump(doc, default_flow_style=False)
+        data = yaml.dump(doc, default_flow_style=False, encoding=None)
 
-        with open(filename, 'w') as out:
-            for line in data.splitlines():
-                if (line == "attributes:"):
-                    write_yaml_block_comment(out, """This lists all the attributes defined for this file.
+        for line in data.splitlines():
+            if (line == "attributes:"):
+                write_yaml_block_comment(out, """This lists all the attributes defined for this file.
 """)
 
-                elif (line == "columns:"):
-                    out.write("\n")
-                    write_yaml_block_comment(out, """This lists all of the columns present in the input file, each with its name and type. name is taken directly from the input file's header line. Type must be either "feature_id", "sample", or null.
+            elif (line == "columns:"):
+                out.write(unicode("\n"))
+                write_yaml_block_comment(out, """This lists all of the columns present in the input file, each with its name and type. name is taken directly from the input file's header line. Type must be either "feature_id", "sample", or null.
 """)
 
-                elif (line == "sample_attribute_mapping:"):
-                    out.write("\n")
-                    write_yaml_block_comment(out, """This maps each column name (for columns that represent samples) to a mapping from attribute name to value.""")
+            elif (line == "sample_attribute_mapping:"):
+                out.write(unicode("\n"))
+                write_yaml_block_comment(out, """This maps each column name (for columns that represent samples) to a mapping from attribute name to value.""")
 
-                out.write(line + "\n")
+            out.write(unicode(line) + "\n")
 
         
     def set_attribute(self, sample_name, attribute, value):
-        """Set an attribute for a sample, identified by sample number"""
+        """Set an attribute for a sample, identified by sample
+        name."""
 
         sample_num = self.sample_num(sample_name)
         self.table[sample_num][attribute] = value
 
     def get_attribute(self, sample_name, attribute):
-        """Get an attribute for a sample, identified by sample number"""
+        """Get an attribute for a sample, identified by sample
+        name."""
+
         sample_num = self.sample_num(sample_name)
         value = self.table[sample_num][attribute]
         if self.attributes[attribute].startswith("S"):
             value = str(value)
         return value
 
-
     def sample_num(self, sample_name):
+        """Return the sample number for sample with the given
+        name. The sample number is the index into the table for the
+        sample."""
+
         return self.sample_name_index[sample_name]
-
-class Schema(object):
-
-    """Describes the structure of the input file.
-
-        >>> schema = Schema()
-        
-        >>> schema.add_factor("sex",     ["male", "female"])
-        >>> schema.add_factor("treated", ["yes", "no"])
-
-        >>> schema.add_sample("sample1", 1)
-        >>> schema.add_sample("sample2", 2)
-        >>> schema.add_sample("sample3", 3)
-        >>> schema.add_sample("sample4", 4)
-
-        >>> schema.set_column_factor("sample1", "sex", "male")
-        >>> schema.get_column_factor("sample1", "sex")
-        'male'
-"""
-
-    def __init__(self, filename=None, load=False, factors=None, num_samples=None):
-        self.filename = filename
-        self.column_names = []
-        self.column_index = {}
-        self.factor_values = {}
-        self.column_factor = []
-
-        if factors is not None and num_samples is not None:
-            dtype = [(name, 'S100') for name in factors]
-            table = []
-            for sample in range(num_samples):
-                row = tuple()
-                for factor in factors:
-                    row += ("",)
-                table += row
-
-        if load and filename is not None:
-
-            # Load the YAML
-            doc = None
-            with open(self.filename) as fh:
-                print "Loading schema from " + self.filename
-                doc = yaml.load(fh)
-
-            # Populate my factors
-            for factor in doc['factors']:
-                values = doc['factors'][factor]['values']
-                self.add_factor(factor, values)
-
-            # Fill out my assignments of factor values for samples
-            for sample in doc['samples']:
-                column = doc['samples'][sample]['column']
-                self.add_sample(sample, column)
-                for factor in doc['samples'][sample]['factors']:
-                    value = doc['samples'][sample]['factors'][factor]
-                    if value is not None:
-                        self.set_column_factor(sample, factor, value)
-
-    def add_sample(self, name, column):
-        """Add a sample with the given name and column number."""
-        while len(self.column_names) <= column:
-            self.column_names.append(None)
-            self.column_factor.append({})
-        self.column_index[name]   = column
-        self.column_names[column] = name
-
-    def add_factor(self, factor, values=None):
-        self.factor_values[factor] = values
-
-    def _check_sample(self, column):
-        if column not in self.column_index:
-            raise SchemaException(
-                "\"{0}\" is not a valid column".format(column))
-
-    def _check_factor(self, factor):
-        if factor not in self.factor_values:
-            raise SchemaException(
-                "\"{0}\" is not a valid factor".format(factor))
-
-    def _check_factor_value(self, factor, value):
-        if value not in self.factor_values[factor]:
-            raise SchemaException(
-                "\"{0}\" is not a valid value for factor \"{1}\"".format(value, factor))
-
 
 class AttributePrompt(cmd.Cmd):
 
@@ -327,7 +259,6 @@ or int.
 """
 
         tokens = line.split()
-
         type_ = "S100"
 
         if len(tokens) > 1:
@@ -351,6 +282,7 @@ Usage:
 
 
     def do_quit(self, line):
+        """Stop editing the schema."""
         return True
 
     def complete_set(self, text, line, begidx, endidx):
@@ -389,16 +321,6 @@ def do_setup(args):
     header_line = args.infile.next().rstrip()
     headers = header_line.split("\t")
 
-#    c = SchemaEditor(headers)
-#    c.cmdloop("""
-#I am going to help you set up a PaGE job for your input file.  First
-#2#Bwe need to make the list of factors involved. Enter 'factor <name>
-#<values>...'. For example, to include sex as a factor, you would enter
-  
-#  factor sex male female
-
-#""")
-
     is_feature_id = [i == 0 for i in range(len(headers))]
     is_sample     = [i != 0 for i in range(len(headers))]
 
@@ -414,7 +336,7 @@ need to reformat your input file.
 
     print ""
 
-    schema = NewSchema(
+    schema = Schema(
         is_feature_id=is_feature_id,
         is_sample=is_sample,
         column_names=headers)

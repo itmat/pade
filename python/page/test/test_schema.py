@@ -3,6 +3,8 @@ import sys, os
 sys.path.insert(0, os.path.dirname(__file__) + "/../..")
 import unittest
 import page
+import io
+
 from page import Schema, SchemaException
 
 class SchemaTest(unittest.TestCase):
@@ -16,7 +18,7 @@ class SchemaTest(unittest.TestCase):
         is_feature_id = [True]  + [False for x in sample_nums]
         is_sample     = [False] + [True  for x in sample_nums]
 
-        schema = page.NewSchema(
+        schema = Schema(
             attributes=[
                 ('name', 'S100'),
                 ('sex', 'S100'),
@@ -49,5 +51,8 @@ class SchemaTest(unittest.TestCase):
 
         names = sorted(schema.attribute_names())
         self.assertEquals(names[0], "age")
+
+        out = io.StringIO()
+        schema.save(out)
 
 unittest.main()
