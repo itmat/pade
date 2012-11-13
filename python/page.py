@@ -146,10 +146,14 @@ is_sample are false will simply be ignored.
         del self.attributes[name]
 
     @classmethod
-    def load(filename):
-        """Load a schema from the specified file."""
+    def load(stream):
+        """Load a schema from the specified stream, which must
+        represent a YAML document in the format produced by
+        Schema.dump. The type of stream can be any type accepted by
+        yaml.load."""
 
-        pass
+        doc = yaml.load(stream)
+
     
     def save(self, out):
         """Save the schema to the specified file."""
@@ -215,7 +219,7 @@ is_sample are false will simply be ignored.
 
             out.write(unicode(line) + "\n")
 
-        
+
     def set_attribute(self, sample_name, attribute, value):
         """Set an attribute for a sample, identified by sample
         name."""
@@ -239,6 +243,8 @@ is_sample are false will simply be ignored.
         sample."""
 
         return self.sample_name_index[sample_name]
+
+
 
 class AttributePrompt(cmd.Cmd):
 
