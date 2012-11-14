@@ -175,8 +175,11 @@ def do_run(args):
     logging.info("Using these column groupings: " +
                  str(conditions))
 
+    condition_names = [schema.attribute_names[0] + "=" + str(x)
+                       for x in groups.keys()]
     alphas = core.find_default_alpha(data, conditions)
-    core.do_confidences_by_cutoff(data, conditions, alphas, args.num_bins)
+    (up, down, breakdown) = core.do_confidences_by_cutoff(data, conditions, alphas, args.num_bins)
+    core.print_counts_by_confidence(breakdown, condition_names)
 
 def show_banner():
     """Print the PaGE banner.
@@ -202,11 +205,14 @@ def get_arguments():
     object."""
     
     uberparser = argparse.ArgumentParser(
+        description="""Finds patterns in gene expression. This will read in a tab-delimited file, where one column contains IDs of genes or other features, and other columns contain numbers representing expression levels. Running a job is a two step process. First do "page setup INFILE". This will read the input file and print out a YAML file that you need to fill out in order to indicate how columns should be grouped. Then do "page run INFILE" to actually run the analysis.""",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     subparsers = uberparser.add_subparsers()
 
-    setup_parser = subparsers.add_parser('setup',
+    setup_parser = subparsers.add_parser(
+        'setup',
+        description="""Set up the job configuration. This reads the input file and outputs a YAML file that you then need to fill out in order to properly configure the job.""",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     setup_parser.add_argument(
         'infile',
@@ -218,7 +224,7 @@ def get_arguments():
         help="""Location to write schema file""",
         default=DEFAULT_SCHEMA)
     setup_parser.add_argument(
-        '-a', '--attribute',
+        '--attribute', '-a',
         action='append',
         required=True,
         help="""An attribute that can be set for each sample. You can

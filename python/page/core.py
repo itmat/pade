@@ -335,13 +335,20 @@ def do_confidences_by_cutoff(table, conditions, default_alphas, num_bins):
         table, unperm_stats, mins, maxes, conf_bins_up, conf_bins_down)
     
     print "Counting up- and down-regulated features in each level"
-    (levels, up_by_conf, down_by_conf) = get_count_by_conf_level(gene_conf_up, gene_conf_down)
+    levels = np.linspace(0.5, 0.95, 10)
+
+    (up_by_conf, down_by_conf) = get_count_by_conf_level(gene_conf_up, gene_conf_down, levels)
+
+    breakdown = breakdown_tables(levels, up_by_conf, down_by_conf)
+    logging.info("Levels are " + str(levels))
+    return (conf_bins_up, conf_bins_down, breakdown)
+
+def breakdown_tables(levels, up_by_conf, down_by_conf):
+    (num_range_values, n, num_levels) = np.shape(up_by_conf)
 
     max_up_params   = np.argmax(up_by_conf, axis=0)
     max_down_params = np.argmax(down_by_conf, axis=0)
  
-    best_up = up_by_conf[max_up_params]
-
     breakdown = np.zeros((n, len(levels), 3))
 
     for c in range(1, n):
@@ -351,30 +358,36 @@ def do_confidences_by_cutoff(table, conditions, default_alphas, num_bins):
             breakdown[c, i, 1] = up_by_conf[max_up_params[c, i], c, i]
             breakdown[c, i, 2] = down_by_conf[max_down_params[c, i], c, i]
 
+    return breakdown
+
+def print_counts_by_confidence(breakdown, condition_names):
+
+    """Breakdown is an (n x levels x 3) table, where n is the number
+    of conditions and levels is the number of confidence levels. It
+    represents a list of tables, one for each condition, containing
+    the confidence level, the number of up-regulated features, and the
+    number of down-regulated features for each confidence level.
+    """
+
+    (n, levels, cols) = np.shape(breakdown)
+    
     for c in range(1, n):
         print """
 ----------------------------
-condition {:d}
+{:s}
 {:10s} {:7s} {:7s}
 ----------------------------
-""".format(c, 'confidence', 'num. up', 'num. down')
+""".format(str(condition_names[c]), 'confidence', 'num. up', 'num. down')
 
         for row in breakdown[c]:
             (level, up, down) = row
             print "{:10.2f} {:7d} {:9d}".format(level, int(up), int(down))
 
-    return (conf_bins_up, conf_bins_down, breakdown)
 
-
-def get_count_by_conf_level(gene_conf_up, gene_conf_down):
+def get_count_by_conf_level(gene_conf_up, gene_conf_down, ranges):
 
     (num_range_values, num_genes, num_conditions) = np.shape(gene_conf_up)
-
-    num_levels = 10
-    
-    shape = (num_range_values, num_conditions, num_levels)
-
-    ranges = np.linspace(0.5, 0.95, num_levels)
+    shape = (num_range_values, num_conditions, len(ranges))
 
     up_by_conf   = np.zeros(shape)
     down_by_conf = np.zeros(shape)
@@ -387,7 +400,7 @@ def get_count_by_conf_level(gene_conf_up, gene_conf_down):
                 up_by_conf  [i, j, k] = len(up_conf  [up_conf   > level])
                 down_by_conf[i, j, k] = len(down_conf[down_conf > level])
 
-    return (ranges, up_by_conf, down_by_conf)
+    return (up_by_conf, down_by_conf)
 
 def get_gene_confidences(table, unperm_stats, mins, maxes, conf_bins_up, conf_bins_down):
     
