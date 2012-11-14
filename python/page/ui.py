@@ -3,10 +3,16 @@ import re
 import argparse
 from textwrap import fill
 from schema import Schema
-from core import Config
+
 import cmd
 import logging
 import sys
+import errno
+
+DEFAULT_SCHEMA="page_schema.yaml"
+
+class UsageException(Exception):
+    pass
 
 class AttributePrompt(cmd.Cmd):
 
@@ -140,8 +146,19 @@ I am assuming that the input file is tab-delimited, with a header line. I am als
 
     print msg
 
-    with open(args.schema, 'w') as out:
-        schema.save(out)
+
+    out = None
+
+    mode = 'w' if args.force else 'wx'
+
+    try:
+        out = open(args.schema, mode)
+    except IOError as e:
+        if e.errno == errno.EEXIST:
+            raise UsageException("The schema file \"{}\" already exists. If you want to overwrite it, use the --force or -f argument.".format(args.schema))
+        raise e
+
+    schema.save(out)
 
     print fix_newlines("""
 I have generated a schema for your input file, with attributes {attributes}, and saved it to "{filename}". You should now edit that file to set the attributes for each sample. The file contains instructions on how to edit it.
@@ -152,7 +169,7 @@ I have generated a schema for your input file, with attributes {attributes}, and
     
 
 def do_run(args):
-    config = validate_args(args)
+
     schema = Schema.load(args.schema)
 
     if len(schema.attribute_names) > 1:
@@ -160,47 +177,14 @@ def do_run(args):
     
     groups = schema.sample_groups(schema.attribute_names[0])
     
-    (data, row_ids) = core.load_input(config.infile)
+    (data, row_ids) = core.load_input(args.infile)
     conditions = groups.values()
 
     logging.info("Using these column groupings: " +
                  str(conditions))
 
     alphas = core.find_default_alpha(data, conditions)
-    core.do_confidences_by_cutoff(data, conditions, alphas, config.num_bins)
-
-def validate_args(args):
-    """Validate command line args and prompt user for any missing args.
-    
-    args is a Namespace object as returned by get_arguments(). Checks
-    to make sure there are no conflicting arguments. Prompts user for
-    values of any missing arguments. Returns a Config object
-    representing the configuration of the job, taking into account
-    both the command-line options and the values we had to prompt the
-    user for.
-    """
-
-    c = Config(args)
-
-    pos_int_re = re.compile("\d+")
-
-    if 'channels' in args:
-        if args.channels == 1 and 'design' in args:
-            raise Exception("Error: if the number of channels is 1, do not speicfy the design type")
-    elif 'design' in args:
-        c.channels = 2
-
-    while c.channels is None:
-        s = raw_input("Are the arrays 1-channel or 2-channel arrays? (Enter 1 or 2): ")
-        if pos_int_re.match(s) is not None:
-            channels = int(s)
-
-            if channels == 1 or channels == 2:
-                c.channels = channels
-
-    return c
-
-
+    core.do_confidences_by_cutoff(data, conditions, alphas, args.num_bins)
 
 def show_banner():
     """Print the PaGE banner.
@@ -224,40 +208,37 @@ For help, please use {script} --help or {script} -h
 def get_arguments():
     """Parse the command line options and return an argparse args
     object."""
-
+    
     uberparser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     subparsers = uberparser.add_subparsers()
 
-    setup_parser = subparsers.add_parser('setup')
+    setup_parser = subparsers.add_parser('setup',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     setup_parser.add_argument(
         'infile',
         help="""Name of input file""",
         default=argparse.SUPPRESS,
         type=file)
     setup_parser.add_argument(
-        'schema',
+        '--schema',
         help="""Location to write schema file""",
-        default=argparse.SUPPRESS)
+        default=DEFAULT_SCHEMA)
     setup_parser.add_argument(
         '-a', '--attribute',
         action='append',
-        help='An attribute that can be set for each sample')
+        required=True,
+        help="""An attribute that can be set for each sample. You can
+        specify this option more than once, to use more than one
+        attribute.""")
+    setup_parser.add_argument(
+        '--force', '-f',
+        action='store_true',
+        help="""Overwrite any existing files""")
         
     setup_parser.set_defaults(func=do_setup)
     
-    check_parser = subparsers.add_parser("check")
-    check_parser.add_argument(
-        'infile',
-        help="""Name of input file""",
-        default=argparse.SUPPRESS,
-        type=file)
-    check_parser.add_argument(
-        'schema',
-        help="""Location to read schema file from""",
-        default=argparse.SUPPRESS)
-
     parser = subparsers.add_parser('run')
     parser.set_defaults(func=do_run)
     file_locations = parser.add_argument_group("File locations")
@@ -270,9 +251,10 @@ def get_arguments():
         type=file)
 
     file_locations.add_argument(
-        'schema',
+        '--schema',
         help="""Path to the schema describing the input file""",
-        type=file)
+        type=file,
+        default=DEFAULT_SCHEMA)
 
     file_locations.add_argument(
         '--outfile',
@@ -534,7 +516,11 @@ def main():
 
     show_banner()
     args = get_arguments()
-    args.func(args)
+    try:
+        args.func(args)
+    except UsageException as e:
+        print fix_newlines("ERROR: " + e.message)
+    
     logging.info('Page finishing')
 
 if __name__ == '__main__':

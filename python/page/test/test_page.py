@@ -6,7 +6,6 @@ import unittest
 import doctest
 import numpy as np
 import numpy.ma as ma
-from page.core import Config
 from page.schema import Schema
 import page.core as page
 
@@ -20,8 +19,8 @@ class PageTest(unittest.TestCase):
             [float(x) for x in [1, 6, 5, 3, 8, 9, 6, 3, 6, 8]], ma.nomask)
         self.v2 = ma.masked_array(
             [float(x) for x in [7, 4, 9, 6, 2, 4, 7, 4, 2, 1]], ma.nomask)
-        self.config = Config({})
-        self.config.infile = 'sample_data/4_class_testdata_header1.txt'
+
+        self.infile = 'sample_data/4_class_testdata_header1.txt'
 
         column_names = ["id"]
         is_feature_id = [True]
@@ -54,11 +53,11 @@ class PageTest(unittest.TestCase):
         self.assertAlmostEqual(s, 2.57012753682683)
 
     def test_load_input(self):
-        (data, row_ids) = page.load_input(self.config.infile)
+        (data, row_ids) = page.load_input(self.infile)
         self.assertEquals(len(row_ids), 1000)
 
     def test_default_alpha(self):
-        (data, row_ids) = page.load_input(self.config.infile)
+        (data, row_ids) = page.load_input(self.infile)
         conditions = self.schema.sample_groups("treatment").values()
 
         # TODO: Make find_default_alpha take schema?
@@ -111,7 +110,7 @@ class PageTest(unittest.TestCase):
                                )
 
     def test_min_max_tstat(self):
-        (data, row_ids) = page.load_input(self.config.infile)
+        (data, row_ids) = page.load_input(self.infile)
         conditions = self.schema.sample_groups("treatment").values()
         alphas = page.find_default_alpha(data, conditions)
         (mins, maxes) = page.min_max_stat(data, conditions, alphas)
@@ -181,7 +180,7 @@ class PageTest(unittest.TestCase):
                                7.08618085029828)
     
     def test_conf_bins(self):
-        (data, row_ids) = page.load_input(self.config.infile)
+        (data, row_ids) = page.load_input(self.infile)
         conditions = self.schema.sample_groups("treatment").values()
         alphas = page.find_default_alpha(data, conditions)
         (conf_bins_up, conf_bins_down, breakdown) = page.do_confidences_by_cutoff(data, conditions, alphas, 1000)

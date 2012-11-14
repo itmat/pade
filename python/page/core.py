@@ -38,24 +38,6 @@ TUNING_PARAM_RANGE_VALUES = np.array([
     10,
     ])
 
-########################################################################
-###
-### Classes
-###
-
-class Config:
-    def __init__(self, args):
-
-        for field in ['channels', 'infile', 'num_bins']:
-            self.__dict__[field] = None
-            if field in args:
-                self.__dict__[field] = args.__dict__[field]
-
-    def __str__(self):
-        return str(self.__dict__)
-
-    def __repr__(self):
-        return "Config(" + repr(self.__dict__) + ")"
 
 ########################################################################
 ###
