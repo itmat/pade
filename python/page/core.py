@@ -14,7 +14,6 @@ s is the number of tuning param range values
 import re
 import itertools 
 import logging
-
 import numpy as np
 import logging
 
@@ -236,8 +235,8 @@ def do_confidences_by_cutoff(table, conditions, default_alphas, num_bins):
 
     # tuning params x conditions x bins, typically 10 x 2 x 1000 =
     # 20000. Not too big.
-    mean_perm_up   = np.zeros((s, n, h + 1))
-    mean_perm_down = np.zeros((s, n, h + 1))
+    mean_perm_u = np.zeros((s, n, h + 1))
+    mean_perm_d = np.zeros((s, n, h + 1))
 
     for c in range(1, n):
         print 'Working on condition %d of %d' % (c, n - 1)
@@ -252,9 +251,8 @@ def do_confidences_by_cutoff(table, conditions, default_alphas, num_bins):
         master_indexes[n0:] = conditions[c]
 
         # Histogram is (permutations x alpha tuning params x bins)
-        hist_shape = (r, s, h + 1)
-        up   = np.zeros(hist_shape, int)
-        down = np.zeros(hist_shape, int)
+        up   = np.zeros((r, s, h + 1), int)
+        down = np.zeros((r, s, h + 1), int)
 
         (mins, maxes) = min_max_stat(table, conditions, default_alphas)
 
@@ -280,56 +278,36 @@ def do_confidences_by_cutoff(table, conditions, default_alphas, num_bins):
             up[idx]   = accumulate_bins(up[idx])
             down[idx] = accumulate_bins(down[idx])
 
-#        for perm_num, perm in enumerate(perms):
-#            for i in range(s):
-
-
-        mean_perm_up  [:, c, :] = np.mean(up, axis=0)
-        mean_perm_down[:, c, :] = np.mean(down, axis=0)
+        mean_perm_u[:, c, :] = np.mean(up, axis=0)
+        mean_perm_d[:, c, :] = np.mean(down, axis=0)
 
     print "Getting stats for unpermuted data"
-    (num_unperm_up, num_unperm_down, unperm_stats) = dist_unpermuted_stats(table, conditions, mins, maxes, default_alphas)
+    (num_unperm_u, num_unperm_d, unperm_stats) = dist_unpermuted_stats(table, conditions, mins, maxes, default_alphas)
 
     for idx in np.ndindex(s, len(conditions)):
-        num_unperm_up[idx]   = accumulate_bins(num_unperm_up[idx])
-        num_unperm_down[idx] = accumulate_bins(num_unperm_down[idx])
+        num_unperm_u[idx] = accumulate_bins(num_unperm_u[idx])
+        num_unperm_d[idx] = accumulate_bins(num_unperm_d[idx])
 
-    null_shape = (s, n, h + 1)
-    num_null_up   = np.zeros(null_shape)
-    num_null_down = np.zeros(null_shape)
-
-    for idx in np.ndindex(null_shape):
-        num_null_up[idx] = adjust_num_diff(
-            mean_perm_up[idx],
-            num_unperm_up[idx],
-            m)
-        num_null_down[idx] = adjust_num_diff(
-            mean_perm_down[idx],
-            num_unperm_down[idx],
-            m)
-                
-    conf_bins_up = np.zeros(null_shape)
-    conf_bins_down = np.zeros(null_shape)
+    conf_bins_u = np.zeros((s, n, h + 1))
+    conf_bins_d = np.zeros((s, n, h + 1))
 
     for idx in np.ndindex(s, n, h + 1):
-        unperm_up = num_unperm_up[idx]
-        unperm_down = num_unperm_down[idx]
-        if unperm_up > 0:
-            conf_bins_up[idx] = (unperm_up - num_null_up[idx]) / unperm_up
-        if unperm_down > 0:
-            conf_bins_down[idx] = (unperm_down - num_null_down[idx]) / unperm_down
+        conf_bins_u[idx] = fill_bin(num_unperm_u[idx], mean_perm_u[idx], m)
+        conf_bins_d[idx] = fill_bin(num_unperm_d[idx], mean_perm_d[idx], m)
 
     # TODO: Code like this was in the original PaGE, presumably to
     # ensure that the bins are monotonically increasing. Is this
     # necessary?
     for idx in np.ndindex(s, n):
-        ensure_increases(conf_bins_up[idx])
-        ensure_increases(conf_bins_down[idx])
+        ensure_increases(conf_bins_u[idx])
+        ensure_increases(conf_bins_d[idx])
     
     print "Computing confidence scores"
     (gene_conf_up, gene_conf_down) = get_gene_confidences(
-        table, unperm_stats, mins, maxes, conf_bins_up, conf_bins_down)
+        table, unperm_stats, mins, maxes, conf_bins_u, conf_bins_d)
     
+    print "Shape of conf up is " + str(np.shape(gene_conf_up))
+
     print "Counting up- and down-regulated features in each level"
     levels = np.linspace(0.5, 0.95, 10)
 
@@ -337,7 +315,13 @@ def do_confidences_by_cutoff(table, conditions, default_alphas, num_bins):
 
     breakdown = breakdown_tables(levels, up_by_conf, down_by_conf)
     logging.info("Levels are " + str(levels))
-    return (conf_bins_up, conf_bins_down, breakdown)
+    return (conf_bins_u, conf_bins_d, breakdown)
+
+def fill_bin(unperm, perm, m):
+    if unperm > 0:
+        return (unperm - adjust_num_diff(perm, unperm, m)) / unperm
+    else:
+        return 0.0
 
 def ensure_increases(a):
     for i in range(len(a) - 1):
@@ -383,7 +367,6 @@ def print_counts_by_confidence(breakdown, condition_names):
             (level, up, down) = row
             print "{:10.2f} {:7d} {:9d}".format(level, int(up), int(down))
 
-
 def get_count_by_conf_level(gene_conf_up, gene_conf_down, ranges):
 
     (num_range_values, num_genes, num_conditions) = np.shape(gene_conf_up)
@@ -402,7 +385,7 @@ def get_count_by_conf_level(gene_conf_up, gene_conf_down, ranges):
 
     return (up_by_conf, down_by_conf)
 
-def get_gene_confidences(table, unperm_stats, mins, maxes, conf_bins_up, conf_bins_down):
+def get_gene_confidences(table, unperm_stats, mins, maxes, conf_bins_u, conf_bins_d):
     """Returns a pair of 3D arrays: gene_conf_up and
     gene_conf_down. gene_conf_up[i, j, k] indicates the confidence
     with which gene j is upregulated in condition k using the ith
@@ -410,7 +393,7 @@ def get_gene_confidences(table, unperm_stats, mins, maxes, conf_bins_up, conf_bi
     down-regulation."""
 
     (num_range_values, num_genes, num_conditions) = np.shape(unperm_stats)
-    num_bins = np.shape(conf_bins_up)[2] - 1
+    num_bins = np.shape(conf_bins_u)[2] - 1
 
     gene_conf_shape = (num_range_values, num_genes, num_conditions)
     gene_conf_up    = np.zeros(gene_conf_shape)
@@ -421,10 +404,10 @@ def get_gene_confidences(table, unperm_stats, mins, maxes, conf_bins_up, conf_bi
             for j in range(num_genes):
                 if unperm_stats[i, j, c] >= 0:			
                     binnum = int(num_bins * unperm_stats[i, j, c] / maxes[i, c])
-                    gene_conf_up[i, j, c] = conf_bins_up[i, c, binnum]
+                    gene_conf_up[i, j, c] = conf_bins_u[i, c, binnum]
                 else:
                     binnum = int(num_bins * unperm_stats[i, j, c] / mins[i, c])
-                    gene_conf_down[i, j, c] = conf_bins_down[i, c, binnum]
+                    gene_conf_down[i, j, c] = conf_bins_d[i, c, binnum]
 
     return (gene_conf_up, gene_conf_down)
 

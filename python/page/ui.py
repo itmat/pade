@@ -1,3 +1,8 @@
+import matplotlib
+matplotlib.use('pdf')
+import matplotlib.pyplot as plt
+import numpy as np
+
 import core
 import re
 import argparse
@@ -180,6 +185,7 @@ def do_run(args):
     alphas = core.find_default_alpha(data, conditions)
     (up, down, breakdown) = core.do_confidences_by_cutoff(data, conditions, alphas, args.num_bins)
     core.print_counts_by_confidence(breakdown, condition_names)
+    plot_counts_by_confidence(breakdown, condition_names)
 
 def show_banner():
     """Print the PaGE banner.
@@ -520,6 +526,25 @@ def main():
         print fix_newlines("ERROR: " + e.message)
     
     logging.info('Page finishing')
+
+def plot_counts_by_confidence(breakdown, condition_names):
+
+    for c in range(1, len(breakdown)):
+        levels = breakdown[c, :, 0]
+        up     = breakdown[c, :, 1]
+        plt.plot(levels, up)
+
+    plt.savefig("conf_up")
+    plt.clf()
+
+    for c in range(1, len(breakdown)):
+        levels = breakdown[c, :, 0]
+        down   = breakdown[c, :, 2]
+        plt.plot(levels, down)
+
+    plt.savefig("conf_down")
+    plt.clf()
+    
 
 if __name__ == '__main__':
     main()
