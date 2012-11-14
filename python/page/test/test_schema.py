@@ -53,13 +53,15 @@ class SchemaTest(unittest.TestCase):
 
 
     def test_yaml(self):
+        self.maxDiff = None
         # Save the schema, load it, and save it again. Compare the two
         # versions to make sure they're the same, so that we know we
         # can round-trip.
         out = io.StringIO()
         self.schema.save(out)
 
-        loaded = Schema.load(out.getvalue())
+        with open("sample_data/test_infile.tab") as infile:
+            loaded = Schema.load(out.getvalue(), infile)
 
         out2 = io.StringIO()
         loaded.save(out2)

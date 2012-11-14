@@ -101,21 +101,24 @@ is_sample are false will simply be ignored.
         del self.attributes[name]
 
     @classmethod
-    def load(cls, stream):
+    def load(cls, stream, infile):
         """Load a schema from the specified stream, which must
         represent a YAML document in the format produced by
         Schema.dump. The type of stream can be any type accepted by
         yaml.load."""
+        col_names = None
+
+        header_line = infile.next().rstrip()
+        col_names = header_line.split("\t")
 
         doc = yaml.load(stream)
 
-        # Build the arrayrs of column names, feature id booleans, and
+        # Build the arrays of column names, feature id booleans, and
         # sample booleans
-        cols = doc['columns']
-        col_names = [col['name'] for col in cols]
-        col_types = np.array([col['type'] for col in cols])
-        is_feature_id = col_types == 'feature_id'
-        is_sample     = col_types == 'sample'
+        feature_id_cols = set(doc['feature_id_columns'])
+
+        is_feature_id = [c in feature_id_cols for c in col_names]
+        is_sample     = [c in doc['sample_attribute_mapping'] for c in col_names]
 
         schema = Schema(
             column_names=col_names,
@@ -142,18 +145,15 @@ is_sample are false will simply be ignored.
         # type they're stored as.
         names = [str(name) for name in self.column_names]
 
-        sample_cols = {}
-        columns = []
+        sample_cols     = {}
+        feature_id_cols = []
 
         for i, name in enumerate(names):
 
-            col = { "name" : name }
-
             if self.is_feature_id[i]:
-                col["type"] = "feature_id"
+                feature_id_cols.append(name)
 
             elif self.is_sample[i]:
-                col["type"] = "sample"
                 
                 sample_cols[name] = {}
                 for attribute in self.attributes:
@@ -170,8 +170,6 @@ is_sample are false will simply be ignored.
                     
                     sample_cols[name][attribute] = value
 
-            columns.append(col)
-
         attributes = []
         for name, type_ in self.attributes.iteritems():
             a = { "name" : name }
@@ -181,7 +179,7 @@ is_sample are false will simply be ignored.
 
         doc = {
             "attributes"               : attributes,
-            "columns"                  : columns,
+            "feature_id_columns"       : feature_id_cols,
             "sample_attribute_mapping" : sample_cols,
             }
 
@@ -192,14 +190,21 @@ is_sample are false will simply be ignored.
                 write_yaml_block_comment(out, """This lists all the attributes defined for this file.
 """)
 
-            elif (line == "columns:"):
+            elif (line == "feature_id_columns:"):
                 out.write(unicode("\n"))
-                write_yaml_block_comment(out, """This lists all of the columns present in the input file, each with its name and type. name is taken directly from the input file's header line. Type must be either "feature_id", "sample", or null.
-""")
+                write_yaml_block_comment(out, """This lists all of the columns that contain feature IDs (for example gene ids).""")
 
             elif (line == "sample_attribute_mapping:"):
                 out.write(unicode("\n"))
-                write_yaml_block_comment(out, """This maps each column name (for columns that represent samples) to a mapping from attribute name to value.""")
+                write_yaml_block_comment(out, """This sets all of the attributes for all columns that represent samples. You should fill out this section to set each attribute for each sample. For example, if you had a sample called sample1 that recieved some kind of treatment, and one called sample2 that did not, you might have:
+
+sample_attribute_mapping:
+  sample1:
+    treated: yes
+  sample2:
+    treated: no
+
+""")
 
             out.write(unicode(line) + "\n")
 
@@ -243,8 +248,9 @@ is_sample are false will simply be ignored.
         return grouping
 
 def write_yaml_block_comment(fh, comment):
-    fh.write(unicode(fill(comment,
-                  initial_indent="# ",
-                  subsequent_indent="# ")))
-    fh.write(unicode("\n"))
+    result = ""
+    for line in comment.splitlines():
+        result += fill(line, initial_indent = "# ", subsequent_indent="# ")
+        result += "\n"
+    fh.write(unicode(result))
 

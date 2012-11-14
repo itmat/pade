@@ -140,25 +140,17 @@ I am assuming that the input file is tab-delimited, with a header line. I am als
     for a in args.attribute:
         schema.add_attribute(a, object)
     
-    msg = "Ok, I have these attributes:\n"
-    for a in schema.attributes:
-        msg += "  + " + a + " (" + str(schema.attributes[a]) + ")\n"
-
-    print msg
-
-
-    out = None
-
     mode = 'w' if args.force else 'wx'
 
     try:
         out = open(args.schema, mode)
+        schema.save(out)
     except IOError as e:
         if e.errno == errno.EEXIST:
             raise UsageException("The schema file \"{}\" already exists. If you want to overwrite it, use the --force or -f argument.".format(args.schema))
         raise e
 
-    schema.save(out)
+
 
     print fix_newlines("""
 I have generated a schema for your input file, with attributes {attributes}, and saved it to "{filename}". You should now edit that file to set the attributes for each sample. The file contains instructions on how to edit it.
@@ -170,7 +162,7 @@ I have generated a schema for your input file, with attributes {attributes}, and
 
 def do_run(args):
 
-    schema = Schema.load(args.schema)
+    schema = Schema.load(args.schema, args.infile)
 
     if len(schema.attribute_names) > 1:
         raise UsageException("I currently only support schemas with one attribute")
