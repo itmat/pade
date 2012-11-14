@@ -41,7 +41,7 @@ is_sample are false will simply be ignored.
         else:
             column_names = np.array(column_names)
 
-        self.attributes = {}
+        self.attributes = OrderedDict()
         self.is_feature_id = np.array(is_feature_id, dtype=bool)
         self.is_sample     = np.array(is_sample,     dtype=bool)
         self.column_names  = column_names
@@ -73,21 +73,26 @@ is_sample are false will simply be ignored.
     def add_attribute(self, name, dtype):
         """Add an attribute with the given name and data type, which
         must be a valid numpy dtype."""
-
+        
         default = None
         if dtype == "int":
             default = 0
         else:
-            default = ""
-        values = [default for sample in self.sample_column_names()]
+            default = None
 
-        if self.table is None:
-            self.table = [(value,) for value in values]
-            self.table = np.array(self.table, dtype=[(name, dtype)])
-        else:
-            self.table=(append_fields(self.table, name, values, dtype))
+        new_table = []
 
         self.attributes[name] = dtype
+
+        if self.table is None:
+            new_table = [(default,) for s in self.sample_column_names()]
+
+        else:
+            for row in self.table:
+                row = tuple(row) + (default,)
+                new_table.append(row)
+            
+        self.table = np.array(new_table, dtype=[(k, v) for k, v in self.attributes.iteritems()])
         
     def drop_attribute(self, name):
         """Remove the attribute with the given name."""
@@ -120,8 +125,9 @@ is_sample are false will simply be ignored.
         # Now add all the attributes and their types
         attributes = doc['attributes']
         for attribute in attributes:
+            dtype = attribute['dtype'] if 'dtype' in attribute else object
             schema.add_attribute(attribute['name'], 
-                                 attribute['dtype'])
+                                 dtype)
 
         for sample, attrs in doc['sample_attribute_mapping'].iteritems():
             for name, value in attrs.iteritems():
@@ -152,8 +158,8 @@ is_sample are false will simply be ignored.
                 sample_cols[name] = {}
                 for attribute in self.attributes:
                     value = self.get_attribute(name, attribute)
-                    if self.attributes[attribute].startswith("S"):
-                        value = str(value)
+#                    if self.attributes[attribute].startswith("S"):
+#                        value = str(value)
 
                     if type(value) == str:
                         pass
@@ -166,8 +172,12 @@ is_sample are false will simply be ignored.
 
             columns.append(col)
 
-        attributes = [ { "name"  : name, "dtype" : type_ } 
-                       for (name, type_) in self.attributes.iteritems()]
+        attributes = []
+        for name, type_ in self.attributes.iteritems():
+            a = { "name" : name }
+            if type_ != object:
+                a['dtype'] = type_
+            attributes.append(a)
 
         doc = {
             "attributes"               : attributes,
@@ -207,8 +217,8 @@ is_sample are false will simply be ignored.
 
         sample_num = self.sample_num(sample_name)
         value = self.table[sample_num][attribute]
-        if self.attributes[attribute].startswith("S"):
-            value = str(value)
+#        if self.attributes[attribute].startswith("S"):
+#            value = str(value)
         return value
 
     def sample_num(self, sample_name):

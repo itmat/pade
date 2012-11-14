@@ -1,5 +1,4 @@
 import unittest
-import page
 import io
 
 from page.schema import Schema
@@ -16,9 +15,9 @@ class SchemaTest(unittest.TestCase):
 
         schema = Schema(
             attributes=[
-                ('name', 'S100'),
-                ('sex', 'S100'),
-                ('age', 'int'),
+                ('name',    object),
+                ('sex',     object),
+                ('age',     'int'),
                 ('treated', 'bool')],
             column_names=colnames,
             is_feature_id=is_feature_id,

@@ -13,12 +13,10 @@ s is the number of tuning param range values
 
 import re
 import itertools 
+import logging
 
 import numpy as np
-
-from io import StringIO
-from numpy.lib.recfunctions import append_fields
-from schema import Schema
+import logging
 
 ########################################################################
 ###
@@ -39,15 +37,6 @@ TUNING_PARAM_RANGE_VALUES = np.array([
     3.0,
     10,
     ])
-
-###
-### Schema editor
-###
-
-class SchemaException(Exception):
-    pass
-
-
 
 ########################################################################
 ###
@@ -72,9 +61,6 @@ class Config:
 ###
 ### Functions
 ###
-
-
-
 
 def load_input(fh):
 
@@ -520,28 +506,5 @@ def get_bins(n, maxval):
     bins.append(np.inf)
     return bins
 
-
-if __name__ == '__main__':
-    main()
-
-########################################################################
-###
-### Unneeded code translated from Perl version?
-###
-
-#def unpermuted_means(data):
-#    num_conditions = data.num_conditions()
-#    num_features   = len(data.row_ids)
-
-#    res = np.zeros((num_features, num_conditions))
-
-#    for c in range(num_conditions):
-#        cols = data.replicates(c)
-#        print "Computing mean for condition %d using replicates %s" % (c, cols)
-#        cols = data.table[:,cols]
-#        means = np.mean(cols, axis=1)
-#        print "%s -> %s" % (np.shape(cols), np.shape(means))
-#        res[:,c] = means
-#    return res
 
     

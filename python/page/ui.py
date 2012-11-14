@@ -5,6 +5,8 @@ from textwrap import fill
 from schema import Schema
 from core import Config
 import cmd
+import logging
+import sys
 
 class AttributePrompt(cmd.Cmd):
 
@@ -13,14 +15,12 @@ class AttributePrompt(cmd.Cmd):
         self.schema = schema
 
     def do_add(self, line):
-        """Add an attribute, optionally with a type.
+        """Add an attribute, optionally with a type. If type is supplied, it must be a valid numpy dtype, like S100, float, or int.
 
-Usage:
+Examples:
 
-  add ATTR [TYPE]
-
-If type is supplied, it must be a valid numpy dtype, like S100, float,
-or int.
+  add treated bool
+  add age int
 
 """
 
@@ -33,21 +33,21 @@ or int.
         self.schema.add_attribute(tokens[0], type_)
 
     def do_remove(self, line):
-        """Remove an attribute.
+        """
+Remove an attribute. For example:
 
-Usage:
-
-  remove ATTR
+  remove age
 """
         schema.drop_attribute(line)
 
     def do_show(self, line):
-        """Show the attributes that are currently defined."""
+        """
+        Show the attributes that are currently defined."""
 
         print "\nAttributes are " + str(self.schema.attributes) + "\n"
 
 
-    def do_quit(self, line):
+    def do_done(self, line):
         """Stop editing the schema."""
         return True
 
@@ -76,6 +76,36 @@ Usage:
             for column in columns:
                 self.schema.set_attribute(column, factor, value)
 
+def fix_newlines(msg):
+    output = ""
+    for line in msg.splitlines():
+        output += fill(line) + "\n"
+    return output
+
+def show_and_pause(msg):
+    
+    print fix_newlines(msg)
+    print "\n[Enter]\n"
+    sys.stdin.readline()
+
+def show(msg):
+    print fix_newlines(msg)
+
+
+def do_interactive(args):
+    prompt = AttributePrompt(schema)
+    prompt.prompt = "-> "
+    prompt.cmdloop(fix_newlines("""
+I'm now going to ask you to enter all the attributes, or factors, that you want to define. Enter each attribute, one at a time, by typing "add ATTRIBUTE [TYPE]" for each attribute, specifying the type of the attribute if it is anything other than a string. You can see the attribute you've added with "show", and remove an attribute with "remove ATTRIBUTE". Type "done" when you are done adding attributes. For example, if you have three attributes, sex, age, and treated, you would enter them as follows:
+
+-> add sex
+-> add age int
+-> add treated bool
+-> done
+"""))
+
+
+
 
 def do_setup(args):
     """Ask the user for the list of factors, the values for each
@@ -84,36 +114,42 @@ def do_setup(args):
     id column.
     """
 
-    print "Here I am"
     header_line = args.infile.next().rstrip()
     headers = header_line.split("\t")
 
     is_feature_id = [i == 0 for i in range(len(headers))]
     is_sample     = [i != 0 for i in range(len(headers))]
 
-    print fill("""
-I am assuming that the input file is tab-delimited, with a header
-line. I am also assuming that the first column ({0}) contains feature
-identifiers, and that the rest of the columns ({1}) contain expression
-levels. In a future release, we will be more flexible about input
-formats. In the meantime, if this assumption is not true, you will
-need to reformat your input file.
+    print fix_newlines("""
+I am assuming that the input file is tab-delimited, with a header line. I am also assuming that the first column ({0}) contains feature identifiers, and that the rest of the columns ({1}) contain expression levels. In a future release, we will be more flexible about input formats. In the meantime, if this assumption is not true, you will need to reformat your input file.
+
 """.format(headers[0],
            ", ".join(headers[1:])))
-
-    print ""
 
     schema = Schema(
         is_feature_id=is_feature_id,
         is_sample=is_sample,
         column_names=headers)
 
-    prompt = AttributePrompt(schema)
-    prompt.prompt = "attributes: "
-    prompt.cmdloop("Enter a space-delimited list of attributes (factors)")
+    for a in args.attribute:
+        schema.add_attribute(a, object)
+    
+    msg = "Ok, I have these attributes:\n"
+    for a in schema.attributes:
+        msg += "  + " + a + " (" + str(schema.attributes[a]) + ")\n"
+
+    print msg
 
     with open(args.schema, 'w') as out:
         schema.save(out)
+
+    print fix_newlines("""
+I have generated a schema for your input file, with attributes {attributes}, and saved it to "{filename}". You should now edit that file to set the attributes for each sample. The file contains instructions on how to edit it.
+""").format(attributes=schema.attributes.keys(),
+            filename=args.schema)
+
+
+    
 
 def do_run(args):
     config = validate_args(args)
@@ -126,6 +162,9 @@ def do_run(args):
     
     (data, row_ids) = core.load_input(config.infile)
     conditions = groups.values()
+
+    logging.info("Using these column groupings: " +
+                 str(conditions))
 
     alphas = core.find_default_alpha(data, conditions)
     core.do_confidences_by_cutoff(data, conditions, alphas, config.num_bins)
@@ -201,6 +240,11 @@ def get_arguments():
         'schema',
         help="""Location to write schema file""",
         default=argparse.SUPPRESS)
+    setup_parser.add_argument(
+        '-a', '--attribute',
+        action='append',
+        help='An attribute that can be set for each sample')
+        
     setup_parser.set_defaults(func=do_setup)
     
     check_parser = subparsers.add_parser("check")
@@ -483,9 +527,15 @@ def get_arguments():
 
 def main():
     """Run PaGE."""
+
+    logging.basicConfig(filename='page.log',
+                        level=logging.INFO)
+    logging.info('Page starting')
+
     show_banner()
     args = get_arguments()
     args.func(args)
+    logging.info('Page finishing')
 
 if __name__ == '__main__':
     main()
