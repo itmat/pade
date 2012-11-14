@@ -234,7 +234,7 @@ def do_confidences_by_cutoff(table, conditions, default_alphas, num_bins):
     n  = len(conditions)
     n0 = len(conditions[0])
 
-    # tuning params x conditions x bins typically 10 x 2 x 1000 =
+    # tuning params x conditions x bins, typically 10 x 2 x 1000 =
     # 20000. Not too big.
     mean_perm_up   = np.zeros((s, n, h + 1))
     mean_perm_down = np.zeros((s, n, h + 1))
@@ -275,10 +275,14 @@ def do_confidences_by_cutoff(table, conditions, default_alphas, num_bins):
         # 1 through 999 are for features that were upregulated Bin
         # 1000 is for any features that were upregulated above the max
         # from the unmpermuted data (max, inf)
-        for perm_num, perm in enumerate(perms):
-            for i in range(s):
-                up[perm_num, i]   = accumulate_bins(up[perm_num, i])
-                down[perm_num, i] = accumulate_bins(down[perm_num, i])
+
+        for idx in np.ndindex(len(perms), s):
+            up[idx]   = accumulate_bins(up[idx])
+            down[idx] = accumulate_bins(down[idx])
+
+#        for perm_num, perm in enumerate(perms):
+#            for i in range(s):
+
 
         mean_perm_up  [:, c, :] = np.mean(up, axis=0)
         mean_perm_down[:, c, :] = np.mean(down, axis=0)
@@ -286,49 +290,41 @@ def do_confidences_by_cutoff(table, conditions, default_alphas, num_bins):
     print "Getting stats for unpermuted data"
     (num_unperm_up, num_unperm_down, unperm_stats) = dist_unpermuted_stats(table, conditions, mins, maxes, default_alphas)
 
-    for i in range(s):
-        for (c, cols) in enumerate(conditions):
-            num_unperm_up[i, c] = accumulate_bins(num_unperm_up[i, c])
-            num_unperm_down[i, c] = accumulate_bins(num_unperm_down[i, c])
+    for idx in np.ndindex(s, len(conditions)):
+        num_unperm_up[idx]   = accumulate_bins(num_unperm_up[idx])
+        num_unperm_down[idx] = accumulate_bins(num_unperm_down[idx])
 
     null_shape = (s, n, h + 1)
     num_null_up   = np.zeros(null_shape)
     num_null_down = np.zeros(null_shape)
 
-    for (c, cols) in enumerate(conditions):
-        for i in range(s):
-            for b in range(h + 1):
-                num_null_up[i, c, b] = adjust_num_diff(
-                    mean_perm_up[i, c, b],
-                    num_unperm_up[i, c, b],
-                    m)
-                num_null_down[i, c, b] = adjust_num_diff(
-                    mean_perm_down[i, c, b],
-                    num_unperm_down[i, c, b],
-                    m)
+    for idx in np.ndindex(null_shape):
+        num_null_up[idx] = adjust_num_diff(
+            mean_perm_up[idx],
+            num_unperm_up[idx],
+            m)
+        num_null_down[idx] = adjust_num_diff(
+            mean_perm_down[idx],
+            num_unperm_down[idx],
+            m)
                 
     conf_bins_up = np.zeros(null_shape)
     conf_bins_down = np.zeros(null_shape)
 
-    for i in range(s):
-        for c in range(n):
-            for b in range(h + 1):
-                unperm_up = num_unperm_up[i, c, b]
-                unperm_down = num_unperm_down[i, c, b]
-                if unperm_up > 0:
-                    conf_bins_up[i, c, b] = (unperm_up - num_null_up[i, c, b]) / unperm_up
-                if unperm_down > 0:
-                    conf_bins_down[i, c, b] = (unperm_down - num_null_down[i, c, b]) / unperm_down
+    for idx in np.ndindex(s, n, h + 1):
+        unperm_up = num_unperm_up[idx]
+        unperm_down = num_unperm_down[idx]
+        if unperm_up > 0:
+            conf_bins_up[idx] = (unperm_up - num_null_up[idx]) / unperm_up
+        if unperm_down > 0:
+            conf_bins_down[idx] = (unperm_down - num_null_down[idx]) / unperm_down
 
-    # Does this just make sure the bins are monotonically
-    # increasing?
-    for c in range(n):
-        for i in range(s):
-            for b in range(1, h + 1):
-                conf_bins_up[i, c, b] = max(conf_bins_up[i, c, b - 1],
-                                                 conf_bins_up[i, c, b])
-                conf_bins_down[i, c, b] = max(conf_bins_down[i, c, b - 1],
-                                                   conf_bins_down[i, c, b])
+    # TODO: Code like this was in the original PaGE, presumably to
+    # ensure that the bins are monotonically increasing. Is this
+    # necessary?
+    for idx in np.ndindex(s, n):
+        ensure_increases(conf_bins_up[idx])
+        ensure_increases(conf_bins_down[idx])
     
     print "Computing confidence scores"
     (gene_conf_up, gene_conf_down) = get_gene_confidences(
@@ -342,6 +338,10 @@ def do_confidences_by_cutoff(table, conditions, default_alphas, num_bins):
     breakdown = breakdown_tables(levels, up_by_conf, down_by_conf)
     logging.info("Levels are " + str(levels))
     return (conf_bins_up, conf_bins_down, breakdown)
+
+def ensure_increases(a):
+    for i in range(len(a) - 1):
+        a[i+1] = max(a[i], a[i+1])
 
 def breakdown_tables(levels, up_by_conf, down_by_conf):
     (num_range_values, n, num_levels) = np.shape(up_by_conf)
@@ -403,18 +403,18 @@ def get_count_by_conf_level(gene_conf_up, gene_conf_down, ranges):
     return (up_by_conf, down_by_conf)
 
 def get_gene_confidences(table, unperm_stats, mins, maxes, conf_bins_up, conf_bins_down):
-    
+    """Returns a pair of 3D arrays: gene_conf_up and
+    gene_conf_down. gene_conf_up[i, j, k] indicates the confidence
+    with which gene j is upregulated in condition k using the ith
+    alpha multiplier. gene_conf_down does the same thing for
+    down-regulation."""
+
     (num_range_values, num_genes, num_conditions) = np.shape(unperm_stats)
     num_bins = np.shape(conf_bins_up)[2] - 1
 
-    gene_conf_shape = (num_range_values,
-                       num_genes,
-                       num_conditions)
-    
-    # gene_conf_up[i, j, k] indicates the confidence with which gene j
-    # is upregulated in condition k using the ith alpha multiplier.
-    gene_conf_up   = np.zeros(gene_conf_shape)
-    gene_conf_down = np.zeros(gene_conf_shape)
+    gene_conf_shape = (num_range_values, num_genes, num_conditions)
+    gene_conf_up    = np.zeros(gene_conf_shape)
+    gene_conf_down  = np.zeros(gene_conf_shape)
 
     for c in range(1, num_conditions):
         for i in range(num_range_values):
