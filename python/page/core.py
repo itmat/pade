@@ -300,10 +300,6 @@ def do_confidences_by_cutoff(table, conditions, default_alphas, num_bins):
     (num_unperm_u, num_unperm_d, unperm_stats) = dist_unpermuted_stats(
         table, conditions, mins, maxes, default_alphas)
 
-    for idx in np.ndindex(s, len(conditions)):
-        num_unperm_u[idx] = accumulate_bins(num_unperm_u[idx])
-        num_unperm_d[idx] = accumulate_bins(num_unperm_d[idx])
-
     conf_bins_u = np.zeros((s, n, h + 1))
     conf_bins_d = np.zeros((s, n, h + 1))
 
@@ -490,6 +486,11 @@ def dist_unpermuted_stats(table, conditions, mins, maxes, default_alphas, num_bi
             (u_hist, d_hist) = assign_bins(stats[j, :, c], num_bins, mins[j, c], maxes[j, c])
             d[j, c, :] = d_hist
             u[j, c, :] = u_hist
+
+    for idx in np.ndindex(len(TUNING_PARAM_RANGE_VALUES),
+                          len(conditions)):
+        u[idx] = accumulate_bins(u[idx])
+        d[idx] = accumulate_bins(d[idx])
 
     return (u, d, stats)
     

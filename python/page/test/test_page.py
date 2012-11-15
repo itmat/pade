@@ -164,8 +164,17 @@ class PageTest(unittest.TestCase):
         self.assertEqual(shape(u), shape(unpermuted_stats.dist_up))
         self.assertEqual(shape(d), shape(unpermuted_stats.dist_down))
 
-        u_diffs = unpermuted_stats.dist_up   - u
-        d_diffs = unpermuted_stats.dist_down - d
+        expected_u = np.copy(unpermuted_stats.dist_up)
+        expected_d = np.copy(unpermuted_stats.dist_down)
+
+        (m, n, p) = shape(expected_u)
+
+        for idx in np.ndindex((m, n)):
+            expected_u[idx] = page.accumulate_bins(expected_u[idx])
+            expected_d[idx] = page.accumulate_bins(expected_d[idx])
+
+        u_diffs = expected_u - u
+        d_diffs = expected_d - d
 
         # For some reason the last two bins are swapped in a very
         # small number of cases, so ignore them.
