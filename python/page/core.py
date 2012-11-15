@@ -306,16 +306,17 @@ def do_confidences_by_cutoff(table, conditions, default_alphas, num_bins):
     conf_bins_d = make_confidence_bins(num_unperm_d, mean_perm_d, len(table))
 
     print "Computing confidence scores"
-    (gene_conf_up, gene_conf_down) = get_gene_confidences(
+    (gene_conf_u, gene_conf_d) = get_gene_confidences(
         unperm_stats, mins, maxes, conf_bins_u, conf_bins_d)
     
     print "Counting up- and down-regulated features in each level"
-    logging.info("Shape of conf up is " + str(np.shape(gene_conf_up)))
+    logging.info("Shape of conf up is " + str(np.shape(gene_conf_u)))
     levels = np.linspace(0.5, 0.95, 10)
 
-    (up_by_conf, down_by_conf) = get_count_by_conf_level(gene_conf_up, gene_conf_down, levels)
+    u_by_conf = get_count_by_conf_level(gene_conf_u, levels)
+    d_by_conf = get_count_by_conf_level(gene_conf_d, levels)
 
-    breakdown = breakdown_tables(levels, up_by_conf, down_by_conf)
+    breakdown = breakdown_tables(levels, u_by_conf, d_by_conf)
     logging.info("Levels are " + str(levels))
     return (conf_bins_u, conf_bins_d, breakdown)
 
@@ -332,18 +333,18 @@ def ensure_increases(a):
     for i in range(len(a) - 1):
         a[i+1] = max(a[i], a[i+1])
 
-def breakdown_tables(levels, up_by_conf, down_by_conf):
-    """up_by_conf gives the number of up-regulated features for each
+def breakdown_tables(levels, u_by_conf, d_by_conf):
+    """u_by_conf gives the number of up-regulated features for each
     combination of alpha, condition, and confidence
-    level. down_by_conf gives the same for dow-regulated features."""
+    level. d_by_conf gives the same for dow-regulated features."""
 
-    (num_range_values, n, num_levels) = np.shape(up_by_conf)
+    (num_range_values, n, num_levels) = np.shape(u_by_conf)
 
     # For each condition and confidence level, find the values of
     # alpha that give the maximum number of up- and down- regulated
     # features.
-    max_up_params   = np.argmax(up_by_conf, axis=0)
-    max_down_params = np.argmax(down_by_conf, axis=0)
+    max_up_params   = np.argmax(u_by_conf, axis=0)
+    max_down_params = np.argmax(d_by_conf, axis=0)
  
     breakdown = np.zeros((n, len(levels), 3))
 
@@ -351,8 +352,8 @@ def breakdown_tables(levels, up_by_conf, down_by_conf):
             
         breakdown[c, :, 0] = levels
         for i in range(len(levels)):
-            breakdown[c, i, 1] = up_by_conf[max_up_params[c, i], c, i]
-            breakdown[c, i, 2] = down_by_conf[max_down_params[c, i], c, i]
+            breakdown[c, i, 1] = u_by_conf[max_up_params[c, i], c, i]
+            breakdown[c, i, 2] = d_by_conf[max_down_params[c, i], c, i]
 
     return breakdown
 
@@ -379,34 +380,31 @@ def print_counts_by_confidence(breakdown, condition_names):
             (level, up, down) = row
             print "{:10.2f} {:7d} {:9d}".format(level, int(up), int(down))
 
-def get_count_by_conf_level(gene_conf_up, gene_conf_down, ranges):
+def get_count_by_conf_level(gene_conf_u, ranges):
 
-    (num_range_values, num_genes, num_conditions) = np.shape(gene_conf_up)
+    (num_range_values, num_genes, num_conditions) = np.shape(gene_conf_u)
     shape = (num_range_values, num_conditions, len(ranges))
 
-    up_by_conf   = np.zeros(shape)
-    down_by_conf = np.zeros(shape)
+    u_by_conf   = np.zeros(shape)
     
     for i in range(num_range_values):
         for j in range(num_conditions):
-            up_conf   = gene_conf_up  [i, :, j]
-            down_conf = gene_conf_down[i, :, j]
+            up_conf   = gene_conf_u  [i, :, j]
             for (k, level) in enumerate(ranges):
-                up_by_conf  [i, j, k] = len(up_conf  [up_conf   > level])
-                down_by_conf[i, j, k] = len(down_conf[down_conf > level])
+                u_by_conf  [i, j, k] = len(up_conf  [up_conf   > level])
 
-    return (up_by_conf, down_by_conf)
+    return u_by_conf
 
 def get_gene_confidences(unperm_stats, mins, maxes, conf_bins_u, conf_bins_d):
-    """Returns a pair of 3D arrays: gene_conf_up and
-    gene_conf_down. gene_conf_up[i, j, k] indicates the confidence
+    """Returns a pair of 3D arrays: gene_conf_u and
+    gene_conf_d. gene_conf_u[i, j, k] indicates the confidence
     with which gene j is upregulated in condition k using the ith
-    alpha multiplier. gene_conf_down does the same thing for
+    alpha multiplier. gene_conf_d does the same thing for
     down-regulation."""
 
-    num_bins        = np.shape(conf_bins_u)[2] - 1
-    gene_conf_up    = np.zeros(np.shape(unperm_stats))
-    gene_conf_down  = np.zeros(np.shape(unperm_stats))
+    num_bins     = np.shape(conf_bins_u)[2] - 1
+    gene_conf_u  = np.zeros(np.shape(unperm_stats))
+    gene_conf_d  = np.zeros(np.shape(unperm_stats))
 
     for idx in np.ndindex(np.shape(unperm_stats)):
         (i, j, c) = idx
@@ -414,12 +412,12 @@ def get_gene_confidences(unperm_stats, mins, maxes, conf_bins_u, conf_bins_d):
             continue
         if unperm_stats[idx] >= 0:			
             binnum = int(num_bins * unperm_stats[idx] / maxes[i, c])
-            gene_conf_up[idx] = conf_bins_u[i, c, binnum]
+            gene_conf_u[idx] = conf_bins_u[i, c, binnum]
         else:
             binnum = int(num_bins * unperm_stats[idx] / mins[i, c])
-            gene_conf_down[idx] = conf_bins_d[i, c, binnum]
+            gene_conf_d[idx] = conf_bins_d[i, c, binnum]
 
-    return (gene_conf_up, gene_conf_down)
+    return (gene_conf_u, gene_conf_d)
 
 def adjust_num_diff(V0, R, num_ids):
     V = np.zeros(6)
