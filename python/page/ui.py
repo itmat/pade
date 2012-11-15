@@ -529,20 +529,23 @@ def main():
 
 def plot_counts_by_confidence(breakdown, condition_names):
 
+    print "Plotting count of up-regulated features by confidence"
     for c in range(1, len(breakdown)):
         levels = breakdown[c, :, 0]
         up     = breakdown[c, :, 1]
-        plt.plot(levels, up)
+        plt.plot(levels, up, ls='-', label=condition_names[c] + " up")
 
-    plt.savefig("conf_up")
-    plt.clf()
-
+    print "Plotting count of down-regulated features by confidence"
     for c in range(1, len(breakdown)):
         levels = breakdown[c, :, 0]
         down   = breakdown[c, :, 2]
-        plt.plot(levels, down)
+        plt.plot(levels, down, ls='-.', label=condition_names[c] + " down")
 
-    plt.savefig("conf_down")
+    plt.title("Up- and down-regulated features by confidence level")
+    plt.xlabel("Confidence level")
+    plt.ylabel("Num. genes")
+    plt.legend(loc=1)
+    plt.savefig("conf")
     plt.clf()
     
 

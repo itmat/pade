@@ -304,9 +304,9 @@ def do_confidences_by_cutoff(table, conditions, default_alphas, num_bins):
     
     print "Computing confidence scores"
     (gene_conf_up, gene_conf_down) = get_gene_confidences(
-        table, unperm_stats, mins, maxes, conf_bins_u, conf_bins_d)
+        unperm_stats, mins, maxes, conf_bins_u, conf_bins_d)
     
-    print "Shape of conf up is " + str(np.shape(gene_conf_up))
+    logging.info("Shape of conf up is " + str(np.shape(gene_conf_up)))
 
     print "Counting up- and down-regulated features in each level"
     levels = np.linspace(0.5, 0.95, 10)
@@ -392,29 +392,27 @@ def get_count_by_conf_level(gene_conf_up, gene_conf_down, ranges):
 
     return (up_by_conf, down_by_conf)
 
-def get_gene_confidences(table, unperm_stats, mins, maxes, conf_bins_u, conf_bins_d):
+def get_gene_confidences(unperm_stats, mins, maxes, conf_bins_u, conf_bins_d):
     """Returns a pair of 3D arrays: gene_conf_up and
     gene_conf_down. gene_conf_up[i, j, k] indicates the confidence
     with which gene j is upregulated in condition k using the ith
     alpha multiplier. gene_conf_down does the same thing for
     down-regulation."""
 
-    (num_range_values, num_genes, num_conditions) = np.shape(unperm_stats)
-    num_bins = np.shape(conf_bins_u)[2] - 1
+    num_bins        = np.shape(conf_bins_u)[2] - 1
+    gene_conf_up    = np.zeros(np.shape(unperm_stats))
+    gene_conf_down  = np.zeros(np.shape(unperm_stats))
 
-    gene_conf_shape = (num_range_values, num_genes, num_conditions)
-    gene_conf_up    = np.zeros(gene_conf_shape)
-    gene_conf_down  = np.zeros(gene_conf_shape)
-
-    for c in range(1, num_conditions):
-        for i in range(num_range_values):
-            for j in range(num_genes):
-                if unperm_stats[i, j, c] >= 0:			
-                    binnum = int(num_bins * unperm_stats[i, j, c] / maxes[i, c])
-                    gene_conf_up[i, j, c] = conf_bins_u[i, c, binnum]
-                else:
-                    binnum = int(num_bins * unperm_stats[i, j, c] / mins[i, c])
-                    gene_conf_down[i, j, c] = conf_bins_d[i, c, binnum]
+    for idx in np.ndindex(np.shape(unperm_stats)):
+        (i, j, c) = idx
+        if c == 0:
+            continue
+        if unperm_stats[idx] >= 0:			
+            binnum = int(num_bins * unperm_stats[idx] / maxes[i, c])
+            gene_conf_up[idx] = conf_bins_u[i, c, binnum]
+        else:
+            binnum = int(num_bins * unperm_stats[idx] / mins[i, c])
+            gene_conf_down[idx] = conf_bins_d[i, c, binnum]
 
     return (gene_conf_up, gene_conf_down)
 
@@ -490,6 +488,3 @@ def get_bins(n, maxval):
     # above the max observed in the unpermuted data
     bins.append(np.inf)
     return bins
-
-
-    
