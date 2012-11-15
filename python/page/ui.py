@@ -155,15 +155,12 @@ I am assuming that the input file is tab-delimited, with a header line. I am als
             raise UsageException("The schema file \"{}\" already exists. If you want to overwrite it, use the --force or -f argument.".format(args.schema))
         raise e
 
-
-
     print fix_newlines("""
 I have generated a schema for your input file, with attributes {attributes}, and saved it to "{filename}". You should now edit that file to set the attributes for each sample. The file contains instructions on how to edit it.
 """).format(attributes=schema.attributes.keys(),
             filename=args.schema)
 
 
-    
 
 def do_run(args):
 
@@ -261,11 +258,9 @@ def get_arguments():
         default=DEFAULT_SCHEMA)
 
     file_locations.add_argument(
-        '--outfile',
-        help="""Name of the output file. If not specified outfile name will be
-        derived from the infile name.""",
-        default=argparse.SUPPRESS,
-        type=file)
+        '--directory', '-d',
+        help="""Name of the directory to write results to.""",
+        default='.')
 
     file_locations.add_argument(
         "--id2info",
@@ -547,7 +542,9 @@ def plot_counts_by_confidence(breakdown, condition_names):
     plt.legend(loc=1)
     plt.savefig("conf")
     plt.clf()
-    
+
+def write_results(directory='.'):
+    pass
 
 if __name__ == '__main__':
     main()
