@@ -181,7 +181,7 @@ def do_run(args):
     alphas = core.find_default_alpha(data, conditions)
     (up, down, breakdown) = core.do_confidences_by_cutoff(data, conditions, alphas, args.num_bins)
 
-    core.print_counts_by_confidence(breakdown, condition_names)
+    print_counts_by_confidence(breakdown, condition_names)
     plot_counts_by_confidence(breakdown, condition_names)
 
     print """
@@ -549,6 +549,31 @@ def plot_counts_by_confidence(breakdown, condition_names):
 
 def write_results(directory='.'):
     pass
+
+
+def print_counts_by_confidence(breakdown, condition_names):
+
+    """Breakdown is an (n x levels x 3) table, where n is the number
+    of conditions and levels is the number of confidence levels. It
+    represents a list of tables, one for each condition, containing
+    the confidence level, the number of up-regulated features, and the
+    number of down-regulated features for each confidence level.
+    """
+
+    (n, levels, cols) = np.shape(breakdown)
+    
+    for c in range(1, n):
+        print """
+----------------------------
+{:s}
+{:10s} {:7s} {:7s}
+----------------------------
+""".format(str(condition_names[c]), 'confidence', 'num. up', 'num. down')
+
+        for row in breakdown[c]:
+            (level, up, down) = row
+            print "{:10.2f} {:7d} {:9d}".format(level, int(up), int(down))
+
 
 if __name__ == '__main__':
     main()

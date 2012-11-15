@@ -85,6 +85,11 @@ def load_input(fh):
 
     return (table, ids)
 
+################################################################
+###
+### Low-level functions
+###
+
 def compute_s(v1, v2, axis=0):
     """
     v1 and v2 should have the same number of rows.
@@ -98,6 +103,7 @@ def compute_s(v1, v2, axis=0):
 
     return np.sqrt((var1 * s1 + var2 * s2)
                    / (s1 + s2))
+
 
 def find_default_alpha(table, conditions):
     """
@@ -162,6 +168,7 @@ def tstat(v1, v2, alphas):
 
     return numer / denom
 
+
 def all_subsets(n, k):
     """
     Return an (m x n) array where n is the size of the set, and m is
@@ -183,7 +190,9 @@ def all_subsets(n, k):
     
     return result
 
+
 def init_perms(conditions):
+
     perms = [None]
 
     baseline_len = len(conditions[0])
@@ -195,6 +204,7 @@ def init_perms(conditions):
         perms.append(all_subsets(n, k))
 
     return perms
+
 
 def min_max_stat(data, conditions, default_alphas):
     """
@@ -222,6 +232,7 @@ def min_max_stat(data, conditions, default_alphas):
 
 def accumulate_bins(bins):
     return np.cumsum(bins[::-1])[::-1]
+
 
 def get_permuted_means(table, conditions, mins, maxes, default_alphas, num_bins=1000):
     all_perms = init_perms(conditions)
@@ -279,6 +290,7 @@ def get_permuted_means(table, conditions, mins, maxes, default_alphas, num_bins=
 
     return (mean_perm_u, mean_perm_d)
 
+
 def make_confidence_bins(unperm, perm, num_features):
     conf_bins = np.zeros(np.shape(unperm))
     for idx in np.ndindex(np.shape(unperm)):
@@ -288,6 +300,7 @@ def make_confidence_bins(unperm, perm, num_features):
         ensure_increases(conf_bins[idx])
 
     return conf_bins
+
 
 def do_confidences_by_cutoff(table, conditions, default_alphas, num_bins):
 
@@ -320,11 +333,13 @@ def do_confidences_by_cutoff(table, conditions, default_alphas, num_bins):
     logging.info("Levels are " + str(levels))
     return (conf_bins_u, conf_bins_d, breakdown)
 
+
 def fill_bin(unperm, perm, m):
     if unperm > 0:
         return (unperm - adjust_num_diff(perm, unperm, m)) / unperm
     else:
         return 0.0
+
 
 def ensure_increases(a):
     """Given an array, return a copy of it that is monotonically
@@ -332,6 +347,7 @@ def ensure_increases(a):
 
     for i in range(len(a) - 1):
         a[i+1] = max(a[i], a[i+1])
+
 
 def breakdown_tables(levels, u_by_conf, d_by_conf):
     """u_by_conf gives the number of up-regulated features for each
@@ -357,28 +373,6 @@ def breakdown_tables(levels, u_by_conf, d_by_conf):
 
     return breakdown
 
-def print_counts_by_confidence(breakdown, condition_names):
-
-    """Breakdown is an (n x levels x 3) table, where n is the number
-    of conditions and levels is the number of confidence levels. It
-    represents a list of tables, one for each condition, containing
-    the confidence level, the number of up-regulated features, and the
-    number of down-regulated features for each confidence level.
-    """
-
-    (n, levels, cols) = np.shape(breakdown)
-    
-    for c in range(1, n):
-        print """
-----------------------------
-{:s}
-{:10s} {:7s} {:7s}
-----------------------------
-""".format(str(condition_names[c]), 'confidence', 'num. up', 'num. down')
-
-        for row in breakdown[c]:
-            (level, up, down) = row
-            print "{:10.2f} {:7d} {:9d}".format(level, int(up), int(down))
 
 def get_count_by_conf_level(gene_conf_u, ranges):
 
@@ -395,6 +389,7 @@ def get_count_by_conf_level(gene_conf_u, ranges):
 
     return u_by_conf
 
+
 def get_gene_confidences(unperm_stats, mins, maxes, conf_bins_u, conf_bins_d):
     """Returns a pair of 3D arrays: gene_conf_u and
     gene_conf_d. gene_conf_u[i, j, k] indicates the confidence
@@ -402,9 +397,9 @@ def get_gene_confidences(unperm_stats, mins, maxes, conf_bins_u, conf_bins_d):
     alpha multiplier. gene_conf_d does the same thing for
     down-regulation."""
 
-    num_bins     = np.shape(conf_bins_u)[2] - 1
-    gene_conf_u  = np.zeros(np.shape(unperm_stats))
-    gene_conf_d  = np.zeros(np.shape(unperm_stats))
+    num_bins    = np.shape(conf_bins_u)[2] - 1
+    gene_conf_u = np.zeros(np.shape(unperm_stats))
+    gene_conf_d = np.zeros(np.shape(unperm_stats))
 
     for idx in np.ndindex(np.shape(unperm_stats)):
         (i, j, c) = idx
@@ -418,6 +413,7 @@ def get_gene_confidences(unperm_stats, mins, maxes, conf_bins_u, conf_bins_d):
             gene_conf_d[idx] = conf_bins_d[i, c, binnum]
 
     return (gene_conf_u, gene_conf_d)
+
 
 def adjust_num_diff(V0, R, num_ids):
     V = np.zeros(6)
@@ -440,6 +436,7 @@ def assign_bins(vals, num_bins, minval, maxval):
     d_hist[0] += len(vals[vals > 0.0])
 
     return (u_hist, d_hist)
+
 
 def dist_unpermuted_stats(table, conditions, mins, maxes, default_alphas, num_bins=1000):
     """
