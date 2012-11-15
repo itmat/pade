@@ -223,8 +223,7 @@ def min_max_stat(data, conditions, default_alphas):
 def accumulate_bins(bins):
     return np.cumsum(bins[::-1])[::-1]
 
-def do_confidences_by_cutoff(table, conditions, default_alphas, num_bins):
-
+def get_permuted_means(table, conditions, mins, maxes, default_alphas, num_bins=1000):
     all_perms = init_perms(conditions)
 
     m  = len(table)
@@ -251,10 +250,8 @@ def do_confidences_by_cutoff(table, conditions, default_alphas, num_bins):
         master_indexes[n0:] = conditions[c]
 
         # Histogram is (permutations x alpha tuning params x bins)
-        up   = np.zeros((r, s, h + 1), int)
-        down = np.zeros((r, s, h + 1), int)
-
-        (mins, maxes) = min_max_stat(table, conditions, default_alphas)
+        hist_u = np.zeros((r, s, h + 1), int)
+        hist_d = np.zeros((r, s, h + 1), int)
 
         # print "  Permuting indexes"
         for perm_num, perm in enumerate(perms):
@@ -266,8 +263,8 @@ def do_confidences_by_cutoff(table, conditions, default_alphas, num_bins):
             for i in range(s):
                 (u_hist, d_hist) = assign_bins(stats[i, :], h, 
                                                mins[i, c], maxes[i, c])
-                up  [perm_num, i] = u_hist
-                down[perm_num, i] = d_hist
+                hist_u[perm_num, i] = u_hist
+                hist_d[perm_num, i] = d_hist
 
         # Bin 0 is for features that were downregulated (-inf, 0) Bins
         # 1 through 999 are for features that were upregulated Bin
@@ -275,14 +272,33 @@ def do_confidences_by_cutoff(table, conditions, default_alphas, num_bins):
         # from the unmpermuted data (max, inf)
 
         for idx in np.ndindex(len(perms), s):
-            up[idx]   = accumulate_bins(up[idx])
-            down[idx] = accumulate_bins(down[idx])
+            hist_u[idx] = accumulate_bins(hist_u[idx])
+            hist_d[idx] = accumulate_bins(hist_d[idx])
 
-        mean_perm_u[:, c, :] = np.mean(up, axis=0)
-        mean_perm_d[:, c, :] = np.mean(down, axis=0)
+        mean_perm_u[:, c, :] = np.mean(hist_u, axis=0)
+        mean_perm_d[:, c, :] = np.mean(hist_d, axis=0)
+
+    return (mean_perm_u, mean_perm_d)
+
+def do_confidences_by_cutoff(table, conditions, default_alphas, num_bins):
+
+    all_perms = init_perms(conditions)
+
+    m  = len(table)
+    s  = len(TUNING_PARAM_RANGE_VALUES)
+    h  = num_bins
+    n  = len(conditions)
+    n0 = len(conditions[0])
+    
+    (mins, maxes) = min_max_stat(table, conditions, default_alphas)
+
+    print "Doing permutations"
+    (mean_perm_u, mean_perm_d) = get_permuted_means(
+        table, conditions, mins, maxes, default_alphas)
 
     print "Getting stats for unpermuted data"
-    (num_unperm_u, num_unperm_d, unperm_stats) = dist_unpermuted_stats(table, conditions, mins, maxes, default_alphas)
+    (num_unperm_u, num_unperm_d, unperm_stats) = dist_unpermuted_stats(
+        table, conditions, mins, maxes, default_alphas)
 
     for idx in np.ndindex(s, len(conditions)):
         num_unperm_u[idx] = accumulate_bins(num_unperm_u[idx])

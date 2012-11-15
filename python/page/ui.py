@@ -161,7 +161,6 @@ I have generated a schema for your input file, with attributes {attributes}, and
             filename=args.schema)
 
 
-
 def do_run(args):
 
     schema = Schema.load(args.schema, args.infile)
@@ -181,8 +180,13 @@ def do_run(args):
                        for x in groups.keys()]
     alphas = core.find_default_alpha(data, conditions)
     (up, down, breakdown) = core.do_confidences_by_cutoff(data, conditions, alphas, args.num_bins)
+
     core.print_counts_by_confidence(breakdown, condition_names)
     plot_counts_by_confidence(breakdown, condition_names)
+
+    print """
+Please take a look at the tables above (or at the prettier versions in {output_dir}) and select a confidence level to use. Then run "page finish --confidence CONF" to finish the job.
+""".format(output_dir=args.directory)
 
 def show_banner():
     """Print the PaGE banner.
@@ -260,7 +264,7 @@ def get_arguments():
     file_locations.add_argument(
         '--directory', '-d',
         help="""Name of the directory to write results to.""",
-        default='.')
+        default='page_results')
 
     file_locations.add_argument(
         "--id2info",
