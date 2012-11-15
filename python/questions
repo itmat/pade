@@ -1,0 +1,5 @@
+We currently pick one of the conditions as a reference, and report all
+genes as up- or down- regulated with respect to that condition. Is
+this still the way we would do it when we use ANOVA? Would we instead
+be reporting genes that or up- or down- regulated against the
+background levels?
