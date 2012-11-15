@@ -328,8 +328,15 @@ def ensure_increases(a):
         a[i+1] = max(a[i], a[i+1])
 
 def breakdown_tables(levels, up_by_conf, down_by_conf):
+    """up_by_conf gives the number of up-regulated features for each
+    combination of alpha, condition, and confidence
+    level. down_by_conf gives the same for dow-regulated features."""
+
     (num_range_values, n, num_levels) = np.shape(up_by_conf)
 
+    # For each condition and confidence level, find the values of
+    # alpha that give the maximum number of up- and down- regulated
+    # features.
     max_up_params   = np.argmax(up_by_conf, axis=0)
     max_down_params = np.argmax(down_by_conf, axis=0)
  

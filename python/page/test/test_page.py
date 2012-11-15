@@ -232,14 +232,5 @@ class PageTest(unittest.TestCase):
         [  0.95,  24.  ,   0.  ]]])
         self.assertTrue(np.all(expected_breakdown - breakdown) == 0)
 
-#Mean is 2.29140221289693
-#SD is 1.66873784599192
-#Mean is 2.28778319568751
-#SD is 1.67061575354633
-#Mean is 2.27038508526607
-#SD is 1.66848321913367
-#701
-#693
-#693
-
-# alpha is  
+if __name__ == '__main__':
+    unittest.main()
