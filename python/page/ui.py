@@ -170,7 +170,8 @@ def do_run(args):
     
     groups = schema.sample_groups(schema.attribute_names[0])
     
-    (data, row_ids) = core.load_input(args.infile)
+    job = core.Job(args.infile, schema)
+
     conditions = groups.values()
 
     logging.info("Using these column groupings: " +
@@ -178,8 +179,8 @@ def do_run(args):
 
     condition_names = [schema.attribute_names[0] + "=" + str(x)
                        for x in groups.keys()]
-    alphas = core.find_default_alpha(data, conditions)
-    (up, down, breakdown) = core.do_confidences_by_cutoff(data, conditions, alphas, args.num_bins)
+    alphas = core.find_default_alpha(job)
+    (up, down, breakdown) = core.do_confidences_by_cutoff(job, alphas, args.num_bins)
 
     print_counts_by_confidence(breakdown, condition_names)
     plot_counts_by_confidence(breakdown, condition_names)

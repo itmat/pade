@@ -17,6 +17,71 @@ import logging
 import numpy as np
 import logging
 
+class Job(object):
+
+    def __init__(self, fh=None, schema=None):
+        self.infile = fh
+        self.schema = schema
+
+        """Read input from the given filehandle and return the
+    data, the feature ids, and the layout of the conditions and
+    replicates.
+
+    Returns a tuple of three items: (table, row_ids,
+    conditions). Table is an (m x n) array of floats, where m is the
+    number of features and n is the total number of replicates for all
+    conditions. row_ids is an array of length m, where the ith entry
+    is the name of the ith feature in the table. conditions is a list
+    of lists. The ith list gives the column indices for the replicates
+    of the ith condition. For example:
+
+    [[0,1],
+     [2,3,4],
+     [5,6,7,8]]
+
+    indicates that there are three conditions. The first has two
+    replicates, in columns 0 and 1; the second has three replicates,
+    in columns 2, 3, and 4; the third has four replicates, in columns
+    5 through 8.
+    """
+
+        if type(fh) == str:
+            fh = open(fh, 'r')
+
+        self.feature_ids = None
+        self.table = None
+        self._conditions = None
+        
+        if fh is not None:
+            headers = fh.next().rstrip().split("\t")
+
+            ids = []
+            table = []
+
+            for line in fh:
+                row = line.rstrip().split("\t")
+                rowid = row[0]
+                values = [float(x) for x in row[1:]]
+                ids.append(rowid)
+                table.append(values)
+
+            table = np.array(table)
+
+            self.table = table
+            self.feature_ids   = ids
+
+
+    @property
+    def conditions(self):
+        """A list of lists of indices into self.table. Each inner list
+        is a list of indices for samples that are in the same
+        condition."""
+
+        if self._conditions is None:
+            groups = self.schema.sample_groups(self.schema.attribute_names[0])
+            self._conditions = groups.values()
+        return self._conditions
+
 ########################################################################
 ###
 ### Constants
@@ -43,48 +108,6 @@ TUNING_PARAM_RANGE_VALUES = np.array([
 ### Functions
 ###
 
-def load_input(fh):
-
-    """Read input from the given filehandle and return the data, the
-    feature ids, and the layout of the conditions and replicates.
-
-    Returns a tuple of three items: (table, row_ids,
-    conditions). Table is an (m x n) array of floats, where m is the
-    number of features and n is the total number of replicates for all
-    conditions. row_ids is an array of length m, where the ith entry
-    is the name of the ith feature in the table. conditions is a list
-    of lists. The ith list gives the column indices for the replicates
-    of the ith condition. For example:
-
-    [[0,1],
-     [2,3,4],
-     [5,6,7,8]]
-
-    indicates that there are three conditions. The first has two
-    replicates, in columns 0 and 1; the second has three replicates,
-    in columns 2, 3, and 4; the third has four replicates, in columns
-    5 through 8.
-    """
-
-    if type(fh) == str:
-        fh = open(fh, 'r')
-
-    headers = fh.next().rstrip().split("\t")
-
-    ids = []
-    table = []
-
-    for line in fh:
-        row = line.rstrip().split("\t")
-        rowid = row[0]
-        values = [float(x) for x in row[1:]]
-        ids.append(rowid)
-        table.append(values)
-
-    table = np.array(table)
-
-    return (table, ids)
-
 ################################################################
 ###
 ### Low-level functions
@@ -105,22 +128,22 @@ def compute_s(v1, v2, axis=0):
                    / (s1 + s2))
 
 
-def find_default_alpha(table, conditions):
+def find_default_alpha(job):
     """
     Return a default value for alpha, using the given data table and
     condition layout.
     """
 
-    baseline_cols = conditions[0]
-    baseline_data = table[:,baseline_cols]
+    baseline_cols = job.conditions[0]
+    baseline_data = job.table[:,baseline_cols]
 
-    alphas = np.zeros(len(conditions))
+    alphas = np.zeros(len(job.conditions))
 
-    for (c, cols) in enumerate(conditions):
+    for (c, cols) in enumerate(job.conditions):
         if c == 0: 
             continue
 
-        values = compute_s(table[:,cols], baseline_data, axis=1)
+        values = compute_s(job.table[:,cols], baseline_data, axis=1)
         mean = np.mean(values)
         residuals = values[values < mean] - mean
         sd = np.sqrt(sum(residuals ** 2) / (len(residuals) - 1))
@@ -206,6 +229,7 @@ def init_perms(conditions):
     return perms
 
 
+
 def min_max_stat(data, conditions, default_alphas):
     """
     Returns a tuple (mins, maxes) where both mins and maxes are (s x
@@ -234,13 +258,13 @@ def accumulate_bins(bins):
     return np.cumsum(bins[::-1])[::-1]
 
 
-def get_permuted_means(table, conditions, mins, maxes, default_alphas, num_bins=1000):
-    all_perms = init_perms(conditions)
+def get_permuted_means(job, mins, maxes, default_alphas, num_bins=1000):
+    all_perms = init_perms(job.conditions)
 
     s  = len(TUNING_PARAM_RANGE_VALUES)
     h  = num_bins
-    n  = len(conditions)
-    n0 = len(conditions[0])
+    n  = len(job.conditions)
+    n0 = len(job.conditions[0])
 
     # tuning params x conditions x bins, typically 10 x 2 x 1000 =
     # 20000. Not too big.
@@ -251,13 +275,13 @@ def get_permuted_means(table, conditions, mins, maxes, default_alphas, num_bins=
         print 'Working on condition %d of %d' % (c, n - 1)
         perms = all_perms[c]
         r  = len(perms)
-        nc = len(conditions[c])
+        nc = len(job.conditions[c])
 
         # This is the list of all indexes into table for
         # replicates of condition 0 and condition c.
         master_indexes = np.zeros((n0 + nc), dtype=int)
-        master_indexes[:n0] = conditions[0]
-        master_indexes[n0:] = conditions[c]
+        master_indexes[:n0] = job.conditions[0]
+        master_indexes[n0:] = job.conditions[c]
 
         # Histogram is (permutations x alpha tuning params x bins)
         hist_u = np.zeros((r, s, h + 1), int)
@@ -266,8 +290,8 @@ def get_permuted_means(table, conditions, mins, maxes, default_alphas, num_bins=
         # print "  Permuting indexes"
         for perm_num, perm in enumerate(perms):
 
-            v1 = table[:, master_indexes[perm]]
-            v2 = table[:, master_indexes[~perm]]
+            v1 = job.table[:, master_indexes[perm]]
+            v2 = job.table[:, master_indexes[~perm]]
             stats = tstat(v2, v1, default_alphas[c] * TUNING_PARAM_RANGE_VALUES)
 
             for i in range(s):
@@ -302,17 +326,20 @@ def make_confidence_bins(unperm, perm, num_features):
     return conf_bins
 
 
-def do_confidences_by_cutoff(table, conditions, default_alphas, num_bins):
+def do_confidences_by_cutoff(job, default_alphas, num_bins):
+
+    table      = job.table
+    conditions = job.conditions
 
     (mins, maxes) = min_max_stat(table, conditions, default_alphas)
 
     print "Doing permutations"
     (mean_perm_u, mean_perm_d) = get_permuted_means(
-        table, conditions, mins, maxes, default_alphas)
+        job, mins, maxes, default_alphas)
 
     print "Getting stats for unpermuted data"
     (num_unperm_u, num_unperm_d, unperm_stats) = dist_unpermuted_stats(
-        table, conditions, mins, maxes, default_alphas)
+        job, mins, maxes, default_alphas)
 
     print "Building confidence bins"
     conf_bins_u = make_confidence_bins(num_unperm_u, mean_perm_u, len(table))
@@ -438,7 +465,7 @@ def assign_bins(vals, num_bins, minval, maxval):
     return (u_hist, d_hist)
 
 
-def dist_unpermuted_stats(table, conditions, mins, maxes, default_alphas, num_bins=1000):
+def dist_unpermuted_stats(job, mins, maxes, default_alphas, num_bins=1000):
     """
     Returns a tuple of three items, (up, down, stats). up is an (l x m
     x n) array where l is the number of tuning parameters, m is the
@@ -450,7 +477,7 @@ def dist_unpermuted_stats(table, conditions, mins, maxes, default_alphas, num_bi
     """
 
     hist_shape = (len(TUNING_PARAM_RANGE_VALUES),
-                  len(conditions),
+                  len(job.conditions),
                   num_bins + 1)
 
     u = np.zeros(hist_shape, dtype=int)
@@ -459,15 +486,15 @@ def dist_unpermuted_stats(table, conditions, mins, maxes, default_alphas, num_bi
     center = 0
 
     stats = np.zeros((len(TUNING_PARAM_RANGE_VALUES),
-                      len(table),
-                      len(conditions)))
+                      len(job.table),
+                      len(job.conditions)))
     
-    for c in range(1, len(conditions)):
+    for c in range(1, len(job.conditions)):
 
         alphas = default_alphas[c] * TUNING_PARAM_RANGE_VALUES
 
-        v1 = table[:, conditions[0]]
-        v2 = table[:, conditions[c]]
+        v1 = job.table[:, job.conditions[0]]
+        v2 = job.table[:, job.conditions[c]]
         stats[:, :, c] = tstat(v2, v1, alphas)
 
         for j in range(len(TUNING_PARAM_RANGE_VALUES)):
@@ -476,7 +503,7 @@ def dist_unpermuted_stats(table, conditions, mins, maxes, default_alphas, num_bi
             u[j, c, :] = u_hist
 
     for idx in np.ndindex(len(TUNING_PARAM_RANGE_VALUES),
-                          len(conditions)):
+                          len(job.conditions)):
         u[idx] = accumulate_bins(u[idx])
         d[idx] = accumulate_bins(d[idx])
 

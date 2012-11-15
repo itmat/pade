@@ -50,22 +50,22 @@ class PageTest(unittest.TestCase):
         self.assertAlmostEqual(s, 2.57012753682683)
 
     def test_load_input(self):
-        (data, row_ids) = page.load_input(self.infile)
-        self.assertEquals(len(row_ids), 1000)
+        job = page.Job(self.infile, self.schema)
+        self.assertEquals(len(job.feature_ids), 1000)
 
     def test_default_alpha(self):
-        (data, row_ids) = page.load_input(self.infile)
+        job = page.Job(self.infile, self.schema)
         conditions = self.schema.sample_groups("treatment").values()
 
         # TODO: Make find_default_alpha take schema?
-        alphas = page.find_default_alpha(data, conditions)
+        alphas = page.find_default_alpha(job)
 
         self.assertAlmostEqual(alphas[1], 1.62026604316528)
         self.assertAlmostEqual(alphas[2], 1.61770701155527)
         self.assertAlmostEqual(alphas[3], 1.60540468969643)
 
-        page.compute_s(data[:,(0,1,2,3)],
-                         data[:,(4,5,6,7)])
+        page.compute_s(job.table[:,(0,1,2,3)],
+                       job.table[:,(4,5,6,7)])
 
     def test_tstat(self):
         v1 = [[2.410962, 1.897421, 2.421239, 1.798668],
@@ -107,10 +107,10 @@ class PageTest(unittest.TestCase):
                                )
 
     def test_min_max_tstat(self):
-        (data, row_ids) = page.load_input(self.infile)
+        job = page.Job(self.infile, self.schema)
         conditions = self.schema.sample_groups("treatment").values()
-        alphas = page.find_default_alpha(data, conditions)
-        (mins, maxes) = page.min_max_stat(data, conditions, alphas)
+        alphas = page.find_default_alpha(job)
+        (mins, maxes) = page.min_max_stat(job.table, job.conditions, alphas)
         
         e_mins = np.array(
             [
@@ -146,12 +146,16 @@ class PageTest(unittest.TestCase):
         self.assertEquals(shape(subsets), (70, 8))
 
     def test_unpermuted_stats(self):
+        job = page.Job()
+        job.table = unpermuted_stats.data
+        job._conditions = [
+            [ 0,  1,  2,  3],
+            [ 4,  5,  6,  7],
+            [ 8,  9, 10, 11],
+            [12, 13, 14, 15]]
+
         (u, d, stats) = page.dist_unpermuted_stats(
-            unpermuted_stats.data,
-            [[ 0,  1,  2,  3],
-             [ 4,  5,  6,  7],
-             [ 8,  9, 10, 11],
-             [12, 13, 14, 15]],
+            job,
             unpermuted_stats.mins,
             unpermuted_stats.maxes,
             unpermuted_stats.alpha_default)
@@ -186,10 +190,12 @@ class PageTest(unittest.TestCase):
                                7.08618085029828)
     
     def test_conf_bins(self):
-        (data, row_ids) = page.load_input(self.infile)
+        job = page.Job(self.infile, self.schema)
+
         conditions = self.schema.sample_groups("treatment").values()
-        alphas = page.find_default_alpha(data, conditions)
-        (conf_bins_up, conf_bins_down, breakdown) = page.do_confidences_by_cutoff(data, conditions, alphas, 1000)
+        alphas = page.find_default_alpha(job)
+
+        (conf_bins_up, conf_bins_down, breakdown) = page.do_confidences_by_cutoff(job, alphas, 1000)
         self.assertTrue(np.all(conf_bins_up - conf_bins_up_down.conf_up < 0.00001))
         self.assertTrue(np.all(conf_bins_down - conf_bins_up_down.conf_down < 0.00001))
 
