@@ -226,7 +226,6 @@ def accumulate_bins(bins):
 def get_permuted_means(table, conditions, mins, maxes, default_alphas, num_bins=1000):
     all_perms = init_perms(conditions)
 
-    m  = len(table)
     s  = len(TUNING_PARAM_RANGE_VALUES)
     h  = num_bins
     n  = len(conditions)
@@ -280,16 +279,18 @@ def get_permuted_means(table, conditions, mins, maxes, default_alphas, num_bins=
 
     return (mean_perm_u, mean_perm_d)
 
+def make_confidence_bins(unperm, perm, num_features):
+    conf_bins = np.zeros(np.shape(unperm))
+    for idx in np.ndindex(np.shape(unperm)):
+        conf_bins[idx] = fill_bin(unperm[idx], perm[idx], num_features)
+
+    for idx in np.ndindex(np.shape(conf_bins)[0:2]):
+        ensure_increases(conf_bins[idx])
+
+    return conf_bins
+
 def do_confidences_by_cutoff(table, conditions, default_alphas, num_bins):
 
-    all_perms = init_perms(conditions)
-
-    m  = len(table)
-    s  = len(TUNING_PARAM_RANGE_VALUES)
-    h  = num_bins
-    n  = len(conditions)
-    n0 = len(conditions[0])
-    
     (mins, maxes) = min_max_stat(table, conditions, default_alphas)
 
     print "Doing permutations"
@@ -300,27 +301,16 @@ def do_confidences_by_cutoff(table, conditions, default_alphas, num_bins):
     (num_unperm_u, num_unperm_d, unperm_stats) = dist_unpermuted_stats(
         table, conditions, mins, maxes, default_alphas)
 
-    conf_bins_u = np.zeros((s, n, h + 1))
-    conf_bins_d = np.zeros((s, n, h + 1))
+    print "Building confidence bins"
+    conf_bins_u = make_confidence_bins(num_unperm_u, mean_perm_u, len(table))
+    conf_bins_d = make_confidence_bins(num_unperm_d, mean_perm_d, len(table))
 
-    for idx in np.ndindex(s, n, h + 1):
-        conf_bins_u[idx] = fill_bin(num_unperm_u[idx], mean_perm_u[idx], m)
-        conf_bins_d[idx] = fill_bin(num_unperm_d[idx], mean_perm_d[idx], m)
-
-    # TODO: Code like this was in the original PaGE, presumably to
-    # ensure that the bins are monotonically increasing. Is this
-    # necessary?
-    for idx in np.ndindex(s, n):
-        ensure_increases(conf_bins_u[idx])
-        ensure_increases(conf_bins_d[idx])
-    
     print "Computing confidence scores"
     (gene_conf_up, gene_conf_down) = get_gene_confidences(
         unperm_stats, mins, maxes, conf_bins_u, conf_bins_d)
     
-    logging.info("Shape of conf up is " + str(np.shape(gene_conf_up)))
-
     print "Counting up- and down-regulated features in each level"
+    logging.info("Shape of conf up is " + str(np.shape(gene_conf_up)))
     levels = np.linspace(0.5, 0.95, 10)
 
     (up_by_conf, down_by_conf) = get_count_by_conf_level(gene_conf_up, gene_conf_down, levels)
@@ -336,6 +326,9 @@ def fill_bin(unperm, perm, m):
         return 0.0
 
 def ensure_increases(a):
+    """Given an array, return a copy of it that is monotonically
+    increasing."""
+
     for i in range(len(a) - 1):
         a[i+1] = max(a[i], a[i+1])
 

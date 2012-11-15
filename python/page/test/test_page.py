@@ -44,9 +44,6 @@ class PageTest(unittest.TestCase):
             for replicate in range(1, 5):
                 sample = "c{0}r{1}".format(condition, replicate)
                 self.schema.set_attribute(sample, "treatment", levels[condition])
-        
-        print "The table is:"
-        print self.schema.table
 
     def test_compute_s(self):
         s = page.compute_s(self.v1, self.v2)
