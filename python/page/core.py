@@ -16,6 +16,7 @@ import itertools
 import logging
 import numpy as np
 import logging
+from stats import Tstat
 
 class Job(object):
 
@@ -228,7 +229,9 @@ def init_perms(conditions):
 
     return perms
 
-
+def min_max_stat2(a, b, stat):
+    values = stat.compute(a, b)
+    return (np.min(values), np.max(values))
 
 def min_max_stat(data, conditions, default_alphas):
     """
@@ -244,10 +247,10 @@ def min_max_stat(data, conditions, default_alphas):
     table = np.zeros((n, s, m))
 
     for j in range(1, n):
-        alphas = default_alphas[j] * TUNING_PARAM_RANGE_VALUES
-        table[j,:,:] = tstat(data[:,conditions[j]],
-                             data[:,conditions[0]],
-                             alphas)
+        for i, p in enumerate(TUNING_PARAM_RANGE_VALUES):
+            stat = Tstat(default_alphas[j] * p)
+            table[j,i,:] = stat.compute((data[:,conditions[j]],
+                                         data[:,conditions[0]]))
 
     mins  = np.min(table, axis=2)
     maxes = np.max(table, axis=2)
