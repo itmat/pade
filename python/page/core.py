@@ -363,8 +363,19 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
         job, mins, maxes, default_alphas)
 
     print "Getting stats for unpermuted data"
-    (num_unperm_u, num_unperm_d, unperm_stats) = dist_unpermuted_stats(
-        job, mins, maxes, default_alphas)
+    num_unperm_u = np.zeros((len(TUNING_PARAM_RANGE_VALUES),
+                             len(conditions),
+                             num_bins + 1))
+    num_unperm_d = np.zeros(np.shape(num_unperm_u))
+    
+    unperm_stats = np.zeros((len(TUNING_PARAM_RANGE_VALUES),
+                             len(table),
+                             len(conditions)))
+
+    for i, row in enumerate(alphas):
+        stats = [Tstat(a) for a in row]
+        (num_unperm_u[i], num_unperm_d[i], unperm_stats[i]) = unpermuted_stats(
+            job, mins[i], maxes[i], stats, 1000)
 
     print "Building confidence bins"
     conf_bins_u = make_confidence_bins(num_unperm_u, mean_perm_u, len(table))
@@ -493,51 +504,28 @@ def assign_bins(vals, num_bins, minval, maxval):
 
     return (u_hist, d_hist)
 
+def unpermuted_stats(job, mins, maxes, statfns, num_bins):
+    hist_shape = (len(job.conditions), num_bins + 1)
 
-def dist_unpermuted_stats(job, mins, maxes, default_alphas, num_bins=1000):
-    """
-    Returns a tuple of three items, (up, down, stats). up is an (l x m
-    x n) array where l is the number of tuning parameters, m is the
-    number of conditions, and n is the number of bins. op[i,j,k] is
-    the number of features that would be reported upregulated in
-    condition i with tuning param j, in bin k. down is a similar array
-    for downregulated features. stats is an (m x l) matrix where m is
-    the number of features and l is the number of tuning parameters.
-    """
+    u = np.zeros((len(job.conditions), num_bins + 1), dtype=int)
+    d = np.zeros(np.shape(u), int)
 
-    hist_shape = (len(TUNING_PARAM_RANGE_VALUES),
-                  len(job.conditions),
-                  num_bins + 1)
+    stats = np.zeros((len(job.table), len(job.conditions)))
 
-    u = np.zeros(hist_shape, dtype=int)
-    d = np.zeros(hist_shape, dtype=int)
-
-    center = 0
-
-    stats = np.zeros((len(TUNING_PARAM_RANGE_VALUES),
-                      len(job.table),
-                      len(job.conditions)))
-    
     for c in range(1, len(job.conditions)):
-
-        alphas = default_alphas[c] * TUNING_PARAM_RANGE_VALUES
-
         v1 = job.table[:, job.conditions[0]]
         v2 = job.table[:, job.conditions[c]]
-        stats[:, :, c] = tstat(v2, v1, alphas)
+        stats[:, c] = statfns[c].compute((v2, v1))
 
-        for j in range(len(TUNING_PARAM_RANGE_VALUES)):
-            (u_hist, d_hist) = assign_bins(stats[j, :, c], num_bins, mins[j, c], maxes[j, c])
-            d[j, c, :] = d_hist
-            u[j, c, :] = u_hist
+        (u_hist, d_hist) = assign_bins(stats[:, c], num_bins, mins[c], maxes[c])
+        u[c] = u_hist
+        d[c] = d_hist
 
-    for idx in np.ndindex(len(TUNING_PARAM_RANGE_VALUES),
-                          len(job.conditions)):
+    for idx in np.ndindex(len(job.conditions)):
         u[idx] = accumulate_bins(u[idx])
         d[idx] = accumulate_bins(d[idx])
 
     return (u, d, stats)
-    
 
 def get_bins(n, maxval):
 

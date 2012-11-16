@@ -8,6 +8,7 @@ import numpy as np
 import numpy.ma as ma
 from page.schema import Schema
 import page.core as page
+from page.stats import Tstat
 
 from numpy import *
 from data import unpermuted_stats, mean_perm_up, conf_bins_up_down
@@ -145,7 +146,7 @@ class PageTest(unittest.TestCase):
         subsets = page.all_subsets(8, 4)
         self.assertEquals(shape(subsets), (70, 8))
 
-    def test_unpermuted_stats(self):
+    def test_a_unpermuted_stats(self):
         job = page.Job()
         job.table = unpermuted_stats.data
         job._conditions = [
@@ -154,36 +155,42 @@ class PageTest(unittest.TestCase):
             [ 8,  9, 10, 11],
             [12, 13, 14, 15]]
 
-        (u, d, stats) = page.dist_unpermuted_stats(
-            job,
-            unpermuted_stats.mins,
-            unpermuted_stats.maxes,
-            unpermuted_stats.alpha_default)
-        self.assertEqual(shape(stats), shape(unpermuted_stats.stats))
-        self.assertTrue(all(abs(unpermuted_stats.stats - stats) < 0.00001))
+        for i in range(len(page.TUNING_PARAM_RANGE_VALUES)):
 
-        self.assertEqual(shape(u), shape(unpermuted_stats.dist_up))
-        self.assertEqual(shape(d), shape(unpermuted_stats.dist_down))
+            (u, d, stats) = page.unpermuted_stats(
+                job,
+                unpermuted_stats.mins[i],
+                unpermuted_stats.maxes[i],
+                [Tstat(a * page.TUNING_PARAM_RANGE_VALUES[i])
+                 for a in unpermuted_stats.alpha_default],
+                1000)
+            self.assertEqual(shape(stats), (1000, 4))
+            self.assertTrue(all(abs(unpermuted_stats.stats[i] - stats) < 0.00001))
 
-        expected_u = np.copy(unpermuted_stats.dist_up)
-        expected_d = np.copy(unpermuted_stats.dist_down)
+            self.assertEqual(shape(u), shape(unpermuted_stats.dist_up[i]))
+            self.assertEqual(shape(d), shape(unpermuted_stats.dist_down[i]))
 
-        (m, n, p) = shape(expected_u)
+            expected_u = np.copy(unpermuted_stats.dist_up[i])
+            expected_d = np.copy(unpermuted_stats.dist_down[i])
 
-        for idx in np.ndindex((m, n)):
-            expected_u[idx] = page.accumulate_bins(expected_u[idx])
-            expected_d[idx] = page.accumulate_bins(expected_d[idx])
+            (n, p) = shape(expected_u)
 
-        u_diffs = expected_u - u
-        d_diffs = expected_d - d
+            for idx in np.ndindex((n)):
+                expected_u[idx] = page.accumulate_bins(expected_u[idx])
+                expected_d[idx] = page.accumulate_bins(expected_d[idx])
 
-        # For some reason the last two bins are swapped in a very
-        # small number of cases, so ignore them.
-        u_diffs = u_diffs[:, :, :999]
-        d_diffs = d_diffs[:, :, :999]
+            u_diffs = expected_u - u
+            d_diffs = expected_d - d
 
-        self.assertTrue(all(u_diffs == 0))
-        self.assertTrue(all(d_diffs == 0))
+            print u_diffs
+
+            # For some reason the last two bins are swapped in a very
+            # small number of cases, so ignore them.
+            u_diffs = u_diffs[:, :999]
+            d_diffs = d_diffs[:, :999]
+
+            self.assertTrue(all(u_diffs == 0))
+            self.assertTrue(all(d_diffs == 0))
 
     def test_adjust_num_diff(self):
         self.assertAlmostEqual(page.adjust_num_diff(7.07142857142857, 5, 1000),
