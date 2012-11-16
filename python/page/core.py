@@ -224,19 +224,15 @@ def get_permuted_means(job, mins, maxes, default_alphas, num_bins=1000):
         hist_d = np.zeros((r, s, h + 1), int)
 
         # print "  Permuting indexes"
-        for perm_num, perm in enumerate(perms):
+        for i, alpha in enumerate(TUNING_PARAM_RANGE_VALUES):
+            for perm_num, perm in enumerate(perms):
 
-            v1 = job.table[:, master_indexes[perm]]
-            v2 = job.table[:, master_indexes[~perm]]
+                v1 = job.table[:, master_indexes[perm]]
+                v2 = job.table[:, master_indexes[~perm]]
 
-            stats = np.zeros((len(TUNING_PARAM_RANGE_VALUES), len(v1)))
+                stats = Tstat(default_alphas[c] * alpha).compute((v2, v1))
 
-
-            for idx, alpha in enumerate(TUNING_PARAM_RANGE_VALUES):
-                stats[idx] = Tstat(default_alphas[c] * alpha).compute((v2, v1))
-
-            for i in range(s):
-                (u_hist, d_hist) = assign_bins(stats[i, :], h, 
+                (u_hist, d_hist) = assign_bins(stats, h, 
                                                mins[i, c], maxes[i, c])
                 hist_u[perm_num, i] = u_hist
                 hist_d[perm_num, i] = d_hist
