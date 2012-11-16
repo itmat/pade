@@ -503,6 +503,28 @@ def get_arguments():
         added to all intensities (of the unlogged data).  See the
         documentation for more on why you might use this parameter.""")
 
+    report = subparsers.add_parser(
+        'report',
+        description="""Generate an HTML report""")
+
+    report.add_argument(
+        'infile',
+        help="""Name of input file""",
+        default=argparse.SUPPRESS,
+        type=file)
+    
+    report.add_argument(
+        '--confidence',
+        help="The confidence level.",
+        required=True,
+        type=float)
+    report.add_argument(
+        '--schema',
+        help="""Location of schema file""",
+        default=DEFAULT_SCHEMA)
+
+    report.set_defaults(func=do_report)
+
     try:
         return uberparser.parse_args()
     except IOError as e:
@@ -575,6 +597,39 @@ def print_counts_by_confidence(breakdown, condition_names):
             (level, up, down) = row
             print "{:10.2f} {:7d} {:9d}".format(level, int(up), int(down))
 
+
+def do_report(args):
+    job = core.Job(args.infile, args.schema)
+
+    gene_conf_u = np.load("gene_conf_u.npy")
+    gene_conf_u = np.load("gene_conf_u.npy")
+    all_alpha   = np.load("alpha.npy")
+
+    print "Made a job"
+    print np.shape(gene_conf_u)
+
+    # Find the value of alpha that gives the highest number of up and
+    # down regulated features for this confidence level.
+
+    (num_alphas, m, n) = np.shape(gene_conf_u)
+
+    count_by_alpha = np.zeros((num_alphas, n))
+
+    # We need
+
+    # 42, 39, 38
+    for c in range(n):
+        for i in range(num_alphas):
+            feature_stats = gene_conf_u[i,:,c]
+            count_by_alpha[i, c] = len(feature_stats[feature_stats >= args.confidence])
+
+    alpha_indices = np.argmax(count_by_alpha, axis=0)
+    print alpha_indices
+    print all_alpha
+    print job.feature_ids
+
+    for i, fid in enumerate(job.feature_ids):
+        
 
 if __name__ == '__main__':
     main()

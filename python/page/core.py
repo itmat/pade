@@ -348,6 +348,10 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
     print "Computing confidence scores"
     (gene_conf_u, gene_conf_d) = get_gene_confidences(
         unperm_stats, mins, maxes, conf_bins_u, conf_bins_d)
+
+    np.save("alpha", default_alphas)
+    np.save("gene_conf_u", gene_conf_u)
+    np.save("gene_conf_d", gene_conf_d)
     
     print "Counting up- and down-regulated features in each level"
     logging.info("Shape of conf up is " + str(np.shape(gene_conf_u)))
