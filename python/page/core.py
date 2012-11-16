@@ -229,33 +229,6 @@ def init_perms(conditions):
 
     return perms
 
-def min_max_stat2(a, b, stat):
-    values = stat.compute(a, b)
-    return (np.min(values), np.max(values))
-
-def min_max_stat(data, conditions, default_alphas):
-    """
-    Returns a tuple (mins, maxes) where both mins and maxes are (s x
-    n) matrices, s being the length of default_alphas, and n being the
-    number of conditions.
-    """
-
-    m = len(data)
-    n = len(conditions)
-    s = len(TUNING_PARAM_RANGE_VALUES)
-
-    table = np.zeros((n, s, m))
-
-    for j in range(1, n):
-        for i, p in enumerate(TUNING_PARAM_RANGE_VALUES):
-            stat = Tstat(default_alphas[j] * p)
-            table[j,i,:] = stat.compute((data[:,conditions[j]],
-                                         data[:,conditions[0]]))
-
-    mins  = np.min(table, axis=2)
-    maxes = np.max(table, axis=2)
-
-    return (np.transpose(mins), np.transpose(maxes))
 
 def accumulate_bins(bins):
     return np.cumsum(bins[::-1])[::-1]
@@ -367,6 +340,8 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
     unperm_stats = np.zeros((len(TUNING_PARAM_RANGE_VALUES),
                              len(table),
                              len(conditions)))
+    gene_conf_u = np.zeros(np.shape(unperm_stats))
+    gene_conf_d = np.zeros(np.shape(unperm_stats))
 
     conf_bins_u = np.zeros((len(TUNING_PARAM_RANGE_VALUES),
                              len(conditions),
@@ -383,9 +358,9 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
         conf_bins_d[i] = make_confidence_bins(
             num_unperm_d, mean_perm_d[i], len(table))
         
-    print "Computing confidence scores"
-    (gene_conf_u, gene_conf_d) = get_gene_confidences(
-        unperm_stats, mins, maxes, conf_bins_u, conf_bins_d)
+        print "Computing confidence scores"
+        (gene_conf_u[i], gene_conf_d[i]) = get_gene_confidences(
+            unperm_stats[i], mins[i], maxes[i], conf_bins_u[i], conf_bins_d[i])
 
     np.save("alpha", default_alphas)
     np.save("gene_conf_u", gene_conf_u)
@@ -466,20 +441,20 @@ def get_gene_confidences(unperm_stats, mins, maxes, conf_bins_u, conf_bins_d):
     alpha multiplier. gene_conf_d does the same thing for
     down-regulation."""
 
-    num_bins    = np.shape(conf_bins_u)[2] - 1
+    num_bins    = np.shape(conf_bins_u)[-1] - 1
     gene_conf_u = np.zeros(np.shape(unperm_stats))
     gene_conf_d = np.zeros(np.shape(unperm_stats))
 
     for idx in np.ndindex(np.shape(unperm_stats)):
-        (i, j, c) = idx
+        (j, c) = idx
         if c == 0:
             continue
         if unperm_stats[idx] >= 0:			
-            binnum = int(num_bins * unperm_stats[idx] / maxes[i, c])
-            gene_conf_u[idx] = conf_bins_u[i, c, binnum]
+            binnum = int(num_bins * unperm_stats[idx] / maxes[c])
+            gene_conf_u[idx] = conf_bins_u[c, binnum]
         else:
-            binnum = int(num_bins * unperm_stats[idx] / mins[i, c])
-            gene_conf_d[idx] = conf_bins_d[i, c, binnum]
+            binnum = int(num_bins * unperm_stats[idx] / mins[c])
+            gene_conf_d[idx] = conf_bins_d[c, binnum]
 
     return (gene_conf_u, gene_conf_d)
 
