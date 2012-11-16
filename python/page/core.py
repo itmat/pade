@@ -207,24 +207,26 @@ def get_permuted_means(job, mins, maxes, default_alphas, num_bins=1000):
     mean_perm_u = np.zeros((s, n, h + 1))
     mean_perm_d = np.zeros((s, n, h + 1))
 
-    for c in range(1, n):
-        print 'Working on condition %d of %d' % (c, n - 1)
-        perms = all_perms[c]
-        r  = len(perms)
-        nc = len(job.conditions[c])
+    for i, alpha in enumerate(TUNING_PARAM_RANGE_VALUES):
 
-        # This is the list of all indexes into table for
-        # replicates of condition 0 and condition c.
-        master_indexes = np.zeros((n0 + nc), dtype=int)
-        master_indexes[:n0] = job.conditions[0]
-        master_indexes[n0:] = job.conditions[c]
+        for c in range(1, n):
+            print 'Working on condition %d of %d' % (c, n - 1)
+            perms = all_perms[c]
+            r  = len(perms)
+            nc = len(job.conditions[c])
 
-        # Histogram is (permutations x alpha tuning params x bins)
-        hist_u = np.zeros((r, s, h + 1), int)
-        hist_d = np.zeros((r, s, h + 1), int)
+            # This is the list of all indexes into table for
+            # replicates of condition 0 and condition c.
+            master_indexes = np.zeros((n0 + nc), dtype=int)
+            master_indexes[:n0] = job.conditions[0]
+            master_indexes[n0:] = job.conditions[c]
 
-        # print "  Permuting indexes"
-        for i, alpha in enumerate(TUNING_PARAM_RANGE_VALUES):
+            # print "  Permuting indexes"
+
+            # Histogram is (permutations x bins)
+            hist_u = np.zeros((r, h + 1), int)
+            hist_d = np.zeros((r, h + 1), int)
+
             for perm_num, perm in enumerate(perms):
 
                 v1 = job.table[:, master_indexes[perm]]
@@ -234,20 +236,16 @@ def get_permuted_means(job, mins, maxes, default_alphas, num_bins=1000):
 
                 (u_hist, d_hist) = assign_bins(stats, h, 
                                                mins[i, c], maxes[i, c])
-                hist_u[perm_num, i] = u_hist
-                hist_d[perm_num, i] = d_hist
+                hist_u[perm_num] = accumulate_bins(u_hist)
+                hist_d[perm_num] = accumulate_bins(d_hist)
 
         # Bin 0 is for features that were downregulated (-inf, 0) Bins
         # 1 through 999 are for features that were upregulated Bin
         # 1000 is for any features that were upregulated above the max
         # from the unmpermuted data (max, inf)
 
-        for idx in np.ndindex(len(perms), s):
-            hist_u[idx] = accumulate_bins(hist_u[idx])
-            hist_d[idx] = accumulate_bins(hist_d[idx])
-
-        mean_perm_u[:, c, :] = np.mean(hist_u, axis=0)
-        mean_perm_d[:, c, :] = np.mean(hist_d, axis=0)
+            mean_perm_u[i, c, :] = np.mean(hist_u, axis=0)
+            mean_perm_d[i, c, :] = np.mean(hist_d, axis=0)
 
     return (mean_perm_u, mean_perm_d)
 
