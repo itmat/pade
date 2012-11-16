@@ -323,7 +323,7 @@ def make_confidence_bins(unperm, perm, num_features):
     for idx in np.ndindex(np.shape(unperm)):
         conf_bins[idx] = fill_bin(unperm[idx], perm[idx], num_features)
 
-    for idx in np.ndindex(np.shape(conf_bins)[0:2]):
+    for idx in np.ndindex(np.shape(conf_bins)[0:1]):
         ensure_increases(conf_bins[idx])
 
     return conf_bins
@@ -363,24 +363,26 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
         job, mins, maxes, default_alphas)
 
     print "Getting stats for unpermuted data"
-    num_unperm_u = np.zeros((len(TUNING_PARAM_RANGE_VALUES),
-                             len(conditions),
-                             num_bins + 1))
-    num_unperm_d = np.zeros(np.shape(num_unperm_u))
     
     unperm_stats = np.zeros((len(TUNING_PARAM_RANGE_VALUES),
                              len(table),
                              len(conditions)))
 
+    conf_bins_u = np.zeros((len(TUNING_PARAM_RANGE_VALUES),
+                             len(conditions),
+                             num_bins + 1))
+    conf_bins_d = np.zeros(np.shape(conf_bins_u))
+
     for i, row in enumerate(alphas):
         stats = [Tstat(a) for a in row]
-        (num_unperm_u[i], num_unperm_d[i], unperm_stats[i]) = unpermuted_stats(
+        (num_unperm_u, num_unperm_d, unperm_stats[i]) = unpermuted_stats(
             job, mins[i], maxes[i], stats, 1000)
 
-    print "Building confidence bins"
-    conf_bins_u = make_confidence_bins(num_unperm_u, mean_perm_u, len(table))
-    conf_bins_d = make_confidence_bins(num_unperm_d, mean_perm_d, len(table))
-
+        conf_bins_u[i] = make_confidence_bins(
+            num_unperm_u, mean_perm_u[i], len(table))
+        conf_bins_d[i] = make_confidence_bins(
+            num_unperm_d, mean_perm_d[i], len(table))
+        
     print "Computing confidence scores"
     (gene_conf_u, gene_conf_d) = get_gene_confidences(
         unperm_stats, mins, maxes, conf_bins_u, conf_bins_d)
