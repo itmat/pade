@@ -103,10 +103,11 @@ class PageTest(unittest.TestCase):
                 0.0970668755330585,
                 ]]
 
-        self.assertAlmostEqual(sum(page.tstat(v1, v2, alphas)),
-                               sum(expected),
-                               )
+        stats = np.zeros(np.shape(expected))
+        for i, alpha in enumerate(alphas):
+            stats[:, i] = page.Tstat(alpha).compute((v1, v2))
 
+        self.assertAlmostEqual(sum(stats), sum(expected))
 
     def test_all_subsets(self):
         subsets = page.all_subsets(8, 4)

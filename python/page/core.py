@@ -153,45 +153,6 @@ def find_default_alpha(job):
     return alphas
 
 
-def tstat(v1, v2, alphas):
-    """
-    Computes the t-statistic across two vertical slices of the data
-    table, with different values of alpha.
-
-    v1 is an m x n1 array and v2 is an m x n2 array, where m is the
-    number of features, n1 is the number of replicates in the
-    condition represented by v1, and n2 is the number of replicates
-    for v2. Returns an (m x s) array, where m again is the number of
-    features, and s is the length of the tuning param array.
-    """
-
-    # n1 and n2 are the length of each row. TODO: When we start using
-    # masked values we will need to use the number of unmasked values
-    # in each row. Until then, all the lengths are the same.
-    s = len(alphas)
-    m = len(v1)
-    n1 = np.array([len(row) for row in v1])
-    n2 = np.array([len(row) for row in v2])
-
-    # Variance for each row of v1 and v2 with one degree of
-    # freedom. var1 and var2 will be 1-d arrays, one variance for each
-    # feature in the input.
-    var1 = np.var(v1, ddof=1, axis=1)
-    var2 = np.var(v2, ddof=1, axis=1)
-
-    S = np.sqrt((var1 * (n1-1) + var2 * (n2-1)) /(n1 + n2 - 2))
-
-    # This just makes an s x n array where each column is a copy of
-    # alpha, and another s x n array where each row is a copy of foo. We
-    # do this so they're the same shape, so we can add them.
-    alphas = np.tile(alphas, (m, 1)).transpose()
-    S      = np.tile(S, (s, 1))
-
-    numer  = (np.mean(v1, axis=1) - np.mean(v2, axis=1)) * np.sqrt(n1 * n2)
-    denom = (alphas + S) * np.sqrt(n1 + n2)
-
-    return numer / denom
-
 
 def all_subsets(n, k):
     """
@@ -228,7 +189,6 @@ def init_perms(conditions):
         perms.append(all_subsets(n, k))
 
     return perms
-
 
 def accumulate_bins(bins):
     return np.cumsum(bins[::-1])[::-1]
@@ -268,7 +228,12 @@ def get_permuted_means(job, mins, maxes, default_alphas, num_bins=1000):
 
             v1 = job.table[:, master_indexes[perm]]
             v2 = job.table[:, master_indexes[~perm]]
-            stats = tstat(v2, v1, default_alphas[c] * TUNING_PARAM_RANGE_VALUES)
+
+            stats = np.zeros((len(TUNING_PARAM_RANGE_VALUES), len(v1)))
+
+
+            for idx, alpha in enumerate(TUNING_PARAM_RANGE_VALUES):
+                stats[idx] = Tstat(default_alphas[c] * alpha).compute((v2, v1))
 
             for i in range(s):
                 (u_hist, d_hist) = assign_bins(stats[i, :], h, 
@@ -315,7 +280,6 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
 
     for (i, j) in np.ndindex(np.shape(alphas)):
         alphas[i, j] = TUNING_PARAM_RANGE_VALUES[i] * default_alphas[j]
-
 
     print "Alphas: " + str(alphas)
     c0 = table[:,conditions[0]]
