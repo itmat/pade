@@ -21,9 +21,14 @@ class Tstat(object):
 
         S = np.sqrt((var1 * (n1-1) + var2 * (n2-1)) /(n1 + n2 - 2))
 
-        print "S is " + str(type(S))
         numer  = (np.mean(v1, axis=1) - np.mean(v2, axis=1)) * np.sqrt(n1 * n2)
         denom = (self.alpha + S) * np.sqrt(n1 + n2)
 
         return numer / denom
 
+class CompositeStat(object):
+    def __init__(self, children):
+        self.children = children
+
+
+    

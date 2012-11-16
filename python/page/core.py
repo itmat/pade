@@ -334,7 +334,29 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
     table      = job.table
     conditions = job.conditions
 
-    (mins, maxes) = min_max_stat(table, conditions, default_alphas)
+    alphas = np.zeros((len(TUNING_PARAM_RANGE_VALUES),
+                       len(conditions)))
+
+    mins  = np.zeros(np.shape(alphas))
+    maxes = np.zeros(np.shape(alphas))
+
+    for (i, j) in np.ndindex(np.shape(alphas)):
+        alphas[i, j] = TUNING_PARAM_RANGE_VALUES[i] * default_alphas[j]
+
+
+    print "Alphas: " + str(alphas)
+    c0 = table[:,conditions[0]]
+    for idx in np.ndindex(np.shape(alphas)):
+        (i, j) = idx
+        if j == 0:
+            continue
+        stat = Tstat(alphas[idx])
+        data = table[:,conditions[j]]
+        mins[i, j]  = np.min(stat.compute((data, c0)))
+        maxes[i, j] = np.max(stat.compute((data, c0)))
+
+
+    print "Shape of mins is " + str(np.shape(mins))
 
     print "Doing permutations"
     (mean_perm_u, mean_perm_d) = get_permuted_means(

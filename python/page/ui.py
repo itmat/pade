@@ -629,7 +629,7 @@ def do_report(args):
     print job.feature_ids
 
     for i, fid in enumerate(job.feature_ids):
-        
+        pass
 
 if __name__ == '__main__':
     main()
