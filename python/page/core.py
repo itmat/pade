@@ -194,58 +194,51 @@ def accumulate_bins(bins):
     return np.cumsum(bins[::-1])[::-1]
 
 
-def get_permuted_means(job, mins, maxes, default_alphas, num_bins=1000):
+def get_permuted_means(job, mins, maxes, tests, num_bins=1000):
     all_perms = init_perms(job.conditions)
 
-    s  = len(TUNING_PARAM_RANGE_VALUES)
     h  = num_bins
     n  = len(job.conditions)
     n0 = len(job.conditions[0])
 
-    # tuning params x conditions x bins, typically 10 x 2 x 1000 =
-    # 20000. Not too big.
-    mean_perm_u = np.zeros((s, n, h + 1))
-    mean_perm_d = np.zeros((s, n, h + 1))
+    # conditions x bins, typically 10 2 x 1000 = 2000. Not too big.
+    mean_perm_u = np.zeros((n, h + 1))
+    mean_perm_d = np.zeros((n, h + 1))
 
-    for i, alpha in enumerate(TUNING_PARAM_RANGE_VALUES):
+    for c in range(1, n):
+        print '    Working on condition %d of %d' % (c, n - 1)
+        perms = all_perms[c]
+        r  = len(perms)
+        nc = len(job.conditions[c])
+        
+        # This is the list of all indexes into table for
+        # replicates of condition 0 and condition c.
+        master_indexes = np.zeros((n0 + nc), dtype=int)
+        master_indexes[:n0] = job.conditions[0]
+        master_indexes[n0:] = job.conditions[c]
+        
+        # Histogram is (permutations x bins)
+        hist_u = np.zeros((r, h + 1), int)
+        hist_d = np.zeros((r, h + 1), int)
 
-        for c in range(1, n):
-            print 'Working on condition %d of %d' % (c, n - 1)
-            perms = all_perms[c]
-            r  = len(perms)
-            nc = len(job.conditions[c])
+        for perm_num, perm in enumerate(perms):
 
-            # This is the list of all indexes into table for
-            # replicates of condition 0 and condition c.
-            master_indexes = np.zeros((n0 + nc), dtype=int)
-            master_indexes[:n0] = job.conditions[0]
-            master_indexes[n0:] = job.conditions[c]
+            v1 = job.table[:, master_indexes[perm]]
+            v2 = job.table[:, master_indexes[~perm]]
 
-            # print "  Permuting indexes"
-
-            # Histogram is (permutations x bins)
-            hist_u = np.zeros((r, h + 1), int)
-            hist_d = np.zeros((r, h + 1), int)
-
-            for perm_num, perm in enumerate(perms):
-
-                v1 = job.table[:, master_indexes[perm]]
-                v2 = job.table[:, master_indexes[~perm]]
-
-                stats = Tstat(default_alphas[c] * alpha).compute((v2, v1))
-
-                (u_hist, d_hist) = assign_bins(stats, h, 
-                                               mins[i, c], maxes[i, c])
-                hist_u[perm_num] = accumulate_bins(u_hist)
-                hist_d[perm_num] = accumulate_bins(d_hist)
+            stats = tests[c].compute((v2, v1))
+            
+            (u_hist, d_hist) = assign_bins(stats, h, mins[c], maxes[c])
+            hist_u[perm_num] = accumulate_bins(u_hist)
+            hist_d[perm_num] = accumulate_bins(d_hist)
 
         # Bin 0 is for features that were downregulated (-inf, 0) Bins
         # 1 through 999 are for features that were upregulated Bin
         # 1000 is for any features that were upregulated above the max
         # from the unmpermuted data (max, inf)
 
-            mean_perm_u[i, c, :] = np.mean(hist_u, axis=0)
-            mean_perm_d[i, c, :] = np.mean(hist_d, axis=0)
+        mean_perm_u[c] = np.mean(hist_u, axis=0)
+        mean_perm_d[c] = np.mean(hist_d, axis=0)
 
     return (mean_perm_u, mean_perm_d)
 
@@ -266,59 +259,57 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
     table      = job.table
     conditions = job.conditions
 
-    alphas = np.zeros((len(TUNING_PARAM_RANGE_VALUES),
-                       len(conditions)))
-
-    mins  = np.zeros(np.shape(alphas))
-    maxes = np.zeros(np.shape(alphas))
-
-    for (i, j) in np.ndindex(np.shape(alphas)):
-        alphas[i, j] = TUNING_PARAM_RANGE_VALUES[i] * default_alphas[j]
-
-    print "Alphas: " + str(alphas)
-    c0 = table[:,conditions[0]]
-    for idx in np.ndindex(np.shape(alphas)):
-        (i, j) = idx
-        if j == 0:
-            continue
-        stat = Tstat(alphas[idx])
-        data = table[:,conditions[j]]
-        mins[i, j]  = np.min(stat.compute((data, c0)))
-        maxes[i, j] = np.max(stat.compute((data, c0)))
-
-
-    print "Shape of mins is " + str(np.shape(mins))
-
-    print "Doing permutations"
-    (mean_perm_u, mean_perm_d) = get_permuted_means(
-        job, mins, maxes, default_alphas)
-
     print "Getting stats for unpermuted data"
-    
-    unperm_stats = np.zeros((len(TUNING_PARAM_RANGE_VALUES),
-                             len(table),
-                             len(conditions)))
-    gene_conf_u = np.zeros(np.shape(unperm_stats))
-    gene_conf_d = np.zeros(np.shape(unperm_stats))
+
+    gene_conf_u = np.zeros((len(TUNING_PARAM_RANGE_VALUES),
+                            len(table),
+                            len(conditions)))
+    gene_conf_d = np.zeros(np.shape(gene_conf_u))
 
     conf_bins_u = np.zeros((len(TUNING_PARAM_RANGE_VALUES),
-                             len(conditions),
-                             num_bins + 1))
+                            len(conditions),
+                            num_bins + 1))
     conf_bins_d = np.zeros(np.shape(conf_bins_u))
 
-    for i, row in enumerate(alphas):
-        stats = [Tstat(a) for a in row]
-        (num_unperm_u, num_unperm_d, unperm_stats[i]) = unpermuted_stats(
-            job, mins[i], maxes[i], stats, 1000)
+    c0 = table[:,conditions[0]]
 
+    for i, alpha_mul in enumerate(TUNING_PARAM_RANGE_VALUES):
+        print "Trying alpha multiplier " + str(alpha_mul)
+
+        tests = [Tstat(a * alpha_mul) for a in default_alphas]
+
+        mins  = np.zeros(len(conditions))
+        maxes = np.zeros(len(conditions))
+
+        print "  Finding mins and maxes"
+        # Find the minimum and maximum value (across all features) of
+        # the statistic for each condition
+        for c in range(1, len(conditions)):
+            data = table[:, conditions[c]]
+            vals = tests[c].compute((data, c0))
+            mins[c]  = np.min(vals)
+            maxes[c] = np.max(vals)
+
+        print "  Getting means of statistic on permuted columns"
+        # Try some permutations of the columns, and take the average
+        # statistic for up- and down- regulated features.
+        (mean_perm_u, mean_perm_d) = get_permuted_means(
+            job, mins, maxes, tests, 1000)
+
+        print "  Getting unpermuted statistics"
+        # Now get the statistic for the unpermuted data
+        (num_unperm_u, num_unperm_d, unperm_stats) = unpermuted_stats(
+            job, mins, maxes, tests, 1000)
+
+        print "  Making confidence bins"
         conf_bins_u[i] = make_confidence_bins(
-            num_unperm_u, mean_perm_u[i], len(table))
+            num_unperm_u, mean_perm_u, len(table))
         conf_bins_d[i] = make_confidence_bins(
-            num_unperm_d, mean_perm_d[i], len(table))
+            num_unperm_d, mean_perm_d, len(table))
         
         print "Computing confidence scores"
         (gene_conf_u[i], gene_conf_d[i]) = get_gene_confidences(
-            unperm_stats[i], mins[i], maxes[i], conf_bins_u[i], conf_bins_d[i])
+            unperm_stats, mins, maxes, conf_bins_u[i], conf_bins_d[i])
 
     np.save("alpha", default_alphas)
     np.save("gene_conf_u", gene_conf_u)
