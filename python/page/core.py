@@ -256,7 +256,10 @@ def get_permuted_means(job, mins, maxes, tests, num_bins=1000):
 def make_confidence_bins(unperm, perm, num_features):
     conf_bins = np.zeros(np.shape(unperm))
     for idx in np.ndindex(np.shape(unperm)):
-        conf_bins[idx] = fill_bin(unperm[idx], perm[idx], num_features)
+        R = unperm[idx]
+        if R > 0:
+            V = R - adjust_num_diff(perm[idx], R, num_features)
+            conf_bins[idx] = V / R
 
     for idx in np.ndindex(np.shape(conf_bins)[0:1]):
         ensure_increases(conf_bins[idx])
@@ -331,13 +334,6 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
     breakdown = breakdown_tables(levels, gene_conf_u, gene_conf_d)
     logging.info("Levels are " + str(levels))
     return (conf_bins_u, conf_bins_d, breakdown)
-
-
-def fill_bin(unperm, perm, m):
-    if unperm > 0:
-        return (unperm - adjust_num_diff(perm, unperm, m)) / unperm
-    else:
-        return 0.0
 
 
 def ensure_increases(a):
