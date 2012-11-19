@@ -253,7 +253,6 @@ def make_confidence_bins(unperm, perm, num_features):
 
     return conf_bins
 
-
 def do_confidences_by_cutoff(job, default_alphas, num_bins):
 
     table      = job.table
@@ -319,10 +318,7 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
     logging.info("Shape of conf up is " + str(np.shape(gene_conf_u)))
     levels = np.linspace(0.5, 0.95, 10)
 
-    u_by_conf = get_count_by_conf_level(gene_conf_u, levels)
-    d_by_conf = get_count_by_conf_level(gene_conf_d, levels)
-
-    breakdown = breakdown_tables(levels, u_by_conf, d_by_conf)
+    breakdown = breakdown_tables(levels, gene_conf_u, gene_conf_d)
     logging.info("Levels are " + str(levels))
     return (conf_bins_u, conf_bins_d, breakdown)
 
@@ -342,10 +338,13 @@ def ensure_increases(a):
         a[i+1] = max(a[i], a[i+1])
 
 
-def breakdown_tables(levels, u_by_conf, d_by_conf):
+def breakdown_tables(levels, gene_conf_u, gene_conf_d):
     """u_by_conf gives the number of up-regulated features for each
     combination of alpha, condition, and confidence
     level. d_by_conf gives the same for dow-regulated features."""
+
+    u_by_conf = get_count_by_conf_level(gene_conf_u, levels)
+    d_by_conf = get_count_by_conf_level(gene_conf_d, levels)
 
     (num_range_values, n, num_levels) = np.shape(u_by_conf)
 
@@ -367,16 +366,16 @@ def breakdown_tables(levels, u_by_conf, d_by_conf):
     return breakdown
 
 
-def get_count_by_conf_level(gene_conf_u, ranges):
+def get_count_by_conf_level(gene_conf, ranges):
 
-    (num_range_values, num_genes, num_conditions) = np.shape(gene_conf_u)
+    (num_range_values, num_genes, num_conditions) = np.shape(gene_conf)
     shape = (num_range_values, num_conditions, len(ranges))
 
     u_by_conf   = np.zeros(shape)
     
     for i in range(num_range_values):
         for j in range(num_conditions):
-            up_conf   = gene_conf_u  [i, :, j]
+            up_conf   = gene_conf  [i, :, j]
             for (k, level) in enumerate(ranges):
                 u_by_conf  [i, j, k] = len(up_conf  [up_conf   > level])
 
