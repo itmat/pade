@@ -207,6 +207,8 @@ def get_permuted_means(job, mins, maxes, tests, num_bins=1000):
     mean_perm_u = np.zeros((n, h + 1))
     mean_perm_d = np.zeros((n, h + 1))
 
+    all_stats = np.zeros((len(job.table), len(job.conditions)))
+
     for c in range(1, n):
         print '    Working on condition %d of %d' % (c, n - 1)
         perms = all_perms[c]
@@ -229,7 +231,7 @@ def get_permuted_means(job, mins, maxes, tests, num_bins=1000):
             v2 = job.table[:, master_indexes[~perm]]
 
             stats = tests[c].compute((v2, v1))
-            
+            all_stats[:, c] += stats
             (hist_u[perm_num], hist_d[perm_num]) = assign_bins(stats, h, mins[c], maxes[c])
 
         # Bin 0 is for features that were downregulated (-inf, 0) Bins
@@ -250,7 +252,7 @@ def get_permuted_means(job, mins, maxes, tests, num_bins=1000):
     plt.xlabel('bin')
     plt.ylabel('up-regulated features')
     
-    return (mean_perm_u, mean_perm_d)
+    return (mean_perm_u, mean_perm_d, all_stats / float(len(all_perms)))
 
 
 def make_confidence_bins(unperm, perm, num_features):
@@ -305,7 +307,7 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
         print "  Getting means of statistic on permuted columns"
         # Try some permutations of the columns, and take the average
         # statistic for up- and down- regulated features.
-        (mean_perm_u, mean_perm_d) = get_permuted_means(
+        (mean_perm_u, mean_perm_d, perm_stats) = get_permuted_means(
             job, mins, maxes, tests, 1000)
 
         print "  Getting unpermuted statistics"
