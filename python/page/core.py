@@ -228,9 +228,7 @@ def get_permuted_means(job, mins, maxes, tests, num_bins=1000):
 
             stats = tests[c].compute((v2, v1))
             
-            (u_hist, d_hist) = assign_bins(stats, h, mins[c], maxes[c])
-            hist_u[perm_num] = accumulate_bins(u_hist)
-            hist_d[perm_num] = accumulate_bins(d_hist)
+            (hist_u[perm_num], hist_d[perm_num]) = assign_bins(stats, h, mins[c], maxes[c])
 
         # Bin 0 is for features that were downregulated (-inf, 0) Bins
         # 1 through 999 are for features that were upregulated Bin
@@ -427,10 +425,10 @@ def assign_bins(vals, num_bins, minval, maxval):
     u_hist[0] += len(vals[vals < 0.0])
     d_hist[0] += len(vals[vals > 0.0])
 
-    return (u_hist, d_hist)
+    return (accumulate_bins(u_hist),
+            accumulate_bins(d_hist))
 
 def unpermuted_stats(job, mins, maxes, statfns, num_bins):
-    hist_shape = (len(job.conditions), num_bins + 1)
 
     u = np.zeros((len(job.conditions), num_bins + 1), dtype=int)
     d = np.zeros(np.shape(u), int)
@@ -442,13 +440,7 @@ def unpermuted_stats(job, mins, maxes, statfns, num_bins):
         v2 = job.table[:, job.conditions[c]]
         stats[:, c] = statfns[c].compute((v2, v1))
 
-        (u_hist, d_hist) = assign_bins(stats[:, c], num_bins, mins[c], maxes[c])
-        u[c] = u_hist
-        d[c] = d_hist
-
-    for idx in np.ndindex(len(job.conditions)):
-        u[idx] = accumulate_bins(u[idx])
-        d[idx] = accumulate_bins(d[idx])
+        (u[c], d[c]) = assign_bins(stats[:, c], num_bins, mins[c], maxes[c])
 
     return (u, d, stats)
 
