@@ -10,7 +10,9 @@ r is the number of permutations
 s is the number of tuning param range values
 
 """
-
+import matplotlib
+matplotlib.use('pdf')
+import matplotlib.pyplot as plt
 import re
 import itertools 
 import logging
@@ -237,7 +239,17 @@ def get_permuted_means(job, mins, maxes, tests, num_bins=1000):
 
         mean_perm_u[c] = np.mean(hist_u, axis=0)
         mean_perm_d[c] = np.mean(hist_d, axis=0)
+        
 
+    for c in range(1, n):
+        y = mean_perm_u[c]
+        x = range(len(y))
+        plt.plot(x[500:], y[500:])
+
+    plt.savefig('mean_perm_u')
+    plt.xlabel('bin')
+    plt.ylabel('up-regulated features')
+    
     return (mean_perm_u, mean_perm_d)
 
 
@@ -303,7 +315,7 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
             num_unperm_u, mean_perm_u, len(table))
         conf_bins_d[i] = make_confidence_bins(
             num_unperm_d, mean_perm_d, len(table))
-        
+
         print "Computing confidence scores"
         (gene_conf_u[i], gene_conf_d[i]) = get_gene_confidences(
             unperm_stats, mins, maxes, conf_bins_u[i], conf_bins_d[i])
@@ -417,11 +429,11 @@ def assign_bins(vals, num_bins, minval, maxval):
     """
     Computes two np.histograms for the given values.
     """
-    u_bins = get_bins(num_bins + 1, maxval)
+    u_bins = get_bins(num_bins + 1,  maxval)
     d_bins = get_bins(num_bins + 1, -minval)
 
-    (u_hist, u_edges) = np.histogram(vals, u_bins)
-    (d_hist, d_edges) = np.histogram( -vals, d_bins)
+    (u_hist, u_edges) = np.histogram( vals, u_bins)
+    (d_hist, d_edges) = np.histogram(-vals, d_bins)
     u_hist[0] += len(vals[vals < 0.0])
     d_hist[0] += len(vals[vals > 0.0])
 
