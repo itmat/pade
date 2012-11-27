@@ -260,24 +260,60 @@ def fdr(perm_props, unperm_props):
 
     (m, n) = np.shape(unperm_props)
 
-    # Column 0 contains percents
-    # Column 1 is the number of features above that percent in the permuted data
-    # Column 2 is the number of features above that percent in the unpermuted data
+    # Columns:
+
+    """
+    stat - Value of the statistic.
+
+    ptn - The proportion of the statistic to the maximum value seen in
+          the unpermuted data.
+
+    perm - Number of features for which the statistic is greater than
+           this statistic, in the permuted data.
+
+    unperm - Same, for the unpermuted data.
+
+    conf - The confidence score.
+
+    """
+
+    plt.cla()
 
     for c in range(1, n):
         disc = []
         for i in range(m):
-            disc.append((  perm_props[i, c], 1, 0))
-            disc.append((unperm_props[i, c], 0, 1))
-        disc = np.array(disc, dtype=[('pct', float),
-                                     ('perm', int),
-                                     ('unperm', int)])
+            disc.append((  perm_props[i, c], 0.0, 1, 0, 0.0))
+            disc.append((unperm_props[i, c], 0.0, 0, 1, 0.0))
+        disc = np.array(disc, dtype=[('stat',   float),
+                                     ('ptn',    float),
+                                     ('perm',   int),
+                                     ('unperm', int),
+                                     ('conf',   float)])
 
-        disc = np.sort(disc, order='pct')
-        disc['perm'] = np.cumsum(disc['perm'])
-        disc['unperm'] = np.cumsum(disc['unperm'])
- #       print disc
-        np.savetxt('table_' + str(c), disc, ['%f', '%d', '%d'])
+        disc = np.sort(disc, order='stat')
+        perm           = disc['perm']
+        unperm         = disc['unperm']
+        disc['perm']   = np.cumsum(perm[::-1])[::-1]
+        disc['unperm'] = np.cumsum(unperm[::-1])[::-1]
+
+        for row in disc:
+            R = row['unperm']
+            if R > 0:
+                V = R - adjust_num_diff(row['perm'], R, m)
+                row['conf'] = V / R
+
+        disc['ptn'] = disc['stat'] / np.max(unperm_props[:, c])
+
+        np.savetxt('table_' + str(c), disc, ['%.10f', '%.4f', '%d', '%d', '%.4f'])
+
+        plt.plot(disc['ptn'],
+                 disc['unperm'])
+    plt.ylim([0, 1000])
+    plt.xlim([0, 1])
+    plt.xlabel("Percent of max statistic")
+    plt.ylabel("Features above statistic")
+    plt.savefig("new_unperm")
+                 
 
 def make_confidence_bins(unperm, perm, num_features):
     conf_bins = np.zeros(np.shape(unperm))
@@ -339,11 +375,26 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
         (num_unperm_u, num_unperm_d, unperm_stats) = unpermuted_stats(
             job, mins, maxes, tests, 1000)
 
+        print "Maxes is " + str(maxes)
         print "  Making confidence bins"
         conf_bins_u[i] = make_confidence_bins(
             num_unperm_u, mean_perm_u, len(table))
         conf_bins_d[i] = make_confidence_bins(
             num_unperm_d, mean_perm_d, len(table))
+
+
+        plt.cla()
+        for c in range(1, 4):
+            plt.plot(np.arange(len(num_unperm_u[i])),
+                     num_unperm_u[c])
+        plt.xlabel("Percent of max statistic")
+        plt.ylabel("Features above statistic")
+        plt.xlim([0, 1000])
+        plt.ylim([0, 1000])
+        plt.savefig("old_unperm" + str(c))
+
+        for b, x in enumerate(num_unperm_u[1]):
+            print str(float(b) / 1000.0) + "   " + str(x)
 
         print "Computing confidence scores"
         (gene_conf_u[i], gene_conf_d[i]) = get_gene_confidences(
@@ -353,7 +404,7 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
 
         (unperm_prop_u, unperm_prop_d) = proportions(unperm_stats, unperm_stats)
         (perm_prop_u,   perm_prop_d)   = proportions(perm_stats,   unperm_stats)
-        fdr(perm_prop_u, unperm_prop_u)
+        fdr(perm_stats, unperm_stats)
 
 
     plot_cumulative(perm_prop_u)
