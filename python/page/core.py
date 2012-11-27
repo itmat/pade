@@ -208,8 +208,6 @@ def get_permuted_means(job, mins, maxes, tests, num_bins=1000):
     mean_perm_u = np.zeros((n, h + 1))
     mean_perm_d = np.zeros((n, h + 1))
 
-    all_stats = np.zeros((len(job.table), len(job.conditions)))
-
     for c in range(1, n):
         print '    Working on condition %d of %d' % (c, n - 1)
         perms = all_perms[c]
@@ -232,7 +230,6 @@ def get_permuted_means(job, mins, maxes, tests, num_bins=1000):
             v2 = job.table[:, master_indexes[~perm]]
 
             stats = tests[c].compute((v2, v1))
-            all_stats[:, c] += stats
             (hist_u[perm_num], hist_d[perm_num]) = assign_bins(stats, h, mins[c], maxes[c])
 
         # Bin 0 is for features that were downregulated (-inf, 0) Bins
@@ -253,12 +250,69 @@ def get_permuted_means(job, mins, maxes, tests, num_bins=1000):
     plt.xlabel('bin')
     plt.ylabel('up-regulated features')
     
-    return (mean_perm_u, mean_perm_d, all_stats / float(len(all_perms)))
+    return (mean_perm_u, mean_perm_d)
 
 
-def fdr(perm_props, unperm_props):
+def perm_counts(job, unperm_stats, tests):
+    """
 
-    (m, n) = np.shape(unperm_props)
+    Returns two m x n arrays
+    """
+
+    (m, n) = np.shape(unperm_stats)
+    all_perms = init_perms(job.conditions)
+    res = np.zeros((m + 1, n))
+    n  = len(job.conditions)
+    n0 = len(job.conditions[0])
+
+    bins = custom_bins(unperm_stats)
+
+    plt.cla()
+
+    for c in range(1, n):
+        print '    Working on condition %d of %d' % (c, n - 1)
+
+        perms = all_perms[c]
+        r  = len(perms)
+        nc = len(job.conditions[c])
+        
+        # This is the list of all indexes into table for
+        # replicates of condition 0 and condition c.
+        master_indexes = np.zeros((n0 + nc), dtype=int)
+        master_indexes[:n0] = job.conditions[0]
+        master_indexes[n0:] = job.conditions[c]
+        
+        for perm_num, perm in enumerate(perms):
+
+            v1 = job.table[:, master_indexes[perm]]
+            v2 = job.table[:, master_indexes[~perm]]
+
+            stats = tests[c].compute((v2, v1))
+
+            (hist, edges) = np.histogram(stats, bins[:, c])
+            res[:, c] += accumulate_bins(hist)
+
+        res[:, c] = res[:, c] / float(len(all_perms[c]))
+        print "Bins are " + str(bins[:, c])
+        plt.plot(bins[1:, c], res[:, c])
+    plt.savefig('new_unperm_counts')
+
+    return (res, bins)
+
+
+def custom_bins(unperm_stats):
+
+    (m, n) = np.shape(unperm_stats)
+    bins = np.zeros((m + 2, n))
+    for c in range(1, n):
+        bins[0,     c]  = -np.inf
+        bins[1 : m + 1, c] = sorted(unperm_stats[:, c])
+        bins[m + 1, c] = np.inf
+    return bins
+
+def fdr(perm_counts, unperm_stats):
+
+    (m, n) = np.shape(unperm_stats)
 
     # Columns:
 
@@ -279,40 +333,41 @@ def fdr(perm_props, unperm_props):
 
     plt.cla()
 
+    bins = custom_bins(unperm_stats)
+
     for c in range(1, n):
+
+        (hist, edges) = np.histogram(unperm_stats[:, c], bins=bins[:, c])
+        hist = accumulate_bins(hist)
+
         disc = []
-        for i in range(m):
-            disc.append((  perm_props[i, c], 0.0, 1, 0, 0.0))
-            disc.append((unperm_props[i, c], 0.0, 0, 1, 0.0))
+        for i in range(len(bins[:, c]) - 1):
+            disc.append((bins[i, c], 0.0, perm_counts[i, c], hist[i], 0.0))
+
         disc = np.array(disc, dtype=[('stat',   float),
                                      ('ptn',    float),
                                      ('perm',   int),
                                      ('unperm', int),
                                      ('conf',   float)])
 
-        disc = np.sort(disc, order='stat')
-        perm           = disc['perm']
-        unperm         = disc['unperm']
-        disc['perm']   = np.cumsum(perm[::-1])[::-1]
-        disc['unperm'] = np.cumsum(unperm[::-1])[::-1]
-
         for row in disc:
-            R = row['unperm']
+            R = float(row['unperm'])
             if R > 0:
                 V = R - adjust_num_diff(row['perm'], R, m)
                 row['conf'] = V / R
 
-        disc['ptn'] = disc['stat'] / np.max(unperm_props[:, c])
+        disc['ptn'] = disc['stat'] / np.max(unperm_stats[:, c])
 
         np.savetxt('table_' + str(c), disc, ['%.10f', '%.4f', '%d', '%d', '%.4f'])
 
-        plt.plot(disc['ptn'],
+        plt.plot(disc['conf'],
                  disc['unperm'])
-    plt.ylim([0, 1000])
-    plt.xlim([0, 1])
-    plt.xlabel("Percent of max statistic")
-    plt.ylabel("Features above statistic")
-    plt.savefig("new_unperm")
+
+    plt.ylim([0, 100])
+    plt.xlim([0.5, 1])
+    plt.xlabel("Confidence score")
+    plt.ylabel("Num features up-regulated")
+    plt.savefig("features_by_conf")
                  
 
 def make_confidence_bins(unperm, perm, num_features):
@@ -367,7 +422,7 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
         print "  Getting means of statistic on permuted columns"
         # Try some permutations of the columns, and take the average
         # statistic for up- and down- regulated features.
-        (mean_perm_u, mean_perm_d, perm_stats) = get_permuted_means(
+        (mean_perm_u, mean_perm_d) = get_permuted_means(
             job, mins, maxes, tests, 1000)
 
         print "  Getting unpermuted statistics"
@@ -385,29 +440,22 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
 
         plt.cla()
         for c in range(1, 4):
-            plt.plot(np.arange(len(num_unperm_u[i])),
-                     num_unperm_u[c])
+            plt.plot(np.arange(len(mean_perm_u[i])),
+                     mean_perm_u[c])
         plt.xlabel("Percent of max statistic")
         plt.ylabel("Features above statistic")
         plt.xlim([0, 1000])
         plt.ylim([0, 1000])
-        plt.savefig("old_unperm" + str(c))
-
-        for b, x in enumerate(num_unperm_u[1]):
-            print str(float(b) / 1000.0) + "   " + str(x)
+        plt.savefig("old_perm" + str(c))
 
         print "Computing confidence scores"
         (gene_conf_u[i], gene_conf_d[i]) = get_gene_confidences(
             unperm_stats, mins, maxes, conf_bins_u[i], conf_bins_d[i])
 
-        count_stats(unperm_stats, perm_stats)
+        (perm, perm_bins) = perm_counts(job, unperm_stats, tests)
 
-        (unperm_prop_u, unperm_prop_d) = proportions(unperm_stats, unperm_stats)
-        (perm_prop_u,   perm_prop_d)   = proportions(perm_stats,   unperm_stats)
-        fdr(perm_stats, unperm_stats)
+        fdr(perm, unperm_stats)
 
-
-    plot_cumulative(perm_prop_u)
     np.save("alpha", default_alphas)
     np.save("gene_conf_u", gene_conf_u)
     np.save("gene_conf_d", gene_conf_d)
