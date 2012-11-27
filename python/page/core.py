@@ -105,6 +105,7 @@ TUNING_PARAM_RANGE_VALUES = np.array([
     10,
     ])
 
+TUNING_PARAM_RANGE_VALUES = np.array([0.5])
 
 ########################################################################
 ###
@@ -255,6 +256,29 @@ def get_permuted_means(job, mins, maxes, tests, num_bins=1000):
     return (mean_perm_u, mean_perm_d, all_stats / float(len(all_perms)))
 
 
+def fdr(perm_props, unperm_props):
+
+    (m, n) = np.shape(unperm_props)
+
+    # Column 0 contains percents
+    # Column 1 is the number of features above that percent in the permuted data
+    # Column 2 is the number of features above that percent in the unpermuted data
+
+    for c in range(1, n):
+        disc = []
+        for i in range(m):
+            disc.append((  perm_props[i, c], 1, 0))
+            disc.append((unperm_props[i, c], 0, 1))
+        disc = np.array(disc, dtype=[('pct', float),
+                                     ('perm', int),
+                                     ('unperm', int)])
+
+        disc = np.sort(disc, order='pct')
+        disc['perm'] = np.cumsum(disc['perm'])
+        disc['unperm'] = np.cumsum(disc['unperm'])
+ #       print disc
+        np.savetxt('table_' + str(c), disc, ['%f', '%d', '%d'])
+
 def make_confidence_bins(unperm, perm, num_features):
     conf_bins = np.zeros(np.shape(unperm))
     for idx in np.ndindex(np.shape(unperm)):
@@ -325,6 +349,14 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
         (gene_conf_u[i], gene_conf_d[i]) = get_gene_confidences(
             unperm_stats, mins, maxes, conf_bins_u[i], conf_bins_d[i])
 
+        count_stats(unperm_stats, perm_stats)
+
+        (unperm_prop_u, unperm_prop_d) = proportions(unperm_stats, unperm_stats)
+        (perm_prop_u,   perm_prop_d)   = proportions(perm_stats,   unperm_stats)
+        fdr(perm_prop_u, unperm_prop_u)
+
+
+    plot_cumulative(perm_prop_u)
     np.save("alpha", default_alphas)
     np.save("gene_conf_u", gene_conf_u)
     np.save("gene_conf_d", gene_conf_d)
@@ -337,6 +369,58 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
     logging.info("Levels are " + str(levels))
     return (conf_bins_u, conf_bins_d, breakdown)
 
+def plot_cumulative(data):
+    (m, n) = np.shape(data)
+    plt.clf()
+    for c in range(1, n):
+        col = sorted(data[:, c])
+        plt.plot(col, np.arange(m))
+    plt.savefig("cumulative")
+
+
+
+def proportions(numer, denom):
+    (m, n) = np.shape(numer)
+
+    prop_u = np.zeros((m, n))
+    prop_d = np.zeros((m, n))
+
+    for c in range(1, n):
+        prop_u[:, c] = numer[:, c] / np.max(denom[:, c])
+        prop_d[:, c] = numer[:, c] / np.min(denom[:, c])
+
+    prop_u[prop_u < 0] = 0.0
+    prop_d[prop_d < 0] = 0.0
+    return (prop_u, prop_d)
+
+def perm_propertions(perm_stats, unperm_stats):
+    (m, n) = np.shape(unperm_stats)
+
+    prop_u = np.zeros((m, n))
+    prop_d = np.zeros((m, n))
+
+    for c in range(1, n):
+        prop_u[:, c] = col / np.max(col)
+        prop_d[:, c] = col / np.min(col)
+
+    prop_u[prop_u < 0] = 0.0
+    prop_d[prop_d < 0] = 0.0
+    return (prop_u, prop_d)
+
+def count_stats(unperm_stats, perm_stats):
+
+    (m, n) = np.shape(unperm_stats)
+
+    for c in range(1, n):
+        perm   = perm_stats[:, c]
+        unperm = unperm_stats[:, c]
+        idx    = range(len(perm))
+
+        
+        
+#        plt.clf()
+#        
+#        plt.savefig("stat_diff_" + str(c))
 
 def ensure_increases(a):
     """Given an array, return a copy of it that is monotonically

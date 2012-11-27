@@ -182,7 +182,7 @@ def do_run(args):
     alphas = core.find_default_alpha(job)
     (up, down, breakdown) = core.do_confidences_by_cutoff(job, alphas, args.num_bins)
 
-    print_counts_by_confidence(breakdown, condition_names)
+#    print_counts_by_confidence(breakdown, condition_names)
     plot_counts_by_confidence(breakdown, condition_names)
 
     print """
