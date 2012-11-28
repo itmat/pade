@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+
+
 """
 m is the number of features
 n is the number of conditions
@@ -9,16 +11,28 @@ h is the number of bins
 r is the number of permutations
 s is the number of tuning param range values
 
+Plot:
+
+* Histogram of feature count by statistic, one for each condition /
+  alpha.
+
+* Cumulative num features by statistic. One chart for each
+  condition, with different alphas.
+
+* Num features for each confidence level, one for each condition, with
+  different alphas. Overlay "best" alpha at each confidence level.
+
 """
 import matplotlib
-matplotlib.use('pdf')
 import matplotlib.pyplot as plt
 import re
 import itertools 
 import logging
 import numpy as np
 import logging
+
 from stats import Tstat
+from report import Report
 
 class Job(object):
 
@@ -106,6 +120,8 @@ TUNING_PARAM_RANGE_VALUES = np.array([
     ])
 
 TUNING_PARAM_RANGE_VALUES = np.array([0.5])
+
+TUNING_PARAM_RANGE_VALUES = np.array([0.0001, 0.5, 10])
 
 ########################################################################
 ###
@@ -253,7 +269,7 @@ def get_permuted_means(job, mins, maxes, tests, num_bins=1000):
     return (mean_perm_u, mean_perm_d)
 
 
-def perm_counts(job, unperm_stats, tests):
+def get_perm_counts(job, unperm_stats, tests, bins):
     """
 
     Returns two m x n arrays
@@ -264,8 +280,6 @@ def perm_counts(job, unperm_stats, tests):
     res = np.zeros((m + 1, n))
     n  = len(job.conditions)
     n0 = len(job.conditions[0])
-
-    bins = custom_bins(unperm_stats)
 
     plt.cla()
 
@@ -293,9 +307,22 @@ def perm_counts(job, unperm_stats, tests):
             res[:, c] += accumulate_bins(hist)
 
         res[:, c] = res[:, c] / float(len(all_perms[c]))
-        print "Bins are " + str(bins[:, c])
+
         plt.plot(bins[1:, c], res[:, c])
     plt.savefig('new_unperm_counts')
+
+    return (res, bins)
+
+
+def get_unperm_counts(unperm_stats, bins):
+
+    (m, n) = np.shape(unperm_stats)
+    res = np.zeros((m + 1, n))
+
+    for c in range(1, n):
+
+        (hist, edges) = np.histogram(unperm_stats[:, c], bins=bins[:, c])
+        res[:, c] = accumulate_bins(hist)
 
     return (res, bins)
 
@@ -310,7 +337,23 @@ def custom_bins(unperm_stats):
         bins[m + 1, c] = np.inf
     return bins
 
-def fdr(perm_counts, unperm_stats):
+def raw_confidence_scores(unperm_counts, perm_counts, bins):
+    print "Shape of counts is " + str(np.shape(unperm_counts)) + ", bins is " + str(np.shape(bins))
+    shape = np.shape(unperm_counts)
+    res = np.zeros(shape)
+    for idx in np.ndindex(shape):
+        (i, j, c) = idx
+        if bins[idx] < 0:
+            continue
+
+        R = float(unperm_counts[idx])
+        if R > 0:
+            V = R - adjust_num_diff(perm_counts[idx], R, shape[1])
+            res[idx] = V / R
+    return res
+                
+
+def fdr(unperm_stats, unperm_counts, perm_counts, bins):
 
     (m, n) = np.shape(unperm_stats)
 
@@ -333,16 +376,11 @@ def fdr(perm_counts, unperm_stats):
 
     plt.cla()
 
-    bins = custom_bins(unperm_stats)
-
     for c in range(1, n):
-
-        (hist, edges) = np.histogram(unperm_stats[:, c], bins=bins[:, c])
-        hist = accumulate_bins(hist)
 
         disc = []
         for i in range(len(bins[:, c]) - 1):
-            disc.append((bins[i, c], 0.0, perm_counts[i, c], hist[i], 0.0))
+            disc.append((bins[i, c], 0.0, perm_counts[i, c], unperm_counts[i, c], 0.0))
 
         disc = np.array(disc, dtype=[('stat',   float),
                                      ('ptn',    float),
@@ -402,6 +440,24 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
 
     c0 = table[:,conditions[0]]
 
+    # Unperm stats gives the value of the statistic for each test, for
+    # each feature, in each condition.
+    unperm_stats = np.zeros((len(TUNING_PARAM_RANGE_VALUES),
+                             len(table),
+                             len(conditions)))
+
+    perm = np.zeros((len(TUNING_PARAM_RANGE_VALUES),
+                     len(table) + 1,
+                     len(conditions)))
+
+    unperm_counts = np.zeros((len(TUNING_PARAM_RANGE_VALUES),
+                              len(table) + 1,
+                              len(conditions)))
+
+    bins = np.zeros((len(TUNING_PARAM_RANGE_VALUES),
+                     len(table) + 2,
+                     len(conditions)))
+
     for i, alpha_mul in enumerate(TUNING_PARAM_RANGE_VALUES):
         print "Trying alpha multiplier " + str(alpha_mul)
 
@@ -427,16 +483,14 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
 
         print "  Getting unpermuted statistics"
         # Now get the statistic for the unpermuted data
-        (num_unperm_u, num_unperm_d, unperm_stats) = unpermuted_stats(
+        (num_unperm_u, num_unperm_d, unperm_stats[i]) = unpermuted_stats(
             job, mins, maxes, tests, 1000)
 
-        print "Maxes is " + str(maxes)
         print "  Making confidence bins"
         conf_bins_u[i] = make_confidence_bins(
             num_unperm_u, mean_perm_u, len(table))
         conf_bins_d[i] = make_confidence_bins(
             num_unperm_d, mean_perm_d, len(table))
-
 
         plt.cla()
         for c in range(1, 4):
@@ -450,11 +504,21 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
 
         print "Computing confidence scores"
         (gene_conf_u[i], gene_conf_d[i]) = get_gene_confidences(
-            unperm_stats, mins, maxes, conf_bins_u[i], conf_bins_d[i])
+            unperm_stats[i], mins, maxes, conf_bins_u[i], conf_bins_d[i])
 
-        (perm, perm_bins) = perm_counts(job, unperm_stats, tests)
+        print "New stuff"
+        bins[i] = custom_bins(unperm_stats[i])
+        (perm[i],     perm_bins) = get_perm_counts(job, unperm_stats[i], tests, bins[i])
+        
+        (unperm_counts[i], unperm_bins) = get_unperm_counts(unperm_stats[i], bins[i])
 
-        fdr(perm, unperm_stats)
+        fdr(unperm_stats[i], unperm_counts[i], perm[i], bins[i])
+
+
+    raw_conf = raw_confidence_scores(unperm_counts, perm, bins)
+
+    report = Report('page_output', unperm_stats, unperm_counts, raw_conf)
+    report.make_report()
 
     np.save("alpha", default_alphas)
     np.save("gene_conf_u", gene_conf_u)
@@ -467,6 +531,7 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
     breakdown = breakdown_tables(levels, gene_conf_u, gene_conf_d)
     logging.info("Levels are " + str(levels))
     return (conf_bins_u, conf_bins_d, breakdown)
+
 
 def plot_cumulative(data):
     (m, n) = np.shape(data)
