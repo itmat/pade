@@ -178,10 +178,10 @@ def do_run(args):
     condition_names = [schema.attribute_names[0] + "=" + str(x)
                        for x in groups.keys()]
     alphas = core.find_default_alpha(job)
-    (up, down, breakdown) = core.do_confidences_by_cutoff(job, alphas, args.num_bins)
+    core.do_confidences_by_cutoff(job, alphas, args.num_bins)
 
-    print_counts_by_confidence(breakdown, condition_names)
-    plot_counts_by_confidence(breakdown, condition_names)
+    #print_counts_by_confidence(breakdown, condition_names)
+    #plot_counts_by_confidence(breakdown, condition_names)
 
     print """
 Please take a look at the tables above (or at the prettier versions in {output_dir}) and select a confidence level to use. Then run "page finish --confidence CONF" to finish the job.

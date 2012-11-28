@@ -22,6 +22,11 @@ Plot:
 * Num features for each confidence level, one for each condition, with
   different alphas. Overlay "best" alpha at each confidence level.
 
+Document:
+
+* Differentiate between statistic bins and confidence bins
+* Allow user-specified statistic bins?
+
 """
 import matplotlib
 import matplotlib.pyplot as plt
@@ -119,9 +124,9 @@ TUNING_PARAM_RANGE_VALUES = np.array([
     10,
     ])
 
-TUNING_PARAM_RANGE_VALUES = np.array([0.5])
+#TUNING_PARAM_RANGE_VALUES = np.array([0.5])
 
-TUNING_PARAM_RANGE_VALUES = np.array([0.0001, 0.5, 10])
+#TUNING_PARAM_RANGE_VALUES = np.array([0.0001, 0.5, 10])
 
 ########################################################################
 ###
@@ -147,6 +152,37 @@ def compute_s(v1, v2, axis=0):
     return np.sqrt((var1 * s1 + var2 * s2)
                    / (s1 + s2))
 
+
+def summarize_confidence(levels, unperm_counts, raw_conf, bins):
+    """
+    Return the lowest statistic at which the confidence level is greater or equal to conf.
+
+    """
+    conf_to_stat  = np.zeros(len(levels))
+    conf_to_count = np.zeros(len(levels))
+
+    for i, level in enumerate(levels):
+        idxs = np.nonzero(raw_conf >= level)
+        
+        if len(bins[idxs]) > 0:
+            conf_to_stat[i] = bins[idxs][0]
+            conf_to_count[i] = unperm_counts[idxs][0]
+
+    print "Conf to count is " + str(conf_to_count)
+
+    return (conf_to_stat, conf_to_count)
+
+def pick_alphas(conf_to_count):
+    
+    (num_params, num_levels, num_conditions) = np.shape(conf_to_count)
+    
+    res = np.zeros((num_levels, num_conditions), int)
+
+    for c in range(num_conditions):
+        for i in range(num_levels):
+            res[i, c] = np.argmax(conf_to_count[:, i, c])
+            print "For class {cls}, level {level}, got param {param} for {count}".format(cls=c, level=i, param=res[i, c], count=conf_to_count[res[i, c], i, c])
+    return res
 
 def find_default_alpha(job):
     """
@@ -423,8 +459,13 @@ def make_confidence_bins(unperm, perm, num_features):
 
 def do_confidences_by_cutoff(job, default_alphas, num_bins):
 
+
     table      = job.table
     conditions = job.conditions
+
+    s = len(TUNING_PARAM_RANGE_VALUES)
+    n = len(conditions)
+    m = len(table)
 
     print "Getting stats for unpermuted data"
 
@@ -478,33 +519,33 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
         print "  Getting means of statistic on permuted columns"
         # Try some permutations of the columns, and take the average
         # statistic for up- and down- regulated features.
-        (mean_perm_u, mean_perm_d) = get_permuted_means(
-            job, mins, maxes, tests, 1000)
+#        (mean_perm_u, mean_perm_d) = get_permuted_means(
+#            job, mins, maxes, tests, 1000)
 
         print "  Getting unpermuted statistics"
         # Now get the statistic for the unpermuted data
         (num_unperm_u, num_unperm_d, unperm_stats[i]) = unpermuted_stats(
             job, mins, maxes, tests, 1000)
 
-        print "  Making confidence bins"
-        conf_bins_u[i] = make_confidence_bins(
-            num_unperm_u, mean_perm_u, len(table))
-        conf_bins_d[i] = make_confidence_bins(
-            num_unperm_d, mean_perm_d, len(table))
+#        print "  Making confidence bins"
+#        conf_bins_u[i] = make_confidence_bins(
+#            num_unperm_u, mean_perm_u, len(table))
+#        conf_bins_d[i] = make_confidence_bins(
+#            num_unperm_d, mean_perm_d, len(table))
 
-        plt.cla()
-        for c in range(1, 4):
-            plt.plot(np.arange(len(mean_perm_u[i])),
-                     mean_perm_u[c])
-        plt.xlabel("Percent of max statistic")
-        plt.ylabel("Features above statistic")
-        plt.xlim([0, 1000])
-        plt.ylim([0, 1000])
-        plt.savefig("old_perm" + str(c))
+#        plt.cla()
+#        for c in range(1, 4):
+#            plt.plot(np.arange(len(mean_perm_u[i])),
+#                     mean_perm_u[c])
+#        plt.xlabel("Percent of max statistic")
+#        plt.ylabel("Features above statistic")
+#2#B        plt.xlim([0, 1000])
+#  #      plt.ylim([0, 1000])
+#        plt.savefig("old_perm" + str(c))
 
-        print "Computing confidence scores"
-        (gene_conf_u[i], gene_conf_d[i]) = get_gene_confidences(
-            unperm_stats[i], mins, maxes, conf_bins_u[i], conf_bins_d[i])
+#        print "Computing confidence scores"
+#       (gene_conf_u[i], gene_conf_d[i]) = get_gene_confidences(
+#            unperm_stats[i], mins, maxes, conf_bins_u[i], conf_bins_d[i])
 
         print "New stuff"
         bins[i] = custom_bins(unperm_stats[i])
@@ -517,7 +558,21 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
 
     raw_conf = raw_confidence_scores(unperm_counts, perm, bins)
 
-    report = Report('page_output', unperm_stats, unperm_counts, raw_conf)
+    levels = np.linspace(0.5, 0.95, 10)
+
+    conf_to_stat  = np.zeros((s, len(levels), n))
+    conf_to_count = np.zeros((s, len(levels), n))
+
+    for i in range(s):
+        for c in range(n):
+            (conf_to_stat_, conf_to_count_) = summarize_confidence(levels, unperm_counts[i, :, c], raw_conf[i, :, c], bins[i, :, c])
+            conf_to_count[i, :, c] = conf_to_count_
+            conf_to_stat[i, :, c] = conf_to_stat_
+
+
+    best_params = pick_alphas(conf_to_count)
+    
+    report = Report('page_output', unperm_stats, unperm_counts, raw_conf, levels, conf_to_count, best_params)
     report.make_report()
 
     np.save("alpha", default_alphas)
@@ -526,11 +581,11 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
     
     print "Counting up- and down-regulated features in each level"
     logging.info("Shape of conf up is " + str(np.shape(gene_conf_u)))
-    levels = np.linspace(0.5, 0.95, 10)
 
-    breakdown = breakdown_tables(levels, gene_conf_u, gene_conf_d)
-    logging.info("Levels are " + str(levels))
-    return (conf_bins_u, conf_bins_d, breakdown)
+#    breakdown = breakdown_tables(levels, gene_conf_u, gene_conf_d)
+#    logging.info("Levels are " + str(levels))
+#    return (conf_bins_u, conf_bins_d, breakdown)
+
 
 
 def plot_cumulative(data):
