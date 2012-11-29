@@ -247,6 +247,11 @@ sample_attribute_mapping:
 
         return grouping
 
+    def condition_name(self, c):
+        """Return a name for condition c, based on the attribute values for that condition"""
+        pass
+        
+
 def write_yaml_block_comment(fh, comment):
     result = ""
     for line in comment.splitlines():

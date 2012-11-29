@@ -7,7 +7,7 @@ import numpy as np
 from lxml.html import builder as E
 import lxml
 import os
-
+from jinja2 import Environment, PackageLoader
 
 def ensure_increases(a):
     """Given an array, return a copy of it that is monotonically
@@ -20,25 +20,33 @@ def ensure_decreases(a):
     for i in range(len(a) - 1):
         pass
 
+
+
 class Report:
-    def __init__(self, output_dir, stats, unperm_counts, raw_conf, conf_levels, conf_to_count, best_params):
+    def __init__(self, job, output_dir, results):
+        self.job           = job
         self.output_dir    = output_dir
-        self.stats         = stats
-        self.unperm_counts = unperm_counts
-        self.raw_conf      = raw_conf
-        self.conf_to_count  = conf_to_count
-        self.conf_levels   = conf_levels
-        self.best_params  = best_params
+        self.stats         = results.stats
+        self.conf_levels   = results.conf_levels
+
+        self.unperm_counts = results.up.unperm_counts
+        self.raw_conf      = results.up.raw_conf
+        self.conf_to_count = results.up.conf_to_count
+        self.best_params   = results.up.best_params
 
     def make_report(self):
         cwd = os.getcwd()
+        print "Condition names are " + str(self.job.condition_names)
         try:
             os.chdir(self.output_dir)
-            self.make_report_in_dir()
+            self.make_jinja_report()
         finally:
             os.chdir(cwd)
 
-    def make_report_in_dir(self):        
+
+    def make_jinja_report(self):
+        env = Environment(loader=PackageLoader('page'))
+
         stats = self.stats
         output_dir = self.output_dir
 
@@ -59,10 +67,43 @@ class Report:
                 plt.xlim([minstat, maxstat])
                 plt.xlabel('Statistic')
                 plt.xlabel('Features')
-                plt.title('Number of features by statistic, test {test}, class {cls}'.format(test=i, cls=c))
+                plt.title('Number of features by statistic, test {test}, class {cls}'.format(test=i, cls=self.job.condition_names[c]))
                 plt.savefig(filename) 
-                stat_hists.append(E.IMG(src=filename, width='400'))
+                stat_hists.append(filename)
 
+        classes = []
+        for c in range(1, n):
+            with open('stat_hist_class_{cls}.html'.format(cls=c), 'w') as out:
+                template = env.get_template('stat_hist_class.html')
+                stat_hists = [
+                    'stat_hist_test_{test}_class_{cls}.png'.format(
+                        test=test, cls=c)
+                    for test in range(s)]
+                out.write(template.render(
+                        job=self.job,
+                        stat_hists=stat_hists,
+                        condition_num=c,
+                        ))
+
+        with open('index.html', 'w') as out:
+            template = env.get_template('index.html')
+        
+            out.write(template.render(
+                    condition_nums=range(1, n),
+                    job=self.job))
+
+
+    def make_report_in_dir(self):        
+        stats = self.stats
+        output_dir = self.output_dir
+
+        stat_hists = []
+        (s, m, n) = np.shape(stats)
+    
+        maxstat = np.max(stats)
+        minstat = np.min(stats)
+
+        raw_conf_plots = []
 
         for c in range(1, n):
             plt.cla()

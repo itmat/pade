@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+from report import Report
 import core
 import re
 import argparse
@@ -519,6 +520,7 @@ def get_arguments():
     report.add_argument(
         '--schema',
         help="""Location of schema file""",
+        type=file,
         default=DEFAULT_SCHEMA)
 
     report.set_defaults(func=do_report)
@@ -597,7 +599,14 @@ def print_counts_by_confidence(breakdown, condition_names):
 
 
 def do_report(args):
-    job = core.Job(args.infile, args.schema)
+    schema = Schema.load(args.schema, args.infile)
+    job = core.Job(args.infile, schema)
+
+    results = core.load_results('page_output')
+    report = Report(job, 'page_output', results)
+    report.make_report()
+    
+    return
 
     gene_conf_u = np.load("gene_conf_u.npy")
     gene_conf_u = np.load("gene_conf_u.npy")
