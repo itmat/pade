@@ -1,0 +1,27 @@
+<html>
+  <head>
+    <title>PaGE Output</title>
+  </head>
+
+  <body>
+
+    <h2>Distribution of statistic values</h2>
+
+    <h3>By class:</h3>
+    
+    <ol>
+      {% for c in condition_nums: %}
+      <li>
+        <a href="stat_hist_class_{{ c }}.html">{{ job.condition_names[c] }}</a>
+      </li>
+      {% endfor %}
+    </ol>
+    
+    <h2>Features by confidence level</h2>
+      
+    {% for condition in condition_nums: %}
+    {% include 'conf_levels.html' %}
+    {% endfor %}
+
+  </body>
+</html>

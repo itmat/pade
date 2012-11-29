@@ -25,6 +25,7 @@ def ensure_decreases(a):
 class Report:
     def __init__(self, job, output_dir, results):
         self.job           = job
+        self.results       = results
         self.output_dir    = output_dir
         self.stats         = results.stats
         self.conf_levels   = results.conf_levels
@@ -90,6 +91,7 @@ class Report:
         
             out.write(template.render(
                     condition_nums=range(1, n),
+                    results=self.results,
                     job=self.job))
 
 

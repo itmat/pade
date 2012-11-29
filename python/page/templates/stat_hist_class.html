@@ -1,0 +1,16 @@
+<html>
+  <head>
+    <title>PaGE | Histograms for class {{ job.condition_names[condition_num] }}</title>
+  </head>
+
+  <body>
+
+    <h2>Distribution of statistic values</h2>
+
+    <h3>By class:</h3>
+
+    {% for hist in stat_hists: %}
+    <img src="{{ hist }}" width="400"></img>
+    {% endfor %}
+  </body>
+</html>
