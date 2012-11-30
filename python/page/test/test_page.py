@@ -127,9 +127,9 @@ class PageTest(unittest.TestCase):
         for i in range(len(page.TUNING_PARAM_RANGE_VALUES)):
             tests = [Tstat(a * page.TUNING_PARAM_RANGE_VALUES[i])
                      for a in unpermuted_stats.alpha_default]
-            stats[i] = page.unpermuted_stats(job, tests)
+            stats[i] = np.swapaxes(page.unpermuted_stats(job, tests), 0, 1)
             self.assertTrue(all(abs(unpermuted_stats.stats[i] - stats[i]) < 0.00001))
-        edges = page.uniform_bins(1001, unpermuted_stats.stats)
+        edges = page.uniform_bins(1001, np.swapaxes(unpermuted_stats.stats, 1, 2))
 
         for i in range(len(page.TUNING_PARAM_RANGE_VALUES)):
             # Copied from unpermuted_stats
@@ -137,10 +137,9 @@ class PageTest(unittest.TestCase):
 
             expected_u = np.copy(unpermuted_stats.dist_up[i])
             (n, p) = shape(expected_u)
+            expected_u = np.swapaxes(expected_u, 0, 1)
             for idx in np.ndindex((n)):
                 expected_u[idx] = page.accumulate_bins(expected_u[idx])
-
-            expected_u = np.swapaxes(expected_u, 0, 1)
 
             self.assertEqual(shape(u), shape(expected_u))
 
@@ -169,10 +168,10 @@ class PageTest(unittest.TestCase):
 
         results = page.do_confidences_by_cutoff(job, alphas, 1000)
 
-        u_diffs = results.up.raw_conf - np.swapaxes(conf_bins_up_down.conf_up, 1, 2)
+        u_diffs = results.up.raw_conf - conf_bins_up_down.conf_up
         print "Up diffs are " + str(u_diffs)
 
-        self.assertTrue(np.all(results.up.raw_conf - np.swapaxes(conf_bins_up_down.conf_up, 1, 2) < 0.00001))
+        self.assertTrue(np.all(results.up.raw_conf - conf_bins_up_down.conf_up < 0.00001))
 
 
         # TODO: Restore down

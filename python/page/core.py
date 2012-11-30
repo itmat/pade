@@ -7,9 +7,12 @@ M is the number of features
 N is the number of conditions
 N_i is the number of replicates in the ith condition
 
-h is the number of bins
-r is the number of permutations
-s is the number of tuning param range values
+H is the number of bins
+R is the number of permutations
+T is the number of tests
+L is the number of confidence levels
+
+
 
 Plot:
 
@@ -96,14 +99,14 @@ class DirectionalResults:
     @property
     def best_counts(self):
         # Num tests, num conf levels, num conditions
-        (S, L, N) = np.shape(self.conf_to_count)
+        (S, N, L) = np.shape(self.conf_to_count)
                 
         res = np.zeros((L, N))
 
-        for l in range(L):
-            for c in range(N):
-                test_idx = self.best_params[l, c]
-                res[l, c] = self.conf_to_count[test_idx, l, c]
+        for c in range(N):
+            for l in range(L):
+                test_idx = self.best_params[c, l]
+                res[l, c] = self.conf_to_count[test_idx, c, l]
         return res
 
 
@@ -251,23 +254,22 @@ def summarize_confidence(levels, unperm_counts, raw_conf, bins):
 
     return (conf_to_stat, conf_to_count)
 
-def pick_alphas(conf_to_count):
-    
-    (num_params, num_levels, num_conditions) = np.shape(conf_to_count)
-    
-    res = np.zeros((num_levels, num_conditions), int)
+def pick_alphas(conf_to_count, axis=0):
+    """Find the tests that maximize the counts.
 
-    for c in range(num_conditions):
-        for i in range(num_levels):
-            res[i, c] = np.argmax(conf_to_count[:, i, c])
-    return res
+    Given an ndarray that gives counts for different statistical
+    tests, return the indexes of the tests that maximize the counts.
+
+    """
+    return np.argmax(conf_to_count, axis=0)
+
 
 def find_default_alpha(job):
     """
     Return a default value for alpha, using the given data table and
     condition layout.
-    """
 
+    """
     baseline_cols = job.conditions[0]
     baseline_data = job.table[:,baseline_cols]
 
@@ -298,8 +300,8 @@ def all_subsets(n, k):
     array([[ True,  True, False],
            [ True, False,  True],
            [False,  True,  True]], dtype=bool)
-    """
 
+    """
     indexes = np.arange(n)
     combinations = list(itertools.combinations(indexes, k))
     result = np.zeros((len(combinations), n), dtype=bool)
@@ -328,16 +330,13 @@ def accumulate_bins(bins):
 
 
 def get_perm_counts(job, unperm_stats, tests, edges):
-    """
 
-    Returns two m x n arrays
-    """
+    (M, N) = np.shape(unperm_stats)
 
-    (m, n) = np.shape(unperm_stats)
     all_perms = init_perms(job.conditions)
 
     shape = list(np.shape(edges))
-    shape[0] -= 1
+    shape[1] -= 1
     res = np.zeros(shape)
 
     n  = len(job.conditions)
@@ -354,27 +353,24 @@ def get_perm_counts(job, unperm_stats, tests, edges):
         
         # This is the list of all indexes into table for
         # replicates of condition 0 and condition c.
-        master_indexes = np.zeros((n0 + nc), dtype=int)
-        master_indexes[:n0] = job.conditions[0]
-        master_indexes[n0:] = job.conditions[c]
+        master_indexes = np.concatenate(
+            (job.conditions[0],
+             job.conditions[c]))
         
         for perm_num, perm in enumerate(perms):
-
             v1 = job.table[:, master_indexes[perm]]
             v2 = job.table[:, master_indexes[~perm]]
-
             stats = tests[c].compute((v2, v1))
+            res[c] += cumulative_hist(stats, edges[c])
 
-            (hist, ignore) = np.histogram(stats, edges[:, c])
-            res[:, c] = res[:, c] + accumulate_bins(hist)
-
-        res[:, c] = res[:, c] / float(len(all_perms[c]))
-
-        plt.plot(edges[1:, c], res[:, c])
-    plt.savefig('new_unperm_counts')
+        res[c] = res[c] / float(len(all_perms[c]))
 
     return res
 
+
+def cumulative_hist(values, bins):
+    (hist, ignore) = np.histogram(values, bins)
+    return accumulate_bins(hist)
 
 def get_unperm_counts(unperm_stats, edges):
 
@@ -389,32 +385,30 @@ def get_unperm_counts(unperm_stats, edges):
     TODO: We should be able to make the dimensionality of this
     function flexible.
     """
-    
+
     (M, N) = np.shape(unperm_stats)
     shape = list(np.shape(edges))
-    shape[0] -= 1
+    shape[1] -= 1
     res = np.zeros(shape)
 
-    for c in range(1, N):
-
-        (hist, ignore) = np.histogram(unperm_stats[:, c], bins=edges[:, c])
-        res[:, c] = accumulate_bins(hist)
+    for c in range(1, M):
+        res[c] = cumulative_hist(unperm_stats[c], edges[c])
 
     return res
 
 def uniform_bins(num_bins, stats):
 
     (S, M, N) = np.shape(stats)
-    bins = np.zeros((S, num_bins + 1, N))
+    bins = np.zeros((S, M, num_bins + 1))
     for i in range(S):
-        for c in range(1, N):
-            maxval = np.max(stats[i, :, c])
-            bins[i, :num_bins, c] = np.linspace(0, maxval, num_bins)
-            bins[i, num_bins,  c] = np.inf
+        for c in range(1, M):
+            maxval = np.max(stats[i, c, :])
+            bins[i, c, :num_bins] = np.linspace(0, maxval, num_bins)
+            bins[i, c, num_bins] = np.inf
             # TODO: The original PaGE used -inf as the lowest edge,
             # and skipped over 0. Should we add in another range from
             # -inf to 0?
-            bins[i, 0, c] = - np.inf
+            bins[i, c, 0] = - np.inf
 
     return bins
 
@@ -441,9 +435,10 @@ def custom_bins(unperm_stats):
             bins[i, m + 1, c] = np.inf
     return bins
 
-def raw_confidence_scores(unperm_counts, perm_counts, bins):
+def raw_confidence_scores(unperm_counts, perm_counts, bins, N):
 
     logging.debug("Shape of counts is " + str(np.shape(unperm_counts)) + ", bins is " + str(np.shape(bins)))
+
     shape = np.shape(unperm_counts)
     res = np.zeros(shape)
     for idx in np.ndindex(shape):
@@ -452,10 +447,181 @@ def raw_confidence_scores(unperm_counts, perm_counts, bins):
 
         R = float(unperm_counts[idx])
         if R > 0:
-            V = R - adjust_num_diff(perm_counts[idx], R, shape[1])
+            V = R - adjust_num_diff(perm_counts[idx], R, N)
             res[idx] = V / R
     return res
                 
+
+def do_confidences_by_cutoff(job, default_alphas, num_bins):
+
+    table      = job.table
+    conditions = job.conditions
+
+    s = len(TUNING_PARAM_RANGE_VALUES)
+    n = len(conditions)
+    m = len(table)
+
+
+
+    # Unperm stats gives the value of the statistic for each test, for
+    # each feature, in each condition.
+    unperm_stats = np.zeros((len(TUNING_PARAM_RANGE_VALUES),
+                             len(conditions),
+                             len(table)))
+
+    print "Getting stats for unpermuted data"
+    for i, alpha_mul in enumerate(TUNING_PARAM_RANGE_VALUES):
+
+        tests = [Tstat(a * alpha_mul) for a in default_alphas]
+
+        print "    Getting unpermuted statistics"
+        # Now get the statistic for the unpermuted data
+        unperm_stats[i] = unpermuted_stats(job, tests)
+
+#    edges = custom_bins(unperm_stats)
+    edges = uniform_bins(1001, unperm_stats)
+
+    num_bins = np.shape(edges)[-1]
+    print "Shape of edges is " + str(np.shape(edges))
+    perm_counts = np.zeros((len(TUNING_PARAM_RANGE_VALUES),
+                            len(conditions),
+                            num_bins - 1))
+           
+    unperm_counts = np.zeros_like(perm_counts)
+
+    print "Getting counts for permuted data"
+    for i, alpha_mul in enumerate(TUNING_PARAM_RANGE_VALUES):
+
+        tests = [Tstat(a * alpha_mul) for a in default_alphas]
+        perm_counts[i] = get_perm_counts(job, unperm_stats[i], tests, edges[i])
+        unperm_counts[i] = get_unperm_counts(unperm_stats[i], edges[i])
+
+    print "Getting raw confidence scores in {num_edges} edges".format(
+        num_edges=np.shape(edges)[1])
+    raw_conf = raw_confidence_scores(unperm_counts, perm_counts, edges, len(table))
+
+    levels = np.linspace(0.5, 0.95, 10)
+
+    conf_to_stat  = np.zeros((s, n, len(levels)))
+    conf_to_count = np.zeros((s, n, len(levels)))
+
+    print "Summarizing confidence scores for {num_levels} levels".format(
+        num_levels=len(levels))
+    for i in range(s):
+        for c in range(n):
+            (conf_to_stat_, conf_to_count_) = summarize_confidence(levels, unperm_counts[i, :, c], raw_conf[i, c:, c], edges[i, :, c])
+            conf_to_count[i, c] = conf_to_count_
+            conf_to_stat[i, c] = conf_to_stat_
+
+    print "Picking statistics that maximize power"
+    best_params = pick_alphas(conf_to_count)
+
+    up = DirectionalResults(
+        unperm_counts,
+        raw_conf, 
+        conf_to_count,
+        best_params)
+    
+    return IntermediateResults(
+        default_alphas, unperm_stats, levels, up)        
+
+
+def plot_cumulative(data):
+    (m, n) = np.shape(data)
+    plt.clf()
+    for c in range(1, n):
+        col = sorted(data[:, c])
+        plt.plot(col, np.arange(m))
+    plt.savefig("cumulative")
+
+
+def ensure_increases(a):
+    """Given an array, return a copy of it that is monotonically
+    increasing."""
+
+    for i in range(len(a) - 1):
+        a[i+1] = max(a[i], a[i+1])
+
+
+def get_count_by_conf_level(gene_conf, ranges):
+
+    (num_range_values, num_genes, num_conditions) = np.shape(gene_conf)
+    shape = (num_range_values, num_conditions, len(ranges))
+
+    u_by_conf   = np.zeros(shape)
+    
+    for i in range(num_range_values):
+        for j in range(num_conditions):
+            up_conf   = gene_conf  [i, :, j]
+            for (k, level) in enumerate(ranges):
+                u_by_conf  [i, j, k] = len(up_conf  [up_conf   > level])
+
+    return u_by_conf
+
+
+def adjust_num_diff(V0, R, num_ids):
+    V = np.zeros(6)
+    V[0] = V0
+    for i in range(1, 6):
+        V[i] = V[0] - V[0] / num_ids * (R - V[i - 1])
+    return V[5];
+
+
+def assign_bins(vals, num_bins, minval, maxval):
+    """
+    Computes two np.histograms for the given values.
+    """
+    u_bins = get_bins(num_bins + 1,  maxval)
+    d_bins = get_bins(num_bins + 1, -minval)
+
+    (u_hist, u_edges) = np.histogram( vals, u_bins)
+    (d_hist, d_edges) = np.histogram(-vals, d_bins)
+    u_hist[0] += len(vals[vals < 0.0])
+    d_hist[0] += len(vals[vals > 0.0])
+
+    return (accumulate_bins(u_hist),
+            accumulate_bins(d_hist))
+
+def unpermuted_stats(job, statfns):
+
+    stats = np.zeros((len(job.conditions),
+                      len(job.table)))
+                      
+    for c in range(1, len(job.conditions)):
+        v1 = job.table[:, job.conditions[0]]
+        v2 = job.table[:, job.conditions[c]]
+        stats[c] = statfns[c].compute((v2, v1))
+
+    return stats
+
+
+
+#### TODO: Delete me
+
+def get_gene_confidences(unperm_stats, mins, maxes, conf_bins_u, conf_bins_d):
+    """Returns a pair of 3D arrays: gene_conf_u and
+    gene_conf_d. gene_conf_u[i, j, k] indicates the confidence
+    with which gene j is upregulated in condition k using the ith
+    alpha multiplier. gene_conf_d does the same thing for
+    down-regulation."""
+
+    num_bins    = np.shape(conf_bins_u)[-1] - 1
+    gene_conf_u = np.zeros(np.shape(unperm_stats))
+    gene_conf_d = np.zeros(np.shape(unperm_stats))
+
+    for idx in np.ndindex(np.shape(unperm_stats)):
+        (j, c) = idx
+        if c == 0:
+            continue
+        if unperm_stats[idx] >= 0:			
+            binnum = int(num_bins * unperm_stats[idx] / maxes[c])
+            gene_conf_u[idx] = conf_bins_u[c, binnum]
+        else:
+            binnum = int(num_bins * unperm_stats[idx] / mins[c])
+            gene_conf_d[idx] = conf_bins_d[c, binnum]
+
+    return (gene_conf_u, gene_conf_d)
+
 
 def fdr(unperm_stats, unperm_counts, perm_counts, bins):
 
@@ -525,268 +691,4 @@ def make_confidence_bins(unperm, perm, num_features):
 
     return conf_bins
 
-
-def do_confidences_by_cutoff(job, default_alphas, num_bins):
-
-    table      = job.table
-    conditions = job.conditions
-
-    s = len(TUNING_PARAM_RANGE_VALUES)
-    n = len(conditions)
-    m = len(table)
-
-    print "Getting stats for unpermuted data"
-
-    # Unperm stats gives the value of the statistic for each test, for
-    # each feature, in each condition.
-    unperm_stats = np.zeros((len(TUNING_PARAM_RANGE_VALUES),
-                             len(table),
-                             len(conditions)))
-
-    "Trying {num_tests} different statistics".format(
-        num_tests=len(TUNING_PARAM_RANGE_VALUES))
-    for i, alpha_mul in enumerate(TUNING_PARAM_RANGE_VALUES):
-        print "  Trying alpha multiplier " + str(alpha_mul)
-
-        tests = [Tstat(a * alpha_mul) for a in default_alphas]
-
-        print "    Getting unpermuted statistics"
-        # Now get the statistic for the unpermuted data
-        unperm_stats[i] = unpermuted_stats(job, tests)
-
-#    edges = custom_bins(unperm_stats)
-    edges = uniform_bins(1001, unperm_stats)
-
-    print "Num edges is " + str(np.shape(edges))
-    num_bins = np.shape(edges)[1]
-
-    perm_counts = np.zeros((len(TUNING_PARAM_RANGE_VALUES),
-                            num_bins - 1,
-                            len(conditions)))
-
-    unperm_counts = np.zeros((len(TUNING_PARAM_RANGE_VALUES),
-                              num_bins - 1,
-                              len(conditions)))
-
-    for i, alpha_mul in enumerate(TUNING_PARAM_RANGE_VALUES):
-        print "  Trying alpha multiplier " + str(alpha_mul)
-
-        tests = [Tstat(a * alpha_mul) for a in default_alphas]
-        print "    Getting counts of stats on permuted data"
-        perm_counts[i] = get_perm_counts(job, unperm_stats[i], tests, edges[i])
-        print "    and counts on unpermuted data"
-        unperm_counts[i] = get_unperm_counts(unperm_stats[i], edges[i])
-
-    print "Getting raw confidence scores in {num_edges} edges".format(
-        num_edges=np.shape(edges)[1])
-    raw_conf = raw_confidence_scores(unperm_counts, perm_counts, edges)
-
-    levels = np.linspace(0.5, 0.95, 10)
-
-    conf_to_stat  = np.zeros((s, len(levels), n))
-    conf_to_count = np.zeros((s, len(levels), n))
-
-    print "Summarizing confidence scores for {num_levels} levels".format(
-        num_levels=len(levels))
-    for i in range(s):
-        for c in range(n):
-            (conf_to_stat_, conf_to_count_) = summarize_confidence(levels, unperm_counts[i, :, c], raw_conf[i, :, c], edges[i, :, c])
-            conf_to_count[i, :, c] = conf_to_count_
-            conf_to_stat[i, :, c] = conf_to_stat_
-
-    print "Picking statistics that maximize power"
-    best_params = pick_alphas(conf_to_count)
-
-    up = DirectionalResults(
-        unperm_counts,
-        raw_conf, 
-        conf_to_count,
-        best_params)
-    
-    return IntermediateResults(
-        default_alphas, unperm_stats, levels, up)        
-
-
-def plot_cumulative(data):
-    (m, n) = np.shape(data)
-    plt.clf()
-    for c in range(1, n):
-        col = sorted(data[:, c])
-        plt.plot(col, np.arange(m))
-    plt.savefig("cumulative")
-
-
-def ensure_increases(a):
-    """Given an array, return a copy of it that is monotonically
-    increasing."""
-
-    for i in range(len(a) - 1):
-        a[i+1] = max(a[i], a[i+1])
-
-
-def get_count_by_conf_level(gene_conf, ranges):
-
-    (num_range_values, num_genes, num_conditions) = np.shape(gene_conf)
-    shape = (num_range_values, num_conditions, len(ranges))
-
-    u_by_conf   = np.zeros(shape)
-    
-    for i in range(num_range_values):
-        for j in range(num_conditions):
-            up_conf   = gene_conf  [i, :, j]
-            for (k, level) in enumerate(ranges):
-                u_by_conf  [i, j, k] = len(up_conf  [up_conf   > level])
-
-    return u_by_conf
-
-
-def get_gene_confidences(unperm_stats, mins, maxes, conf_bins_u, conf_bins_d):
-    """Returns a pair of 3D arrays: gene_conf_u and
-    gene_conf_d. gene_conf_u[i, j, k] indicates the confidence
-    with which gene j is upregulated in condition k using the ith
-    alpha multiplier. gene_conf_d does the same thing for
-    down-regulation."""
-
-    num_bins    = np.shape(conf_bins_u)[-1] - 1
-    gene_conf_u = np.zeros(np.shape(unperm_stats))
-    gene_conf_d = np.zeros(np.shape(unperm_stats))
-
-    for idx in np.ndindex(np.shape(unperm_stats)):
-        (j, c) = idx
-        if c == 0:
-            continue
-        if unperm_stats[idx] >= 0:			
-            binnum = int(num_bins * unperm_stats[idx] / maxes[c])
-            gene_conf_u[idx] = conf_bins_u[c, binnum]
-        else:
-            binnum = int(num_bins * unperm_stats[idx] / mins[c])
-            gene_conf_d[idx] = conf_bins_d[c, binnum]
-
-    return (gene_conf_u, gene_conf_d)
-
-
-def adjust_num_diff(V0, R, num_ids):
-    V = np.zeros(6)
-    V[0] = V0
-    for i in range(1, 6):
-        V[i] = V[0] - V[0] / num_ids * (R - V[i - 1])
-    return V[5];
-
-
-def assign_bins(vals, num_bins, minval, maxval):
-    """
-    Computes two np.histograms for the given values.
-    """
-    u_bins = get_bins(num_bins + 1,  maxval)
-    d_bins = get_bins(num_bins + 1, -minval)
-
-    (u_hist, u_edges) = np.histogram( vals, u_bins)
-    (d_hist, d_edges) = np.histogram(-vals, d_bins)
-    u_hist[0] += len(vals[vals < 0.0])
-    d_hist[0] += len(vals[vals > 0.0])
-
-    return (accumulate_bins(u_hist),
-            accumulate_bins(d_hist))
-
-def unpermuted_stats(job, statfns):
-
-    stats = np.zeros((len(job.table), len(job.conditions)))
-
-    for c in range(1, len(job.conditions)):
-        v1 = job.table[:, job.conditions[0]]
-        v2 = job.table[:, job.conditions[c]]
-        stats[:, c] = statfns[c].compute((v2, v1))
-
- #       (u[c], d[c]) = assign_bins(stats[:, c], num_bins, mins[c], maxes[c])
-
-    return stats
-
-#################################################
-###
-### These functions will go away
-###
-
-def get_permuted_means(job, mins, maxes, tests, num_bins=1000):
-    all_perms = init_perms(job.conditions)
-
-    h  = num_bins
-    n  = len(job.conditions)
-    n0 = len(job.conditions[0])
-
-    # conditions x bins, typically 10 2 x 1000 = 2000. Not too big.
-    mean_perm_u = np.zeros((n, h + 1))
-    mean_perm_d = np.zeros((n, h + 1))
-
-    for c in range(1, n):
-        logging.info('    Working on condition %d of %d' % (c, n - 1))
-        perms = all_perms[c]
-        r  = len(perms)
-        nc = len(job.conditions[c])
-        
-        # This is the list of all indexes into table for
-        # replicates of condition 0 and condition c.
-        master_indexes = np.zeros((n0 + nc), dtype=int)
-        master_indexes[:n0] = job.conditions[0]
-        master_indexes[n0:] = job.conditions[c]
-        
-        # Histogram is (permutations x bins)
-        hist_u = np.zeros((r, h + 1), int)
-        hist_d = np.zeros((r, h + 1), int)
-
-        for perm_num, perm in enumerate(perms):
-
-            v1 = job.table[:, master_indexes[perm]]
-            v2 = job.table[:, master_indexes[~perm]]
-
-            stats = tests[c].compute((v2, v1))
-            (hist_u[perm_num], hist_d[perm_num]) = assign_bins(stats, h, mins[c], maxes[c])
-
-        # Bin 0 is for features that were downregulated (-inf, 0) Bins
-        # 1 through 999 are for features that were upregulated Bin
-        # 1000 is for any features that were upregulated above the max
-        # from the unmpermuted data (max, inf)
-
-        mean_perm_u[c] = np.mean(hist_u, axis=0)
-        mean_perm_d[c] = np.mean(hist_d, axis=0)
-        
-
-    for c in range(1, n):
-        y = mean_perm_u[c]
-        x = range(len(y))
-        plt.plot(x[500:], y[500:])
-
-    plt.savefig('mean_perm_u')
-    plt.xlabel('bin')
-    plt.ylabel('up-regulated features')
-    
-    return (mean_perm_u, mean_perm_d)
-
-
-def proportions(numer, denom):
-    (m, n) = np.shape(numer)
-
-    prop_u = np.zeros((m, n))
-    prop_d = np.zeros((m, n))
-
-    for c in range(1, n):
-        prop_u[:, c] = numer[:, c] / np.max(denom[:, c])
-        prop_d[:, c] = numer[:, c] / np.min(denom[:, c])
-
-    prop_u[prop_u < 0] = 0.0
-    prop_d[prop_d < 0] = 0.0
-    return (prop_u, prop_d)
-
-def perm_propertions(perm_stats, unperm_stats):
-    (m, n) = np.shape(unperm_stats)
-
-    prop_u = np.zeros((m, n))
-    prop_d = np.zeros((m, n))
-
-    for c in range(1, n):
-        prop_u[:, c] = col / np.max(col)
-        prop_d[:, c] = col / np.min(col)
-
-    prop_u[prop_u < 0] = 0.0
-    prop_d[prop_d < 0] = 0.0
-    return (prop_u, prop_d)
 

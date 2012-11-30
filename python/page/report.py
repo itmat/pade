@@ -135,7 +135,7 @@ class Report:
 #                plt.plot(x, y,
 #                         label='Test {test}'.format(test=i))
 
-                x = self.conf_to_count[i, :, c]
+                x = self.conf_to_count[i, c]
                 y = self.conf_levels
 
                 plt.plot(x, y,
