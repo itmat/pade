@@ -10,7 +10,7 @@
   <tr>
     <td>{{level}}</td>
     <td>{{results.up.best_params[loop.index0, condition]}}</td>
-    <td>{{results.up.conf_to_count[results.up.best_params[loop.index0, condition], loop.index0, condition]}}</td>
+    <td>{{results.up.best_counts[loop.index0, condition]}}</td>
   </tr>
   {% endfor %}
 </table>

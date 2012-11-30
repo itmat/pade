@@ -59,6 +59,7 @@ class Report:
 
         raw_conf_plots = []
 
+        print "Plotting histograms"
         for i in range(s):
             for c in range(1, n):
                 filename = 'stat_hist_test_{test}_class_{cls}.png'.format(
@@ -72,6 +73,7 @@ class Report:
                 plt.savefig(filename) 
                 stat_hists.append(filename)
 
+        print "Making stat hist pages"
         classes = []
         for c in range(1, n):
             with open('stat_hist_class_{cls}.html'.format(cls=c), 'w') as out:
@@ -86,6 +88,7 @@ class Report:
                         condition_num=c,
                         ))
 
+        print "Making index"
         with open('index.html', 'w') as out:
             template = env.get_template('index.html')
         
@@ -110,8 +113,6 @@ class Report:
         for c in range(1, n):
             plt.cla()
             filename = 'raw_conf_class_{cls}.png'.format(cls=c)
-
-            best_params = self.best_params[:, c]
 
             param_idxs = self.best_params[:, c]
             
