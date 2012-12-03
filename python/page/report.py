@@ -52,7 +52,7 @@ class Report:
         output_dir = self.output_dir
 
         stat_hists = []
-        (s, m, n) = np.shape(stats)
+        (s, C, n) = np.shape(stats)
     
         maxstat = np.max(stats)
         minstat = np.min(stats)
@@ -61,11 +61,11 @@ class Report:
 
         print "Plotting histograms"
         for i in range(s):
-            for c in range(1, n):
+            for c in range(1, C):
                 filename = 'stat_hist_test_{test}_class_{cls}.png'.format(
                     test=i, cls=c)
                 plt.cla()
-                plt.hist(stats[i, :, c], bins=50)
+                plt.hist(stats[i, c], bins=50)
                 plt.xlim([minstat, maxstat])
                 plt.xlabel('Statistic')
                 plt.xlabel('Features')
@@ -75,7 +75,7 @@ class Report:
 
         print "Making stat hist pages"
         classes = []
-        for c in range(1, n):
+        for c in range(1, C):
             with open('stat_hist_class_{cls}.html'.format(cls=c), 'w') as out:
                 template = env.get_template('stat_hist_class.html')
                 stat_hists = [
@@ -93,7 +93,7 @@ class Report:
             template = env.get_template('index.html')
         
             out.write(template.render(
-                    condition_nums=range(1, n),
+                    condition_nums=range(1, C),
                     results=self.results,
                     job=self.job))
 

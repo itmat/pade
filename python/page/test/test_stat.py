@@ -12,7 +12,7 @@ class StatTest(unittest.TestCase):
 
         v1 = np.array(v1)
         v2 = np.array(v2)
-        alpha = 1.62026604316528 * page.TUNING_PARAM_RANGE_VALUES[4]
+        alpha = 1.62026604316528 * Tstat.TUNING_PARAM_RANGE_VALUES[4]
         stat = Tstat(alpha)
         result = stat.compute((v1, v2))
         print result

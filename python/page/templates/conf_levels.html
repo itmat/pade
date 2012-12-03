@@ -9,8 +9,8 @@
   {% for level in results.conf_levels: %}
   <tr>
     <td>{{level}}</td>
-    <td>{{results.up.best_params[loop.index0, condition]}}</td>
-    <td>{{results.up.best_counts[loop.index0, condition]}}</td>
+    <td>{{results.up.best_params[condition, loop.index0]}}</td>
+    <td>{{results.up.best_counts[condition, loop.index0]}}</td>
   </tr>
   {% endfor %}
 </table>

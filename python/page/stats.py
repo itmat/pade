@@ -1,6 +1,24 @@
 import numpy as np
 
 class Tstat(object):
+
+    TUNING_PARAM_RANGE_VALUES = np.array([
+            0.0001,
+            0.01,
+            0.1,
+            0.3,
+            0.5,
+            1.0,
+            1.5,
+            2.0,
+            3.0,
+            10,
+            ])
+
+    #TUNING_PARAM_RANGE_VALUES = np.array([0.5])
+    
+    #TUNING_PARAM_RANGE_VALUES = np.array([0.0001, 0.5, 10])
+
     
     def __init__(self, alpha):
         self.alpha = alpha
