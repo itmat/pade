@@ -151,6 +151,8 @@ class DirectionalResults:
 
 class Job(object):
 
+    levels = np.linspace(0.5, 0.95, 10)
+
     def __init__(self, fh=None, schema=None):
         self.infile = fh
         self.schema = schema
@@ -514,17 +516,14 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
         num_edges=np.shape(edges)[-1])
     raw_conf = raw_confidence_scores(unperm_counts, perm_counts, edges, len(table))
 
-    levels = np.linspace(0.5, 0.95, 10)
-
-    conf_to_stat  = np.zeros(base_shape + (len(levels),))
-    conf_to_count = np.zeros(base_shape + (len(levels),))
+    conf_to_stat  = np.zeros(base_shape + (len(job.levels),))
+    conf_to_count = np.zeros(base_shape + (len(job.levels),))
 
     print "Summarizing confidence scores for {num_levels} levels".format(
-        num_levels=len(levels))
+        num_levels=len(job.levels))
     for idx in np.ndindex(base_shape):
-        (conf_to_stat_, conf_to_count_) = summarize_confidence(levels, unperm_counts[idx], raw_conf[idx], edges[idx])
-        conf_to_count[idx] = conf_to_count_
-        conf_to_stat[idx] = conf_to_stat_
+        (conf_to_stat[idx], conf_to_count[idx]) = summarize_confidence(
+            job.levels, unperm_counts[idx], raw_conf[idx], edges[idx])
 
     print "Picking statistics that maximize power"
     best_params = pick_alphas(conf_to_count)
@@ -536,7 +535,7 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
         best_params)
     
     return IntermediateResults(
-        default_alphas, unperm_stats, levels, up)        
+        default_alphas, unperm_stats, job.levels, up)        
 
 
 def plot_cumulative(data):
