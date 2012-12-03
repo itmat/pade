@@ -113,7 +113,7 @@ class PageTest(unittest.TestCase):
         subsets = page.all_subsets(8, 4)
         self.assertEquals(shape(subsets), (70, 8))
 
-    def test_a_unpermuted_stats(self):
+    def test_unpermuted_stats(self):
         job = page.Job()
         job.table = unpermuted_stats.data
         job._conditions = [
@@ -122,14 +122,15 @@ class PageTest(unittest.TestCase):
             [ 8,  9, 10, 11],
             [12, 13, 14, 15]]
 
-        stats = np.zeros(np.shape(unpermuted_stats.stats))
+        expected_stats = np.swapaxes(np.copy(unpermuted_stats.stats), 1, 2)
+        stats = np.zeros_like(expected_stats)
 
         for i in range(len(page.TUNING_PARAM_RANGE_VALUES)):
             tests = [Tstat(a * page.TUNING_PARAM_RANGE_VALUES[i])
                      for a in unpermuted_stats.alpha_default]
-            stats[i] = np.swapaxes(page.unpermuted_stats(job, tests), 0, 1)
-            self.assertTrue(all(abs(unpermuted_stats.stats[i] - stats[i]) < 0.00001))
-        edges = page.uniform_bins(1001, np.swapaxes(unpermuted_stats.stats, 1, 2))
+            stats[i] = page.unpermuted_stats(job, tests)
+            self.assertTrue(all(abs(expected_stats[i] - stats[i]) < 0.00001))
+        edges = page.uniform_bins(1001, expected_stats)
 
         for i in range(len(page.TUNING_PARAM_RANGE_VALUES)):
             # Copied from unpermuted_stats
@@ -137,7 +138,7 @@ class PageTest(unittest.TestCase):
 
             expected_u = np.copy(unpermuted_stats.dist_up[i])
             (n, p) = shape(expected_u)
-            expected_u = np.swapaxes(expected_u, 0, 1)
+            # expected_u = np.swapaxes(expected_u, 0, 1)
             for idx in np.ndindex((n)):
                 expected_u[idx] = page.accumulate_bins(expected_u[idx])
 
@@ -149,9 +150,9 @@ class PageTest(unittest.TestCase):
             # different. I think this is just due to a floating point
             # error, and I don't think it's severe enough to worry
             # about.
-            u_diffs[1000, 1] = False
-            u_diffs[1000, 2] = False
-            u_diffs[1000, 3] = False
+            u_diffs[1, 1000] = False
+            u_diffs[2, 1000] = False
+            u_diffs[3, 1000] = False
 
             self.assertTrue(all(u_diffs == 0))
 

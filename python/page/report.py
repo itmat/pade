@@ -142,7 +142,7 @@ class Report:
                          linestyle='dashed',
                          label='Test {test} summary'.format(test=i))
 
-            plt.xlabel('Features up-regulated')
+            plt.xlabel('Features up-regulnated')
             plt.ylabel('Confidence (raw, may not be monotonically increasing)')
             plt.title("Raw confidence level by up-regulated features\nclass {cls}".format(cls=c))
             plt.ylim([np.min(self.conf_levels), np.max(self.conf_levels)])

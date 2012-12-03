@@ -3,9 +3,10 @@
 
 
 """
-M is the number of features
-N is the number of conditions
-N_i is the number of replicates in the ith condition
+M is the number of conditions
+M_i is the number of replicates in the ith condition
+N is the number of features
+
 
 H is the number of bins
 R is the number of permutations
@@ -385,7 +386,8 @@ def get_unperm_counts(unperm_stats, edges):
     TODO: We should be able to make the dimensionality of this
     function flexible.
     """
-
+    print "Shape of stats is " + str(np.shape(unperm_stats))
+    print "Shape of edges is " + str(np.shape(edges))
     (M, N) = np.shape(unperm_stats)
     shape = list(np.shape(edges))
     shape[1] -= 1
