@@ -1,16 +1,16 @@
 
-<h3>Confidence levels for {{ job.condition_names[condition] }}:</h3>
+<h3>Condition "{{ job.condition_names[condition] }}":</h3>
 <table>
   <tr>
-    <th>Level</th>
-    <th>Statistic</th>
-    <th>Up</th>
+    <th>Conf.</th>
+    <th>Num. Up</th>
+    <th>Num. Down</th>
   </tr>
   {% for level in results.conf_levels: %}
   <tr>
     <td>{{level}}</td>
-    <td>{{results.up.best_params[condition, loop.index0]}}</td>
     <td>{{results.up.best_counts[condition, loop.index0]}}</td>
+    <td>{{results.down.best_counts[condition, loop.index0]}}</td>
   </tr>
   {% endfor %}
 </table>

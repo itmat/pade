@@ -20,9 +20,8 @@ def ensure_decreases(a):
     for i in range(len(a) - 1):
         pass
 
-
-
 class Report:
+
     def __init__(self, job, output_dir, results):
         self.job           = job
         self.results       = results
@@ -35,6 +34,8 @@ class Report:
         self.conf_to_count = results.up.conf_to_count
         self.best_params   = results.up.best_params
 
+        self.plot_histograms = True
+
     def make_report(self):
         cwd = os.getcwd()
         print "Condition names are " + str(self.job.condition_names)
@@ -45,6 +46,7 @@ class Report:
             os.chdir(cwd)
 
 
+
     def make_jinja_report(self):
         env = Environment(loader=PackageLoader('page'))
 
@@ -52,41 +54,58 @@ class Report:
         output_dir = self.output_dir
 
         stat_hists = []
-        (s, C, n) = np.shape(stats)
+        (s, C, N) = np.shape(stats)
     
         maxstat = np.max(stats)
         minstat = np.min(stats)
 
         raw_conf_plots = []
 
-        print "Plotting histograms"
-        for i in range(s):
-            for c in range(1, C):
-                filename = 'stat_hist_test_{test}_class_{cls}.png'.format(
-                    test=i, cls=c)
-                plt.cla()
-                plt.hist(stats[i, c], bins=50)
-                plt.xlim([minstat, maxstat])
-                plt.xlabel('Statistic')
-                plt.xlabel('Features')
-                plt.title('Number of features by statistic, test {test}, class {cls}'.format(test=i, cls=self.job.condition_names[c]))
-                plt.savefig(filename) 
-                stat_hists.append(filename)
+        if self.plot_histograms:
+            print "Plotting histograms"
+            for i in range(s):
+                for c in range(1, C):
+                    filename = 'stat_hist_test_{test}_class_{cls}.png'.format(
+                        test=i, cls=c)
+                    plt.cla()
+                    plt.hist(stats[i, c], bins=50)
+                    plt.xlim([minstat, maxstat])
+                    plt.xlabel('Statistic')
+                    plt.xlabel('Features')
+                    plt.title('Number of features by statistic, test {test}, class {cls}'.format(test=i, cls=self.job.condition_names[c]))
+                    plt.savefig(filename) 
+                    stat_hists.append(filename)
 
-        print "Making stat hist pages"
-        classes = []
+            classes = []
+            for c in range(1, C):
+                with open('stat_hist_class_{cls}.html'.format(cls=c), 'w') as out:
+                    template = env.get_template('stat_hist_class.html')
+                    stat_hists = [
+                        'stat_hist_test_{test}_class_{cls}.png'.format(
+                            test=test, cls=c)
+                        for test in range(s)]
+                    out.write(template.render(
+                            job=self.job,
+                            stat_hists=stat_hists,
+                            condition_num=c,
+                            ))
+
+        colors = matplotlib.rcParams['axes.color_cycle']
+        plt.clf()
         for c in range(1, C):
-            with open('stat_hist_class_{cls}.html'.format(cls=c), 'w') as out:
-                template = env.get_template('stat_hist_class.html')
-                stat_hists = [
-                    'stat_hist_test_{test}_class_{cls}.png'.format(
-                        test=test, cls=c)
-                    for test in range(s)]
-                out.write(template.render(
-                        job=self.job,
-                        stat_hists=stat_hists,
-                        condition_num=c,
-                        ))
+            plt.plot(self.results.conf_levels,
+                     self.results.up.best_counts[c],
+                     colors[c] + '-^',
+                     label=self.job.condition_names[c] + ' up')
+            plt.plot(self.results.conf_levels,
+                     self.results.down.best_counts[c],
+                     colors[c] + '-v',
+                     label=self.job.condition_names[c] + ' down')
+        plt.legend()
+        plt.title('Differentially expressed features by confidence level')
+        plt.xlabel('Confidence')
+        plt.ylabel('Differentially expressed features')
+        plt.savefig('count_by_conf')
 
         print "Making index"
         with open('index.html', 'w') as out:
@@ -97,6 +116,44 @@ class Report:
                     results=self.results,
                     job=self.job))
 
+        print "Alphas is " + str(self.results.alphas)
+
+        level = 4
+
+        up_params = self.results.up.best_params[:, level]
+        down_params = self.results.down.best_params[:, level]
+
+        up_stats   = self.results.stats[(up_params,   np.arange(C))]
+        down_stats = self.results.stats[(down_params, np.arange(C))]
+
+        up_cutoffs = self.results.up.conf_to_stat[(up_params, np.arange(C), level)]
+        is_up = np.zeros(np.shape(up_stats), bool)
+        any_up = np.zeros(np.shape(up_stats)[1], bool)
+
+        for i in range(N):
+            is_up[:, i] = up_stats[:, i] >= up_cutoffs
+            any_up[i] = np.any(up_stats[1:, i] >= up_cutoffs[1:])
+
+        print "Conf:"
+        print self.results.up.raw_conf[1, 1]
+
+        with open('features_by_confidence.html', 'w') as out:
+            template = env.get_template('features_by_confidence.html')
+            out.write(
+                template.render(
+                    condition_nums=range(1, C),
+                    # TODO: Get this from the user
+                    up_cutoffs=up_cutoffs,
+                    level=4,
+                    feature_nums=range(len(self.job.table)),
+                    job=self.job,
+                    up_stats=up_stats,
+                    is_up=is_up,
+                    any_up=any_up,
+                    down_stats=down_stats,
+                    results=self.results))
+
+        
 
     def make_report_in_dir(self):        
         stats = self.stats

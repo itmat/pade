@@ -62,7 +62,7 @@ class IntermediateResults:
            features.
 
     """
-    def __init__(self, alphas, stats, conf_levels, up, down=None):
+    def __init__(self, alphas, stats, conf_levels, up, down):
         self.alphas = alphas
         self.stats  = stats
         self.conf_levels = conf_levels
@@ -78,8 +78,14 @@ class IntermediateResults:
             np.save('conf_levels', self.conf_levels)
             np.save('up_unperm_counts', self.up.unperm_counts)
             np.save('up_raw_conf', self.up.raw_conf)
+            np.save('up_conf_to_stat', self.up.conf_to_stat)
             np.save('up_conf_to_count', self.up.conf_to_count)
             np.save('up_best_params', self.up.best_params)
+            np.save('down_unperm_counts', self.down.unperm_counts)
+            np.save('down_raw_conf', self.down.raw_conf)
+            np.save('down_conf_to_stat', self.down.conf_to_stat)
+            np.save('down_conf_to_count', self.down.conf_to_count)
+            np.save('down_best_params', self.down.best_params)
 
         finally:
             os.chdir(cwd)
@@ -98,10 +104,17 @@ class IntermediateResults:
             up = DirectionalResults(
                 np.load('up_unperm_counts.npy'),
                 np.load('up_raw_conf.npy'),
+                np.load('up_conf_to_stat.npy'),
                 np.load('up_conf_to_count.npy'),
                 np.load('up_best_params.npy'))
+            down = DirectionalResults(
+                np.load('down_unperm_counts.npy'),
+                np.load('down_raw_conf.npy'),
+                np.load('down_conf_to_stat.npy'),
+                np.load('down_conf_to_count.npy'),
+                np.load('down_best_params.npy'))
 
-            return IntermediateResults(alphas, stats, conf_levels, up)
+            return IntermediateResults(alphas, stats, conf_levels, up, down)
         
         finally:
             os.chdir(cwd)
@@ -129,9 +142,10 @@ class DirectionalResults:
     """
 
 
-    def __init__(self, unperm_counts, raw_conf, conf_to_count, best_params):
+    def __init__(self, unperm_counts, raw_conf, conf_to_stat, conf_to_count, best_params):
         self.unperm_counts = unperm_counts
         self.raw_conf = raw_conf
+        self.conf_to_stat = conf_to_stat
         self.conf_to_count = conf_to_count
         self.best_params = best_params
 
@@ -262,20 +276,29 @@ def summarize_confidence(levels, unperm_counts, raw_conf, bins):
     Return the lowest statistic at which the confidence level is greater or equal to conf.
 
     """
-    conf_to_stat  = np.zeros(len(levels))
-    conf_to_count = np.zeros(len(levels))
+
+    base_shape = np.shape(unperm_counts)[:-1]
+
+    conf_to_stat  = np.zeros(base_shape + (len(levels),))
+    conf_to_count = np.zeros(base_shape + (len(levels),), int)
 
     logging.debug("Shape of raw conf is " + str(np.shape(raw_conf)))
-    for i, level in enumerate(levels):
-        ceil = 1.0 if i == len(levels) - 1 else levels[i + 1] 
-        idxs = np.nonzero(
-            np.bitwise_and(
-                raw_conf >= level,
-                raw_conf <  ceil))
 
-        if len(bins[idxs]) > 0:
-            conf_to_stat[i] = bins[idxs][0]
-            conf_to_count[i] = unperm_counts[idxs][0]
+    for idx in np.ndindex(base_shape):
+
+        counts = unperm_counts[idx]
+        these_bins = bins[idx]
+
+        for i, level in enumerate(levels):
+            ceil = 1.0 if i == len(levels) - 1 else levels[i + 1] 
+            idxs = np.nonzero(
+                np.bitwise_and(
+                    raw_conf[idx] >= level,
+                    raw_conf[idx] <  ceil))
+
+            if len(these_bins[idxs]) > 0:
+                conf_to_stat[idx + (i,)]  = these_bins[idxs][0]
+                conf_to_count[idx + (i,)] = counts[idxs][0]
 
     return (conf_to_stat, conf_to_count)
 
@@ -415,7 +438,7 @@ def get_unperm_counts(unperm_stats, edges):
     (M, N) = np.shape(unperm_stats)
     shape = list(np.shape(edges))
     shape[1] -= 1
-    res = np.zeros(shape)
+    res = np.zeros(shape, int)
 
     for c in range(1, M):
         res[c] = cumulative_hist(unperm_stats[c], edges[c])
@@ -472,23 +495,22 @@ def raw_confidence_scores(unperm_counts, perm_counts, bins, N):
             V = R - adjust_num_diff(perm_counts[idx], R, N)
             res[idx] = V / R
     return res
-                
-
+      
+          
 def do_confidences_by_cutoff(job, default_alphas, num_bins):
 
-    table      = job.table
-    conditions = job.conditions
+    # Some values used as sizes of axes
+    N = len(job.table)
+    C = len(job.conditions)
+    S = len(stats.Tstat.TUNING_PARAM_RANGE_VALUES)
 
-    s = len(stats.Tstat.TUNING_PARAM_RANGE_VALUES)
-    n = len(conditions)
-    m = len(table)
-    base_shape = (s, n)
+    base_shape = (S, C)
 
     tests = np.zeros(base_shape, dtype=object)
 
     # Unperm stats gives the value of the statistic for each test, for
     # each feature, in each condition.
-    unperm_stats = np.zeros(base_shape + (len(table),))
+    unperm_stats = np.zeros(base_shape + (N,))
 
     for (i, j) in np.ndindex(base_shape):
         tests[i, j] = stats.Tstat(
@@ -498,9 +520,19 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
     for i in range(len(stats.Tstat.TUNING_PARAM_RANGE_VALUES)):
         unperm_stats[i] = unpermuted_stats(job, tests[i])
 
+    up = compute_directional_results(job, tests, unperm_stats)
+    down = compute_directional_results(job, tests, -unperm_stats)
+
+    return IntermediateResults(
+        default_alphas, unperm_stats, job.levels, up, down)        
+    
+
+def compute_directional_results(job, tests, unperm_stats):
+
 #    edges = custom_bins(unperm_stats)
     edges = uniform_bins(1001, unperm_stats)
 
+    base_shape = np.shape(unperm_stats)[:-1]
     num_bins = np.shape(edges)[-1]
     logging.debug("Shape of edges is " + str(np.shape(edges)))
     perm_counts   = np.zeros(base_shape + (num_bins - 1,))
@@ -514,29 +546,23 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
 
     print "Getting raw confidence scores in {num_edges} edges".format(
         num_edges=np.shape(edges)[-1])
-    raw_conf = raw_confidence_scores(unperm_counts, perm_counts, edges, len(table))
-
-    conf_to_stat  = np.zeros(base_shape + (len(job.levels),))
-    conf_to_count = np.zeros(base_shape + (len(job.levels),))
+    raw_conf = raw_confidence_scores(
+        unperm_counts, perm_counts, edges, len(job.table))
 
     print "Summarizing confidence scores for {num_levels} levels".format(
         num_levels=len(job.levels))
-    for idx in np.ndindex(base_shape):
-        (conf_to_stat[idx], conf_to_count[idx]) = summarize_confidence(
-            job.levels, unperm_counts[idx], raw_conf[idx], edges[idx])
+    (conf_to_stat, conf_to_count) = summarize_confidence(
+        job.levels, unperm_counts, raw_conf, edges)
 
-    print "Picking statistics that maximize power"
     best_params = pick_alphas(conf_to_count)
-    print "Best params is " + str(best_params)
-    up = DirectionalResults(
+
+    return DirectionalResults(
         unperm_counts,
         raw_conf, 
+        conf_to_stat,
         conf_to_count,
         best_params)
     
-    return IntermediateResults(
-        default_alphas, unperm_stats, job.levels, up)        
-
 
 def plot_cumulative(data):
     (m, n) = np.shape(data)

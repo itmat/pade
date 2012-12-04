@@ -522,6 +522,11 @@ def get_arguments():
         type=file,
         default=DEFAULT_SCHEMA)
 
+    report.add_argument(
+        '--no-histograms',
+        help=""""Don't plot statistic distribution (this can save some time.""",
+        action='store_true')
+
     report.set_defaults(func=do_report)
 
     try:
@@ -603,6 +608,9 @@ def do_report(args):
 
     results = core.IntermediateResults.load('page_output')
     report = Report(job, 'page_output', results)
+
+    report.plot_histograms = not args.no_histograms
+
     report.make_report()
     
     return
