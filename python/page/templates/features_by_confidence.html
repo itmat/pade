@@ -1,0 +1,66 @@
+<html>
+  <head>
+    <title>PaGE Output</title>
+  </head>
+
+  <body>
+
+    Confidence level: {{ results.conf_levels[level] }}
+    <table>
+      <tr>
+        <th>Class</th>
+        <th>Up</th>
+        <th>Down</th>
+      </tr>
+      {% for c in condition_nums %}
+      <tr>
+        <td>{{job.condition_names[c]}}</td>
+        <td>{{results.alphas[results.up.best_params[c, level], c]}}</td>
+        <td>{{results.alphas[results.down.best_params[c, level], c]}}</td>
+      </tr>
+        {% endfor %}
+    </table>
+
+    <table>
+      <tr>
+
+        <tr>
+          <th></th>
+          <th colspan="{{condition_nums.__len__()}}">Statistic (up)</th>
+          <th colspan="{{condition_nums.__len__()}}">Statistic (down)</th>
+        </tr>
+
+        <th>Feature</th>
+        {% for c in condition_nums %}
+        <th colspan="1">{{job.condition_names[c]}}</th>
+        {% endfor %}
+        {% for c in condition_nums %}
+        <th colspan="1">{{job.condition_names[c]}}</th>
+        {% endfor %}
+      </tr>
+
+    {% for feature_idx in feature_nums if any_up[feature_idx]%}
+      <tr>
+        <td>{{feature_idx}}</td>
+        {% for c in  condition_nums %}
+        {% if is_up[c, feature_idx] %}
+        <td><strong>{{"%.2f"|format(up_stats[level, c, feature_idx])}}</strong></td>
+        {% else %}
+        <td>{{"%.2f"|format(up_stats[level, c, feature_idx])}}</td>
+        {% endif %}
+        {% endfor %}
+        {% for c in  condition_nums %}
+        {% if is_up[c, feature_idx] %}
+        <td><strong>{{"%.2f"|format(up_stats[level, c, feature_idx])}}</strong></td>
+        {% else %}
+        <td>{{"%.2f"|format(up_stats[level, c, feature_idx])}}</td>
+        {% endif %}
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    
+    </table>
+    
+  </body>
+
+</html>

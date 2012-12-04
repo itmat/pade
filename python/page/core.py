@@ -120,6 +120,50 @@ class IntermediateResults:
             os.chdir(cwd)
 
 
+    def directional(self, direction):
+        if direction == 'up':
+            return self.up
+        if direction == 'down':
+            return self.down
+        raise Exception("Unknown direction " + direction)
+
+    @property
+    def best_up_stats_by_level(self):
+        return self.best_stats_by_level('up')
+
+    @property
+    def best_down_stats_by_level(self):
+        return self.best_stats_by_level('down')
+
+    def cutoffs_by_level(self):
+
+        directional = self.directional('direction')
+        up_cutoffs = self.results.up.conf_to_stat[(up_params, np.arange(C), level)]
+
+    def best_stats_by_level(self, direction):
+        """Returns a level x class x feature array.
+
+        The result gives the statistic for the given feature in the
+        given class, using the value of alpha that maximizes the power
+        for the given level.
+
+        """
+
+        directional = self.directional(direction)
+
+        C = np.shape(self.stats)[1]
+        N = np.shape(self.stats)[2]
+        L = len(self.conf_levels)
+        res = np.zeros((L, C, N))
+
+        for i in range(L):
+            params = directional.best_params[:, i]
+            print "Params are " + str(params)
+            for c in range(C):
+                stats = self.stats[params[c], c]
+                res[i, c] = stats
+        return res
+        
 class DirectionalResults:
     """Data describing up- or down- regulated features.
 

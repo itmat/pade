@@ -120,10 +120,10 @@ class Report:
 
         level = 4
 
-        up_params = self.results.up.best_params[:, level]
+        up_params   = self.results.up.best_params[:, level]
         down_params = self.results.down.best_params[:, level]
 
-        up_stats   = self.results.stats[(up_params,   np.arange(C))]
+        up_stats   = self.results.best_stats_by_level('up')[level]
         down_stats = self.results.stats[(down_params, np.arange(C))]
 
         up_cutoffs = self.results.up.conf_to_stat[(up_params, np.arange(C), level)]
@@ -137,6 +137,8 @@ class Report:
         print "Conf:"
         print self.results.up.raw_conf[1, 1]
 
+        self.results.best_stats_by_level('up')
+
         with open('features_by_confidence.html', 'w') as out:
             template = env.get_template('features_by_confidence.html')
             out.write(
@@ -147,13 +149,11 @@ class Report:
                     level=4,
                     feature_nums=range(len(self.job.table)),
                     job=self.job,
-                    up_stats=up_stats,
+                    up_stats=self.results.best_stats_by_level('up'),
                     is_up=is_up,
                     any_up=any_up,
                     down_stats=down_stats,
                     results=self.results))
-
-        
 
     def make_report_in_dir(self):        
         stats = self.stats
