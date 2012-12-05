@@ -135,10 +135,32 @@ class IntermediateResults:
     def best_down_stats_by_level(self):
         return self.best_stats_by_level('down')
 
-    def cutoffs_by_level(self):
+    def cutoffs_by_level(self, direction):
+        """Returns a level x class array. 
 
-        directional = self.directional('direction')
-        up_cutoffs = self.results.up.conf_to_stat[(up_params, np.arange(C), level)]
+        cutoffs_by_level[level, class] gives the value of the
+        statistic to use for the given convidence level and class.
+
+        """
+        directional = self.directional(direction)
+        params = directional.best_params
+        C = np.shape(self.stats)[1]
+        L = len(self.conf_levels)
+        print "Shape of conf_to_stat is " + str(np.shape(directional.conf_to_stat))
+
+        res = np.zeros((L, C))
+        for l in range(L):
+            for c in range(C):
+                param = params[c, l]
+                cutoff = directional.conf_to_stat[param, c, l]
+                print "Cutoff is " + str(cutoff)
+                res[l, c] = cutoff
+        print "Cutoffs for " + direction + " are " + str(res)
+        return res
+
+    @property
+    def up_cutoffs_by_level(self):
+        return self.cutoffs_by_level('up')
 
     def best_stats_by_level(self, direction):
         """Returns a level x class x feature array.

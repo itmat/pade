@@ -4,8 +4,6 @@ import matplotlib
 
 import matplotlib.pyplot as plt
 import numpy as np
-from lxml.html import builder as E
-import lxml
 import os
 from jinja2 import Environment, PackageLoader
 
@@ -125,14 +123,14 @@ class Report:
 
         up_stats   = self.results.best_stats_by_level('up')[level]
         down_stats = self.results.stats[(down_params, np.arange(C))]
-
-        up_cutoffs = self.results.up.conf_to_stat[(up_params, np.arange(C), level)]
+        up_cutoffs = self.results.up_cutoffs_by_level
+        print "Up cutoffs is " + str(up_cutoffs)
         is_up = np.zeros(np.shape(up_stats), bool)
         any_up = np.zeros(np.shape(up_stats)[1], bool)
 
         for i in range(N):
-            is_up[:, i] = up_stats[:, i] >= up_cutoffs
-            any_up[i] = np.any(up_stats[1:, i] >= up_cutoffs[1:])
+            is_up[:, i] = up_stats[:, i] >= up_cutoffs[level]
+            any_up[i] = np.any(up_stats[1:, i] >= up_cutoffs[level, 1:])
 
         print "Conf:"
         print self.results.up.raw_conf[1, 1]
