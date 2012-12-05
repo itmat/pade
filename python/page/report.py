@@ -43,6 +43,51 @@ class Report:
         finally:
             os.chdir(cwd)
 
+    def stat_hists(self):
+
+        fmt = 'stat_hist_direction_{direction}_level_{level}_class_{cls}.png'
+
+        results = self.results
+        res = np.zeros((2, results.num_levels, results.num_classes), 
+                       dtype=object)
+
+        print "Plotting histograms"
+
+        directions = ['up', 'down']
+
+        print "Shape of res is " + str(np.shape(res))
+        dir_stats = [
+            results.best_up_stats_by_level,
+            results.best_down_stats_by_level
+            ]
+
+        dir_cutoffs = [
+            results.cutoffs_by_level('up'),
+            results.cutoffs_by_level('down'),
+            ]
+
+        xmax = max(np.max(dir_stats[0]),
+                   np.max(dir_stats[1]))
+        xmin = min(np.min(dir_stats[0]),
+                   np.min(dir_stats[1]))
+
+        for idx in np.ndindex(np.shape(res)):
+            print idx
+            (d, i, c) = idx
+            stats = dir_stats[d]
+
+            cutoffs = dir_cutoffs[d]
+            filename = fmt.format(direction=d, level=i, cls=c)
+            plt.cla()
+            plt.hist(stats[i, c], bins=50)
+            plt.axvline(x=cutoffs[i, c])
+            plt.xlim([xmin, xmax])
+            plt.xlabel('Statistic')
+            plt.ylabel('Features')
+            plt.title('Number of features by statistic')
+            plt.savefig(filename) 
+            res[d, i, c] = filename
+        return res
 
     def make_jinja_report(self):
         env = Environment(loader=PackageLoader('page'))
@@ -148,6 +193,8 @@ class Report:
         print "Up cutoffs are " + str(up_cutoffs)
         print "Down cutoffs are " + str(down_cutoffs)
 
+        hists = self.stat_hists()
+
         for i in range(results.num_levels):
             for j in range(results.num_features):
                 for c in range(1, results.num_classes):
@@ -169,6 +216,7 @@ class Report:
                 out.write(
                     template.render(
                         level=i,
+                        hists=hists,
                         condition_nums=range(1, results.num_classes),
                         job=self.job,
                         results=self.results,
@@ -188,66 +236,3 @@ class Report:
 
 ))
 
-    def make_report_in_dir(self):        
-        stats = self.stats
-        output_dir = self.output_dir
-
-        stat_hists = []
-        (s, m, n) = np.shape(stats)
-    
-        maxstat = np.max(stats)
-        minstat = np.min(stats)
-
-        raw_conf_plots = []
-
-        for c in range(1, n):
-            plt.cla()
-            filename = 'raw_conf_class_{cls}.png'.format(cls=c)
-
-            param_idxs = self.best_params[:, c]
-            
-            idxs = [(param_idxs[i], i, c) for i in range(len(self.conf_levels))]
-
-#            best_counts = self.unperm_counts[idxs]
-
-            x = [self.conf_to_count[i] for i in idxs]
-            y = self.conf_levels
-            
-            plt.plot(x, y)
-
-            for i in range(results.num_tests):
-                x = self.unperm_counts[i, :, c]
-                y = self.raw_conf[i, :, c] 
-#                plt.plot(x, y,
-#                         label='Test {test}'.format(test=i))
-
-                x = self.conf_to_count[i, c]
-                y = self.conf_levels
-
-                plt.plot(x, y,
-                         linestyle='dashed',
-                         label='Test {test} summary'.format(test=i))
-
-            plt.xlabel('Features up-regulnated')
-            plt.ylabel('Confidence (raw, may not be monotonically increasing)')
-            plt.title("Raw confidence level by up-regulated features\nclass {cls}".format(cls=c))
-            plt.ylim([np.min(self.conf_levels), np.max(self.conf_levels)])
-            plt.xlim([0,
-                      np.max(self.conf_to_count)])
-            plt.savefig(filename)
-            raw_conf_plots.append(E.IMG(src=filename, width='400'))
-        
-        plots = []
-        plots.extend(stat_hists)
-        plots.extend(raw_conf_plots)
-            
-        html = E.HTML(
-            E.HEAD(
-                E.LINK(rel='stylesheet', href="page.css", type="text/css"),
-                E.TITLE("PaGE Output")),
-            E.BODY(
-                E.H2('Distribution of statistic values for features'),
-                *plots))
-
-        with open('index.html', 'w') as out:
-            out.write(lxml.html.tostring(html))
