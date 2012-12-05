@@ -3,11 +3,13 @@
     <title>PaGE Output</title>
   </head>
 
+  <link rel="stylesheet" type="text/css" href="styles.css"></link>
+
   <body>
 
     Confidence level: {{ results.conf_levels[level] }}
     <table>
-      <tr>
+      <tr>nn
         <th>Class</th>
         <th>Up</th>
         <th>Down</th>
@@ -44,13 +46,12 @@
         <td>{{feature_idx}}</td>
         {% for c in  condition_nums %}
 
-        <td>{{"%.2f"|format(100.0 * feature_to_up_conf[level, c, feature_idx])}}%</td>
+        {% set css_class = "up_regulated" if is_up[c, feature_idx] else "baseline" %}
+
+        <td class="{{css_class}}">{{"%.2f"|format(100.0 * feature_to_up_conf[level, c, feature_idx])}}%</td>
         
-        {% if is_up[c, feature_idx] %}
-        <td><strong>{{"%.2f"|format(up_stats[level, c, feature_idx])}}</strong></td>
-        {% else %}
-        <td>{{"%.2f"|format(up_stats[level, c, feature_idx])}}</td>
-        {% endif %}
+        <td class="{{css_class}}">{{"%.2f"|format(up_stats[level, c, feature_idx])}}</td>
+
         {% endfor %}
         {% for c in  condition_nums %}
         {% if is_up[c, feature_idx] %}
