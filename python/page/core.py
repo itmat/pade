@@ -119,6 +119,21 @@ class IntermediateResults:
         finally:
             os.chdir(cwd)
 
+    @property
+    def num_levels(self):
+        return len(self.conf_levels)
+    
+    @property
+    def num_tests(self):
+        return np.shape(self.stats)[0]
+
+    @property
+    def num_classes(self):
+        return np.shape(self.stats)[1]
+
+    @property
+    def num_features(self):
+        return np.shape(self.stats)[2]
 
     def directional(self, direction):
         if direction == 'up':
@@ -144,19 +159,17 @@ class IntermediateResults:
         """
         directional = self.directional(direction)
         params = directional.best_params
-        C = np.shape(self.stats)[1]
-        L = len(self.conf_levels)
+
         print "Shape of conf_to_stat is " + str(np.shape(directional.conf_to_stat))
 
-        res = np.zeros((L, C))
-        for l in range(L):
-            for c in range(C):
+        res = np.zeros((self.num_levels, self.num_classes))
+        for l in range(self.num_levels):
+            for c in range(self.num_classes):
                 param = params[c, l]
                 cutoff = directional.conf_to_stat[param, c, l]
-                print "Cutoff is " + str(cutoff)
                 res[l, c] = cutoff
-        print "Cutoffs for " + direction + " are " + str(res)
         return res
+
 
     @property
     def up_cutoffs_by_level(self):
@@ -173,15 +186,11 @@ class IntermediateResults:
 
         directional = self.directional(direction)
 
-        C = np.shape(self.stats)[1]
-        N = np.shape(self.stats)[2]
-        L = len(self.conf_levels)
-        res = np.zeros((L, C, N))
+        res = np.zeros((self.num_levels, self.num_classes, self.num_features))
 
-        for i in range(L):
+        for i in range(self.num_levels):
             params = directional.best_params[:, i]
-            print "Params are " + str(params)
-            for c in range(C):
+            for c in range(self.num_classes):
                 stats = self.stats[params[c], c]
                 res[i, c] = stats
         return res
@@ -547,8 +556,20 @@ def custom_bins(unperm_stats):
     return bins
 
 def raw_confidence_scores(unperm_counts, perm_counts, bins, N):
+    """Calculate the confidence scores.
 
-    logging.debug("Shape of counts is " + str(np.shape(unperm_counts)) + ", bins is " + str(np.shape(bins)))
+    Both unperm_counts and perm_counts are (test x class x bins)
+    arrays, and bins is a (test x class x bins + 1) array. N is the
+    number of features.
+
+    Returns a 3-d array where res[test, class, bin] is the confidence
+    that the features that have the statistic between bins[bin] and
+    bins[bin + 1] are differentially expressed in class, using the
+    given test.
+    """
+    
+    logging.info("Shape of counts is " + str(np.shape(unperm_counts)) + 
+                 ", bins is " + str(np.shape(bins)))
 
     shape = np.shape(unperm_counts)
     res = np.zeros(shape)

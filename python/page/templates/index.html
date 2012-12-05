@@ -5,7 +5,7 @@
 
   <body>
 
-    <img src="count_by_conf.png" width="600"></img>
+    
 
     <h2>Distribution of statistic values</h2>
 
@@ -18,12 +18,46 @@
       </li>
       {% endfor %}
     </ol>
+
+
+    <h2>Num. features by confidence level</h2>
+
+    <p>
+      This shows the number of features differentially expressed (up
+      and down separately) at each confidence level, for each
+      class. Up-regulated lines have upward pointing triangle markers,
+      and down-regulated lines have downward pointing triangles.
+    </p>
+
+    <img src="count_by_conf.png" width="600"></img>
     
-    <h2>Features by confidence level</h2>
+    <h2>Summary by confidence level</h2>
       
+    <p>
+      These tables show the number of features that are up- and down-
+      regulated at each confidence level. One table per condition. The
+      count for each condition and confidence level is based on the
+      value of &alpha; that maximizes the number of features chosen at
+      that confidence level for that condition.
+    </p>
+
     {% for condition in condition_nums: %}
     {% include 'conf_levels.html' %}
     {% endfor %}
 
+    <h2>Detail by confidence level</h2>
+
+    <p>
+      Each page gives a table of all the features that are
+      differentially expressed, up or down, in any class at the given
+      confidence level.
+    </p>
+
+
+    <ul>
+      {% for i in range(results.num_levels) %}
+      <li><a href="conf_level_detail_{{ i }}.html">{{results.conf_levels[i]}}</li>
+      {% endfor %}
+    </ul>
   </body>
 </html>

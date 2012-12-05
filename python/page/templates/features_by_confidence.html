@@ -43,6 +43,7 @@
       <tr>
         <td>{{feature_idx}}</td>
         {% for c in  condition_nums %}
+
         {% if is_up[c, feature_idx] %}
         <td><strong>{{"%.2f"|format(up_stats[level, c, feature_idx])}}</strong></td>
         {% else %}

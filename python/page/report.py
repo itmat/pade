@@ -44,7 +44,6 @@ class Report:
             os.chdir(cwd)
 
 
-
     def make_jinja_report(self):
         env = Environment(loader=PackageLoader('page'))
 
@@ -52,17 +51,18 @@ class Report:
         output_dir = self.output_dir
 
         stat_hists = []
-        (s, C, N) = np.shape(stats)
     
         maxstat = np.max(stats)
         minstat = np.min(stats)
 
         raw_conf_plots = []
 
+        results = self.results
+
         if self.plot_histograms:
             print "Plotting histograms"
-            for i in range(s):
-                for c in range(1, C):
+            for i in range(results.num_tests):
+                for c in range(1, results.num_classes):
                     filename = 'stat_hist_test_{test}_class_{cls}.png'.format(
                         test=i, cls=c)
                     plt.cla()
@@ -75,13 +75,13 @@ class Report:
                     stat_hists.append(filename)
 
             classes = []
-            for c in range(1, C):
+            for c in range(1, results.num_classes):
                 with open('stat_hist_class_{cls}.html'.format(cls=c), 'w') as out:
                     template = env.get_template('stat_hist_class.html')
                     stat_hists = [
                         'stat_hist_test_{test}_class_{cls}.png'.format(
                             test=test, cls=c)
-                        for test in range(s)]
+                        for test in range(results.num_tests)]
                     out.write(template.render(
                             job=self.job,
                             stat_hists=stat_hists,
@@ -90,7 +90,7 @@ class Report:
 
         colors = matplotlib.rcParams['axes.color_cycle']
         plt.clf()
-        for c in range(1, C):
+        for c in range(1, results.num_classes):
             plt.plot(self.results.conf_levels,
                      self.results.up.best_counts[c],
                      colors[c] + '-^',
@@ -110,48 +110,38 @@ class Report:
             template = env.get_template('index.html')
         
             out.write(template.render(
-                    condition_nums=range(1, C),
+                    condition_nums=range(1, results.num_classes),
                     results=self.results,
-                    job=self.job))
-
-        print "Alphas is " + str(self.results.alphas)
-
-        level = 4
-
-        up_params   = self.results.up.best_params[:, level]
-        down_params = self.results.down.best_params[:, level]
-
-        up_stats   = self.results.best_stats_by_level('up')[level]
-        down_stats = self.results.stats[(down_params, np.arange(C))]
-        up_cutoffs = self.results.up_cutoffs_by_level
-        print "Up cutoffs is " + str(up_cutoffs)
-        is_up = np.zeros(np.shape(up_stats), bool)
-        any_up = np.zeros(np.shape(up_stats)[1], bool)
-
-        for i in range(N):
-            is_up[:, i] = up_stats[:, i] >= up_cutoffs[level]
-            any_up[i] = np.any(up_stats[1:, i] >= up_cutoffs[level, 1:])
-
-        print "Conf:"
-        print self.results.up.raw_conf[1, 1]
-
-        self.results.best_stats_by_level('up')
-
-        with open('features_by_confidence.html', 'w') as out:
-            template = env.get_template('features_by_confidence.html')
-            out.write(
-                template.render(
-                    condition_nums=range(1, C),
-                    # TODO: Get this from the user
-                    up_cutoffs=up_cutoffs,
-                    level=4,
-                    feature_nums=range(len(self.job.table)),
                     job=self.job,
-                    up_stats=self.results.best_stats_by_level('up'),
-                    is_up=is_up,
-                    any_up=any_up,
-                    down_stats=down_stats,
-                    results=self.results))
+                    levels=results.conf_levels))
+
+        up_cutoffs = self.results.up_cutoffs_by_level
+
+        is_up = np.zeros((results.num_classes, results.num_features))
+        any_up = np.zeros(results.num_features, bool)
+
+        for level in range(results.num_levels):
+            up_stats   = self.results.best_stats_by_level('up')[level]
+            down_stats = self.results.best_stats_by_level('down')[level]
+
+            for j in range(results.num_features):
+                is_up[:, j] = up_stats[:, j] >= up_cutoffs[level]
+                any_up[j] = np.any(up_stats[1:, j] >= up_cutoffs[level, 1:])
+
+            with open('conf_level_detail_' + str(level) + '.html', 'w') as out:
+                template = env.get_template('features_by_confidence.html')
+                out.write(
+                    template.render(
+                        condition_nums=range(1, results.num_classes),
+                        up_cutoffs=up_cutoffs,
+                        level=level,
+                        feature_nums=range(len(self.job.table)),
+                        job=self.job,
+                        up_stats=self.results.best_stats_by_level('up'),
+                        is_up=is_up,
+                        any_up=any_up,
+                        down_stats=down_stats,
+                        results=self.results))
 
     def make_report_in_dir(self):        
         stats = self.stats
@@ -180,11 +170,7 @@ class Report:
             
             plt.plot(x, y)
 
-            print "Shape of unperm counts is " + str(np.shape(self.unperm_counts))
-            print "Best counts are " + str(idxs)
-            print "X is " + str(x)
-            print "Y is " + str(y)
-            for i in range(s):
+            for i in range(results.num_tests):
                 x = self.unperm_counts[i, :, c]
                 y = self.raw_conf[i, :, c] 
 #                plt.plot(x, y,
