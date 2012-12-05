@@ -76,11 +76,13 @@ class IntermediateResults:
             np.save('alphas', self.alphas)
             np.save('stats', self.stats)
             np.save('conf_levels', self.conf_levels)
+            np.save('up_edges', self.up.edges)
             np.save('up_unperm_counts', self.up.unperm_counts)
             np.save('up_raw_conf', self.up.raw_conf)
             np.save('up_conf_to_stat', self.up.conf_to_stat)
             np.save('up_conf_to_count', self.up.conf_to_count)
             np.save('up_best_params', self.up.best_params)
+            np.save('down_edges', self.down.edges)
             np.save('down_unperm_counts', self.down.unperm_counts)
             np.save('down_raw_conf', self.down.raw_conf)
             np.save('down_conf_to_stat', self.down.conf_to_stat)
@@ -102,12 +104,14 @@ class IntermediateResults:
             stats = np.load('stats.npy')
             conf_levels = np.load('conf_levels.npy')
             up = DirectionalResults(
+                np.load('up_edges.npy'),
                 np.load('up_unperm_counts.npy'),
                 np.load('up_raw_conf.npy'),
                 np.load('up_conf_to_stat.npy'),
                 np.load('up_conf_to_count.npy'),
                 np.load('up_best_params.npy'))
             down = DirectionalResults(
+                np.load('down_edges.npy'),
                 np.load('down_unperm_counts.npy'),
                 np.load('down_raw_conf.npy'),
                 np.load('down_conf_to_stat.npy'),
@@ -160,8 +164,6 @@ class IntermediateResults:
         directional = self.directional(direction)
         params = directional.best_params
 
-        print "Shape of conf_to_stat is " + str(np.shape(directional.conf_to_stat))
-
         res = np.zeros((self.num_levels, self.num_classes))
         for l in range(self.num_levels):
             for c in range(self.num_classes):
@@ -170,6 +172,51 @@ class IntermediateResults:
                 res[l, c] = cutoff
         return res
 
+    def feature_to_conf_by_conf(self, direction):
+        feature_to_conf = self.feature_to_conf(direction)
+        res = np.zeros((self.num_levels, self.num_classes, self.num_features))
+
+        directional = self.directional(direction)
+        params = directional.best_params
+
+        for l in range(self.num_levels):
+            for c in range(self.num_classes):
+                param = params[c, l]
+                conf = feature_to_conf[param, c]
+                res[l, c] = conf
+
+        return res
+
+
+    def feature_to_conf(self, direction):
+        """Returns a test x class x feature array."""
+
+        directional = self.directional(direction)
+
+        res = np.zeros((self.num_tests, self.num_classes, self.num_features))
+
+        for i in range(self.num_tests):
+            for j in range(self.num_classes):
+                table = []
+                for k, stat in enumerate(self.stats[i, j]):
+                    table.append((k, stat))
+                table = np.array(table, dtype=[
+                        ('feature', int),
+                        ('stat', float)])
+                table = np.sort(table, order='stat')
+                edges = directional.edges
+
+                edgenum = 0
+
+                for (k, stat) in table:
+                    if stat < edges[i, j, edgenum]:
+                        raise "Edges are not increasing"
+
+                    while stat >= edges[i, j, edgenum + 1]:
+                        edgenum += 1
+                    
+                    res[i, j, k] = directional.raw_conf[i, j, edgenum]
+        return res
 
     @property
     def up_cutoffs_by_level(self):
@@ -217,7 +264,8 @@ class DirectionalResults:
     """
 
 
-    def __init__(self, unperm_counts, raw_conf, conf_to_stat, conf_to_count, best_params):
+    def __init__(self, edges, unperm_counts, raw_conf, conf_to_stat, conf_to_count, best_params):
+        self.edges = edges
         self.unperm_counts = unperm_counts
         self.raw_conf = raw_conf
         self.conf_to_stat = conf_to_stat
@@ -644,6 +692,7 @@ def compute_directional_results(job, tests, unperm_stats):
     best_params = pick_alphas(conf_to_count)
 
     return DirectionalResults(
+        edges,
         unperm_counts,
         raw_conf, 
         conf_to_stat,

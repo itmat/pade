@@ -32,10 +32,10 @@
 
         <th>Feature</th>
         {% for c in condition_nums %}
-        <th colspan="1">{{job.condition_names[c]}}</th>
+        <th colspan="2">{{job.condition_names[c]}}</th>
         {% endfor %}
         {% for c in condition_nums %}
-        <th colspan="1">{{job.condition_names[c]}}</th>
+        <th colspan="2">{{job.condition_names[c]}}</th>
         {% endfor %}
       </tr>
 
@@ -44,6 +44,8 @@
         <td>{{feature_idx}}</td>
         {% for c in  condition_nums %}
 
+        <td>{{"%.2f"|format(100.0 * feature_to_up_conf[level, c, feature_idx])}}%</td>
+        
         {% if is_up[c, feature_idx] %}
         <td><strong>{{"%.2f"|format(up_stats[level, c, feature_idx])}}</strong></td>
         {% else %}

@@ -120,6 +120,8 @@ class Report:
         is_up = np.zeros((results.num_classes, results.num_features))
         any_up = np.zeros(results.num_features, bool)
 
+        feature_to_up_conf = results.feature_to_conf_by_conf('up')
+
         for level in range(results.num_levels):
             up_stats   = self.results.best_stats_by_level('up')[level]
             down_stats = self.results.best_stats_by_level('down')[level]
@@ -140,6 +142,7 @@ class Report:
                         up_stats=self.results.best_stats_by_level('up'),
                         is_up=is_up,
                         any_up=any_up,
+                        feature_to_up_conf=feature_to_up_conf,
                         down_stats=down_stats,
                         results=self.results))
 
