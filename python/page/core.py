@@ -169,6 +169,7 @@ class IntermediateResults:
             for c in range(self.num_classes):
                 param = params[c, l]
                 cutoff = directional.conf_to_stat[param, c, l]
+                print direction + " cutoff for " + str(l) + ", " + str(c) + " is " + str(cutoff)
                 res[l, c] = cutoff
         return res
 
@@ -221,6 +222,10 @@ class IntermediateResults:
     @property
     def up_cutoffs_by_level(self):
         return self.cutoffs_by_level('up')
+
+    @property
+    def down_cutoffs_by_level(self):
+        return self.cutoffs_by_level('down')
 
     def best_stats_by_level(self, direction):
         """Returns a level x class x feature array.
@@ -422,6 +427,8 @@ def summarize_confidence(levels, unperm_counts, raw_conf, bins):
             if len(these_bins[idxs]) > 0:
                 conf_to_stat[idx + (i,)]  = these_bins[idxs][0]
                 conf_to_count[idx + (i,)] = counts[idxs][0]
+            else:
+                conf_to_stat[idx + (i,)] = np.inf
 
     return (conf_to_stat, conf_to_count)
 

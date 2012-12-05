@@ -25,41 +25,42 @@
 
     <table>
       <tr>
-
-        <tr>
-          <th></th>
-          <th colspan="{{condition_nums.__len__()}}">Statistic (up)</th>
-          <th colspan="{{condition_nums.__len__()}}">Statistic (down)</th>
-        </tr>
-
         <th>Feature</th>
         {% for c in condition_nums %}
-        <th colspan="2">{{job.condition_names[c]}}</th>
-        {% endfor %}
-        {% for c in condition_nums %}
-        <th colspan="2">{{job.condition_names[c]}}</th>
+        <th colspan="3">{{job.condition_names[c]}}</th>
         {% endfor %}
       </tr>
 
-    {% for feature_idx in feature_nums if any_up[feature_idx]%}
+      <tr>
+        <th></th>
+        {% for c in condition_nums %}
+        <th>dir</th>
+        <th>conf</th>
+        <th>stat</th>
+        {% endfor %}
+      </tr>
+      
+    {% for feature_idx in feature_nums if any_determination[level, feature_idx]%}
       <tr>
         <td>{{feature_idx}}</td>
         {% for c in  condition_nums %}
 
-        {% set css_class = "up_regulated" if is_up[c, feature_idx] else "baseline" %}
+        {% set det_classes = ["baseline", "up_regulated", "down_regulated"] %}
+        {% set determination_names = ["", "up", "down"] %}
 
-        <td class="{{css_class}}">{{"%.2f"|format(100.0 * feature_to_up_conf[level, c, feature_idx])}}%</td>
-        
-        <td class="{{css_class}}">{{"%.2f"|format(up_stats[level, c, feature_idx])}}</td>
+        {% set det_class = det_classes[determination[level, c, feature_idx]] %}
+
+        <td class="{{det_class}}">{{determination_names[determination[level, c, feature_idx]]}}</td>
+
+        <td class="{{det_class}}">{{"%.2f"|format(100.0 * feature_to_conf[level, c, feature_idx])}}%</td>
+
+        <td class="{{det_class}}">{{"%.2f"|format(feature_to_stat[level, c, feature_idx])}}</td>
+
+
+
 
         {% endfor %}
-        {% for c in  condition_nums %}
-        {% if is_up[c, feature_idx] %}
-        <td><strong>{{"%.2f"|format(up_stats[level, c, feature_idx])}}</strong></td>
-        {% else %}
-        <td>{{"%.2f"|format(up_stats[level, c, feature_idx])}}</td>
-        {% endif %}
-        {% endfor %}
+
       </tr>
       {% endfor %}
     

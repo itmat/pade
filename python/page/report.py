@@ -115,36 +115,78 @@ class Report:
                     job=self.job,
                     levels=results.conf_levels))
 
-        up_cutoffs = self.results.up_cutoffs_by_level
-
-        is_up = np.zeros((results.num_classes, results.num_features))
-        any_up = np.zeros(results.num_features, bool)
-
+        ##
+        ## Make the detail page for each level
+        ##
+            
+        up_cutoffs   = results.up_cutoffs_by_level
+        down_cutoffs = results.down_cutoffs_by_level
         feature_to_up_conf = results.feature_to_conf_by_conf('up')
+        feature_to_down_conf = results.feature_to_conf_by_conf('down')
+        up_stats   = results.best_stats_by_level('up')
+        down_stats = results.best_stats_by_level('down')
 
-        for level in range(results.num_levels):
-            up_stats   = self.results.best_stats_by_level('up')[level]
-            down_stats = self.results.best_stats_by_level('down')[level]
+        any_regulated  = np.zeros((results.num_levels, results.num_features), int)
 
+#        print "Up conf to stat is " + str(results.up.conf_to_stat)
+
+#        print "Up cutoffs are " + str(up_cutoffs)
+#        print "Down cutoffs are " + str(down_cutoffs)
+
+        determination = np.zeros((results.num_levels, 
+                                  results.num_classes,
+                                  results.num_features), dtype=int)
+
+        feature_to_conf = np.zeros((results.num_levels,
+                                    results.num_classes,
+                                    results.num_features))
+        
+        feature_to_stat = np.zeros((results.num_levels,
+                                    results.num_classes,
+                                    results.num_features))
+
+        print "Up cutoffs are " + str(up_cutoffs)
+        print "Down cutoffs are " + str(down_cutoffs)
+
+        for i in range(results.num_levels):
             for j in range(results.num_features):
-                is_up[:, j] = up_stats[:, j] >= up_cutoffs[level]
-                any_up[j] = np.any(up_stats[1:, j] >= up_cutoffs[level, 1:])
+                for c in range(1, results.num_classes):
 
-            with open('conf_level_detail_' + str(level) + '.html', 'w') as out:
+                    if up_stats[i, c, j] >= up_cutoffs[i, c]:
+                        determination[i, c, j] = 1
+                        feature_to_stat[i, c, j] = up_stats[i, c, j]
+                        feature_to_conf[i, c, j] = feature_to_up_conf[i, c, j]
+                    elif down_stats[i, c, j] <= -down_cutoffs[i, c]:
+#                        print "Down stats is " + str(down_stats[i, c, j]) + ", cutoff is " + str(-down_cutoffs[i, c])
+                        determination[i, c, j] = 2
+                        feature_to_stat[i, c, j] = down_stats[i, c, j]
+                        feature_to_conf[i, c, j] = feature_to_down_conf[i, c, j]
+
+                any_regulated[i, j] = np.any(determination[i, :, j] > 0)
+
+            with open('conf_level_detail_' + str(i) + '.html', 'w') as out:
                 template = env.get_template('features_by_confidence.html')
                 out.write(
                     template.render(
+                        level=i,
                         condition_nums=range(1, results.num_classes),
-                        up_cutoffs=up_cutoffs,
-                        level=level,
-                        feature_nums=range(len(self.job.table)),
                         job=self.job,
-                        up_stats=self.results.best_stats_by_level('up'),
-                        is_up=is_up,
-                        any_up=any_up,
+                        results=self.results,
+                        feature_nums=range(results.num_features),
+
+                        any_determination=any_regulated,
+
+                        feature_to_stat=feature_to_stat,
+                        feature_to_conf=feature_to_conf,
+
+                        up_stats=up_stats,
                         feature_to_up_conf=feature_to_up_conf,
+
                         down_stats=down_stats,
-                        results=self.results))
+                        determination=determination,
+                        feature_to_down_conf=feature_to_down_conf,
+
+))
 
     def make_report_in_dir(self):        
         stats = self.stats
