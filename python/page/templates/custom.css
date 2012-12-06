@@ -1,0 +1,11 @@
+body {
+    font-family: "baskerville", "gill sans", "serif";
+}
+
+.up_regulated {
+    color: green;
+}
+
+.down_regulated {
+    color: red;
+}

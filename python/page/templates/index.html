@@ -1,11 +1,6 @@
-<html>
-  <head>
-    <title>PaGE Output</title>
-  </head>
-
-  <body>
-
-    
+{% extends "base.html" %}
+{% block title %}Index{% endblock %}
+{% block content %}
 
     <h2>Distribution of statistic values</h2>
 
@@ -59,5 +54,4 @@
       <li><a href="conf_level_detail_{{ i }}.html">{{results.conf_levels[i]}}</li>
       {% endfor %}
     </ul>
-  </body>
-</html>
+{% endblock %}

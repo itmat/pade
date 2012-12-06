@@ -1,7 +1,7 @@
 
 
 import matplotlib
-
+import shutil
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -196,6 +196,17 @@ class Report:
 
         self.make_index()
         self.conf_detail_pages()
+
+
+        src = os.path.join(os.path.dirname(__file__),
+                           '996grid/code/css')
+
+        shutil.rmtree('css', True)
+        shutil.copytree(src, 'css')
+
+        with open('css/custom.css', 'w') as out:
+            template = self.env.get_template('custom.css')
+            out.write(template.render())
 
     def conf_detail_pages(self):
 
