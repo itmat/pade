@@ -30,9 +30,14 @@
 </head>
 
 <body>
-    <div id="content">{% block content %}{% endblock %}</div>
-    <div id="footer">
-        {% block footer %}
-        {% endblock %}
+
+  <div class="container">
+
+    <div class="grid_3">This is the sidebar.</div>
+
+    <div class="grid_9" id="content">
+      {% block content %}{% endblock %}
     </div>
+
+  </div>
 </body>
