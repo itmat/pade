@@ -21,6 +21,9 @@ def ensure_decreases(a):
 class Report:
 
     def __init__(self, job, output_dir, results):
+
+        self.env = Environment(loader=PackageLoader('page'))
+
         self.job           = job
         self.results       = results
         self.output_dir    = output_dir
@@ -37,7 +40,6 @@ class Report:
 
     def make_report(self):
         cwd = os.getcwd()
-        print "Condition names are " + str(self.job.condition_names)
         try:
             os.chdir(self.output_dir)
             self.make_jinja_report()
@@ -112,50 +114,45 @@ class Report:
         self.cached_stat_hists = res
         return res
 
-    def make_jinja_report(self):
-        env = Environment(loader=PackageLoader('page'))
 
-        stats = self.stats
-        output_dir = self.output_dir
-
-        stat_hists = []
-    
+    def hists_by_test_and_class(self):
+        print "Plotting histograms"
+        results = self.results
+        stats   = self.stats
         maxstat = np.max(stats)
         minstat = np.min(stats)
+        stat_hists = []
 
-        raw_conf_plots = []
-
-        results = self.results
-
-        if self.plot_histograms:
-            print "Plotting histograms"
-            for i in range(results.num_tests):
-                for c in range(1, results.num_classes):
-                    filename = 'stat_hist_test_{test}_class_{cls}.png'.format(
-                        test=i, cls=c)
-                    plt.cla()
-                    plt.hist(stats[i, c], bins=50)
-                    plt.xlim([minstat, maxstat])
-                    plt.xlabel('Statistic')
-                    plt.xlabel('Features')
-                    plt.title('Number of features by statistic, test {test}, class {cls}'.format(test=i, cls=self.job.condition_names[c]))
-                    plt.savefig(filename) 
-                    stat_hists.append(filename)
-
-            classes = []
+        for i in range(results.num_tests):
             for c in range(1, results.num_classes):
-                with open('stat_hist_class_{cls}.html'.format(cls=c), 'w') as out:
-                    template = env.get_template('stat_hist_class.html')
-                    stat_hists = [
-                        'stat_hist_test_{test}_class_{cls}.png'.format(
-                            test=test, cls=c)
-                        for test in range(results.num_tests)]
-                    out.write(template.render(
-                            job=self.job,
-                            stat_hists=stat_hists,
-                            condition_num=c,
-                            ))
+                filename = 'stat_hist_test_{test}_class_{cls}.png'.format(
+                    test=i, cls=c)
+                plt.cla()
+                plt.hist(stats[i, c], bins=50)
+                plt.xlim([minstat, maxstat])
+                plt.xlabel('Statistic')
+                plt.xlabel('Features')
+                plt.title('Number of features by statistic, test {test}, class {cls}'.format(test=i, cls=self.job.condition_names[c]))
+                plt.savefig(filename) 
+                stat_hists.append(filename)
 
+        classes = []
+        for c in range(1, results.num_classes):
+            with open('stat_hist_class_{cls}.html'.format(cls=c), 'w') as out:
+                template = self.env.get_template('stat_hist_class.html')
+                stat_hists = [
+                    'stat_hist_test_{test}_class_{cls}.png'.format(
+                        test=test, cls=c)
+                    for test in range(results.num_tests)]
+                out.write(template.render(
+                        job=self.job,
+                        stat_hists=stat_hists,
+                        condition_num=c,
+                        ))
+        return stat_hists
+
+    def make_index(self):
+        results = self.results
         colors = matplotlib.rcParams['axes.color_cycle']
         plt.clf()
         for c in range(1, results.num_classes):
@@ -175,13 +172,34 @@ class Report:
 
         print "Making index"
         with open('index.html', 'w') as out:
-            template = env.get_template('index.html')
+            template = self.env.get_template('index.html')
         
             out.write(template.render(
                     condition_nums=range(1, results.num_classes),
                     results=self.results,
                     job=self.job,
                     levels=results.conf_levels))
+
+    def make_jinja_report(self):
+
+        stats = self.stats
+        output_dir = self.output_dir
+
+        stat_hists = []
+    
+        raw_conf_plots = []
+
+        results = self.results
+
+        if self.plot_histograms:
+            stat_hists = self.hists_by_test_and_class()
+
+        self.make_index()
+        self.conf_detail_pages()
+
+    def conf_detail_pages(self):
+
+        results = self.results
 
         ##
         ## Make the detail page for each level
@@ -228,7 +246,7 @@ class Report:
                 any_regulated[i, j] = np.any(determination[i, :, j] > 0)
 
             with open('conf_level_detail_' + str(i) + '.html', 'w') as out:
-                template = env.get_template('features_by_confidence.html')
+                template = self.env.get_template('features_by_confidence.html')
                 out.write(
                     template.render(
                         level=i,
