@@ -33,6 +33,7 @@ class Report:
         self.best_params   = results.up.best_params
 
         self.plot_histograms = True
+        self.cached_stat_hists = None
 
     def make_report(self):
         cwd = os.getcwd()
@@ -45,17 +46,27 @@ class Report:
 
     def stat_hists(self):
 
+        """Plot histograms showing the distribution of statistics, for
+        each combination of direction (up/down), confidence level, and
+        class.
+
+        Returns a (direction x level x class) array giving the paths
+        to the resulting plots.
+
+        """
+        if self.cached_stat_hists is not None:
+            return self.cached_stat_hists
+
         fmt = 'stat_hist_direction_{direction}_level_{level}_class_{cls}.png'
 
         results = self.results
-        res = np.zeros((2, results.num_levels, results.num_classes), 
+        res = np.empty((2, results.num_levels, results.num_classes), 
                        dtype=object)
 
         print "Plotting histograms"
 
         directions = ['up', 'down']
 
-        print "Shape of res is " + str(np.shape(res))
         dir_stats = [
             results.best_up_stats_by_level,
             results.best_down_stats_by_level
@@ -72,21 +83,33 @@ class Report:
                    np.min(dir_stats[1]))
 
         for idx in np.ndindex(np.shape(res)):
-            print idx
+
             (d, i, c) = idx
+            filename = fmt.format(direction=d, level=i, cls=c)
+            res[d, i, c] = filename
+
+            if os.path.exists(filename):
+                print "{filename} already exists, skipping".format(
+                    filename=filename)
+                continue
+
             stats = dir_stats[d]
 
             cutoffs = dir_cutoffs[d]
-            filename = fmt.format(direction=d, level=i, cls=c)
+
             plt.cla()
             plt.hist(stats[i, c], bins=50)
             plt.axvline(x=cutoffs[i, c])
             plt.xlim([xmin, xmax])
             plt.xlabel('Statistic')
             plt.ylabel('Features')
-            plt.title('Number of features by statistic')
+            plt.title("Distribution of statistic\nClass \"{cls}\" {direction}-regulated at {conf:.1%} conf.".format(
+                    direction=['up', 'down'][d],
+                    cls=self.job.condition_names[c],
+                    conf=self.results.conf_levels[i]))
             plt.savefig(filename) 
-            res[d, i, c] = filename
+
+        self.cached_stat_hists = res
         return res
 
     def make_jinja_report(self):
@@ -173,11 +196,6 @@ class Report:
 
         any_regulated  = np.zeros((results.num_levels, results.num_features), int)
 
-#        print "Up conf to stat is " + str(results.up.conf_to_stat)
-
-#        print "Up cutoffs are " + str(up_cutoffs)
-#        print "Down cutoffs are " + str(down_cutoffs)
-
         determination = np.zeros((results.num_levels, 
                                   results.num_classes,
                                   results.num_features), dtype=int)
@@ -190,8 +208,6 @@ class Report:
                                     results.num_classes,
                                     results.num_features))
 
-        print "Up cutoffs are " + str(up_cutoffs)
-        print "Down cutoffs are " + str(down_cutoffs)
 
         hists = self.stat_hists()
 

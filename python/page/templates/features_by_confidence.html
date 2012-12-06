@@ -8,8 +8,34 @@
   <body>
 
     Confidence level: {{ results.conf_levels[level] }}
+
+    <h2>Statistic distribution</h2> 
+
+    <p>
+      These plots show the distribution
+      of the statistic for each class, using the value of &alpha; that
+      maximizes the number of features chosen at confidence level {{
+      "{0:.1%}".format(results.conf_levels[level]) }}. The cutoff for
+      this confidence level is shown with a vertical line. There is a
+      separate histogram for up- and down-regulation, because we may
+      choose a different value of alpha for up vs. down.
+    </p>
+
+    {% for c in range(1, results.num_classes) %}
+    <div>
+
+    {% for d in [0, 1] %}
+    <img src="{{ hists[d, level, c] }}"
+         width="400"></img>
+    {% endfor %}
+    </div>
+
+    {% endfor %}
+
+    <h2>T-stat tuning parameter values</h2>
+
     <table>
-      <tr>nn
+      <tr>
         <th>Class</th>
         <th>Up</th>
         <th>Down</th>
@@ -22,6 +48,22 @@
       </tr>
         {% endfor %}
     </table>
+
+    <h2>Up- and down-regulated features</h2>
+
+    <p>
+      This table has a row for any feature that was found to be either
+      up- or down-regulated in any of the classes, at confidence level
+      {{ "{0:.1%}".format(results.conf_levels[level]) }}. For features
+      that are up-regulated, we show the confidence, and the statistic
+      using the &alpha; value chosen for up-regulation at confidence
+      level {{ "{0:.1%}".format(results.conf_levels[level]) }}. For
+      features that are down-regulated, we show the same, but using
+      the &alpha; value chosen for down-regulation at this confidence
+      level. For features that are not differentially expressed in a
+      condition, we do not show a confidence or a statistic, because
+      the value of alpha that we should use is ambiguous.
+    </p>
 
     <table>
       <tr>
