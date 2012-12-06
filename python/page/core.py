@@ -45,7 +45,7 @@ import stats
 
 from report import Report
 
-class IntermediateResults:
+class Results:
     """Holds the intermediate results of a job.
 
     alphas - TODO
@@ -118,28 +118,37 @@ class IntermediateResults:
                 np.load('down_conf_to_count.npy'),
                 np.load('down_best_params.npy'))
 
-            return IntermediateResults(alphas, stats, conf_levels, up, down)
+            return Results(alphas, stats, conf_levels, up, down)
         
         finally:
             os.chdir(cwd)
 
     @property
     def num_levels(self):
+        """Number of confidence levels for the job."""
         return len(self.conf_levels)
     
     @property
     def num_tests(self):
+        """Number of tests (values of alpha) for the job."""
         return np.shape(self.stats)[0]
 
     @property
     def num_classes(self):
+        """Number of classes (conditions)."""
         return np.shape(self.stats)[1]
 
     @property
     def num_features(self):
+        """Number of features (e.g. genes)."""
         return np.shape(self.stats)[2]
 
     def directional(self, direction):
+        """The DirectionalResults for the given direction.
+
+        direction must be either 'up' or 'down'.
+
+        """
         if direction == 'up':
             return self.up
         if direction == 'down':
@@ -147,50 +156,66 @@ class IntermediateResults:
         raise Exception("Unknown direction " + direction)
 
     @property
-    def best_up_stats_by_level(self):
-        return self.best_stats_by_level('up')
+    def cutoffs_by_level(self):
+        """A direction x level x class array.
 
-    @property
-    def best_down_stats_by_level(self):
-        return self.best_stats_by_level('down')
-
-    def cutoffs_by_level(self, direction):
-        """Returns a level x class array. 
-
-        cutoffs_by_level[level, class] gives the value of the
-        statistic to use for the given convidence level and class.
+        cutoffs_by_level[d, l, c] gives the value of statistic to use
+        as the cutoff for determining whether a feature is regulated
+        in direction d (0 is up, 1 is down) in class c with confidence
+        corresponding to confidence level l.
 
         """
-        directional = self.directional(direction)
-        params = directional.best_params
 
-        res = np.zeros((self.num_levels, self.num_classes))
-        for l in range(self.num_levels):
-            for c in range(self.num_classes):
-                param = params[c, l]
-                cutoff = directional.conf_to_stat[param, c, l]
-                print direction + " cutoff for " + str(l) + ", " + str(c) + " is " + str(cutoff)
-                res[l, c] = cutoff
+        directions = [self.up, self.down]
+        res = np.zeros((len(directions), self.num_levels, self.num_classes))
+            
+        for d, directional in enumerate(directions):
+
+            params = directional.best_params
+
+            for l in range(self.num_levels):
+                for c in range(self.num_classes):
+                    param = params[c, l]
+                    cutoff = directional.conf_to_stat[param, c, l]
+                    res[d, l, c] = cutoff
         return res
 
-    def feature_to_conf_by_conf(self, direction):
-        feature_to_conf = self.feature_to_conf(direction)
-        res = np.zeros((self.num_levels, self.num_classes, self.num_features))
+    @property
+    def best_params(self):
+        shape = (2,) + np.shape(self.up.best_params)
+        res = np.zeros(shape, int)
+        res[0] = self.up.best_params
+        res[1] = self.down.best_params
+        return res
 
-        directional = self.directional(direction)
-        params = directional.best_params
+    @property
+    def feature_to_conf_by_conf(self):
 
-        for l in range(self.num_levels):
-            for c in range(self.num_classes):
-                param = params[c, l]
-                conf = feature_to_conf[param, c]
-                res[l, c] = conf
+        """A direction x level x class x feature array.
+
+        feature_to_conf_by_conf[d, l, c, i] gives the confidence that
+        feature i is regulated in direction d (0 is up, 1 is down) in
+        class c for confidence level l.
+
+        """
+        res = np.zeros((2, self.num_levels, self.num_classes, self.num_features))
+
+        for d, direction in enumerate(['up', 'down']):
+            feature_to_conf = self._feature_to_conf(direction)
+            directional = self.directional(direction)
+            params = self.best_params[d]
+
+            for l in range(self.num_levels):
+                for c in range(self.num_classes):
+                    param = params[c, l]
+                    conf = feature_to_conf[param, c]
+                    res[d, l, c] = conf
 
         return res
 
 
-    def feature_to_conf(self, direction):
-        """Returns a test x class x feature array."""
+    def _feature_to_conf(self, direction):
+        """A test x class x feature array."""
 
         directional = self.directional(direction)
 
@@ -220,31 +245,42 @@ class IntermediateResults:
         return res
 
     @property
-    def up_cutoffs_by_level(self):
-        return self.cutoffs_by_level('up')
+    def best_counts(self):
+
+        directions = [self.up, self.down]
+
+        res = np.zeros((len(directions), self.num_classes, self.num_levels))
+
+        for idx in np.ndindex(np.shape(res)):
+            (d, c, l) = idx
+            directional = directions[d]
+            test_idx = directional.best_params[idx[1:]]
+            res[idx] = directional.conf_to_count[(test_idx,) + idx[1:]]
+        return res
 
     @property
-    def down_cutoffs_by_level(self):
-        return self.cutoffs_by_level('down')
+    def best_stats_by_level(self):
+        """The statistics (with optimal alpha) at each level.
 
-    def best_stats_by_level(self, direction):
-        """Returns a level x class x feature array.
-
-        The result gives the statistic for the given feature in the
-        given class, using the value of alpha that maximizes the power
-        for the given level.
+        A direction x level x class x feature array. For example,
+        best_stats_by_level[UP, 1, 2, 3] gives the statistic for
+        feature 3 using the 'best' value of alpha for up-regulation at
+        confidence level 1 in class 2.
 
         """
+        directions = [self.up, self.down]
 
-        directional = self.directional(direction)
+        res = np.zeros((len(directions),
+                        self.num_levels, 
+                        self.num_classes, 
+                        self.num_features))
 
-        res = np.zeros((self.num_levels, self.num_classes, self.num_features))
-
-        for i in range(self.num_levels):
-            params = directional.best_params[:, i]
-            for c in range(self.num_classes):
-                stats = self.stats[params[c], c]
-                res[i, c] = stats
+        for d, directional in enumerate(directions):
+            for i in range(self.num_levels):
+                params = directional.best_params[:, i]
+                for c in range(self.num_classes):
+                    stats = self.stats[params[c], c]
+                    res[d, i, c] = stats
         return res
         
 class DirectionalResults:
@@ -276,19 +312,6 @@ class DirectionalResults:
         self.conf_to_stat = conf_to_stat
         self.conf_to_count = conf_to_count
         self.best_params = best_params
-
-    @property
-    def best_counts(self):
-        # Num tests, num conf levels, num conditions
-        (S, N, L) = np.shape(self.conf_to_count)
-                
-        res = np.zeros((N, L))
-
-        for c in range(N):
-            for l in range(L):
-                test_idx = self.best_params[c, l]
-                res[c, l] = self.conf_to_count[test_idx, c, l]
-        return res
 
 
 class Job(object):
@@ -669,7 +692,7 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
     up = compute_directional_results(job, tests, unperm_stats)
     down = compute_directional_results(job, tests, -unperm_stats)
 
-    return IntermediateResults(
+    return Results(
         alphas, unperm_stats, job.levels, up, down)        
     
 
