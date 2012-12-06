@@ -1,18 +1,19 @@
-<html>
-  <head>
-    <title>PaGE | Histograms for class {{ job.condition_names[condition_num] }}</title>
-  </head>
+{% extends "base.html" %}
+{% block title %}Histograms for class {{ job.condition_names[condition_num] }}{% endblock %}
+{% block content %}
 
-  <body>
+<h2>Distribution of statistic values</h2>
 
-    <h2>Distribution of statistic values</h2>
+<p>
+  Each chart is a histogram of the distribution of the test statistic
+  values over the features. Each chart is drawn using a different test
+  statistic (in the case of the t-test, different values of &alpha;
+</p>
 
-    <p>
-    Each chart is a histogram of the distribution of the test statistic values over the features. Each chart is drawn using a different test statistic (in the case of the t-test, different values of &alpha;
-    </p>
+{% for hist in stat_hists: %}
+<div class="{{ loop.cycle('grid_5 alpha', 'grid_5 omega') }}">
+  <img src="{{ hist }}"></img>
+</div>
+{% endfor %}
 
-    {% for hist in stat_hists: %}
-    <img src="{{ hist }}" width="400"></img>
-    {% endfor %}
-  </body>
-</html>
+{% endblock %}

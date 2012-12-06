@@ -2,19 +2,6 @@
 {% block title %}Index{% endblock %}
 {% block content %}
 
-    <h2>Distribution of statistic values</h2>
-
-    <h3>By class:</h3>
-    
-    <ol>
-      {% for c in condition_nums: %}
-      <li>
-        <a href="stat_hist_class_{{ c }}.html">{{ job.condition_names[c] }}</a>
-      </li>
-      {% endfor %}
-    </ol>
-
-
     <h2>Num. features by confidence level</h2>
 
     <p>
@@ -37,21 +24,13 @@
     </p>
 
     {% for condition in condition_nums: %}
-    {% include 'conf_levels.html' %}
+    
+    <div class="{{ loop.cycle('grid_5 alpha', 'grid_5 omega') }}">
+      {% include 'conf_levels.html' %}
+    </div>
+    
     {% endfor %}
+     
+    <div class="clear"></div>
 
-    <h2>Detail by confidence level</h2>
-
-    <p>
-      Each page gives a table of all the features that are
-      differentially expressed, up or down, in any class at the given
-      confidence level.
-    </p>
-
-
-    <ul>
-      {% for i in range(results.num_levels) %}
-      <li><a href="conf_level_detail_{{ i }}.html">{{results.conf_levels[i]}}</li>
-      {% endfor %}
-    </ul>
 {% endblock %}

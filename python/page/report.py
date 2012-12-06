@@ -148,6 +148,7 @@ class Report:
                         job=self.job,
                         stat_hists=stat_hists,
                         condition_num=c,
+                        results=self.results
                         ))
         return stat_hists
 
