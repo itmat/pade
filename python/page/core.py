@@ -170,12 +170,9 @@ class Results:
         res = np.zeros((len(directions), self.num_levels, self.num_classes))
             
         for d, directional in enumerate(directions):
-
-            params = directional.best_params
-
             for l in range(self.num_levels):
                 for c in range(self.num_classes):
-                    param = params[c, l]
+                    param = self.best_params[d, c, l]
                     cutoff = directional.conf_to_stat[param, c, l]
                     res[d, l, c] = cutoff
         return res
@@ -254,7 +251,7 @@ class Results:
         for idx in np.ndindex(np.shape(res)):
             (d, c, l) = idx
             directional = directions[d]
-            test_idx = directional.best_params[idx[1:]]
+            test_idx = self.best_params[idx]
             res[idx] = directional.conf_to_count[(test_idx,) + idx[1:]]
         return res
 
@@ -268,19 +265,13 @@ class Results:
         confidence level 1 in class 2.
 
         """
-        directions = [self.up, self.down]
-
-        res = np.zeros((len(directions),
+        res = np.zeros((2,
                         self.num_levels, 
                         self.num_classes, 
                         self.num_features))
 
-        for d, directional in enumerate(directions):
-            for i in range(self.num_levels):
-                params = directional.best_params[:, i]
-                for c in range(self.num_classes):
-                    stats = self.stats[params[c], c]
-                    res[d, i, c] = stats
+        for (d, i, c) in np.ndindex(np.shape(res)[:-1]):
+            res[d, i, c] = self.stats[self.best_params[d, c, i], c]
         return res
         
 class DirectionalResults:
