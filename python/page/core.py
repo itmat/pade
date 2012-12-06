@@ -648,15 +648,19 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
 
     base_shape = (S, C)
 
+    alphas = np.zeros(base_shape)
     tests = np.zeros(base_shape, dtype=object)
 
     # Unperm stats gives the value of the statistic for each test, for
     # each feature, in each condition.
     unperm_stats = np.zeros(base_shape + (N,))
 
+    
+
     for (i, j) in np.ndindex(base_shape):
-        tests[i, j] = stats.Tstat(
-            stats.Tstat.TUNING_PARAM_RANGE_VALUES[i] * default_alphas[j])
+        alphas[i, j] = stats.Tstat.TUNING_PARAM_RANGE_VALUES[i] * default_alphas[j]
+        tests[i, j] = stats.Tstat(alphas[i, j])
+
 
     print "Getting stats for unpermuted data"
     for i in range(len(stats.Tstat.TUNING_PARAM_RANGE_VALUES)):
@@ -666,7 +670,7 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
     down = compute_directional_results(job, tests, -unperm_stats)
 
     return IntermediateResults(
-        default_alphas, unperm_stats, job.levels, up, down)        
+        alphas, unperm_stats, job.levels, up, down)        
     
 
 def compute_directional_results(job, tests, unperm_stats):

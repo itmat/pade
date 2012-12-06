@@ -2,7 +2,7 @@
 {% block title %}Results at {{ "{0:.1%} confidence".format(results.conf_levels[level]) }}{% endblock %}
 {% block content %}
 
-Confidence level: {{ results.conf_levels[level] }}
+<h1>Details for {{ "{0:.1%}".format(results.conf_levels[level]) }} confidence level</h1>
 
 <h2>Statistic distribution</h2> 
 
@@ -16,13 +16,25 @@ Confidence level: {{ results.conf_levels[level] }}
   choose a different value of alpha for up vs. down.
 </p>
 
+<div class="grid_5 alpha">
+  <h3>Up-regulation</h3>
+</div>
+
+<div class="grid_5 omega">
+  <h3>Down-regulation</h3>
+</div>
+
 {% for c in range(1, results.num_classes) %}
-<div>
-  
-  {% for d in [0, 1] %}
-  <img src="{{ hists[d, level, c] }}"
-       width="400"></img>
-  {% endfor %}
+
+<div class="grid_5 alpha">
+  <a href="{{ hists[0, level, c] }}">
+    <img src="{{ hists[0, level, c] }}"></img>
+  </a>
+</div>
+<div class="grid_5 omega">
+  <a href="{{ hists[1, level, c] }}">
+    <img src="{{ hists[1, level, c] }}"></img>
+  </a>
 </div>
 
 {% endfor %}
@@ -35,7 +47,7 @@ Confidence level: {{ results.conf_levels[level] }}
     <th>Up</th>
     <th>Down</th>
   </tr>
-  {% for c in condition_nums %}
+  {% for c in range(1, results.num_classes) %}
   <tr>
     <td>{{job.condition_names[c]}}</td>
     <td>{{results.alphas[results.up.best_params[c, level], c]}}</td>
@@ -44,7 +56,7 @@ Confidence level: {{ results.conf_levels[level] }}
   {% endfor %}
 </table>
 
-<h2>Up- and down-regulated features</h2>
+<h2>Differentially expressed features</h2>
 
 <p>
   This table has a row for any feature that was found to be either
@@ -63,24 +75,24 @@ Confidence level: {{ results.conf_levels[level] }}
 <table>
   <tr>
     <th>Feature</th>
-    {% for c in condition_nums %}
+    {% for c in range(1, results.num_classes) %}
     <th colspan="3">{{job.condition_names[c]}}</th>
     {% endfor %}
   </tr>
 
   <tr>
     <th></th>
-    {% for c in condition_nums %}
+    {% for c in range(1, results.num_classes) %}
     <th>dir</th>
     <th>conf</th>
     <th>stat</th>
     {% endfor %}
   </tr>
   
-  {% for feature_idx in feature_nums if any_determination[level, feature_idx]%}
+  {% for feature_idx in range(results.num_features) if any_determination[level, feature_idx]%}
   <tr>
     <td>{{feature_idx}}</td>
-    {% for c in  condition_nums %}
+    {% for c in  range(1, results.num_classes) %}
 
     {% set det_classes = ["baseline", "up_regulated", "down_regulated"] %}
     {% set determination_names = ["", "up", "down"] %}

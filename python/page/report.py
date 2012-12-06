@@ -263,22 +263,11 @@ class Report:
                     template.render(
                         level=i,
                         hists=hists,
-                        condition_nums=range(1, results.num_classes),
                         job=self.job,
                         results=self.results,
-                        feature_nums=range(results.num_features),
-
                         any_determination=any_regulated,
-
                         feature_to_stat=feature_to_stat,
                         feature_to_conf=feature_to_conf,
-
-                        up_stats=up_stats,
-                        feature_to_up_conf=feature_to_up_conf,
-
-                        down_stats=down_stats,
                         determination=determination,
-                        feature_to_down_conf=feature_to_down_conf,
-
-))
+                        ))
 
