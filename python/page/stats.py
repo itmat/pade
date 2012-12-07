@@ -44,6 +44,28 @@ class Tstat(object):
 
         return numer / denom
 
+class Ftest(object):
+
+    def compute(self, a):
+        counts = np.array([len(x) for x in np.swapaxes(a, 0, 1)])
+        print "A is " + str(a)
+        within_group_mean = np.mean(a, axis=0)
+        overall_mean      = np.mean(a)
+        between_group_ss  = np.sum(counts * ((within_group_mean - overall_mean) ** 2))
+
+        between_group_degf = float(np.shape(a)[1] - 1)
+        msb = between_group_ss / between_group_degf
+
+        centered = a - np.tile(within_group_mean.transpose(), (np.shape(a)[0], 1))
+        sw = np.sum(centered ** 2)
+
+        fw = np.shape(a)[1] * (np.shape(a)[0] - 1)
+
+        msw = sw / fw
+
+        return msb / msw
+
+
 class CompositeStat(object):
     def __init__(self, children):
         self.children = children
