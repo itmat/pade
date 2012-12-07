@@ -45,6 +45,10 @@ import stats
 
 from report import Report
 
+DirectionalResults = collections.namedtuple(
+    'DirectionalResults',
+    'edges unperm_counts raw_conf conf_to_stat conf_to_count best_params')
+
 class Results:
     """Holds the intermediate results of a job.
 
@@ -56,19 +60,12 @@ class Results:
     conf_levels - an array of floats of length L, representing the
                   (lower) edges of the confidence levels.
 
-    up - A DirectionalResults object representing up-regulated features.
-
-    down - A DirectionalResults object representing down-regulated
-           features.
-
     """
     def __init__(self, alphas, stats, conf_levels, up, down, best_params,
                  conf_to_stat, conf_to_count, raw_conf, edges):
         self.alphas = alphas
         self.stats  = stats
         self.conf_levels = conf_levels
-        self.up = up
-        self.down = down
         self.best_params = best_params
         self.conf_to_stat = conf_to_stat
         self.conf_to_count = conf_to_count
@@ -108,22 +105,7 @@ class Results:
             raw_conf = np.load('raw_conf.npy')
             edges = np.load('edges.npy')
 
-            up = DirectionalResults(
-                None,
-                None,
-                None,
-                None,
-                None,
-                None)
-            down = DirectionalResults(
-                None,
-                None,
-                None,
-                None,
-                None,
-                None)
-
-            return Results(alphas, stats, conf_levels, up, down, best_params,
+            return Results(alphas, stats, conf_levels, None, None, best_params,
                            conf_to_stat, conf_to_count, raw_conf, edges)
         
         finally:
@@ -153,18 +135,6 @@ class Results:
     def num_features(self):
         """Number of features (e.g. genes)."""
         return np.shape(self.stats)[2]
-
-    def directional(self, direction):
-        """The DirectionalResults for the given direction.
-
-        direction must be either 'up' or 'down'.
-
-        """
-        if direction == 'up':
-            return self.up
-        if direction == 'down':
-            return self.down
-        raise Exception("Unknown direction " + direction)
 
     @property
     def cutoffs_by_level(self):
@@ -244,10 +214,7 @@ class Results:
     @property
     def best_counts(self):
 
-        directions = [self.up, self.down]
-
-        res = np.zeros((len(directions), self.num_classes, self.num_levels))
-
+        res = np.zeros((self.num_directions, self.num_classes, self.num_levels))
         for idx in np.ndindex(np.shape(res)):
             (d, c, l) = idx
             test_idx = self.best_params[idx]
@@ -273,27 +240,6 @@ class Results:
             res[d, i, c] = self.stats[self.best_params[d, c, i], c]
         return res
         
-class DirectionalResults:
-    """Data describing up- or down- regulated features.
-
-    unperm_counts - For each statistic and condition, gives the
-                    distribution over all the features. A T x C x B
-                    array, where T is the number of tests, C is the
-                    number of classes, and B is the number of bins
-                    used to discretize the statistic space.
-
-    """
-
-
-    def __init__(self, edges, unperm_counts, raw_conf, conf_to_stat, conf_to_count, best_params):
-        self.edges = edges
-        self.unperm_counts = unperm_counts
-        self.raw_conf = raw_conf
-        self.conf_to_stat = conf_to_stat
-        self.conf_to_count = conf_to_count
-        self.best_params = best_params
-
-
 class Job(object):
 
     levels = np.linspace(0.5, 0.95, 10)
