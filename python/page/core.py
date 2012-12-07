@@ -63,7 +63,7 @@ class Results:
 
     """
     def __init__(self, alphas, stats, conf_levels, up, down, best_params,
-                 conf_to_stat, conf_to_count, raw_conf):
+                 conf_to_stat, conf_to_count, raw_conf, edges):
         self.alphas = alphas
         self.stats  = stats
         self.conf_levels = conf_levels
@@ -73,6 +73,7 @@ class Results:
         self.conf_to_stat = conf_to_stat
         self.conf_to_count = conf_to_count
         self.raw_conf = raw_conf
+        self.edges = edges
 
     def save(self, output_dir):
         cwd = os.getcwd()
@@ -85,10 +86,9 @@ class Results:
             np.save('conf_to_stat', self.conf_to_stat)
             np.save('conf_to_count', self.conf_to_count)
             np.save('raw_conf', self.raw_conf)
+            np.save('edges', self.edges)
 
-            np.save('up_edges', self.up.edges)
             np.save('up_unperm_counts', self.up.unperm_counts)
-            np.save('down_edges', self.down.edges)
             np.save('down_unperm_counts', self.down.unperm_counts)
 
 
@@ -110,16 +110,17 @@ class Results:
             conf_to_stat = np.load('conf_to_stat.npy')
             conf_to_count = np.load('conf_to_count.npy')
             raw_conf = np.load('raw_conf.npy')
+            edges = np.load('edges.npy')
 
             up = DirectionalResults(
-                np.load('up_edges.npy'),
+                None,
                 np.load('up_unperm_counts.npy'),
                 None,
                 None,
                 None,
                 None)
             down = DirectionalResults(
-                np.load('down_edges.npy'),
+                None,
                 np.load('down_unperm_counts.npy'),
                 None,
                 None,
@@ -127,10 +128,15 @@ class Results:
                 None)
 
             return Results(alphas, stats, conf_levels, up, down, best_params,
-                           conf_to_stat, conf_to_count, raw_conf)
+                           conf_to_stat, conf_to_count, raw_conf, edges)
         
         finally:
             os.chdir(cwd)
+
+    @property 
+    def num_levels(self):
+        """Number of directions, typically 1 or 2."""
+        return 2
 
     @property
     def num_levels(self):
@@ -175,10 +181,9 @@ class Results:
 
         """
 
-        directions = [self.up, self.down]
-        res = np.zeros((len(directions), self.num_levels, self.num_classes))
+        res = np.zeros((self.num_directions, self.num_levels, self.num_classes))
             
-        for d, directional in enumerate(directions):
+        for d in range(self.num_directions):
             for l in range(self.num_levels):
                 for c in range(self.num_classes):
                     param = self.best_params[d, c, l]
@@ -200,7 +205,6 @@ class Results:
 
         for d, direction in enumerate(['up', 'down']):
             feature_to_conf = self._feature_to_conf(direction)
-            directional = self.directional(direction)
             params = self.best_params[d]
 
             for l in range(self.num_levels):
@@ -215,7 +219,7 @@ class Results:
     def _feature_to_conf(self, direction):
         """A test x class x feature array."""
 
-        directional = self.directional(direction)
+        d = 0 if direction == 'up' else 1
 
         res = np.zeros((self.num_tests, self.num_classes, self.num_features))
 
@@ -228,19 +232,16 @@ class Results:
                         ('feature', int),
                         ('stat', float)])
                 table = np.sort(table, order='stat')
-                edges = directional.edges
 
                 edgenum = 0
 
                 for (k, stat) in table:
-                    if stat < edges[i, j, edgenum]:
+                    if stat < self.edges[d, i, j, edgenum]:
                         raise "Edges are not increasing"
 
-                    while stat >= edges[i, j, edgenum + 1]:
+                    while stat >= self.edges[d, i, j, edgenum + 1]:
                         edgenum += 1
                     
-                    d = 0 if direction == 'up' else 1
-
                     res[i, j, k] = self.raw_conf[d, i, j, edgenum]
         return res
 
@@ -253,7 +254,6 @@ class Results:
 
         for idx in np.ndindex(np.shape(res)):
             (d, c, l) = idx
-            directional = directions[d]
             test_idx = self.best_params[idx]
             res[idx] = self.conf_to_count[(d, test_idx,) + idx[1:]]
         return res
@@ -682,10 +682,11 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
     conf_to_stat  = concat_directions(up.conf_to_stat, down.conf_to_stat)
     conf_to_count = concat_directions(up.conf_to_count, down.conf_to_count)
     raw_conf      = concat_directions(up.raw_conf, down.raw_conf)
+    edges         = concat_directions(up.edges, down.edges)
 
     return Results(
         alphas, unperm_stats, job.levels, up, down, best_params, conf_to_stat,
-        conf_to_count, raw_conf)
+        conf_to_count, raw_conf, edges)
     
 
 def compute_directional_results(job, tests, unperm_stats):
