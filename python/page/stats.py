@@ -1,4 +1,5 @@
 import numpy as np
+import numpy.ma as ma
 
 class Tstat(object):
 
@@ -43,6 +44,48 @@ class Tstat(object):
         denom = (self.alpha + S) * np.sqrt(n1 + n2)
 
         return numer / denom
+
+class Ftest(object):
+
+    def compute(self, a):
+
+        (num_samples, num_conditions) = np.shape(a)[-2:]
+        print "Shape is " + str(np.shape(a))
+        print "Got {samples} samples and {conditions} conditions".format(
+            samples=num_samples, conditions=num_conditions)
+
+        # TODO: need to allow masked values
+        counts = np.array([len(x) for x in np.swapaxes(a, -2, -1)])
+        counts = ma.count(a, axis=-2)
+
+        within_group_mean = np.mean(a, axis=-2)
+
+        # TODO: Not nd friendly
+
+        overall_mean = np.mean(np.mean(a, axis=-1), axis=-1)
+
+        between_group_ss  = np.sum(counts * ((within_group_mean.T - overall_mean) ** 2).T, axis=-1)
+        print "Between group ss"
+        print between_group_ss
+        f_b = float(num_conditions - 1)
+        msb = between_group_ss / f_b
+
+        print "Within group mean:"
+        print within_group_mean
+        tiled_means = np.tile(np.swapaxes(within_group_mean, -1, -2), (np.shape(a)[:-1] + (1, num_samples)))
+
+
+        centered = np.zeros_like(a)
+
+        for idx in np.ndindex(np.shape(a)):
+            group_idx = idx[:-2] + (idx[-1],)
+            centered[idx] = a[idx] - within_group_mean[group_idx]
+
+        s_w = np.sum(np.sum(centered ** 2, axis=-1), axis=-1)
+        f_w = np.shape(a)[-1] * (np.shape(a)[-2] - 1)
+        msw = s_w / f_w
+
+        return msb / msw
 
 class CompositeStat(object):
     def __init__(self, children):

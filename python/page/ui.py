@@ -606,7 +606,7 @@ def do_report(args):
     schema = Schema.load(args.schema, args.infile)
     job = core.Job(args.infile, schema)
 
-    results = core.IntermediateResults.load('page_output')
+    results = core.Results.load('page_output')
     report = Report(job, 'page_output', results)
 
     report.plot_histograms = not args.no_histograms

@@ -45,7 +45,11 @@ import stats
 
 from report import Report
 
-class IntermediateResults:
+DirectionalResults = collections.namedtuple(
+    'DirectionalResults',
+    'edges unperm_counts raw_conf conf_to_stat conf_to_count best_params')
+
+class Results:
     """Holds the intermediate results of a job.
 
     alphas - TODO
@@ -56,18 +60,17 @@ class IntermediateResults:
     conf_levels - an array of floats of length L, representing the
                   (lower) edges of the confidence levels.
 
-    up - A DirectionalResults object representing up-regulated features.
-
-    down - A DirectionalResults object representing down-regulated
-           features.
-
     """
-    def __init__(self, alphas, stats, conf_levels, up, down):
+    def __init__(self, alphas, stats, conf_levels, best_params,
+                 conf_to_stat, conf_to_count, raw_conf, edges):
         self.alphas = alphas
         self.stats  = stats
         self.conf_levels = conf_levels
-        self.up = up
-        self.down = down
+        self.best_params = best_params
+        self.conf_to_stat = conf_to_stat
+        self.conf_to_count = conf_to_count
+        self.raw_conf = raw_conf
+        self.edges = edges
 
     def save(self, output_dir):
         cwd = os.getcwd()
@@ -76,18 +79,11 @@ class IntermediateResults:
             np.save('alphas', self.alphas)
             np.save('stats', self.stats)
             np.save('conf_levels', self.conf_levels)
-            np.save('up_edges', self.up.edges)
-            np.save('up_unperm_counts', self.up.unperm_counts)
-            np.save('up_raw_conf', self.up.raw_conf)
-            np.save('up_conf_to_stat', self.up.conf_to_stat)
-            np.save('up_conf_to_count', self.up.conf_to_count)
-            np.save('up_best_params', self.up.best_params)
-            np.save('down_edges', self.down.edges)
-            np.save('down_unperm_counts', self.down.unperm_counts)
-            np.save('down_raw_conf', self.down.raw_conf)
-            np.save('down_conf_to_stat', self.down.conf_to_stat)
-            np.save('down_conf_to_count', self.down.conf_to_count)
-            np.save('down_best_params', self.down.best_params)
+            np.save('best_params', self.best_params)
+            np.save('conf_to_stat', self.conf_to_stat)
+            np.save('conf_to_count', self.conf_to_count)
+            np.save('raw_conf', self.raw_conf)
+            np.save('edges', self.edges)
 
         finally:
             os.chdir(cwd)
@@ -98,199 +94,138 @@ class IntermediateResults:
 
         cwd = os.getcwd()
         try:
-            
             os.chdir(dir_)
-            alphas = np.load('alphas.npy')
-            stats = np.load('stats.npy')
-            conf_levels = np.load('conf_levels.npy')
-            up = DirectionalResults(
-                np.load('up_edges.npy'),
-                np.load('up_unperm_counts.npy'),
-                np.load('up_raw_conf.npy'),
-                np.load('up_conf_to_stat.npy'),
-                np.load('up_conf_to_count.npy'),
-                np.load('up_best_params.npy'))
-            down = DirectionalResults(
-                np.load('down_edges.npy'),
-                np.load('down_unperm_counts.npy'),
-                np.load('down_raw_conf.npy'),
-                np.load('down_conf_to_stat.npy'),
-                np.load('down_conf_to_count.npy'),
-                np.load('down_best_params.npy'))
-
-            return IntermediateResults(alphas, stats, conf_levels, up, down)
-        
+            alphas        = np.load('alphas.npy')
+            stats         = np.load('stats.npy')
+            conf_levels   = np.load('conf_levels.npy')
+            best_params   = np.load('best_params.npy')
+            conf_to_stat  = np.load('conf_to_stat.npy')
+            conf_to_count = np.load('conf_to_count.npy')
+            raw_conf      = np.load('raw_conf.npy')
+            edges         = np.load('edges.npy')
+            return Results(alphas, stats, conf_levels, best_params,
+                           conf_to_stat, conf_to_count, raw_conf, edges)
         finally:
             os.chdir(cwd)
 
+    @property 
+    def num_directions(self):
+        """Number of directions, typically 1 or 2."""
+        return 2
+
     @property
     def num_levels(self):
+        """Number of confidence levels for the job."""
         return len(self.conf_levels)
     
     @property
     def num_tests(self):
+        """Number of tests (values of alpha) for the job."""
         return np.shape(self.stats)[0]
 
     @property
     def num_classes(self):
+        """Number of classes (conditions)."""
         return np.shape(self.stats)[1]
 
     @property
     def num_features(self):
+        """Number of features (e.g. genes)."""
         return np.shape(self.stats)[2]
 
-    def directional(self, direction):
-        if direction == 'up':
-            return self.up
-        if direction == 'down':
-            return self.down
-        raise Exception("Unknown direction " + direction)
-
     @property
-    def best_up_stats_by_level(self):
-        return self.best_stats_by_level('up')
+    def cutoffs_by_level(self):
+        """A direction x level x class array.
 
-    @property
-    def best_down_stats_by_level(self):
-        return self.best_stats_by_level('down')
-
-    def cutoffs_by_level(self, direction):
-        """Returns a level x class array. 
-
-        cutoffs_by_level[level, class] gives the value of the
-        statistic to use for the given convidence level and class.
+        cutoffs_by_level[d, l, c] gives the value of statistic to use
+        as the cutoff for determining whether a feature is regulated
+        in direction d (0 is up, 1 is down) in class c with confidence
+        corresponding to confidence level l.
 
         """
-        directional = self.directional(direction)
-        params = directional.best_params
 
-        res = np.zeros((self.num_levels, self.num_classes))
-        for l in range(self.num_levels):
-            for c in range(self.num_classes):
-                param = params[c, l]
-                cutoff = directional.conf_to_stat[param, c, l]
-                print direction + " cutoff for " + str(l) + ", " + str(c) + " is " + str(cutoff)
-                res[l, c] = cutoff
+        res = np.zeros((self.num_directions, self.num_levels, self.num_classes))
+
+        for idx in np.ndindex(np.shape(res)):
+            (d, l, c) = idx
+            cutoff = self.conf_to_stat[d, self.best_params[idx], c, l]
+            res[idx] = cutoff
         return res
 
-    def feature_to_conf_by_conf(self, direction):
-        feature_to_conf = self.feature_to_conf(direction)
-        res = np.zeros((self.num_levels, self.num_classes, self.num_features))
+    @property
+    def feature_to_conf_by_conf(self):
 
-        directional = self.directional(direction)
-        params = directional.best_params
+        """A direction x level x class x feature array.
 
-        for l in range(self.num_levels):
-            for c in range(self.num_classes):
-                param = params[c, l]
-                conf = feature_to_conf[param, c]
-                res[l, c] = conf
+        feature_to_conf_by_conf[d, l, c, i] gives the confidence that
+        feature i is regulated in direction d (0 is up, 1 is down) in
+        class c for confidence level l.
+
+        """
+        res = np.zeros((2, self.num_levels, self.num_classes, self.num_features))
+        feature_to_conf = self.feature_to_conf
+        for idx in np.ndindex(np.shape(res)[:-1]):
+            src_idx = (idx[0], self.best_params[idx], idx[2])
+            res[idx] = feature_to_conf[src_idx]
 
         return res
 
 
-    def feature_to_conf(self, direction):
-        """Returns a test x class x feature array."""
+    @property
+    def feature_to_conf(self):
+        """A test x class x feature array."""
 
-        directional = self.directional(direction)
+        res = np.zeros((self.num_directions, self.num_tests, self.num_classes, self.num_features))
 
-        res = np.zeros((self.num_tests, self.num_classes, self.num_features))
+        for d, i, j in np.ndindex(np.shape(res)[:-1]):
+            table = [(k, v) for (k, v) in enumerate(self.stats[i, j])]
+            table = np.array(table, dtype=[
+                    ('feature', int),
+                    ('stat', float)])
+            table = np.sort(table, order='stat')
+            
+            edgenum = 0
 
-        for i in range(self.num_tests):
-            for j in range(self.num_classes):
-                table = []
-                for k, stat in enumerate(self.stats[i, j]):
-                    table.append((k, stat))
-                table = np.array(table, dtype=[
-                        ('feature', int),
-                        ('stat', float)])
-                table = np.sort(table, order='stat')
-                edges = directional.edges
+            for (k, stat) in table:
+                if stat < self.edges[d, i, j, edgenum]:
+                    raise "Edges are not increasing"
 
-                edgenum = 0
-
-                for (k, stat) in table:
-                    if stat < edges[i, j, edgenum]:
-                        raise "Edges are not increasing"
-
-                    while stat >= edges[i, j, edgenum + 1]:
-                        edgenum += 1
+                while stat >= self.edges[d, i, j, edgenum + 1]:
+                    edgenum += 1
                     
-                    res[i, j, k] = directional.raw_conf[i, j, edgenum]
+                res[d, i, j, k] = self.raw_conf[d, i, j, edgenum]
         return res
-
-    @property
-    def up_cutoffs_by_level(self):
-        return self.cutoffs_by_level('up')
-
-    @property
-    def down_cutoffs_by_level(self):
-        return self.cutoffs_by_level('down')
-
-    def best_stats_by_level(self, direction):
-        """Returns a level x class x feature array.
-
-        The result gives the statistic for the given feature in the
-        given class, using the value of alpha that maximizes the power
-        for the given level.
-
-        """
-
-        directional = self.directional(direction)
-
-        res = np.zeros((self.num_levels, self.num_classes, self.num_features))
-
-        for i in range(self.num_levels):
-            params = directional.best_params[:, i]
-            for c in range(self.num_classes):
-                stats = self.stats[params[c], c]
-                res[i, c] = stats
-        return res
-        
-class DirectionalResults:
-    """Data describing up- or down- regulated features.
-
-    unperm_counts - For each statistic and condition, gives the
-                    distribution over all the features. A T x C x B
-                    array, where T is the number of tests, C is the
-                    number of classes, and B is the number of bins
-                    used to discretize the statistic space.
-
-    raw_conf - Gives the confidence level (basically 1 - FDR) for each
-               bin represented by unperm_counts.
-
-    conf_to_count - A T x C x L array, where T is the number of tests,
-                    C is the number of conditions, and L is the number
-                    of confidence levels. conf_to_count[t, c, l] gives
-                    the number of features in that test t shows as up-
-                    or down- regulated for condition c in confidence
-                    level l.
-
-    """
-
-
-    def __init__(self, edges, unperm_counts, raw_conf, conf_to_stat, conf_to_count, best_params):
-        self.edges = edges
-        self.unperm_counts = unperm_counts
-        self.raw_conf = raw_conf
-        self.conf_to_stat = conf_to_stat
-        self.conf_to_count = conf_to_count
-        self.best_params = best_params
 
     @property
     def best_counts(self):
-        # Num tests, num conf levels, num conditions
-        (S, N, L) = np.shape(self.conf_to_count)
-                
-        res = np.zeros((N, L))
 
-        for c in range(N):
-            for l in range(L):
-                test_idx = self.best_params[c, l]
-                res[c, l] = self.conf_to_count[test_idx, c, l]
+        res = np.zeros((self.num_directions, self.num_levels, self.num_classes))
+        print "Shape of conf to count is " + str(np.shape(self.conf_to_count))
+        for idx in np.ndindex(np.shape(res)):
+            (d, l, c) = idx
+            test_idx = self.best_params[idx]
+            res[idx] = self.conf_to_count[(d, test_idx, idx[2], idx[1])]
         return res
 
+    @property
+    def best_stats_by_level(self):
+        """The statistics (with optimal alpha) at each level.
 
+        A direction x level x class x feature array. For example,
+        best_stats_by_level[UP, 1, 2, 3] gives the statistic for
+        feature 3 using the 'best' value of alpha for up-regulation at
+        confidence level 1 in class 2.
+
+        """
+        res = np.zeros((2,
+                        self.num_levels, 
+                        self.num_classes, 
+                        self.num_features))
+
+        for (d, i, c) in np.ndindex(np.shape(res)[:-1]):
+            res[d, i, c] = self.stats[self.best_params[d, i, c], c]
+        return res
+        
 class Job(object):
 
     levels = np.linspace(0.5, 0.95, 10)
@@ -439,7 +374,7 @@ def pick_alphas(conf_to_count, axis=0):
     tests, return the indexes of the tests that maximize the counts.
 
     """
-    return np.argmax(conf_to_count, axis=0)
+    return np.swapaxes(np.argmax(conf_to_count, axis=0), 0, 1)
 
 
 def find_default_alpha(job):
@@ -464,7 +399,6 @@ def find_default_alpha(job):
         alphas[c] = mean * 2 / np.sqrt(len(cols) + len(baseline_cols))
 
     return alphas
-
 
 
 def all_subsets(n, k):
@@ -502,9 +436,6 @@ def init_perms(conditions):
         perms.append(all_subsets(n, k))
 
     return perms
-
-def accumulate_bins(bins):
-    return np.cumsum(bins[::-1])[::-1]
 
 
 def get_perm_counts(job, unperm_stats, tests, edges):
@@ -548,7 +479,8 @@ def get_perm_counts(job, unperm_stats, tests, edges):
 
 def cumulative_hist(values, bins):
     (hist, ignore) = np.histogram(values, bins)
-    return accumulate_bins(hist)
+    return np.cumsum(hist[::-1])[::-1]
+
 
 def get_unperm_counts(unperm_stats, edges):
 
@@ -574,6 +506,7 @@ def get_unperm_counts(unperm_stats, edges):
         res[c] = cumulative_hist(unperm_stats[c], edges[c])
 
     return res
+
 
 def uniform_bins(num_bins, stats):
 
@@ -610,6 +543,7 @@ def custom_bins(unperm_stats):
             bins[i, m + 1, c] = np.inf
     return bins
 
+
 def raw_confidence_scores(unperm_counts, perm_counts, bins, N):
     """Calculate the confidence scores.
 
@@ -637,7 +571,11 @@ def raw_confidence_scores(unperm_counts, perm_counts, bins, N):
             V = R - adjust_num_diff(perm_counts[idx], R, N)
             res[idx] = V / R
     return res
-      
+
+
+def concat_directions(up, down):
+    return np.concatenate((up, down)).reshape((2,) + np.shape(up))
+
           
 def do_confidences_by_cutoff(job, default_alphas, num_bins):
 
@@ -648,6 +586,7 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
 
     base_shape = (S, C)
 
+    alphas = np.zeros(base_shape)
     tests = np.zeros(base_shape, dtype=object)
 
     # Unperm stats gives the value of the statistic for each test, for
@@ -655,18 +594,26 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
     unperm_stats = np.zeros(base_shape + (N,))
 
     for (i, j) in np.ndindex(base_shape):
-        tests[i, j] = stats.Tstat(
-            stats.Tstat.TUNING_PARAM_RANGE_VALUES[i] * default_alphas[j])
+        alphas[i, j] = stats.Tstat.TUNING_PARAM_RANGE_VALUES[i] * default_alphas[j]
+        tests[i, j] = stats.Tstat(alphas[i, j])
+
 
     print "Getting stats for unpermuted data"
-    for i in range(len(stats.Tstat.TUNING_PARAM_RANGE_VALUES)):
-        unperm_stats[i] = unpermuted_stats(job, tests[i])
+    for i, test_row in enumerate(tests):
+        unperm_stats[i] = unpermuted_stats(job, test_row)
 
-    up = compute_directional_results(job, tests, unperm_stats)
+    up   = compute_directional_results(job, tests,  unperm_stats)
     down = compute_directional_results(job, tests, -unperm_stats)
+    
+    best_params   = concat_directions(up.best_params, down.best_params)
+    conf_to_stat  = concat_directions(up.conf_to_stat, down.conf_to_stat)
+    conf_to_count = concat_directions(up.conf_to_count, down.conf_to_count)
+    raw_conf      = concat_directions(up.raw_conf, down.raw_conf)
+    edges         = concat_directions(up.edges, down.edges)
 
-    return IntermediateResults(
-        default_alphas, unperm_stats, job.levels, up, down)        
+    return Results(
+        alphas, unperm_stats, job.levels, best_params, conf_to_stat,
+        conf_to_count, raw_conf, edges)
     
 
 def compute_directional_results(job, tests, unperm_stats):
@@ -697,7 +644,7 @@ def compute_directional_results(job, tests, unperm_stats):
         job.levels, unperm_counts, raw_conf, edges)
 
     best_params = pick_alphas(conf_to_count)
-
+    print "Best params are " + str(best_params)
     return DirectionalResults(
         edges,
         unperm_counts,
@@ -706,23 +653,6 @@ def compute_directional_results(job, tests, unperm_stats):
         conf_to_count,
         best_params)
     
-
-def plot_cumulative(data):
-    (m, n) = np.shape(data)
-    plt.clf()
-    for c in range(1, n):
-        col = sorted(data[:, c])
-        plt.plot(col, np.arange(m))
-    plt.savefig("cumulative")
-
-
-def ensure_increases(a):
-    """Given an array, return a copy of it that is monotonically
-    increasing."""
-
-    for i in range(len(a) - 1):
-        a[i+1] = max(a[i], a[i+1])
-
 
 def adjust_num_diff(V0, R, num_ids):
     V = np.zeros(6)
