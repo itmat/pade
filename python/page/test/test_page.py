@@ -142,7 +142,8 @@ class PageTest(unittest.TestCase):
             (n, p) = shape(expected_u)
             # expected_u = np.swapaxes(expected_u, 0, 1)
             for idx in np.ndindex((n)):
-                expected_u[idx] = page.accumulate_bins(expected_u[idx])
+                hist = expected_u[idx]
+                expected_u[idx] = np.cumsum(hist[::-1])[::-1]
 
             self.assertEqual(shape(u), shape(expected_u))
 
@@ -171,10 +172,10 @@ class PageTest(unittest.TestCase):
 
         results = page.do_confidences_by_cutoff(job, alphas, 1000)
 
-        u_diffs = results.up.raw_conf - conf_bins_up_down.conf_up
+        u_diffs = results.raw_conf[0] - conf_bins_up_down.conf_up
         print "Up diffs are " + str(u_diffs)
 
-        self.assertTrue(np.all(results.up.raw_conf - conf_bins_up_down.conf_up < 0.00001))
+        self.assertTrue(np.all(results.raw_conf[0] - conf_bins_up_down.conf_up < 0.00001))
 
 
         # TODO: Restore down
