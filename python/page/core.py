@@ -63,7 +63,7 @@ class Results:
 
     """
     def __init__(self, alphas, stats, conf_levels, up, down, best_params,
-                 conf_to_stat, conf_to_count):
+                 conf_to_stat, conf_to_count, raw_conf):
         self.alphas = alphas
         self.stats  = stats
         self.conf_levels = conf_levels
@@ -72,6 +72,7 @@ class Results:
         self.best_params = best_params
         self.conf_to_stat = conf_to_stat
         self.conf_to_count = conf_to_count
+        self.raw_conf = raw_conf
 
     def save(self, output_dir):
         cwd = os.getcwd()
@@ -83,13 +84,13 @@ class Results:
             np.save('best_params', self.best_params)
             np.save('conf_to_stat', self.conf_to_stat)
             np.save('conf_to_count', self.conf_to_count)
+            np.save('raw_conf', self.raw_conf)
 
             np.save('up_edges', self.up.edges)
             np.save('up_unperm_counts', self.up.unperm_counts)
-            np.save('up_raw_conf', self.up.raw_conf)
             np.save('down_edges', self.down.edges)
             np.save('down_unperm_counts', self.down.unperm_counts)
-            np.save('down_raw_conf', self.down.raw_conf)
+
 
         finally:
             os.chdir(cwd)
@@ -108,24 +109,25 @@ class Results:
             best_params = np.load('best_params.npy')
             conf_to_stat = np.load('conf_to_stat.npy')
             conf_to_count = np.load('conf_to_count.npy')
+            raw_conf = np.load('raw_conf.npy')
 
             up = DirectionalResults(
                 np.load('up_edges.npy'),
                 np.load('up_unperm_counts.npy'),
-                np.load('up_raw_conf.npy'),
+                None,
                 None,
                 None,
                 None)
             down = DirectionalResults(
                 np.load('down_edges.npy'),
                 np.load('down_unperm_counts.npy'),
-                np.load('down_raw_conf.npy'),
+                None,
                 None,
                 None,
                 None)
 
             return Results(alphas, stats, conf_levels, up, down, best_params,
-                           conf_to_stat, conf_to_count)
+                           conf_to_stat, conf_to_count, raw_conf)
         
         finally:
             os.chdir(cwd)
@@ -237,7 +239,9 @@ class Results:
                     while stat >= edges[i, j, edgenum + 1]:
                         edgenum += 1
                     
-                    res[i, j, k] = directional.raw_conf[i, j, edgenum]
+                    d = 0 if direction == 'up' else 1
+
+                    res[i, j, k] = self.raw_conf[d, i, j, edgenum]
         return res
 
     @property
@@ -281,16 +285,6 @@ class DirectionalResults:
                     array, where T is the number of tests, C is the
                     number of classes, and B is the number of bins
                     used to discretize the statistic space.
-
-    raw_conf - Gives the confidence level (basically 1 - FDR) for each
-               bin represented by unperm_counts.
-
-    conf_to_count - A T x C x L array, where T is the number of tests,
-                    C is the number of conditions, and L is the number
-                    of confidence levels. conf_to_count[t, c, l] gives
-                    the number of features in that test t shows as up-
-                    or down- regulated for condition c in confidence
-                    level l.
 
     """
 
@@ -684,13 +678,14 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
     up = compute_directional_results(job, tests, unperm_stats)
     down = compute_directional_results(job, tests, -unperm_stats)
     
-    best_params = concat_directions(up.best_params, down.best_params)
-    conf_to_stat = concat_directions(up.conf_to_stat, down.conf_to_stat)
+    best_params   = concat_directions(up.best_params, down.best_params)
+    conf_to_stat  = concat_directions(up.conf_to_stat, down.conf_to_stat)
     conf_to_count = concat_directions(up.conf_to_count, down.conf_to_count)
+    raw_conf      = concat_directions(up.raw_conf, down.raw_conf)
 
     return Results(
         alphas, unperm_stats, job.levels, up, down, best_params, conf_to_stat,
-        conf_to_count)
+        conf_to_count, raw_conf)
     
 
 def compute_directional_results(job, tests, unperm_stats):
