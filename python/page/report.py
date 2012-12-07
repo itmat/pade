@@ -129,11 +129,11 @@ class Report:
         plt.clf()
         for c in range(1, results.num_classes):
             plt.plot(self.results.conf_levels,
-                     self.results.best_counts[0, c],
+                     self.results.best_counts[0, :, c],
                      colors[c] + '-^',
                      label=self.job.condition_names[c] + ' up')
             plt.plot(self.results.conf_levels,
-                     self.results.best_counts[1, c],
+                     self.results.best_counts[1, :, c],
                      colors[c] + '-v',
                      label=self.job.condition_names[c] + ' down')
         plt.legend()

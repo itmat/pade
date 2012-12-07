@@ -61,7 +61,7 @@ class Results:
                   (lower) edges of the confidence levels.
 
     """
-    def __init__(self, alphas, stats, conf_levels, up, down, best_params,
+    def __init__(self, alphas, stats, conf_levels, best_params,
                  conf_to_stat, conf_to_count, raw_conf, edges):
         self.alphas = alphas
         self.stats  = stats
@@ -94,20 +94,17 @@ class Results:
 
         cwd = os.getcwd()
         try:
-            
             os.chdir(dir_)
-            alphas = np.load('alphas.npy')
-            stats = np.load('stats.npy')
-            conf_levels = np.load('conf_levels.npy')
-            best_params = np.load('best_params.npy')
-            conf_to_stat = np.load('conf_to_stat.npy')
+            alphas        = np.load('alphas.npy')
+            stats         = np.load('stats.npy')
+            conf_levels   = np.load('conf_levels.npy')
+            best_params   = np.load('best_params.npy')
+            conf_to_stat  = np.load('conf_to_stat.npy')
             conf_to_count = np.load('conf_to_count.npy')
-            raw_conf = np.load('raw_conf.npy')
-            edges = np.load('edges.npy')
-
-            return Results(alphas, stats, conf_levels, None, None, best_params,
+            raw_conf      = np.load('raw_conf.npy')
+            edges         = np.load('edges.npy')
+            return Results(alphas, stats, conf_levels, best_params,
                            conf_to_stat, conf_to_count, raw_conf, edges)
-        
         finally:
             os.chdir(cwd)
 
@@ -149,10 +146,9 @@ class Results:
 
         res = np.zeros((self.num_directions, self.num_levels, self.num_classes))
 
-        params = np.swapaxes(self.best_params, 1, 2)
         for idx in np.ndindex(np.shape(res)):
             (d, l, c) = idx
-            cutoff = self.conf_to_stat[d, params[idx], c, l]
+            cutoff = self.conf_to_stat[d, self.best_params[idx], c, l]
             res[idx] = cutoff
         return res
 
@@ -168,9 +164,8 @@ class Results:
         """
         res = np.zeros((2, self.num_levels, self.num_classes, self.num_features))
         feature_to_conf = self.feature_to_conf
-        params = np.swapaxes(self.best_params, 1, 2)
         for idx in np.ndindex(np.shape(res)[:-1]):
-            src_idx = (idx[0], params[idx], idx[2])
+            src_idx = (idx[0], self.best_params[idx], idx[2])
             res[idx] = feature_to_conf[src_idx]
 
         return res
@@ -204,11 +199,12 @@ class Results:
     @property
     def best_counts(self):
 
-        res = np.zeros((self.num_directions, self.num_classes, self.num_levels))
+        res = np.zeros((self.num_directions, self.num_levels, self.num_classes))
+        print "Shape of conf to count is " + str(np.shape(self.conf_to_count))
         for idx in np.ndindex(np.shape(res)):
-            (d, c, l) = idx
+            (d, l, c) = idx
             test_idx = self.best_params[idx]
-            res[idx] = self.conf_to_count[(d, test_idx,) + idx[1:]]
+            res[idx] = self.conf_to_count[(d, test_idx, idx[2], idx[1])]
         return res
 
     @property
@@ -227,7 +223,7 @@ class Results:
                         self.num_features))
 
         for (d, i, c) in np.ndindex(np.shape(res)[:-1]):
-            res[d, i, c] = self.stats[self.best_params[d, c, i], c]
+            res[d, i, c] = self.stats[self.best_params[d, i, c], c]
         return res
         
 class Job(object):
@@ -378,7 +374,7 @@ def pick_alphas(conf_to_count, axis=0):
     tests, return the indexes of the tests that maximize the counts.
 
     """
-    return np.argmax(conf_to_count, axis=0)
+    return np.swapaxes(np.argmax(conf_to_count, axis=0), 0, 1)
 
 
 def find_default_alpha(job):
@@ -403,7 +399,6 @@ def find_default_alpha(job):
         alphas[c] = mean * 2 / np.sqrt(len(cols) + len(baseline_cols))
 
     return alphas
-
 
 
 def all_subsets(n, k):
@@ -441,9 +436,6 @@ def init_perms(conditions):
         perms.append(all_subsets(n, k))
 
     return perms
-
-def accumulate_bins(bins):
-    return np.cumsum(bins[::-1])[::-1]
 
 
 def get_perm_counts(job, unperm_stats, tests, edges):
@@ -487,7 +479,8 @@ def get_perm_counts(job, unperm_stats, tests, edges):
 
 def cumulative_hist(values, bins):
     (hist, ignore) = np.histogram(values, bins)
-    return accumulate_bins(hist)
+    return np.cumsum(hist[::-1])[::-1]
+
 
 def get_unperm_counts(unperm_stats, edges):
 
@@ -513,6 +506,7 @@ def get_unperm_counts(unperm_stats, edges):
         res[c] = cumulative_hist(unperm_stats[c], edges[c])
 
     return res
+
 
 def uniform_bins(num_bins, stats):
 
@@ -549,6 +543,7 @@ def custom_bins(unperm_stats):
             bins[i, m + 1, c] = np.inf
     return bins
 
+
 def raw_confidence_scores(unperm_counts, perm_counts, bins, N):
     """Calculate the confidence scores.
 
@@ -577,8 +572,10 @@ def raw_confidence_scores(unperm_counts, perm_counts, bins, N):
             res[idx] = V / R
     return res
 
+
 def concat_directions(up, down):
     return np.concatenate((up, down)).reshape((2,) + np.shape(up))
+
           
 def do_confidences_by_cutoff(job, default_alphas, num_bins):
 
@@ -596,18 +593,16 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
     # each feature, in each condition.
     unperm_stats = np.zeros(base_shape + (N,))
 
-    
-
     for (i, j) in np.ndindex(base_shape):
         alphas[i, j] = stats.Tstat.TUNING_PARAM_RANGE_VALUES[i] * default_alphas[j]
         tests[i, j] = stats.Tstat(alphas[i, j])
 
 
     print "Getting stats for unpermuted data"
-    for i in range(len(stats.Tstat.TUNING_PARAM_RANGE_VALUES)):
-        unperm_stats[i] = unpermuted_stats(job, tests[i])
+    for i, test_row in enumerate(tests):
+        unperm_stats[i] = unpermuted_stats(job, test_row)
 
-    up = compute_directional_results(job, tests, unperm_stats)
+    up   = compute_directional_results(job, tests,  unperm_stats)
     down = compute_directional_results(job, tests, -unperm_stats)
     
     best_params   = concat_directions(up.best_params, down.best_params)
@@ -617,7 +612,7 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
     edges         = concat_directions(up.edges, down.edges)
 
     return Results(
-        alphas, unperm_stats, job.levels, up, down, best_params, conf_to_stat,
+        alphas, unperm_stats, job.levels, best_params, conf_to_stat,
         conf_to_count, raw_conf, edges)
     
 
@@ -649,7 +644,7 @@ def compute_directional_results(job, tests, unperm_stats):
         job.levels, unperm_counts, raw_conf, edges)
 
     best_params = pick_alphas(conf_to_count)
-
+    print "Best params are " + str(best_params)
     return DirectionalResults(
         edges,
         unperm_counts,
@@ -658,23 +653,6 @@ def compute_directional_results(job, tests, unperm_stats):
         conf_to_count,
         best_params)
     
-
-def plot_cumulative(data):
-    (m, n) = np.shape(data)
-    plt.clf()
-    for c in range(1, n):
-        col = sorted(data[:, c])
-        plt.plot(col, np.arange(m))
-    plt.savefig("cumulative")
-
-
-def ensure_increases(a):
-    """Given an array, return a copy of it that is monotonically
-    increasing."""
-
-    for i in range(len(a) - 1):
-        a[i+1] = max(a[i], a[i+1])
-
 
 def adjust_num_diff(V0, R, num_ids):
     V = np.zeros(6)
