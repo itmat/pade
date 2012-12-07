@@ -88,10 +88,6 @@ class Results:
             np.save('raw_conf', self.raw_conf)
             np.save('edges', self.edges)
 
-            np.save('up_unperm_counts', self.up.unperm_counts)
-            np.save('down_unperm_counts', self.down.unperm_counts)
-
-
         finally:
             os.chdir(cwd)
 
@@ -114,14 +110,14 @@ class Results:
 
             up = DirectionalResults(
                 None,
-                np.load('up_unperm_counts.npy'),
+                None,
                 None,
                 None,
                 None,
                 None)
             down = DirectionalResults(
                 None,
-                np.load('down_unperm_counts.npy'),
+                None,
                 None,
                 None,
                 None,
@@ -134,7 +130,7 @@ class Results:
             os.chdir(cwd)
 
     @property 
-    def num_levels(self):
+    def num_directions(self):
         """Number of directions, typically 1 or 2."""
         return 2
 
