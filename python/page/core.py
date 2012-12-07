@@ -167,47 +167,38 @@ class Results:
 
         """
         res = np.zeros((2, self.num_levels, self.num_classes, self.num_features))
-
-        for d, direction in enumerate(['up', 'down']):
-            feature_to_conf = self._feature_to_conf(direction)
-            params = self.best_params[d]
-
-            for l in range(self.num_levels):
-                for c in range(self.num_classes):
-                    param = params[c, l]
-                    conf = feature_to_conf[param, c]
-                    res[d, l, c] = conf
+        feature_to_conf = self.feature_to_conf
+        params = np.swapaxes(self.best_params, 1, 2)
+        for idx in np.ndindex(np.shape(res)[:-1]):
+            src_idx = (idx[0], params[idx], idx[2])
+            res[idx] = feature_to_conf[src_idx]
 
         return res
 
 
-    def _feature_to_conf(self, direction):
+    @property
+    def feature_to_conf(self):
         """A test x class x feature array."""
 
-        d = 0 if direction == 'up' else 1
+        res = np.zeros((self.num_directions, self.num_tests, self.num_classes, self.num_features))
 
-        res = np.zeros((self.num_tests, self.num_classes, self.num_features))
+        for d, i, j in np.ndindex(np.shape(res)[:-1]):
+            table = [(k, v) for (k, v) in enumerate(self.stats[i, j])]
+            table = np.array(table, dtype=[
+                    ('feature', int),
+                    ('stat', float)])
+            table = np.sort(table, order='stat')
+            
+            edgenum = 0
 
-        for i in range(self.num_tests):
-            for j in range(self.num_classes):
-                table = []
-                for k, stat in enumerate(self.stats[i, j]):
-                    table.append((k, stat))
-                table = np.array(table, dtype=[
-                        ('feature', int),
-                        ('stat', float)])
-                table = np.sort(table, order='stat')
+            for (k, stat) in table:
+                if stat < self.edges[d, i, j, edgenum]:
+                    raise "Edges are not increasing"
 
-                edgenum = 0
-
-                for (k, stat) in table:
-                    if stat < self.edges[d, i, j, edgenum]:
-                        raise "Edges are not increasing"
-
-                    while stat >= self.edges[d, i, j, edgenum + 1]:
-                        edgenum += 1
+                while stat >= self.edges[d, i, j, edgenum + 1]:
+                    edgenum += 1
                     
-                    res[i, j, k] = self.raw_conf[d, i, j, edgenum]
+                res[d, i, j, k] = self.raw_conf[d, i, j, edgenum]
         return res
 
     @property
