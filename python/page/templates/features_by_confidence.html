@@ -50,8 +50,8 @@
   {% for c in range(1, results.num_classes) %}
   <tr>
     <td>{{job.condition_names[c]}}</td>
-    <td>{{results.alphas[results.up.best_params[c, level], c]}}</td>
-    <td>{{results.alphas[results.down.best_params[c, level], c]}}</td>
+    <td>{{results.alphas[results.best_params[0, c, level], c]}}</td>
+    <td>{{results.alphas[results.best_params[1, c, level], c]}}</td>
   </tr>
   {% endfor %}
 </table>

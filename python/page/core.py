@@ -62,12 +62,13 @@ class Results:
            features.
 
     """
-    def __init__(self, alphas, stats, conf_levels, up, down):
+    def __init__(self, alphas, stats, conf_levels, up, down, best_params):
         self.alphas = alphas
         self.stats  = stats
         self.conf_levels = conf_levels
         self.up = up
         self.down = down
+        self.best_params = best_params
 
     def save(self, output_dir):
         cwd = os.getcwd()
@@ -76,18 +77,17 @@ class Results:
             np.save('alphas', self.alphas)
             np.save('stats', self.stats)
             np.save('conf_levels', self.conf_levels)
+            np.save('best_params', self.best_params)
             np.save('up_edges', self.up.edges)
             np.save('up_unperm_counts', self.up.unperm_counts)
             np.save('up_raw_conf', self.up.raw_conf)
             np.save('up_conf_to_stat', self.up.conf_to_stat)
             np.save('up_conf_to_count', self.up.conf_to_count)
-            np.save('up_best_params', self.up.best_params)
             np.save('down_edges', self.down.edges)
             np.save('down_unperm_counts', self.down.unperm_counts)
             np.save('down_raw_conf', self.down.raw_conf)
             np.save('down_conf_to_stat', self.down.conf_to_stat)
             np.save('down_conf_to_count', self.down.conf_to_count)
-            np.save('down_best_params', self.down.best_params)
 
         finally:
             os.chdir(cwd)
@@ -103,22 +103,23 @@ class Results:
             alphas = np.load('alphas.npy')
             stats = np.load('stats.npy')
             conf_levels = np.load('conf_levels.npy')
+            best_params = np.load('best_params.npy')
             up = DirectionalResults(
                 np.load('up_edges.npy'),
                 np.load('up_unperm_counts.npy'),
                 np.load('up_raw_conf.npy'),
                 np.load('up_conf_to_stat.npy'),
                 np.load('up_conf_to_count.npy'),
-                np.load('up_best_params.npy'))
+                None)
             down = DirectionalResults(
                 np.load('down_edges.npy'),
                 np.load('down_unperm_counts.npy'),
                 np.load('down_raw_conf.npy'),
                 np.load('down_conf_to_stat.npy'),
                 np.load('down_conf_to_count.npy'),
-                np.load('down_best_params.npy'))
+                None)
 
-            return Results(alphas, stats, conf_levels, up, down)
+            return Results(alphas, stats, conf_levels, up, down, best_params)
         
         finally:
             os.chdir(cwd)
@@ -175,14 +176,6 @@ class Results:
                     param = self.best_params[d, c, l]
                     cutoff = directional.conf_to_stat[param, c, l]
                     res[d, l, c] = cutoff
-        return res
-
-    @property
-    def best_params(self):
-        shape = (2,) + np.shape(self.up.best_params)
-        res = np.zeros(shape, int)
-        res[0] = self.up.best_params
-        res[1] = self.down.best_params
         return res
 
     @property
@@ -682,9 +675,12 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
 
     up = compute_directional_results(job, tests, unperm_stats)
     down = compute_directional_results(job, tests, -unperm_stats)
+    
+    best_params = np.concatenate((up.best_params, down.best_params))
+    best_params = best_params.reshape((2,) + np.shape(up.best_params))
 
     return Results(
-        alphas, unperm_stats, job.levels, up, down)        
+        alphas, unperm_stats, job.levels, up, down, best_params)        
     
 
 def compute_directional_results(job, tests, unperm_stats):
