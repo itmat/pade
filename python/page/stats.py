@@ -24,7 +24,11 @@ class Tstat(object):
     def __init__(self, alpha):
         self.alpha = alpha
 
-    def compute(self, (v1, v2)):
+    def compute(self, data):
+
+        v1 = data[0]
+        v2 = data[1]
+
         # n1 and n2 are the length of each row. TODO: When we start using
         # masked values we will need to use the number of unmasked values
         # in each row. Until then, all the lengths are the same.

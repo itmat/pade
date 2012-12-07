@@ -3,33 +3,19 @@
 
 
 """
-M is the number of conditions
-M_i is the number of replicates in the ith condition
-N is the number of features
 
+PaGE uses a lot of multi-dimensional arrays. When possible, the
+dimensions should be ordered as follows:
 
-H is the number of bins
-R is the number of permutations
-T is the number of tests
-L is the number of confidence levels
+  + Direction (up or down)
+  + Test (e.g. different values of alpha)
+  + Confidence level
+  + Class (or condition)
+  + Feature number
+  + Bin (for discretizing the distibution of statistic)
 
-
-
-Plot:
-
-* Histogram of feature count by statistic, one for each condition /
-  alpha.
-
-* Cumulative num features by statistic. One chart for each
-  condition, with different alphas.
-
-* Num features for each confidence level, one for each condition, with
-  different alphas. Overlay "best" alpha at each confidence level.
-
-Document:
-
-* Differentiate between statistic bins and confidence bins
-* Allow user-specified statistic bins?
+For t-test, shape is (test, condition)
+For f-test, shape is (test,)
 
 """
 import matplotlib
@@ -175,7 +161,8 @@ class Results:
     def feature_to_conf(self):
         """A test x class x feature array."""
 
-        res = np.zeros((self.num_directions, self.num_tests, self.num_classes, self.num_features))
+        res = np.zeros((self.num_directions, self.num_tests, 
+                        self.num_classes, self.num_features))
 
         for d, i, j in np.ndindex(np.shape(res)[:-1]):
             table = [(k, v) for (k, v) in enumerate(self.stats[i, j])]
@@ -226,6 +213,7 @@ class Results:
             res[d, i, c] = self.stats[self.best_params[d, i, c], c]
         return res
         
+
 class Job(object):
 
     levels = np.linspace(0.5, 0.95, 10)
@@ -308,11 +296,6 @@ class Job(object):
 
 __version__ = '6.0.0'
 
-
-########################################################################
-###
-### Functions
-###
 
 ################################################################
 ###
