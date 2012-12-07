@@ -63,7 +63,7 @@ class Results:
 
     """
     def __init__(self, alphas, stats, conf_levels, up, down, best_params,
-                 conf_to_stat):
+                 conf_to_stat, conf_to_count):
         self.alphas = alphas
         self.stats  = stats
         self.conf_levels = conf_levels
@@ -71,6 +71,7 @@ class Results:
         self.down = down
         self.best_params = best_params
         self.conf_to_stat = conf_to_stat
+        self.conf_to_count = conf_to_count
 
     def save(self, output_dir):
         cwd = os.getcwd()
@@ -81,15 +82,14 @@ class Results:
             np.save('conf_levels', self.conf_levels)
             np.save('best_params', self.best_params)
             np.save('conf_to_stat', self.conf_to_stat)
+            np.save('conf_to_count', self.conf_to_count)
 
             np.save('up_edges', self.up.edges)
             np.save('up_unperm_counts', self.up.unperm_counts)
             np.save('up_raw_conf', self.up.raw_conf)
-            np.save('up_conf_to_count', self.up.conf_to_count)
             np.save('down_edges', self.down.edges)
             np.save('down_unperm_counts', self.down.unperm_counts)
             np.save('down_raw_conf', self.down.raw_conf)
-            np.save('down_conf_to_count', self.down.conf_to_count)
 
         finally:
             os.chdir(cwd)
@@ -107,24 +107,25 @@ class Results:
             conf_levels = np.load('conf_levels.npy')
             best_params = np.load('best_params.npy')
             conf_to_stat = np.load('conf_to_stat.npy')
+            conf_to_count = np.load('conf_to_count.npy')
 
             up = DirectionalResults(
                 np.load('up_edges.npy'),
                 np.load('up_unperm_counts.npy'),
                 np.load('up_raw_conf.npy'),
                 None,
-                np.load('up_conf_to_count.npy'),
+                None,
                 None)
             down = DirectionalResults(
                 np.load('down_edges.npy'),
                 np.load('down_unperm_counts.npy'),
                 np.load('down_raw_conf.npy'),
                 None,
-                np.load('down_conf_to_count.npy'),
+                None,
                 None)
 
             return Results(alphas, stats, conf_levels, up, down, best_params,
-                           conf_to_stat)
+                           conf_to_stat, conf_to_count)
         
         finally:
             os.chdir(cwd)
@@ -250,7 +251,7 @@ class Results:
             (d, c, l) = idx
             directional = directions[d]
             test_idx = self.best_params[idx]
-            res[idx] = directional.conf_to_count[(test_idx,) + idx[1:]]
+            res[idx] = self.conf_to_count[(d, test_idx,) + idx[1:]]
         return res
 
     @property
@@ -685,9 +686,11 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
     
     best_params = concat_directions(up.best_params, down.best_params)
     conf_to_stat = concat_directions(up.conf_to_stat, down.conf_to_stat)
+    conf_to_count = concat_directions(up.conf_to_count, down.conf_to_count)
 
     return Results(
-        alphas, unperm_stats, job.levels, up, down, best_params, conf_to_stat)        
+        alphas, unperm_stats, job.levels, up, down, best_params, conf_to_stat,
+        conf_to_count)
     
 
 def compute_directional_results(job, tests, unperm_stats):
