@@ -148,13 +148,12 @@ class Results:
         """
 
         res = np.zeros((self.num_directions, self.num_levels, self.num_classes))
-            
-        for d in range(self.num_directions):
-            for l in range(self.num_levels):
-                for c in range(self.num_classes):
-                    param = self.best_params[d, c, l]
-                    cutoff = self.conf_to_stat[d, param, c, l]
-                    res[d, l, c] = cutoff
+
+        params = np.swapaxes(self.best_params, 1, 2)
+        for idx in np.ndindex(np.shape(res)):
+            (d, l, c) = idx
+            cutoff = self.conf_to_stat[d, params[idx], c, l]
+            res[idx] = cutoff
         return res
 
     @property
