@@ -1,5 +1,6 @@
 import numpy as np
 import numpy.ma as ma
+import numbers
 
 class Tstat(object):
 
@@ -24,7 +25,13 @@ class Tstat(object):
     def __init__(self, alpha):
         self.alpha = alpha
 
+        if isinstance(alpha, numbers.Number):
+            self.children = None
+        else:
+            self.children = [Tstat(a) for a in alpha]
+
     def compute(self, data):
+        print np.shape(data)
 
         v1 = data[0]
         v2 = data[1]
