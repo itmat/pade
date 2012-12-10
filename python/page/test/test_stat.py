@@ -17,10 +17,18 @@ class StatTest(unittest.TestCase):
 
     def test_tstat(self):
         data = np.array(
-            [[[2.410962, 1.897421, 2.421239, 1.798668],
-              [2.410962, 1.897421, 2.421239, 1.798668]],
-             [[0.90775,  0.964438, 1.07578,  1.065872],
-              [0.90775,  0.964438, 1.07578,  1.065872]]])
+            [
+                [
+                    [2.410962, 0.90775],
+                    [1.897421, 0.964438],
+                    [2.421239, 1.07578],
+                    [1.798668, 1.065872]],
+                [
+                    [2.410962, 0.90775],
+                    [1.897421, 0.964438],
+                    [2.421239, 1.07578],
+                    [1.798668, 1.065872]],
+                ])
 
         alpha = 1.62026604316528 * Tstat.TUNING_PARAM_RANGE_VALUES[4]
         stat = Tstat(alpha)
@@ -32,6 +40,54 @@ class StatTest(unittest.TestCase):
         self.assertAlmostEqual(sum(result),
                                sum(expected),
                                )
+
+    def test_3d_tstat(self):
+        data = np.array(
+            [
+                [
+                    [2.410962, 0.90775],
+                    [1.897421, 0.964438],
+                    [2.421239, 1.07578],
+                    [1.798668, 1.065872]],
+                [
+                    [2.410962, 0.90775],
+                    [1.897421, 0.964438],
+                    [2.421239, 1.07578],
+                    [1.798668, 1.065872]],
+                [
+                    [2.410962, 0.90775],
+                    [1.897421, 0.964438],
+                    [2.421239, 1.07578],
+                    [1.798668, 1.065872]]])
+
+        alpha = 1.62026604316528 * Tstat.TUNING_PARAM_RANGE_VALUES[4]
+        stat = Tstat(alpha)
+        result = stat.compute(data)
+
+        expected = [1.51898640652018,
+                    1.51898640652018,
+                    1.51898640652018,
+                    ]
+
+        self.assertAlmostEqual(sum(result),
+                               sum(expected),
+                               )
+
+    def test_2d_tstat(self):
+        data = np.array(
+            [
+                [2.410962, 0.90775],
+                [1.897421, 0.964438],
+                [2.421239, 1.07578],
+                [1.798668, 1.065872]])
+
+        alpha = 1.62026604316528 * Tstat.TUNING_PARAM_RANGE_VALUES[4]
+        stat = Tstat(alpha)
+        result = stat.compute(data)
+
+        expected = 1.51898640652018
+        self.assertAlmostEqual(result, expected)
+
 
     def test_ftest(self):
 

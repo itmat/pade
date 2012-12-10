@@ -187,7 +187,6 @@ class Results:
     def best_counts(self):
 
         res = np.zeros((self.num_directions, self.num_levels, self.num_classes))
-        print "Shape of conf to count is " + str(np.shape(self.conf_to_count))
         for idx in np.ndindex(np.shape(res)):
             (d, l, c) = idx
             test_idx = self.best_params[idx]
@@ -452,10 +451,11 @@ def get_perm_counts(job, unperm_stats, tests, edges):
         table = np.hstack((table[0], table[c]))
 
         for perm_num, perm in enumerate(all_perms[c]):
-            print "Perm is " + str(perm)
-            stats = tests[c].compute(
-                concat_directions(table[:, ~perm],
-                                  table[:, perm]))
+            data = concat_directions(table[:, ~perm],
+                                     table[:, perm])
+            data = np.swapaxes(data, 0, 1)
+            data = np.swapaxes(data, 1, 2)
+            stats = tests[c].compute(data)
             res[c] += cumulative_hist(stats, edges[c])
 
         res[c] = res[c] / float(len(all_perms[c]))
@@ -653,7 +653,10 @@ def unpermuted_stats(job, statfns):
     (num_conditions, num_features, samples_per_cond) = np.shape(table)
     stats = np.zeros((num_conditions, num_features))
     for c in range(1, num_conditions):
-        stats[c] = statfns[c].compute(table[([c,0],)])
+        data = table[([c, 0],)]
+        data = np.swapaxes(data, 0, 1)
+        data = np.swapaxes(data, 1, 2)
+        stats[c] = statfns[c].compute(data)
 
     return stats
 

@@ -31,27 +31,25 @@ class Tstat(object):
             self.children = [Tstat(a) for a in alpha]
 
     def compute(self, data):
-        print "Tstat shape is " + str(np.shape(data))
-
-        v1 = data[0]
-        v2 = data[1]
-
-        # n1 and n2 are the length of each row. TODO: When we start using
-        # masked values we will need to use the number of unmasked values
-        # in each row. Until then, all the lengths are the same.
-        m = len(v1)
-        n1 = np.array([len(row) for row in v1])
-        n2 = np.array([len(row) for row in v2])
+        """
+        Samples should be on the second to last axis, and class should
+        be on the last axis.
+        """
+        sample_axis = -2
+        class_axis  = -1
+        n = ma.count(data, axis=sample_axis)
+        n1 = n[..., 0]
+        n2 = n[..., 1]
 
         # Variance for each row of v1 and v2 with one degree of
         # freedom. var1 and var2 will be 1-d arrays, one variance for each
         # feature in the input.
-        var1 = np.var(v1, ddof=1, axis=1)
-        var2 = np.var(v2, ddof=1, axis=1)
+        var   = np.var(data, ddof=1, axis=sample_axis)
+        means = np.mean(data, axis=sample_axis)
 
-        S = np.sqrt((var1 * (n1-1) + var2 * (n2-1)) /(n1 + n2 - 2))
-
-        numer  = (np.mean(v1, axis=1) - np.mean(v2, axis=1)) * np.sqrt(n1 * n2)
+        prod  = var * (n - 1)
+        S     = np.sqrt((prod[..., 0] + prod[..., 1]) / (n1 + n2 - 2))
+        numer = (means[..., 0] - means[..., 1]) * np.sqrt(n1 * n2)
         denom = (self.alpha + S) * np.sqrt(n1 + n2)
 
         return numer / denom
