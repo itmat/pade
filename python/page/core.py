@@ -379,11 +379,12 @@ def find_default_alpha(job):
     """
 
     table = job.new_table()
+    table = np.swapaxes(table, 1, 2)
     alphas = np.zeros(len(table))
-    (num_classes, num_features, samples_per_class) = np.shape(table)
+    (num_classes, samples_per_class, num_features) = np.shape(table)
 
     for c in range(1, num_classes):
-        values = compute_s(table[c], table[0], axis=1)
+        values = compute_s(table[c], table[0])
         mean = np.mean(values)
         residuals = values[values < mean] - mean
         sd = np.sqrt(sum(residuals ** 2) / (len(residuals) - 1))
