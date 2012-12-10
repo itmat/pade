@@ -31,7 +31,7 @@ class Tstat(object):
             self.children = [Tstat(a) for a in alpha]
 
     def compute(self, data):
-        print np.shape(data)
+        print "Tstat shape is " + str(np.shape(data))
 
         v1 = data[0]
         v2 = data[1]

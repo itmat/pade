@@ -289,6 +289,17 @@ class Job(object):
             self._condition_names = groups.keys()
         return self._condition_names
 
+    def new_table(self):
+        conds = self.conditions
+        table = self.table
+        res = np.zeros((len(conds),
+                        len(table),
+                        len(conds[0])))
+
+        for i, c in enumerate(conds):
+            res[i] = table[:, c]
+        return res
+
 ########################################################################
 ###
 ### Constants
@@ -366,20 +377,17 @@ def find_default_alpha(job):
     condition layout.
 
     """
-    baseline_cols = job.conditions[0]
-    baseline_data = job.table[:,baseline_cols]
 
-    alphas = np.zeros(len(job.conditions))
+    table = job.new_table()
+    alphas = np.zeros(len(table))
+    (num_classes, num_features, samples_per_class) = np.shape(table)
 
-    for (c, cols) in enumerate(job.conditions):
-        if c == 0: 
-            continue
-
-        values = compute_s(job.table[:,cols], baseline_data, axis=1)
+    for c in range(1, num_classes):
+        values = compute_s(table[c], table[0], axis=1)
         mean = np.mean(values)
         residuals = values[values < mean] - mean
         sd = np.sqrt(sum(residuals ** 2) / (len(residuals) - 1))
-        alphas[c] = mean * 2 / np.sqrt(len(cols) + len(baseline_cols))
+        alphas[c] = mean * 2 / np.sqrt(samples_per_class * 2)
 
     return alphas
 
@@ -439,20 +447,14 @@ def get_perm_counts(job, unperm_stats, tests, edges):
     for c in range(1, n):
         logging.info('    Working on condition %d of %d' % (c, n - 1))
 
-        perms = all_perms[c]
-        r  = len(perms)
-        nc = len(job.conditions[c])
-        
-        # This is the list of all indexes into table for
-        # replicates of condition 0 and condition c.
-        master_indexes = np.concatenate(
-            (job.conditions[0],
-             job.conditions[c]))
-        
-        for perm_num, perm in enumerate(perms):
-            v1 = job.table[:, master_indexes[perm]]
-            v2 = job.table[:, master_indexes[~perm]]
-            stats = tests[c].compute((v2, v1))
+        table = job.new_table()
+        table = np.hstack((table[0], table[c]))
+
+        for perm_num, perm in enumerate(all_perms[c]):
+            print "Perm is " + str(perm)
+            stats = tests[c].compute(
+                concat_directions(table[:, ~perm],
+                                  table[:, perm]))
             res[c] += cumulative_hist(stats, edges[c])
 
         res[c] = res[c] / float(len(all_perms[c]))
@@ -646,13 +648,11 @@ def adjust_num_diff(V0, R, num_ids):
 
 def unpermuted_stats(job, statfns):
 
-    stats = np.zeros((len(job.conditions),
-                      len(job.table)))
-                      
-    for c in range(1, len(job.conditions)):
-        v1 = job.table[:, job.conditions[0]]
-        v2 = job.table[:, job.conditions[c]]
-        stats[c] = statfns[c].compute((v2, v1))
+    table = job.new_table()
+    (num_conditions, num_features, samples_per_cond) = np.shape(table)
+    stats = np.zeros((num_conditions, num_features))
+    for c in range(1, num_conditions):
+        stats[c] = statfns[c].compute(table[([c,0],)])
 
     return stats
 
