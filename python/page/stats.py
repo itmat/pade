@@ -60,8 +60,6 @@ class Ftest(object):
 
         within_group_mean = np.mean(a, axis=-2)
 
-        # TODO: Not nd friendly
-
         overall_mean = np.mean(np.mean(a, axis=-1), axis=-1)
 
         between_group_ss  = np.sum(counts * ((within_group_mean.T - overall_mean) ** 2).T, axis=-1)
