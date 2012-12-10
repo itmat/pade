@@ -108,7 +108,6 @@ class PageTest(unittest.TestCase):
         stats = np.zeros(np.shape(expected))
         for i, alpha in enumerate(alphas):
             data = np.concatenate((v1, v2)).reshape(2, 2, 4)
-            data = np.swapaxes(data, 0, 1)
             data = np.swapaxes(data, 1, 2)
             stats[:, i] = Tstat(alpha).compute(data)
 

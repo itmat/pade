@@ -31,25 +31,29 @@ class Tstat(object):
             self.children = [Tstat(a) for a in alpha]
 
     def compute(self, data):
+        """Computes the t-stat.
+
+        Input must be an ndarray with at least 2 dimensions. Axis 0
+        should be class, and axis 1 should be sample. If there are
+        more than two axes, the t-stat will be vectorized to all axes
+        past axis .
         """
-        Samples should be on the second to last axis, and class should
-        be on the last axis.
-        """
-        sample_axis = -2
-        class_axis  = -1
-        n = ma.count(data, axis=sample_axis)
-        n1 = n[..., 0]
-        n2 = n[..., 1]
+
+        class_axis = 0
+        sample_axis = 1
+
+        n = ma.count(data, axis=1)
+        n1 = n[0]
+        n2 = n[1]
 
         # Variance for each row of v1 and v2 with one degree of
         # freedom. var1 and var2 will be 1-d arrays, one variance for each
         # feature in the input.
         var   = np.var(data, ddof=1, axis=sample_axis)
         means = np.mean(data, axis=sample_axis)
-
         prod  = var * (n - 1)
-        S     = np.sqrt((prod[..., 0] + prod[..., 1]) / (n1 + n2 - 2))
-        numer = (means[..., 0] - means[..., 1]) * np.sqrt(n1 * n2)
+        S     = np.sqrt((prod[0] + prod[1]) / (n1 + n2 - 2))
+        numer = (means[0] - means[1]) * np.sqrt(n1 * n2)
         denom = (self.alpha + S) * np.sqrt(n1 + n2)
 
         return numer / denom
@@ -68,7 +72,6 @@ class Ftest(object):
         counts = ma.count(a, axis=-2)
 
         within_group_mean = np.mean(a, axis=-2)
-
         overall_mean = np.mean(np.mean(a, axis=-1), axis=-1)
 
         between_group_ss  = np.sum(counts * ((within_group_mean.T - overall_mean) ** 2).T, axis=-1)

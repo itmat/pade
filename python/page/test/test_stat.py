@@ -29,7 +29,7 @@ class StatTest(unittest.TestCase):
                     [2.421239, 1.07578],
                     [1.798668, 1.065872]],
                 ])
-
+        data = np.swapaxes(data, 0, 2)
         alpha = 1.62026604316528 * Tstat.TUNING_PARAM_RANGE_VALUES[4]
         stat = Tstat(alpha)
         result = stat.compute(data)
@@ -59,7 +59,7 @@ class StatTest(unittest.TestCase):
                     [1.897421, 0.964438],
                     [2.421239, 1.07578],
                     [1.798668, 1.065872]]])
-
+        data = np.swapaxes(data, 0, 2)
         alpha = 1.62026604316528 * Tstat.TUNING_PARAM_RANGE_VALUES[4]
         stat = Tstat(alpha)
         result = stat.compute(data)
@@ -80,7 +80,7 @@ class StatTest(unittest.TestCase):
                 [1.897421, 0.964438],
                 [2.421239, 1.07578],
                 [1.798668, 1.065872]])
-
+        data = np.swapaxes(data, 0, 1)
         alpha = 1.62026604316528 * Tstat.TUNING_PARAM_RANGE_VALUES[4]
         stat = Tstat(alpha)
         result = stat.compute(data)

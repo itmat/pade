@@ -297,7 +297,7 @@ class Job(object):
 
         for i, c in enumerate(conds):
             res[i] = table[:, c]
-        return res
+        return np.swapaxes(res, 1, 2)
 
 ########################################################################
 ###
@@ -329,7 +329,8 @@ def compute_s(v1, v2, axis=0):
 
 def summarize_confidence(levels, unperm_counts, raw_conf, bins):
     """
-    Return the lowest statistic at which the confidence level is greater or equal to conf.
+    Return the lowest statistic at which the confidence level is
+    greater or equal to conf.
 
     """
 
@@ -378,7 +379,6 @@ def find_default_alpha(job):
     """
 
     table = job.new_table()
-    table = np.swapaxes(table, 1, 2)
     alphas = np.zeros(len(table))
     (num_classes, samples_per_class, num_features) = np.shape(table)
 
@@ -448,13 +448,10 @@ def get_perm_counts(job, unperm_stats, tests, edges):
         logging.info('    Working on condition %d of %d' % (c, n - 1))
 
         table = job.new_table()
-        table = np.hstack((table[0], table[c]))
+        table = np.vstack((table[0], table[c]))
 
         for perm_num, perm in enumerate(all_perms[c]):
-            data = concat_directions(table[:, ~perm],
-                                     table[:, perm])
-            data = np.swapaxes(data, 0, 1)
-            data = np.swapaxes(data, 1, 2)
+            data = concat_directions(table[~perm], table[perm])
             stats = tests[c].compute(data)
             res[c] += cumulative_hist(stats, edges[c])
 
@@ -566,18 +563,18 @@ def concat_directions(up, down):
 def do_confidences_by_cutoff(job, default_alphas, num_bins):
 
     # Some values used as sizes of axes
-    N = len(job.table)
-    C = len(job.conditions)
-    S = len(stats.Tstat.TUNING_PARAM_RANGE_VALUES)
+    table = job.new_table()
+    (num_classes, num_samples, num_features) = np.shape(table)
+    num_tests = len(stats.Tstat.TUNING_PARAM_RANGE_VALUES)
 
-    base_shape = (S, C)
+    base_shape = (num_tests, num_classes)
 
     alphas = np.zeros(base_shape)
     tests = np.zeros(base_shape, dtype=object)
 
     # Unperm stats gives the value of the statistic for each test, for
     # each feature, in each condition.
-    unperm_stats = np.zeros(base_shape + (N,))
+    unperm_stats = np.zeros(base_shape + (num_features,))
 
     for (i, j) in np.ndindex(base_shape):
         alphas[i, j] = stats.Tstat.TUNING_PARAM_RANGE_VALUES[i] * default_alphas[j]
@@ -605,8 +602,8 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
 def compute_directional_results(job, tests, unperm_stats):
 
 #    edges = custom_bins(unperm_stats)
-    edges = uniform_bins(1001, unperm_stats)
 
+    edges = uniform_bins(1001, unperm_stats)
     base_shape = np.shape(unperm_stats)[:-1]
     num_bins = np.shape(edges)[-1]
     logging.debug("Shape of edges is " + str(np.shape(edges)))
@@ -621,8 +618,11 @@ def compute_directional_results(job, tests, unperm_stats):
 
     print "Getting raw confidence scores in {num_edges} edges".format(
         num_edges=np.shape(edges)[-1])
+
+    new_len = np.shape(job.new_table())[2]
+    
     raw_conf = raw_confidence_scores(
-        unperm_counts, perm_counts, edges, len(job.table))
+        unperm_counts, perm_counts, edges, new_len)
 
     print "Summarizing confidence scores for {num_levels} levels".format(
         num_levels=len(job.levels))
@@ -650,12 +650,10 @@ def adjust_num_diff(V0, R, num_ids):
 def unpermuted_stats(job, statfns):
 
     table = job.new_table()
-    (num_conditions, num_features, samples_per_cond) = np.shape(table)
+    (num_conditions, samples_per_cond, num_features) = np.shape(table)
     stats = np.zeros((num_conditions, num_features))
     for c in range(1, num_conditions):
         data = table[([c, 0],)]
-        data = np.swapaxes(data, 0, 1)
-        data = np.swapaxes(data, 1, 2)
         stats[c] = statfns[c].compute(data)
 
     return stats
