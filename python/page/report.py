@@ -28,6 +28,8 @@ class Report:
         cwd = os.getcwd()
         try:
             os.chdir(self.output_dir)
+            if not os.path.isdir("images"):
+                os.mkdir("images")
             self.make_jinja_report()
         finally:
             os.chdir(cwd)
@@ -46,7 +48,7 @@ class Report:
         if self.cached_stat_hists is not None:
             return self.cached_stat_hists
 
-        fmt = 'stat_hist_direction_{direction}_level_{level}_class_{cls}.png'
+        fmt = 'images/stat_hist_direction_{direction}_level_{level}_class_{cls}.png'
 
         results = self.results
         res = np.empty((2, results.num_levels, results.num_classes), 
@@ -97,7 +99,7 @@ class Report:
 
         for i in range(results.num_tests):
             for c in range(1, results.num_classes):
-                filename = 'stat_hist_test_{test}_class_{cls}.png'.format(
+                filename = 'images/stat_hist_test_{test}_class_{cls}.png'.format(
                     test=i, cls=c)
                 plt.cla()
                 plt.hist(stats[i, c], bins=50)
@@ -113,7 +115,7 @@ class Report:
             with open('stat_hist_class_{cls}.html'.format(cls=c), 'w') as out:
                 template = self.env.get_template('stat_hist_class.html')
                 stat_hists = [
-                    'stat_hist_test_{test}_class_{cls}.png'.format(
+                    'images/stat_hist_test_{test}_class_{cls}.png'.format(
                         test=test, cls=c)
                     for test in range(results.num_tests)]
                 out.write(template.render(
@@ -141,7 +143,7 @@ class Report:
         plt.title('Differentially expressed features by confidence level')
         plt.xlabel('Confidence')
         plt.ylabel('Differentially expressed features')
-        plt.savefig('count_by_conf')
+        plt.savefig('images/count_by_conf')
 
         print "Making index"
         with open('index.html', 'w') as out:
