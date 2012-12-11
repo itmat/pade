@@ -39,8 +39,8 @@ class Results:
                   (lower) edges of the confidence levels.
 
     """
-    def __init__(self, alphas, stats, conf_levels, best_params,
-                 conf_to_stat, conf_to_count, raw_conf, edges, ftest=None):
+    def __init__(self, alphas=None, stats=None, conf_levels=None, best_params=None,
+                 conf_to_stat=None, conf_to_count=None, raw_conf=None, edges=None, ftest=None):
         self.alphas = alphas
         self.stats  = stats
         self.conf_levels = conf_levels
@@ -76,16 +76,17 @@ class Results:
         cwd = os.getcwd()
         try:
             os.chdir(dir_)
-            alphas        = np.load('alphas.npy')
-            stats         = np.load('stats.npy')
-            conf_levels   = np.load('conf_levels.npy')
-            best_params   = np.load('best_params.npy')
-            conf_to_stat  = np.load('conf_to_stat.npy')
-            conf_to_count = np.load('conf_to_count.npy')
-            raw_conf      = np.load('raw_conf.npy')
-            edges         = np.load('edges.npy')
-            return Results(alphas, stats, conf_levels, best_params,
-                           conf_to_stat, conf_to_count, raw_conf, edges)
+            
+            res = Results()
+            res.alphas        = np.load('alphas.npy')
+            res.stats         = np.load('stats.npy')
+            res.conf_levels   = np.load('conf_levels.npy')
+            res.best_params   = np.load('best_params.npy')
+            res.conf_to_stat  = np.load('conf_to_stat.npy')
+            res.conf_to_count = np.load('conf_to_count.npy')
+            res.raw_conf      = np.load('raw_conf.npy')
+            res.edges         = np.load('edges.npy')
+            return res
         finally:
             os.chdir(cwd)
 
@@ -554,10 +555,16 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
     raw_conf      = concat_directions(up.raw_conf, down.raw_conf)
     edges         = concat_directions(up.edges, down.edges)
 
-    return Results(
-        alphas, unperm_stats, job.levels, best_params, conf_to_stat,
-        conf_to_count, raw_conf, edges)
-    
+    res = Results()
+    res.alphas = alphas
+    res.stats = unperm_stats
+    res.conf_levels = job.levels
+    res.best_params = best_params
+    res.conf_to_stat = conf_to_stat
+    res.conf_to_count = conf_to_count
+    res.raw_conf = raw_conf
+    res.edges = edges
+    return res
 
 def compute_directional_results(job, tests, unperm_stats):
 
