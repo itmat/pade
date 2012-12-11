@@ -61,7 +61,7 @@ class PageTest(unittest.TestCase):
         conditions = self.schema.sample_groups("treatment").values()
 
         # TODO: Make find_default_alpha take schema?
-        alphas = page.find_default_alpha(job)
+        alphas = page.find_default_alpha(job.new_table)
 
         self.assertAlmostEqual(alphas[1], 1.62026604316528)
         self.assertAlmostEqual(alphas[2], 1.61770701155527)
@@ -170,7 +170,7 @@ class PageTest(unittest.TestCase):
         job = page.Job(self.infile, self.schema)
 
         conditions = self.schema.sample_groups("treatment").values()
-        alphas = page.find_default_alpha(job)
+        alphas = page.find_default_alpha(job.new_table)
 
         results = page.do_confidences_by_cutoff(job, alphas, 1000)
 

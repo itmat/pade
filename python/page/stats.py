@@ -17,10 +17,6 @@ class Ttest(object):
             10,
             ])
 
-    #TUNING_PARAM_RANGE_VALUES = np.array([0.5])
-    
-    #TUNING_PARAM_RANGE_VALUES = np.array([0.0001, 0.5, 10])
-
     
     def __init__(self, alpha):
         self.alpha = alpha
@@ -29,6 +25,7 @@ class Ttest(object):
             self.children = None
         else:
             self.children = [Ttest(a) for a in alpha]
+
 
     def compute(self, data):
         """Computes the t-stat.
@@ -57,6 +54,7 @@ class Ttest(object):
         denom = (self.alpha + S) * np.sqrt(n1 + n2)
 
         return numer / denom
+
 
 class Ftest(object):
 
@@ -90,10 +88,6 @@ class Ftest(object):
         msw = s_w / (num_conditions * (num_samples - 1))
 
         return msb / msw
-
-class CompositeStat(object):
-    def __init__(self, children):
-        self.children = children
 
 
     

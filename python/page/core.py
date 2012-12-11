@@ -282,12 +282,14 @@ class Job(object):
             self._conditions = groups.values()
         return self._conditions
 
+
     @property
     def condition_names(self):
         if self._condition_names is None:
             groups = self.schema.sample_groups(self.schema.attribute_names[0])
             self._condition_names = groups.keys()
         return self._condition_names
+
 
     @property
     def new_table(self):
@@ -373,14 +375,14 @@ def pick_alphas(conf_to_count, axis=0):
     return np.swapaxes(np.argmax(conf_to_count, axis=0), 0, 1)
 
 
-def find_default_alpha(job):
+def find_default_alpha(table):
     """
-    Return a default value for alpha, using the given data table and
-    condition layout.
+    Return a default value for alpha. 
+
+    Table should be an ndarray, with shape (conditions, samples, features).
 
     """
 
-    table = job.new_table
     alphas = np.zeros(len(table))
     (num_classes, samples_per_class, num_features) = np.shape(table)
 
@@ -573,17 +575,13 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
 
     alphas = np.zeros(base_shape)
     tests = np.zeros(base_shape, dtype=object)
-
-    # Unperm stats gives the value of the statistic for each test, for
-    # each feature, in each condition.
-    unperm_stats = np.zeros(base_shape + (num_features,))
-
     for (i, j) in np.ndindex(base_shape):
         alphas[i, j] = stats.Ttest.TUNING_PARAM_RANGE_VALUES[i] * default_alphas[j]
         tests[i, j] = stats.Ttest(alphas[i, j])
 
 
     print "Getting stats for unpermuted data"
+    unperm_stats = np.zeros(base_shape + (num_features,))
     for i, test_row in enumerate(tests):
         unperm_stats[i] = unpermuted_stats(job, test_row)
 

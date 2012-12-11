@@ -178,7 +178,7 @@ def do_run(args):
 
     condition_names = [schema.attribute_names[0] + "=" + str(x)
                        for x in groups.keys()]
-    alphas = core.find_default_alpha(job)
+    alphas = core.find_default_alpha(job.new_table)
     results = core.do_confidences_by_cutoff(job, alphas, args.num_bins)
 
     results.save('page_output')
