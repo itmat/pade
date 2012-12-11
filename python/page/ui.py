@@ -7,7 +7,7 @@ import re
 import argparse
 from textwrap import fill
 from schema import Schema
-
+import stats
 import cmd
 import logging
 import sys
@@ -610,7 +610,7 @@ def do_report(args):
     report = Report(job, 'page_output', results)
 
     report.plot_histograms = not args.no_histograms
-
+    results.ftest = stats.Ftest().compute(job.new_table)
     report.make_report()
     
     return

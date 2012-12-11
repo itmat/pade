@@ -75,12 +75,14 @@
 <table>
   <tr>
     <th>Feature</th>
+    <th>F-test</th>
     {% for c in range(1, results.num_classes) %}
     <th colspan="3">{{job.condition_names[c]}}</th>
     {% endfor %}
   </tr>
 
   <tr>
+    <th></th>
     <th></th>
     {% for c in range(1, results.num_classes) %}
     <th>dir</th>
@@ -92,6 +94,7 @@
   {% for feature_idx in range(results.num_features) if any_determination[level, feature_idx]%}
   <tr>
     <td>{{feature_idx}}</td>
+    <td>{{results.ftest[feature_idx]}}</td>
     {% for c in  range(1, results.num_classes) %}
 
     {% set det_classes = ["baseline", "up_regulated", "down_regulated"] %}

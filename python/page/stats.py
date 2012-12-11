@@ -61,39 +61,33 @@ class Tstat(object):
 class Ftest(object):
 
     def compute(self, a):
+        """Compute the f-test for the given ndarray.
 
-        (num_samples, num_conditions) = np.shape(a)[-2:]
-        print "Shape is " + str(np.shape(a))
-        print "Got {samples} samples and {conditions} conditions".format(
-            samples=num_samples, conditions=num_conditions)
+        Input must be have 2 or more dimensions. Axis 0 must be
+        sample, axis 1 must be class (or condition). Operations are
+        vectorized over any subsequent axes. So, for example, an input
+        array with shape (3, 2) would represent 1 feature for 2
+        classes, each with at most 3 samples. An input array with
+        shape (5, 3, 2) would be 5 features for 3 samples of 2
+        conditions.
 
-        # TODO: need to allow masked values
-        counts = np.array([len(x) for x in np.swapaxes(a, -2, -1)])
-        counts = ma.count(a, axis=-2)
+        TODO: Make sure masked input arrays work.
 
-        within_group_mean = np.mean(a, axis=-2)
-        overall_mean = np.mean(np.mean(a, axis=-1), axis=-1)
+        """
+        (num_samples, num_conditions) = np.shape(a)[:2]
 
-        between_group_ss  = np.sum(counts * ((within_group_mean.T - overall_mean) ** 2).T, axis=-1)
-        print "Between group ss"
-        print between_group_ss
-        f_b = float(num_conditions - 1)
-        msb = between_group_ss / f_b
-
-        print "Within group mean:"
-        print within_group_mean
-        tiled_means = np.tile(np.swapaxes(within_group_mean, -1, -2), (np.shape(a)[:-1] + (1, num_samples)))
-
-
-        centered = np.zeros_like(a)
-
-        for idx in np.ndindex(np.shape(a)):
-            group_idx = idx[:-2] + (idx[-1],)
-            centered[idx] = a[idx] - within_group_mean[group_idx]
-
-        s_w = np.sum(np.sum(centered ** 2, axis=-1), axis=-1)
-        f_w = np.shape(a)[-1] * (np.shape(a)[-2] - 1)
-        msw = s_w / f_w
+        # u_w is within-group mean (over axis 0, the sample axis)
+        # u is overall mean (mean of the within-group means)
+        # s_b is between-group sum of squares
+        # s_w is within-group sum of squares
+        # msb and msw are mean-square values for between-group and
+        # within-group
+        u_w = np.mean(a, axis=0)    # Within-group mean
+        u   = np.mean(u_w, axis=0) # Overall mean
+        s_b = np.sum(ma.count(a, axis=0) * (u_w - u) ** 2, axis=0)
+        s_w = np.sum(np.sum((a - u_w) ** 2, axis=0), axis=0)
+        msb = s_b / float(num_conditions - 1)
+        msw = s_w / (num_conditions * (num_samples - 1))
 
         return msb / msw
 

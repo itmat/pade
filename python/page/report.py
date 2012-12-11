@@ -8,7 +8,6 @@ import os
 from jinja2 import Environment, PackageLoader
 
 
-
 class Report:
 
     def __init__(self, job, output_dir, results):
@@ -24,6 +23,7 @@ class Report:
         self.plot_histograms = True
         self.cached_stat_hists = None
 
+
     def make_report(self):
         cwd = os.getcwd()
         try:
@@ -31,6 +31,7 @@ class Report:
             self.make_jinja_report()
         finally:
             os.chdir(cwd)
+
 
     def stat_hists(self):
 

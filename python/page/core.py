@@ -48,7 +48,7 @@ class Results:
 
     """
     def __init__(self, alphas, stats, conf_levels, best_params,
-                 conf_to_stat, conf_to_count, raw_conf, edges):
+                 conf_to_stat, conf_to_count, raw_conf, edges, ftest=None):
         self.alphas = alphas
         self.stats  = stats
         self.conf_levels = conf_levels
@@ -57,6 +57,7 @@ class Results:
         self.conf_to_count = conf_to_count
         self.raw_conf = raw_conf
         self.edges = edges
+        self.ftest = ftest
 
     def save(self, output_dir):
         cwd = os.getcwd()
@@ -288,6 +289,7 @@ class Job(object):
             self._condition_names = groups.keys()
         return self._condition_names
 
+    @property
     def new_table(self):
         conds = self.conditions
         table = self.table
@@ -378,7 +380,7 @@ def find_default_alpha(job):
 
     """
 
-    table = job.new_table()
+    table = job.new_table
     alphas = np.zeros(len(table))
     (num_classes, samples_per_class, num_features) = np.shape(table)
 
@@ -447,7 +449,7 @@ def get_perm_counts(job, unperm_stats, tests, edges):
     for c in range(1, n):
         logging.info('    Working on condition %d of %d' % (c, n - 1))
 
-        table = job.new_table()
+        table = job.new_table
         table = np.vstack((table[0], table[c]))
 
         for perm_num, perm in enumerate(all_perms[c]):
@@ -563,7 +565,7 @@ def concat_directions(up, down):
 def do_confidences_by_cutoff(job, default_alphas, num_bins):
 
     # Some values used as sizes of axes
-    table = job.new_table()
+    table = job.new_table
     (num_classes, num_samples, num_features) = np.shape(table)
     num_tests = len(stats.Tstat.TUNING_PARAM_RANGE_VALUES)
 
@@ -619,7 +621,7 @@ def compute_directional_results(job, tests, unperm_stats):
     print "Getting raw confidence scores in {num_edges} edges".format(
         num_edges=np.shape(edges)[-1])
 
-    new_len = np.shape(job.new_table())[2]
+    new_len = np.shape(job.new_table)[2]
     
     raw_conf = raw_confidence_scores(
         unperm_counts, perm_counts, edges, new_len)
@@ -649,7 +651,7 @@ def adjust_num_diff(V0, R, num_ids):
 
 def unpermuted_stats(job, statfns):
 
-    table = job.new_table()
+    table = job.new_table
     (num_conditions, samples_per_cond, num_features) = np.shape(table)
     stats = np.zeros((num_conditions, num_features))
     for c in range(1, num_conditions):
