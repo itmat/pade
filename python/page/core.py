@@ -1,35 +1,26 @@
 #!/usr/bin/env python
 
-
-
-"""
-
-PaGE uses a lot of multi-dimensional arrays. When possible, the
+"""PaGE uses a lot of multi-dimensional arrays. When possible, the
 dimensions should be ordered as follows:
 
   + Direction (up or down)
   + Test (e.g. different values of alpha)
   + Confidence level
   + Class (or condition)
+  + Sample number (within class)
   + Feature number
   + Bin (for discretizing the distibution of statistic)
 
-For t-test, shape is (test, condition)
-For f-test, shape is (test,)
-
 """
-import matplotlib
-import matplotlib.pyplot as plt
+
 import collections
 import os
-import re
 import itertools 
 import logging
 import numpy as np
 import numpy.ma as ma
 import logging
 import stats
-
 from report import Report
 
 DirectionalResults = collections.namedtuple(
@@ -404,8 +395,6 @@ def init_perms(conditions):
 
 def get_perm_counts(job, unperm_stats, tests, edges):
 
-    (M, N) = np.shape(unperm_stats)
-
     all_perms = init_perms(job.conditions)
 
     shape = list(np.shape(edges))
@@ -413,9 +402,6 @@ def get_perm_counts(job, unperm_stats, tests, edges):
     res = np.zeros(shape)
 
     n  = len(job.conditions)
-    n0 = len(job.conditions[0])
-
-    plt.cla()
 
     for c in range(1, n):
         logging.info('    Working on condition %d of %d' % (c, n - 1))
@@ -439,29 +425,32 @@ def cumulative_hist(values, bins):
 
 
 def get_unperm_counts(unperm_stats, edges):
+    """Count the number of features by statistic value.
 
-    """Count the number of features with statistic values between the
-    given bin edges. unperm_stats is an M x N array where,
-    unperm_stats[m, n] gives the statistic value for feature m in
-    condition n. Edges is an array of monotonically increasing numbers,
-    of length B. Returns a B x N array, where result[b, n] gives the
-    number of features that have the statistic between edges[b - 1] and
-    edges[b] for condition n.
+    stats is a (class x feature) array where unperm_stats[class,
+    feature] gives the statistic for the given feature, class
+    combination. edges is a (class, bins + 1) monotonically increasing
+    array where each pair of consecutive items defines the edges of a
+    bin. Returns a (classes x bins) array where each item gives the
+    number of features whose statistic value falls in the given bin
+    for the given class.
 
     TODO: We should be able to make the dimensionality of this
     function flexible.
     """
     logging.debug("Shape of stats is " + str(np.shape(unperm_stats)))
     logging.debug("Shape of edges is " + str(np.shape(edges)))
-    (M, N) = np.shape(unperm_stats)
+
+    (num_classes, num_features) = np.shape(unperm_stats)
     shape = list(np.shape(edges))
     shape[1] -= 1
     res = np.zeros(shape, int)
 
-    for c in range(1, M):
+    for c in range(1, num_classes):
         res[c] = cumulative_hist(unperm_stats[c], edges[c])
 
     return res
+
 
 
 def uniform_bins(num_bins, stats):
@@ -572,12 +561,12 @@ def compute_directional_results(job, tests, unperm_stats):
 
 #    edges = custom_bins(unperm_stats)
 
-    edges = uniform_bins(1001, unperm_stats)
-    base_shape = np.shape(unperm_stats)[:-1]
-    num_bins = np.shape(edges)[-1]
-    logging.debug("Shape of edges is " + str(np.shape(edges)))
+    edges         = uniform_bins(1001, unperm_stats)
+    base_shape    = np.shape(unperm_stats)[:-1]
+    num_bins      = np.shape(edges)[-1]
     perm_counts   = np.zeros(base_shape + (num_bins - 1,))
     unperm_counts = np.zeros_like(perm_counts)
+    logging.debug("Shape of edges is " + str(np.shape(edges)))
 
     print "Getting counts for permuted data"
     for i, test_row in enumerate(tests):
