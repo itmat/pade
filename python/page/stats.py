@@ -26,6 +26,39 @@ class Ttest(object):
         else:
             self.children = [Ttest(a) for a in alpha]
 
+    @classmethod
+    def compute_s(cls, data):
+        """
+        v1 and v2 should have the same number of rows.
+        """
+                
+        var = np.var(data, ddof=1, axis=1)
+        size = ma.count(data, axis=1)
+        return np.sqrt(np.sum(var * size, axis=0) / np.sum(size, axis=0))
+
+
+    @classmethod
+    def find_default_alpha(cls, table):
+        """
+        Return a default value for alpha. 
+        
+        Table should be an ndarray, with shape (conditions, samples, features).
+        
+        """
+
+        alphas = np.zeros(len(table))
+        (num_classes, samples_per_class, num_features) = np.shape(table)
+
+        for c in range(1, num_classes):
+            subset = table[([c, 0],)]
+            values = cls.compute_s(subset)
+            mean = np.mean(values)
+            residuals = values[values < mean] - mean
+            sd = np.sqrt(sum(residuals ** 2) / (len(residuals) - 1))
+            alphas[c] = mean * 2 / np.sqrt(samples_per_class * 2)
+
+        return alphas
+
 
     def compute(self, data):
         """Computes the t-stat.

@@ -48,70 +48,10 @@ class PageTest(unittest.TestCase):
                 sample = "c{0}r{1}".format(condition, replicate)
                 self.schema.set_attribute(sample, "treatment", levels[condition])
 
-    def test_compute_s(self):
-        s = page.compute_s((self.v1, self.v2))
-        self.assertAlmostEqual(s, 2.57012753682683)
-
     def test_load_input(self):
         job = page.Job(self.infile, self.schema)
         self.assertEquals(len(job.feature_ids), 1000)
 
-    def test_default_alpha(self):
-        job = page.Job(self.infile, self.schema)
-        conditions = self.schema.sample_groups("treatment").values()
-
-        # TODO: Make find_default_alpha take schema?
-        alphas = page.find_default_alpha(job.new_table)
-
-        self.assertAlmostEqual(alphas[1], 1.62026604316528)
-        self.assertAlmostEqual(alphas[2], 1.61770701155527)
-        self.assertAlmostEqual(alphas[3], 1.60540468969643)
-
-        page.compute_s((job.table[:,(0,1,2,3)],
-                        job.table[:,(4,5,6,7)]))
-
-    def test_tstat(self):
-        v1 = [[2.410962, 1.897421, 2.421239, 1.798668],
-              [2.410962, 1.897421, 2.421239, 1.798668]]
-        v2 = [[0.90775,  0.964438, 1.07578,  1.065872],
-              [0.90775,  0.964438, 1.07578,  1.065872]]
-        v1 = array(v1)
-        v2 = array(v2)
-        alpha = 1.62026604316528
-        alphas = Ttest.TUNING_PARAM_RANGE_VALUES * alpha
-        expected = [
-            [
-                6.62845904788559,
-                6.21447939063187,
-                3.96389309107878,
-                2.19632757746533,
-                1.51898640652018,
-                0.857703281874709,
-                0.597558974875407,
-                0.458495683101651,
-                0.312872820321998,
-                0.0970668755330585,
-                ],
-            [
-                6.62845904788559,
-                6.21447939063187,
-                3.96389309107878,
-                2.19632757746533,
-                1.51898640652018,
-                0.857703281874709,
-                0.597558974875407,
-                0.458495683101651,
-                0.312872820321998,
-                0.0970668755330585,
-                ]]
-
-        stats = np.zeros(np.shape(expected))
-        for i, alpha in enumerate(alphas):
-            data = np.concatenate((v1, v2)).reshape(2, 2, 4)
-            data = np.swapaxes(data, 1, 2)
-            stats[:, i] = Ttest(alpha).compute(data)
-
-        self.assertAlmostEqual(sum(stats), sum(expected))
 
     def test_all_subsets(self):
         subsets = page.all_subsets(8, 4)
@@ -170,7 +110,7 @@ class PageTest(unittest.TestCase):
         job = page.Job(self.infile, self.schema)
 
         conditions = self.schema.sample_groups("treatment").values()
-        alphas = page.find_default_alpha(job.new_table)
+        alphas = page.stats.Ttest.find_default_alpha(job.new_table)
 
         results = page.do_confidences_by_cutoff(job, alphas, 1000)
 
@@ -227,6 +167,65 @@ class PageTest(unittest.TestCase):
         [  0.9 ,  29.  ,   0.  ],
         [  0.95,  24.  ,   0.  ]]])
 #        self.assertTrue(np.all(expected_breakdown - breakdown) == 0)
+
+    def test_tstat2(self):
+        v1 = [[2.410962, 1.897421, 2.421239, 1.798668],
+              [2.410962, 1.897421, 2.421239, 1.798668]]
+        v2 = [[0.90775,  0.964438, 1.07578,  1.065872],
+              [0.90775,  0.964438, 1.07578,  1.065872]]
+        v1 = np.array(v1)
+        v2 = np.array(v2)
+        alpha = 1.62026604316528
+        alphas = Ttest.TUNING_PARAM_RANGE_VALUES * alpha
+        expected = [
+            [
+                6.62845904788559,
+                6.21447939063187,
+                3.96389309107878,
+                2.19632757746533,
+                1.51898640652018,
+                0.857703281874709,
+                0.597558974875407,
+                0.458495683101651,
+                0.312872820321998,
+                0.0970668755330585,
+                ],
+            [
+                6.62845904788559,
+                6.21447939063187,
+                3.96389309107878,
+                2.19632757746533,
+                1.51898640652018,
+                0.857703281874709,
+                0.597558974875407,
+                0.458495683101651,
+                0.312872820321998,
+                0.0970668755330585,
+                ]]
+
+        stats = np.zeros(np.shape(expected))
+        for i, alpha in enumerate(alphas):
+            data = np.concatenate((v1, v2)).reshape(2, 2, 4)
+            data = np.swapaxes(data, 1, 2)
+            stats[:, i] = Ttest(alpha).compute(data)
+
+        self.assertAlmostEqual(np.sum(stats), np.sum(expected))
+
+    def test_compute_s(self):
+        s = page.stats.Ttest.compute_s((self.v1, self.v2))
+        self.assertAlmostEqual(s, 2.57012753682683)
+
+
+    def test_default_alpha(self):
+        job = page.Job(self.infile, self.schema)
+        conditions = self.schema.sample_groups("treatment").values()
+
+        # TODO: Make find_default_alpha take schema?
+        alphas = page.stats.Ttest.find_default_alpha(job.new_table)
+
+        self.assertAlmostEqual(alphas[1], 1.62026604316528)
+        self.assertAlmostEqual(alphas[2], 1.61770701155527)
+        self.assertAlmostEqual(alphas[3], 1.60540468969643)
 
 if __name__ == '__main__':
     unittest.main()

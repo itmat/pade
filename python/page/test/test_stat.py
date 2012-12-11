@@ -14,6 +14,7 @@ class StatTest(unittest.TestCase):
                 [ 3.0,  6.0,  7.0],
                 [ 4.0,  8.0, 12.0]])
 
+        self.infile = 'sample_data/4_class_testdata_header1.txt'
 
     def test_tstat(self):
         data = np.array(
@@ -102,6 +103,7 @@ class StatTest(unittest.TestCase):
         self.assertEqual(np.shape(got), (2,))
         self.assertAlmostEqual(got[0], expected)
         self.assertAlmostEqual(got[1], expected)
+
 
 if __name__ == '__main__':
     unittest.main()
