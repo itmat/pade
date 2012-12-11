@@ -514,7 +514,6 @@ def get_arguments():
     report.add_argument(
         '--confidence',
         help="The confidence level.",
-        required=True,
         type=float)
     report.add_argument(
         '--schema',
