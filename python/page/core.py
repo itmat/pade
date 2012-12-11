@@ -54,7 +54,9 @@ class Results:
     def save(self, output_dir):
         cwd = os.getcwd()
         try:
-            os.chdir(output_dir)
+            if not os.path.isdir(output_dir):
+                os.makedirs(output_dir)
+            os.chdir(os.path.join(output_dir))
             np.save('alphas', self.alphas)
             np.save('stats', self.stats)
             np.save('conf_levels', self.conf_levels)

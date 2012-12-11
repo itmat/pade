@@ -181,7 +181,7 @@ def do_run(args):
     alphas = stats.Ttest.find_default_alpha(job.new_table)
     results = core.do_confidences_by_cutoff(job, alphas, args.num_bins)
 
-    results.save('page_output')
+    results.save('page_output/data')
 
     print """
 Please take a look at the tables above (or at the prettier versions in {output_dir}) and select a confidence level to use. Then run "page finish --confidence CONF" to finish the job.
@@ -606,7 +606,7 @@ def do_report(args):
     schema = Schema.load(args.schema, args.infile)
     job = core.Job(args.infile, schema)
 
-    results = core.Results.load('page_output')
+    results = core.Results.load('page_output/data')
     report = Report(job, 'page_output', results)
 
     report.plot_histograms = not args.no_histograms
