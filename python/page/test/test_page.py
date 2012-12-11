@@ -49,7 +49,7 @@ class PageTest(unittest.TestCase):
                 self.schema.set_attribute(sample, "treatment", levels[condition])
 
     def test_compute_s(self):
-        s = page.compute_s(self.v1, self.v2)
+        s = page.compute_s((self.v1, self.v2))
         self.assertAlmostEqual(s, 2.57012753682683)
 
     def test_load_input(self):
@@ -67,8 +67,8 @@ class PageTest(unittest.TestCase):
         self.assertAlmostEqual(alphas[2], 1.61770701155527)
         self.assertAlmostEqual(alphas[3], 1.60540468969643)
 
-        page.compute_s(job.table[:,(0,1,2,3)],
-                       job.table[:,(4,5,6,7)])
+        page.compute_s((job.table[:,(0,1,2,3)],
+                        job.table[:,(4,5,6,7)]))
 
     def test_tstat(self):
         v1 = [[2.410962, 1.897421, 2.421239, 1.798668],

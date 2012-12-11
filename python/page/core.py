@@ -26,6 +26,7 @@ import re
 import itertools 
 import logging
 import numpy as np
+import numpy.ma as ma
 import logging
 import stats
 
@@ -184,6 +185,7 @@ class Results:
                 res[d, i, j, k] = self.raw_conf[d, i, j, edgenum]
         return res
 
+
     @property
     def best_counts(self):
 
@@ -193,6 +195,7 @@ class Results:
             test_idx = self.best_params[idx]
             res[idx] = self.conf_to_count[(d, test_idx, idx[2], idx[1])]
         return res
+
 
     @property
     def best_stats_by_level(self):
@@ -316,19 +319,14 @@ __version__ = '6.0.0'
 ### Low-level functions
 ###
 
-def compute_s(v1, v2, axis=0):
+def compute_s(data, axis=0):
     """
     v1 and v2 should have the same number of rows.
     """
 
-    var1 = np.var(v1, ddof=1, axis=axis)
-    var2 = np.var(v2, ddof=1, axis=axis)
-    
-    s1 = np.size(v1, axis=axis) - 1
-    s2 = np.size(v2, axis=axis) - 1
-
-    return np.sqrt((var1 * s1 + var2 * s2)
-                   / (s1 + s2))
+    var = np.var(data, ddof=1, axis=1)
+    size = ma.count(data, axis=1)
+    return np.sqrt(np.sum(var * size, axis=0) / np.sum(size, axis=0))
 
 
 def summarize_confidence(levels, unperm_counts, raw_conf, bins):
@@ -365,6 +363,7 @@ def summarize_confidence(levels, unperm_counts, raw_conf, bins):
 
     return (conf_to_stat, conf_to_count)
 
+
 def pick_alphas(conf_to_count, axis=0):
     """Find the tests that maximize the counts.
 
@@ -387,7 +386,8 @@ def find_default_alpha(table):
     (num_classes, samples_per_class, num_features) = np.shape(table)
 
     for c in range(1, num_classes):
-        values = compute_s(table[c], table[0])
+        subset = table[([c, 0],)]
+        values = compute_s(subset)
         mean = np.mean(values)
         residuals = values[values < mean] - mean
         sd = np.sqrt(sum(residuals ** 2) / (len(residuals) - 1))
