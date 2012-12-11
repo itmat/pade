@@ -567,7 +567,7 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
     # Some values used as sizes of axes
     table = job.new_table
     (num_classes, num_samples, num_features) = np.shape(table)
-    num_tests = len(stats.Tstat.TUNING_PARAM_RANGE_VALUES)
+    num_tests = len(stats.Ttest.TUNING_PARAM_RANGE_VALUES)
 
     base_shape = (num_tests, num_classes)
 
@@ -579,8 +579,8 @@ def do_confidences_by_cutoff(job, default_alphas, num_bins):
     unperm_stats = np.zeros(base_shape + (num_features,))
 
     for (i, j) in np.ndindex(base_shape):
-        alphas[i, j] = stats.Tstat.TUNING_PARAM_RANGE_VALUES[i] * default_alphas[j]
-        tests[i, j] = stats.Tstat(alphas[i, j])
+        alphas[i, j] = stats.Ttest.TUNING_PARAM_RANGE_VALUES[i] * default_alphas[j]
+        tests[i, j] = stats.Ttest(alphas[i, j])
 
 
     print "Getting stats for unpermuted data"

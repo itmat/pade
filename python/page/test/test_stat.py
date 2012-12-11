@@ -1,6 +1,6 @@
 import numpy as np
 import unittest
-from page.stats import Tstat, Ftest
+from page.stats import Ttest, Ftest
 import page.core as page
 
 class StatTest(unittest.TestCase):
@@ -30,8 +30,8 @@ class StatTest(unittest.TestCase):
                     [1.798668, 1.065872]],
                 ])
         data = np.swapaxes(data, 0, 2)
-        alpha = 1.62026604316528 * Tstat.TUNING_PARAM_RANGE_VALUES[4]
-        stat = Tstat(alpha)
+        alpha = 1.62026604316528 * Ttest.TUNING_PARAM_RANGE_VALUES[4]
+        stat = Ttest(alpha)
         result = stat.compute(data)
 
         expected = [1.51898640652018,
@@ -60,8 +60,8 @@ class StatTest(unittest.TestCase):
                     [2.421239, 1.07578],
                     [1.798668, 1.065872]]])
         data = np.swapaxes(data, 0, 2)
-        alpha = 1.62026604316528 * Tstat.TUNING_PARAM_RANGE_VALUES[4]
-        stat = Tstat(alpha)
+        alpha = 1.62026604316528 * Ttest.TUNING_PARAM_RANGE_VALUES[4]
+        stat = Ttest(alpha)
         result = stat.compute(data)
 
         expected = [1.51898640652018,
@@ -81,8 +81,8 @@ class StatTest(unittest.TestCase):
                 [2.421239, 1.07578],
                 [1.798668, 1.065872]])
         data = np.swapaxes(data, 0, 1)
-        alpha = 1.62026604316528 * Tstat.TUNING_PARAM_RANGE_VALUES[4]
-        stat = Tstat(alpha)
+        alpha = 1.62026604316528 * Ttest.TUNING_PARAM_RANGE_VALUES[4]
+        stat = Ttest(alpha)
         result = stat.compute(data)
 
         expected = 1.51898640652018

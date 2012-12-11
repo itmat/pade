@@ -2,7 +2,7 @@ import numpy as np
 import numpy.ma as ma
 import numbers
 
-class Tstat(object):
+class Ttest(object):
 
     TUNING_PARAM_RANGE_VALUES = np.array([
             0.0001,
@@ -28,7 +28,7 @@ class Tstat(object):
         if isinstance(alpha, numbers.Number):
             self.children = None
         else:
-            self.children = [Tstat(a) for a in alpha]
+            self.children = [Ttest(a) for a in alpha]
 
     def compute(self, data):
         """Computes the t-stat.

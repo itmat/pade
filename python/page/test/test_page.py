@@ -8,7 +8,7 @@ import numpy as np
 import numpy.ma as ma
 from page.schema import Schema
 import page.stats
-from page.stats import Tstat
+from page.stats import Ttest
 import page.core as page
 
 
@@ -78,7 +78,7 @@ class PageTest(unittest.TestCase):
         v1 = array(v1)
         v2 = array(v2)
         alpha = 1.62026604316528
-        alphas = Tstat.TUNING_PARAM_RANGE_VALUES * alpha
+        alphas = Ttest.TUNING_PARAM_RANGE_VALUES * alpha
         expected = [
             [
                 6.62845904788559,
@@ -109,7 +109,7 @@ class PageTest(unittest.TestCase):
         for i, alpha in enumerate(alphas):
             data = np.concatenate((v1, v2)).reshape(2, 2, 4)
             data = np.swapaxes(data, 1, 2)
-            stats[:, i] = Tstat(alpha).compute(data)
+            stats[:, i] = Ttest(alpha).compute(data)
 
         self.assertAlmostEqual(sum(stats), sum(expected))
 
@@ -129,14 +129,14 @@ class PageTest(unittest.TestCase):
         expected_stats = np.swapaxes(np.copy(unpermuted_stats.stats), 1, 2)
         stats = np.zeros_like(expected_stats)
 
-        for i in range(len(Tstat.TUNING_PARAM_RANGE_VALUES)):
-            tests = [Tstat(a * Tstat.TUNING_PARAM_RANGE_VALUES[i])
+        for i in range(len(Ttest.TUNING_PARAM_RANGE_VALUES)):
+            tests = [Ttest(a * Ttest.TUNING_PARAM_RANGE_VALUES[i])
                      for a in unpermuted_stats.alpha_default]
             stats[i] = page.unpermuted_stats(job, tests)
             self.assertTrue(all(abs(expected_stats[i] - stats[i]) < 0.00001))
         edges = page.uniform_bins(1001, expected_stats)
 
-        for i in range(len(Tstat.TUNING_PARAM_RANGE_VALUES)):
+        for i in range(len(Ttest.TUNING_PARAM_RANGE_VALUES)):
             # Copied from unpermuted_stats
             u = page.get_unperm_counts(stats[i], edges[i])
 
