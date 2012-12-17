@@ -8,13 +8,13 @@ import yaml
 class Schema(object):
 
     def __init__(self, 
-                 attributes=[],
+                 factors=[],
                  is_feature_id=None,
                  is_sample=None,
                  column_names=None):
         """Construct a Schema. 
 
-  attributes    - a list of allowable attributes for the sample.
+  factors    - a list of allowable factors for the sample.
 
   column_names  - a list of strings, giving names for the columns.
 
@@ -41,7 +41,7 @@ is_sample are false will simply be ignored.
         else:
             column_names = np.array(column_names)
 
-        self.attributes = OrderedDict()
+        self.factors = OrderedDict()
         self.is_feature_id = np.array(is_feature_id, dtype=bool)
         self.is_sample     = np.array(is_sample,     dtype=bool)
         self.column_names  = column_names
@@ -55,14 +55,14 @@ is_sample are false will simply be ignored.
                 self.sample_name_index[column_names[i]] = n
                 self.sample_to_column.append(i)
 
-        for (name, dtype) in attributes:
-            self.add_attribute(name, dtype)
+        for (name, dtype) in factors:
+            self.add_factor(name, dtype)
 
     @property
-    def attribute_names(self):
-        """Return a list of the attribute names for this schema."""
+    def factor_names(self):
+        """Return a list of the factor names for this schema."""
 
-        return [x for x in self.attributes]
+        return [x for x in self.factors]
 
     def sample_column_names(self):
         """Return a list of the names of columns that contain
@@ -70,8 +70,8 @@ is_sample are false will simply be ignored.
 
         return self.column_names[self.is_sample]
 
-    def add_attribute(self, name, dtype):
-        """Add an attribute with the given name and data type, which
+    def add_factor(self, name, dtype):
+        """Add an factor with the given name and data type, which
         must be a valid numpy dtype."""
         
         default = None
@@ -82,7 +82,7 @@ is_sample are false will simply be ignored.
 
         new_table = []
 
-        self.attributes[name] = dtype
+        self.factors[name] = dtype
 
         if self.table is None:
             new_table = [(default,) for s in self.sample_column_names()]
@@ -92,13 +92,13 @@ is_sample are false will simply be ignored.
                 row = tuple(row) + (default,)
                 new_table.append(row)
             
-        self.table = np.array(new_table, dtype=[(k, v) for k, v in self.attributes.iteritems()])
+        self.table = np.array(new_table, dtype=[(k, v) for k, v in self.factors.iteritems()])
         
-    def drop_attribute(self, name):
-        """Remove the attribute with the given name."""
+    def drop_factor(self, name):
+        """Remove the factor with the given name."""
 
         self.table = drop_fields(name)
-        del self.attributes[name]
+        del self.factors[name]
 
     @classmethod
     def load(cls, stream, infile):
@@ -107,6 +107,9 @@ is_sample are false will simply be ignored.
         Schema.dump. The type of stream can be any type accepted by
         yaml.load."""
         col_names = None
+
+        if isinstance(infile, str):
+            infile = open(infile)
 
         header_line = infile.next().rstrip()
         col_names = header_line.split("\t")
@@ -118,23 +121,23 @@ is_sample are false will simply be ignored.
         feature_id_cols = set(doc['feature_id_columns'])
 
         is_feature_id = [c in feature_id_cols for c in col_names]
-        is_sample     = [c in doc['sample_attribute_mapping'] for c in col_names]
+        is_sample     = [c in doc['sample_factor_mapping'] for c in col_names]
 
         schema = Schema(
             column_names=col_names,
             is_feature_id=is_feature_id,
             is_sample=is_sample)
 
-        # Now add all the attributes and their types
-        attributes = doc['attributes']
-        for attribute in attributes:
-            dtype = attribute['dtype'] if 'dtype' in attribute else object
-            schema.add_attribute(attribute['name'], 
+        # Now add all the factors and their types
+        factors = doc['factors']
+        for factor in factors:
+            dtype = factor['dtype'] if 'dtype' in factor else object
+            schema.add_factor(factor['name'], 
                                  dtype)
 
-        for sample, attrs in doc['sample_attribute_mapping'].iteritems():
+        for sample, attrs in doc['sample_factor_mapping'].iteritems():
             for name, value in attrs.iteritems():
-                schema.set_attribute(sample, name, value)
+                schema.set_factor(sample, name, value)
 
         return schema
     
@@ -156,9 +159,9 @@ is_sample are false will simply be ignored.
             elif self.is_sample[i]:
                 
                 sample_cols[name] = {}
-                for attribute in self.attributes:
-                    value = self.get_attribute(name, attribute)
-#                    if self.attributes[attribute].startswith("S"):
+                for factor in self.factors:
+                    value = self.get_factor(name, factor)
+#                    if self.factors[factor].startswith("S"):
 #                        value = str(value)
 
                     if type(value) == str:
@@ -168,37 +171,37 @@ is_sample are false will simply be ignored.
                     elif type(value) == np.bool_:
                         value = bool(value)
                     
-                    sample_cols[name][attribute] = value
+                    sample_cols[name][factor] = value
 
-        attributes = []
-        for name, type_ in self.attributes.iteritems():
+        factors = []
+        for name, type_ in self.factors.iteritems():
             a = { "name" : name }
             if type_ != object:
                 a['dtype'] = type_
-            attributes.append(a)
+            factors.append(a)
 
         doc = {
-            "attributes"               : attributes,
+            "factors"               : factors,
             "feature_id_columns"       : feature_id_cols,
-            "sample_attribute_mapping" : sample_cols,
+            "sample_factor_mapping" : sample_cols,
             }
 
         data = yaml.dump(doc, default_flow_style=False, encoding=None)
 
         for line in data.splitlines():
-            if (line == "attributes:"):
-                write_yaml_block_comment(out, """This lists all the attributes defined for this file.
+            if (line == "factors:"):
+                write_yaml_block_comment(out, """This lists all the factors defined for this file.
 """)
 
             elif (line == "feature_id_columns:"):
                 out.write(unicode("\n"))
                 write_yaml_block_comment(out, """This lists all of the columns that contain feature IDs (for example gene ids).""")
 
-            elif (line == "sample_attribute_mapping:"):
+            elif (line == "sample_factor_mapping:"):
                 out.write(unicode("\n"))
-                write_yaml_block_comment(out, """This sets all of the attributes for all columns that represent samples. You should fill out this section to set each attribute for each sample. For example, if you had a sample called sample1 that recieved some kind of treatment, and one called sample2 that did not, you might have:
+                write_yaml_block_comment(out, """This sets all of the factors for all columns that represent samples. You should fill out this section to set each factor for each sample. For example, if you had a sample called sample1 that recieved some kind of treatment, and one called sample2 that did not, you might have:
 
-sample_attribute_mapping:
+sample_factor_mapping:
   sample1:
     treated: yes
   sample2:
@@ -209,20 +212,20 @@ sample_attribute_mapping:
             out.write(unicode(line) + "\n")
 
 
-    def set_attribute(self, sample_name, attribute, value):
-        """Set an attribute for a sample, identified by sample
+    def set_factor(self, sample_name, factor, value):
+        """Set an factor for a sample, identified by sample
         name."""
 
         sample_num = self.sample_num(sample_name)
-        self.table[sample_num][attribute] = value
+        self.table[sample_num][factor] = value
 
-    def get_attribute(self, sample_name, attribute):
-        """Get an attribute for a sample, identified by sample
+    def get_factor(self, sample_name, factor):
+        """Get an factor for a sample, identified by sample
         name."""
 
         sample_num = self.sample_num(sample_name)
-        value = self.table[sample_num][attribute]
-#        if self.attributes[attribute].startswith("S"):
+        value = self.table[sample_num][factor]
+#        if self.factors[factor].startswith("S"):
 #            value = str(value)
         return value
 
@@ -233,14 +236,14 @@ sample_attribute_mapping:
 
         return self.sample_name_index[sample_name]
 
-    def sample_groups(self, attribute):
-        """Returns a dictionary mapping each value of attribute to the
+    def sample_groups(self, factor):
+        """Returns a dictionary mapping each value of factor to the
         list of sample numbers that have that value set."""
 
         grouping = OrderedDict()
         
         print self.table
-        for i, val in enumerate(self.table[attribute]):
+        for i, val in enumerate(self.table[factor]):
             if val not in grouping:
                 grouping[val] = []
             grouping[val].append(i)
@@ -248,7 +251,7 @@ sample_attribute_mapping:
         return grouping
 
     def condition_name(self, c):
-        """Return a name for condition c, based on the attribute values for that condition"""
+        """Return a name for condition c, based on the factor values for that condition"""
         pass
         
 
