@@ -146,6 +146,9 @@ I am assuming that the input file is tab-delimited, with a header line. I am als
     
     mode = 'w' if args.force else 'wx'
 
+    if not os.path.isdir(args.directory):
+        os.makedirs(args.directory)
+
     try:
         out = open(args.schema, mode)
         schema.save(out)
