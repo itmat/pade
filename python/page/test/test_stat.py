@@ -93,13 +93,13 @@ class StatTest(unittest.TestCase):
     def test_ftest(self):
 
         expected = 9.26470588235
-        self.assertAlmostEqual(expected, Ftest().compute(self.ftest_in))
+        self.assertAlmostEqual(expected, Ftest().compute(self.ftest_in.swapaxes(0, 1)))
 
         a2 = np.concatenate((self.ftest_in,
                              self.ftest_in)).reshape((2, 6, 3))
         a2 = np.swapaxes(a2, 0, 1)
         a2 = np.swapaxes(a2, 1, 2)
-        got = Ftest().compute(a2)
+        got = Ftest().compute(a2.swapaxes(0, 1))
         self.assertEqual(np.shape(got), (2,))
         self.assertAlmostEqual(got[0], expected)
         self.assertAlmostEqual(got[1], expected)

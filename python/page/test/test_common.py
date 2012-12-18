@@ -1,6 +1,7 @@
 import unittest
+import numpy as np
 
-from page.common import Model, ModelExpressionException
+from page.common import Model, ModelExpressionException, add_condition_axis
 
 class CommonTest(unittest.TestCase):
 
@@ -32,5 +33,15 @@ class CommonTest(unittest.TestCase):
         self.assertEquals(
             str(Model.parse("treatment * sex")), "treatment * sex")
 
+    def test_add_condition_axis(self):
+        data = add_condition_axis(np.arange(6, dtype=int),
+                                  ([0,1,2],[3,4,5]))
+        expected = np.array([[0,1,2],[3,4,5]])
+        self.assertTrue(
+            np.all(expected - data == 0))
+        
+
+
 if __name__ == '__main__':
     unittest.main()
+

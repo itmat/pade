@@ -1,4 +1,6 @@
 import tokenize
+import numpy as np
+
 from StringIO import StringIO
 
 class ModelExpressionException(Exception):
@@ -69,3 +71,20 @@ class Model:
         else:
             op = ' ' + self.NAME_TO_OP[self.prob] + ' '
             return op.join(self.variables)
+
+def add_condition_axis(data, layout):
+
+    num_samples = len(data)
+    num_conditions = len(layout)
+    num_samples_per_condition = len(layout[0])
+
+    if num_conditions * num_samples_per_condition != num_samples:
+        raise Exception("Bad layout")
+
+    shape = (num_conditions, num_samples_per_condition) + np.shape(data)[1:]
+    res = np.zeros(shape)
+
+    for i, cond_cols in enumerate(layout):
+        res[i] = data[layout[i]]
+
+    return res

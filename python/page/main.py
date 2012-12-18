@@ -11,6 +11,7 @@ from textwrap import fill
 # PaGE imports
 from schema import Schema
 from common import Model
+import stats
 
 class UsageException(Exception):
     pass
@@ -108,9 +109,12 @@ def do_run(args):
     if factor not in schema.factors:
         raise UsageException("Factor '" + factor + "' is not defined in the schema. Valid factors are " + str(schema.factors.keys()))
     
+    layout = schema.sample_groups(factor)
+    print layout
+
+    print job.stat
 
 def init_schema(infile=None):
-
     """Creates a new schema based on the given infile.
 
     Does not save it or make any changes to the state of the file

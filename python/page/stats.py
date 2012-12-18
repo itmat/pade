@@ -16,7 +16,6 @@ class Ttest(object):
             3.0,
             10,
             ])
-
     
     def __init__(self, alpha):
         self.alpha = alpha
@@ -94,17 +93,17 @@ class Ftest(object):
     def compute(self, a):
         """Compute the f-test for the given ndarray.
 
-        Input must be have 2 or more dimensions. Axis 0 must be
-        sample, axis 1 must be class (or condition). Operations are
-        vectorized over any subsequent axes. So, for example, an input
-        array with shape (3, 2) would represent 1 feature for 2
-        classes, each with at most 3 samples. An input array with
-        shape (5, 3, 2) would be 5 features for 3 samples of 2
-        conditions.
+        Input must have 2 or more dimensions. Axis 0 must be sample,
+        axis 1 must be condition. Operations are vectorized over any
+        subsequent axes. So, for example, an input array with shape
+        (3, 2) would represent 1 feature for 2 conditions, each with
+        at most 3 samples. An input array with shape (5, 3, 2) would
+        be 5 features for 3 samples of 2 conditions.
 
         TODO: Make sure masked input arrays work.
 
         """
+        a = np.swapaxes(a, 0, 1)
         (num_samples, num_conditions) = np.shape(a)[:2]
 
         # u_w is within-group mean (over axis 0, the sample axis)
@@ -121,6 +120,8 @@ class Ftest(object):
         msw = s_w / (num_conditions * (num_samples - 1))
 
         return msb / msw
+
+    
 
 
     
