@@ -4,6 +4,7 @@ import argparse
 import os
 import errno
 import shutil
+import numpy as np
 
 from textwrap import fill
 
@@ -20,12 +21,13 @@ def fix_newlines(msg):
         output += fill(line) + "\n"
     return output
 
-class PersistedJob:
+class Job:
 
     DEFAULT_DIRECTORY = "pageseq_out"
 
-    def __init__(self, directory):
+    def __init__(self, directory, stat=None):
         self.directory = directory
+        self.stat_name = stat
         
     @property
     def schema_filename(self):
@@ -39,6 +41,33 @@ class PersistedJob:
     def schema(self):
         return Schema.load(open(self.schema_filename), self.input_filename)
 
+    @property
+    def stat(self):
+        if self.stat_name == 'f':
+            return stats.Ftest()
+        elif self.stat_name == 't':
+            return stats.Ttest(alpha=1.0)
+
+    @property
+    def table(self):
+        """Returns the data table as (sample x feature) ndarray."""
+        
+        with open(self.input_filename) as fh:
+
+            headers = fh.next().rstrip().split("\t")
+
+            ids = []
+            table = []
+
+            for line in fh:
+                row = line.rstrip().split("\t")
+                rowid = row[0]
+                values = [float(x) for x in row[1:]]
+                ids.append(rowid)
+                table.append(values)
+
+            return np.array(table).swapaxes(0, 1)
+            
 
 def main():
     """Run pageseq."""
@@ -57,16 +86,26 @@ def main():
 
 def do_run(args):
 
-    job    = PersistedJob(args.directory)
+    job = Job(
+        directory=args.directory,
+        stat=args.stat)
     schema = job.schema
     print "Factors are {0}".format(schema.factors)
 
-def do_setup(args):
-    header_line = args.infile.next().rstrip()
-    headers = header_line.split("\t")
+def init_schema(infile=None):
 
+    """Creates a new schema based on the given infile.
+
+    Does not save it or make any changes to the state of the file
+    system.
+
+    """
+    if isinstance(infile, str):
+        infile = open(infile)
+    header_line = infile.next().rstrip()    
+    headers = header_line.split("\t")                
     is_feature_id = [i == 0 for i in range(len(headers))]
-    is_sample     = [i != 0 for i in range(len(headers))]
+    is_sample     = [i != 0 for i in range(len(headers))]    
 
     print fix_newlines("""
 I am assuming that the input file is tab-delimited, with a header line. I am also assuming that the first column ({0}) contains feature identifiers, and that the rest of the columns ({1}) contain expression levels. In a future release, we will be more flexible about input formats. In the meantime, if this assumption is not true, you will need to reformat your input file.
@@ -74,20 +113,25 @@ I am assuming that the input file is tab-delimited, with a header line. I am als
 """.format(headers[0],
            ", ".join(headers[1:])))
 
-    schema = Schema(
+    return Schema(
         is_feature_id=is_feature_id,
         is_sample=is_sample,
         column_names=headers)
 
-    for a in args.factor:
+def init_job(infile, factors, directory, force=False):
+
+    if isinstance(infile, str):
+        infile = open(infile)
+    schema = init_schema(infile=infile)    
+
+    for a in factors:
         schema.add_factor(a, object)
-    
-    mode = 'w' if args.force else 'wx'
 
-    if not os.path.isdir(args.directory):
-        os.makedirs(args.directory)
-    job = PersistedJob(args.directory)
+    if not os.path.isdir(directory):
+        os.makedirs(directory)
+    job = Job(directory)
 
+    mode = 'w' if force else 'wx'
     try:
         out = open(job.schema_filename, mode)
         schema.save(out)
@@ -96,15 +140,24 @@ I am assuming that the input file is tab-delimited, with a header line. I am als
             raise UsageException("The schema file \"{}\" already exists. If you want to overwrite it, use the --force or -f argument.".format(filename))
         raise e
 
-    print "Copying {0} to {1}".format(
-        args.infile.name,
-        job.input_filename)
-    shutil.copyfile(args.infile.name, job.input_filename)
+    logging.info("Copying {0} to {1}".format(
+        infile.name,
+        job.input_filename))
+    shutil.copyfile(infile.name, job.input_filename)
+    return job
+
+def do_setup(args):
+    job = init_job(
+        infile=args.infile,
+        directory=args.directory,
+        factors=args.factor,
+        force=args.force)
 
     print fix_newlines("""
 I have generated a schema for your input file, with factors {factors}, and saved it to "{filename}". You should now edit that file to set the factors for each sample. The file contains instructions on how to edit it.
-""").format(factors=schema.factors.keys(),
+""").format(factors=job.schema.factors.keys(),
             filename=job.schema_filename)
+
 
 def get_arguments():
     """Parse the command line options and return an argparse args
@@ -134,13 +187,13 @@ def get_arguments():
         class.""")
     setup_parser.add_argument(
         '--directory', '-d',
-        default=PersistedJob.DEFAULT_DIRECTORY,
+        default=Job.DEFAULT_DIRECTORY,
         help="The directory to store the output data")
     setup_parser.add_argument(
         '--force', '-f',
         action='store_true',
         help="""Overwrite any existing files""")
-        
+
     setup_parser.set_defaults(func=do_setup)
 
     # Run
@@ -150,15 +203,20 @@ def get_arguments():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     run_parser.add_argument(
         '--directory', '-d',
-        default=PersistedJob.DEFAULT_DIRECTORY,
+        default=Job.DEFAULT_DIRECTORY,
         help="""The directory to store the output data.
 
 This directory must also contain schema.yaml file and input.txt""")
     run_parser.add_argument(
         '--model', '-m',
         help="""Specify the model. Required if there is more than one class.""")
+    run_parser.add_argument(
+        '--stat', '-s',
+        choices=['f', 't'],
+        default='f',
+        help="The statistic to use")
     run_parser.set_defaults(func=do_run)
-        
+
         
 
     return uberparser.parse_args()

@@ -65,4 +65,3 @@ class Model:
 
         return Model(prob=operator, variables=variables)
 
-
