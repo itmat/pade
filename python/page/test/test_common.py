@@ -26,6 +26,11 @@ class CommonTest(unittest.TestCase):
         with self.assertRaises(ModelExpressionException):
             Model.parse("treatment + sex + batch")
 
+    def test_str(self):
+        self.assertEquals(
+            str(Model.parse("treatment")), "treatment")
+        self.assertEquals(
+            str(Model.parse("treatment * sex")), "treatment * sex")
 
 if __name__ == '__main__':
     unittest.main()

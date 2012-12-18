@@ -10,6 +10,7 @@ from textwrap import fill
 
 # PaGE imports
 from schema import Schema
+from common import Model
 
 class UsageException(Exception):
     pass
@@ -89,8 +90,24 @@ def do_run(args):
     job = Job(
         directory=args.directory,
         stat=args.stat)
+
+    model = args.model
+
+    if model is None:
+        if len(job.schema.factors) == 1:
+            model = job.schema.factors[0]
+        else:
+            msg = """You need to specify a model with --model, since you have more than one factor ({0})."""
+            raise UsageException(msg.format(job.schema.factors.keys()))
+
     schema = job.schema
-    print "Factors are {0}".format(schema.factors)
+    model = Model.parse(args.model)
+    if len(model.variables) > 1:
+        raise UsageException("I only support models with one factor at this time")
+    factor = model.variables[0]
+    if factor not in schema.factors:
+        raise UsageException("Factor '" + factor + "' is not defined in the schema. Valid factors are " + str(schema.factors.keys()))
+    
 
 def init_schema(infile=None):
 

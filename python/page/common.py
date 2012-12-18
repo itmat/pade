@@ -4,14 +4,14 @@ from StringIO import StringIO
 class ModelExpressionException(Exception):
     pass
 
+
 class Model:
     
     PROB_MARGINAL    = "marginal"
     PROB_JOINT       = "joint"
-    PROB_CONDITIOANL = "conditional"
 
-    
-
+    OP_TO_NAME = { '+' : PROB_MARGINAL, '*' : PROB_JOINT }
+    NAME_TO_OP = { PROB_MARGINAL : '+', PROB_JOINT : '*' }
 
     def __init__(self, prob=None, variables=None):
         self.prob      = prob
@@ -45,10 +45,8 @@ class Model:
         if tok_type == tokenize.ENDMARKER:
             return Model(variables=variables)
         elif tok_type == tokenize.OP:
-            if   tok == '+': operator = cls.PROB_MARGINAL
-            elif tok == '*': operator = cls.PROB_JOINT
-            else:
-                raise ModelExpressionException("Unexpected operator " + tok)
+            operator = Model.OP_TO_NAME[tok]
+            # raise ModelExpressionException("Unexpected operator " + tok)
         else:
             raise ModelExpressionException("Unexpected token " + tok)
 
@@ -65,3 +63,9 @@ class Model:
 
         return Model(prob=operator, variables=variables)
 
+    def __str__(self):
+        if len(self.variables) == 1:
+            return self.variables[0]
+        else:
+            op = ' ' + self.NAME_TO_OP[self.prob] + ' '
+            return op.join(self.variables)
