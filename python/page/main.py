@@ -10,7 +10,7 @@ from textwrap import fill
 
 # PaGE imports
 from schema import Schema
-from common import Model
+from common import Model, add_condition_axis
 import stats
 
 class UsageException(Exception):
@@ -109,10 +109,11 @@ def do_run(args):
     if factor not in schema.factors:
         raise UsageException("Factor '" + factor + "' is not defined in the schema. Valid factors are " + str(schema.factors.keys()))
     
-    layout = schema.sample_groups(factor)
-    print layout
+    layout = schema.sample_groups(factor).values()
+    print "Layout is " + str(layout)
+    reshaped = add_condition_axis(job.table, layout)
 
-    print job.stat
+    print job.stat.compute(reshaped)
 
 def init_schema(infile=None):
     """Creates a new schema based on the given infile.
@@ -237,8 +238,6 @@ This directory must also contain schema.yaml file and input.txt""")
         default='f',
         help="The statistic to use")
     run_parser.set_defaults(func=do_run)
-
-        
 
     return uberparser.parse_args()
 

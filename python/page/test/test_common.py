@@ -39,7 +39,6 @@ class CommonTest(unittest.TestCase):
         expected = np.array([[0,1,2],[3,4,5]])
         self.assertTrue(
             np.all(expected - data == 0))
-        
 
 
 if __name__ == '__main__':
