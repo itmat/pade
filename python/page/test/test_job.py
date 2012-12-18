@@ -15,13 +15,10 @@ class CommonTest(unittest.TestCase):
 
         self.sample_input_4_class = "sample_data/4_class_testdata_header1.txt"
 
-
-    def test_table(self):
-        schema = page.main.init_schema(self.sample_input_4_class)
-        
+    @property
+    def factor_map_treated_sex(self):
         factor_map = { 'treated' : {},
                        'sex'     : {} }
-
         for c in range(4):
             treated = False if c == 0 or c == 1 else True
             sex = 'male' if c == 0 or c == 2 else 'female'
@@ -29,15 +26,16 @@ class CommonTest(unittest.TestCase):
                 col = 'c{0}r{1}'.format(c, r)
                 factor_map['treated'][col] = treated
                 factor_map['sex'][col] = sex
+        return factor_map
+        
 
+    def test_table(self):
+        schema = page.main.init_schema(self.sample_input_4_class)
+        
         with sample_job(self.sample_input_4_class,
-                        factor_map) as job:
+                        self.factor_map_treated_sex) as job:
 
-            schema = job.schema
-
-            table = job.table
-
-            self.assertEquals(np.shape(table), (16, 1000))
+            self.assertEquals(np.shape(job.table), (16, 1000))
             print job.schema.sample_groups('treated')
             print job.schema.sample_groups('sex')
 
