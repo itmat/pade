@@ -18,7 +18,11 @@
         <th>{{ job.stat_name }} stat</th>
 
         {% for name in job.condition_names %}
-        <th>{{ name }}</th>
+        <th>mean<br/>{{ name }}</th>
+        {% endfor %}
+
+        {% for name in job.condition_names %}
+        <th>coeff<br/>{{ name }}</th>
         {% endfor %}
       </tr>
 
@@ -30,9 +34,14 @@
         <!-- Should get list of stats -->
         <td>{{ "%.2f"|format(job.stats[i]) }}</td>
 
-        <!-- Should do one mean per group -->
+        <!-- Mean for each condition -->
         {% for mean in job.means.swapaxes(0, 1)[i] %}
         <td>{{ "%.2f"|format(mean) }}</td>
+        {% endfor %}
+
+        <!-- Coefficient for each condition -->
+        {% for coeff in job.coeffs.swapaxes(0, 1)[i] %}
+        <td>{{ "%.2f"|format(coeff) }}</td>
         {% endfor %}
 
       </tr>

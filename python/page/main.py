@@ -174,7 +174,12 @@ def do_run(args):
     logging.debug("Shape of means is " + str(np.shape(job.means)))
 
     job.stats = job.stat.compute(reshaped)
+
+    logging.info("Computing coefficients")
+    job.coeffs = job.means - job.means[0]
+
     report.make_report(job)
+
 
 
 
