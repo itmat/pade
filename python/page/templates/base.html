@@ -43,19 +43,8 @@
       </p>
 
       <h5>Statistic distributions by class</h5>
-      <ol>
-        {% for c in range(1, results.num_classes): %}
-        <li>
-          <a href="stat_hist_class_{{ c }}.html">{{ job.condition_names[c] }}</a>
-        </li>
-        {% endfor %}
-      </ol>
+
       <h5>Detail by confidence level</h5>
-      <ul>
-        {% for i in range(results.num_levels) %}
-        <li><a href="conf_level_detail_{{ i }}.html">{{results.conf_levels[i]}}</a></li>
-        {% endfor %}
-      </ul>
 
     </div>
 

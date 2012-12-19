@@ -1,6 +1,7 @@
 import tokenize
 import numpy as np
-
+import os
+import contextlib
 from StringIO import StringIO
 
 class ModelExpressionException(Exception):
@@ -88,3 +89,13 @@ def add_condition_axis(data, layout):
         res[i] = data[layout[i]]
 
     return res
+
+@contextlib.contextmanager
+def chdir(path):
+    cwd = os.getcwd()
+    try:
+        os.chdir(path)
+        yield
+    finally:
+        os.chdir(cwd)
+    

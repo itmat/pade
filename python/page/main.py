@@ -11,6 +11,7 @@ from textwrap import fill
 # PaGE imports
 from schema import Schema
 from common import Model, add_condition_axis
+import report
 import stats
 
 class UsageException(Exception):
@@ -27,10 +28,16 @@ class Job:
 
     DEFAULT_DIRECTORY = "pageseq_out"
 
-    def __init__(self, directory, stat=None):
+    def __init__(self, 
+                 directory, 
+                 stat=None,
+                 model=None):
         self.directory = directory
         self.stat_name = stat
-        
+        self.model = model
+        self._table = None
+        self._feature_ids = None
+
     @property
     def schema_filename(self):
         return os.path.join(self.directory, 'schema.yaml')
@@ -50,10 +57,24 @@ class Job:
         elif self.stat_name == 't':
             return stats.Ttest(alpha=1.0)
 
+
     @property
     def table(self):
         """Returns the data table as (sample x feature) ndarray."""
         
+        if self._table is None:
+            self._load_table()
+        return self._table
+
+    @property
+    def feature_ids(self):
+        if self._feature_ids is None:
+            self._load_table()
+        return self._feature_ids
+
+
+    def _load_table(self):
+        logging.info("Loading table from " + self.input_filename)
         with open(self.input_filename) as fh:
 
             headers = fh.next().rstrip().split("\t")
@@ -68,17 +89,44 @@ class Job:
                 ids.append(rowid)
                 table.append(values)
 
-            return np.array(table).swapaxes(0, 1)
+            self._table = np.array(table).swapaxes(0, 1)
+            self._feature_ids = ids
+
+            logging.info("Table shape is " + str(np.shape(self._table)))
+            logging.info("Loaded " + str(len(self._feature_ids)) + " features")
+
+
+    @property
+    def num_features(self):
+        return len(self.feature_ids)
             
 
 def main():
     """Run pageseq."""
 
-    logging.basicConfig(filename='page.log',
-                        level=logging.INFO)
-    logging.info('Page starting')
+    logging.basicConfig(level=logging.DEBUG,
+                        format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+                        datefmt='%m-%d %H:%M',
+                        filename='page.log',
+                        filemode='w')
 
     args = get_arguments()
+
+    console = logging.StreamHandler()
+    formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
+    console.setFormatter(formatter)
+
+    if args.debug:
+        console.setLevel(logging.DEBUG)
+    elif args.verbose:
+        console.setLevel(logging.INFO)
+    else:
+        console.setLevel(logging.ERROR)
+
+    logging.getLogger('').addHandler(console)
+
+    logging.info('Page starting')
+
     try:
         args.func(args)
     except UsageException as e:
@@ -103,6 +151,9 @@ def do_run(args):
 
     schema = job.schema
     model = Model.parse(args.model)
+
+    job.model = model
+
     if len(model.variables) > 1:
         raise UsageException("I only support models with one factor at this time")
     factor = model.variables[0]
@@ -110,10 +161,13 @@ def do_run(args):
         raise UsageException("Factor '" + factor + "' is not defined in the schema. Valid factors are " + str(schema.factors.keys()))
     
     layout = schema.sample_groups(factor).values()
-    print "Layout is " + str(layout)
+    logging.debug("Layout is " + str(layout))
     reshaped = add_condition_axis(job.table, layout)
+    
+    job.stats = job.stat.compute(reshaped)
+    report.make_report(job)
 
-    print job.stat.compute(reshaped)
+
 
 def init_schema(infile=None):
     """Creates a new schema based on the given infile.
@@ -188,6 +242,16 @@ def get_arguments():
     uberparser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
+    uberparser.add_argument(
+        '--verbose', '-v',
+        action='store_true',
+        help="Be verbose (print INFO level log messages)")
+
+    uberparser.add_argument(
+        '--debug', '-d', 
+        action='store_true',
+        help="Print debugging information")
+
     subparsers = uberparser.add_subparsers()
 
     # Setup
@@ -208,7 +272,7 @@ def get_arguments():
         specify this option more than once, to use more than one
         class.""")
     setup_parser.add_argument(
-        '--directory', '-d',
+        '--directory', '-D',
         default=Job.DEFAULT_DIRECTORY,
         help="The directory to store the output data")
     setup_parser.add_argument(

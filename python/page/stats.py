@@ -120,8 +120,3 @@ class Ftest(object):
         msw = s_w / (num_conditions * (num_samples - 1))
 
         return msb / msw
-
-    
-
-
-    
