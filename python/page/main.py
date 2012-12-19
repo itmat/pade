@@ -160,10 +160,19 @@ def do_run(args):
     if factor not in schema.factors:
         raise UsageException("Factor '" + factor + "' is not defined in the schema. Valid factors are " + str(schema.factors.keys()))
     
-    layout = schema.sample_groups(factor).values()
+    groups = schema.sample_groups(factor)
+    layout = groups.values()
+    group_keys = groups.keys()
+
+    job.condition_names = ["{0}: {1}".format(x[0], x[1]) for x in group_keys]
+    logging.debug("Condition names are " + str(job.condition_names))
     logging.debug("Layout is " + str(layout))
     reshaped = add_condition_axis(job.table, layout)
     
+    logging.debug("Shape of reshaped is " + str(np.shape(reshaped)))
+    job.means = np.mean(reshaped, axis=1)
+    logging.debug("Shape of means is " + str(np.shape(job.means)))
+
     job.stats = job.stat.compute(reshaped)
     report.make_report(job)
 

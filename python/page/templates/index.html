@@ -15,9 +15,11 @@
         <th>Feature num</th>
         <th>Feature id</th>
 
-        <th>Stat</th>
+        <th>{{ job.stat_name }} stat</th>
 
-        <th>Means</th>
+        {% for name in job.condition_names %}
+        <th>{{ name }}</th>
+        {% endfor %}
       </tr>
 
       {% for i in range(job.num_features) %}
@@ -29,7 +31,10 @@
         <td>{{ "%.2f"|format(job.stats[i]) }}</td>
 
         <!-- Should do one mean per group -->
-        <td>-</td>
+        {% for mean in job.means.swapaxes(0, 1)[i] %}
+        <td>{{ "%.2f"|format(mean) }}</td>
+        {% endfor %}
+
       </tr>
       {% endfor %}
 

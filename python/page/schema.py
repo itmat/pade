@@ -243,9 +243,10 @@ sample_factor_mapping:
         grouping = OrderedDict()
         
         for i, val in enumerate(self.table[factor]):
-            if val not in grouping:
-                grouping[val] = []
-            grouping[val].append(i)
+            key = (factor, val)
+            if key not in grouping:
+                grouping[key] = []
+            grouping[key].append(i)
 
         return grouping
 
