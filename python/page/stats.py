@@ -90,14 +90,22 @@ class Ttest(object):
 def double_sum(data):
     return np.sum(np.sum(data, axis=0), axis=0)
 
+def apply_layout(layout, data):
+
+    shape = (len(layout), len(layout[0])) + np.shape(data)[1:]
+
+    res = np.zeros(shape)
+    for i, idxs in enumerate(layout):
+        res[i] = data[idxs]
+    return res.swapaxes(0, 1)
+
 class Ftest(object):
 
-    def __init__(self, full_model, reduced_model):
-        self.full_model = full_model
-        self.reduced_model = reduced_model
-                 
+    def __init__(self, layout_full, layout_reduced):
+        self.layout_full = layout_full
+        self.layout_reduced = layout_reduced
 
-    def compute(self, a):
+    def compute(self, data):
         """Compute the f-test for the given ndarray.
 
         Input must have 2 or more dimensions. Axis 0 must be sample,
@@ -110,21 +118,25 @@ class Ftest(object):
         TODO: Make sure masked input arrays work.
 
         """
-        a = np.swapaxes(a, 0, 1)
-        (num_samples, num_conditions) = np.shape(a)[:2]
+        
+        layout_full = self.layout_full
+        layout_red  = self.layout_reduced
 
+        data_full = apply_layout(layout_full, data)
+        data_red  = apply_layout(layout_red,  data)
+        
         # Means for the full and reduced model
-        y_full = np.mean(a, axis=0)
-        y_red   = np.mean(y_full, axis=0)
+        y_full = np.mean(data_full, axis=0)
+        y_red  = np.mean(data_red,  axis=0)
 
         # Degrees of freedom
-        p_red = 1
-        p_full = num_conditions
-        n = num_samples * num_conditions
+        p_red  = len(layout_red)
+        p_full = len(layout_full)
+        n = len(layout_red) * len(layout_red[0])
         
         # Residual sum of squares for the reduced and full model
-        rss_red  = double_sum((a - y_red)  ** 2)
-        rss_full = double_sum((a - y_full) ** 2)
+        rss_red  = double_sum((data_red  - y_red)  ** 2)
+        rss_full = double_sum((data_full - y_full) ** 2)
 
         numer = (rss_red - rss_full) / (p_full - p_red)
         denom = rss_full / (n - p_full)

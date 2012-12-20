@@ -53,7 +53,9 @@ class Job:
     @property
     def stat(self):
         if self.stat_name == 'f':
-            return stats.Ftest(None, None)
+            return stats.Ftest(
+                layout_full=model_to_layout_map(self.schema, self.model).values(),
+                layout_reduced=model_to_layout_map(self.schema, Model()).values())
         elif self.stat_name == 't':
             return stats.Ttest(alpha=1.0)
 
@@ -132,6 +134,16 @@ def main():
     
     logging.info('Page finishing')    
 
+def model_to_layout_map(schema, model):
+    if len(model.variables) > 1:
+        raise UsageException("I only support models with one factor at this time")
+
+    for factor in model.variables:
+        if factor not in schema.factors:
+            raise UsageException("Factor '" + factor + "' is not defined in the schema. Valid factors are " + str(schema.factors.keys()))
+    
+    return schema.sample_groups(model.variables)
+
 def do_run(args):
 
     job = Job(
@@ -152,26 +164,19 @@ def do_run(args):
 
     job.model = model
 
-    if len(model.variables) > 1:
-        raise UsageException("I only support models with one factor at this time")
-    factor = model.variables[0]
-    if factor not in schema.factors:
-        raise UsageException("Factor '" + factor + "' is not defined in the schema. Valid factors are " + str(schema.factors.keys()))
-    
-    groups = schema.sample_groups(factor)
-    layout = groups.values()
-    group_keys = groups.keys()
+    layout_map_full = model_to_layout_map(schema, model)
+    group_keys = layout_map_full.keys()
 
     job.condition_names = ["{0}: {1}".format(x[0], x[1]) for x in group_keys]
-    logging.debug("Condition names are " + str(job.condition_names))
-    logging.debug("Layout is " + str(layout))
-    reshaped = add_condition_axis(job.table, layout)
-    
+
+    reshaped = stats.apply_layout(layout_map_full.values(),
+                                  job.table)
     logging.debug("Shape of reshaped is " + str(np.shape(reshaped)))
-    job.means = np.mean(reshaped, axis=1)
+    job.means = np.mean(reshaped, axis=0)
+    print "Shape of means is ", np.shape(job.means)
     logging.debug("Shape of means is " + str(np.shape(job.means)))
 
-    job.stats = job.stat.compute(reshaped)
+    job.stats = job.stat.compute(job.table)
 
     logging.info("Computing coefficients")
     job.coeffs = job.means - job.means[0]

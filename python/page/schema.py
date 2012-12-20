@@ -236,14 +236,19 @@ sample_factor_mapping:
 
         return self.sample_name_index[sample_name]
 
-    def sample_groups(self, factor):
+    def sample_groups(self, factors):
         """Returns a dictionary mapping each value of factor to the
         list of sample numbers that have that value set."""
 
         grouping = OrderedDict()
-        
-        for i, val in enumerate(self.table[factor]):
-            key = (factor, val)
+
+
+        for i, row in enumerate(self.table):
+            key = []
+            for f in factors:
+                key.append(f)
+                key.append(self.table[f][i])
+            key = tuple(key)
             if key not in grouping:
                 grouping[key] = []
             grouping[key].append(i)
@@ -254,6 +259,8 @@ sample_factor_mapping:
         """Return a name for condition c, based on the factor values for that condition"""
         pass
         
+
+    
 
 def write_yaml_block_comment(fh, comment):
     result = ""

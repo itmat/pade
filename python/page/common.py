@@ -16,7 +16,7 @@ class Model:
     OP_TO_NAME = { '+' : PROB_MARGINAL, '*' : PROB_JOINT }
     NAME_TO_OP = { PROB_MARGINAL : '+', PROB_JOINT : '*' }
 
-    def __init__(self, prob=None, variables=None):
+    def __init__(self, prob=None, variables=[]):
         self.prob      = prob
         self.variables = variables
         

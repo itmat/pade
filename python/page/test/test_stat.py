@@ -6,12 +6,12 @@ class StatTest(unittest.TestCase):
 
     def setUp(self):
         self.ftest_in = np.array([
-                [ 6.0,  8.0, 13.0],
-                [ 8.0, 12.0,  9.0],
-                [ 4.0,  9.0, 11.0],
-                [ 5.0, 11.0,  8.0],
-                [ 3.0,  6.0,  7.0],
-                [ 4.0,  8.0, 12.0]])
+                 6.0,  8.0, 13.0,
+                 8.0, 12.0,  9.0,
+                 4.0,  9.0, 11.0,
+                 5.0, 11.0,  8.0,
+                 3.0,  6.0,  7.0,
+                 4.0,  8.0, 12.0])
 
         self.infile = 'sample_data/4_class_testdata_header1.txt'
 
@@ -92,13 +92,15 @@ class StatTest(unittest.TestCase):
     def test_ftest(self):
 
         expected = 9.26470588235
-        self.assertAlmostEqual(expected, Ftest().compute(self.ftest_in.swapaxes(0, 1)))
+        ftest = Ftest(
+            layout_full=[range(i, 18, 3) for i in range(3)],
+            layout_reduced=[range(18)])
+        self.assertAlmostEqual(expected, ftest.compute(self.ftest_in.swapaxes(0, 1)))
 
         a2 = np.concatenate((self.ftest_in,
-                             self.ftest_in)).reshape((2, 6, 3))
-        a2 = np.swapaxes(a2, 0, 1)
-        a2 = np.swapaxes(a2, 1, 2)
-        got = Ftest().compute(a2.swapaxes(0, 1))
+                             self.ftest_in)).reshape((2, 18)).swapaxes(0, 1)
+        print a2
+        got = ftest.compute(a2)
         self.assertEqual(np.shape(got), (2,))
         self.assertAlmostEqual(got[0], expected)
         self.assertAlmostEqual(got[1], expected)
