@@ -53,15 +53,13 @@ class Job:
     @property
     def stat(self):
         if self.stat_name == 'f':
-            return stats.Ftest()
+            return stats.Ftest(None, None)
         elif self.stat_name == 't':
             return stats.Ttest(alpha=1.0)
-
 
     @property
     def table(self):
         """Returns the data table as (sample x feature) ndarray."""
-        
         if self._table is None:
             self._load_table()
         return self._table

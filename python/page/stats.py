@@ -92,6 +92,11 @@ def double_sum(data):
 
 class Ftest(object):
 
+    def __init__(self, full_model, reduced_model):
+        self.full_model = full_model
+        self.reduced_model = reduced_model
+                 
+
     def compute(self, a):
         """Compute the f-test for the given ndarray.
 
