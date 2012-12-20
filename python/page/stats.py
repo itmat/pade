@@ -87,6 +87,8 @@ class Ttest(object):
 
         return numer / denom
 
+def double_sum(data):
+    return np.sum(np.sum(data, axis=0), axis=0)
 
 class Ftest(object):
 
@@ -106,17 +108,20 @@ class Ftest(object):
         a = np.swapaxes(a, 0, 1)
         (num_samples, num_conditions) = np.shape(a)[:2]
 
-        # u_w is within-group mean (over axis 0, the sample axis)
-        # u is overall mean (mean of the within-group means)
-        # s_b is between-group sum of squares
-        # s_w is within-group sum of squares
-        # msb and msw are mean-square values for between-group and
-        # within-group
-        u_w = np.mean(a, axis=0)    # Within-group mean
-        u   = np.mean(u_w, axis=0) # Overall mean
-        s_b = np.sum(ma.count(a, axis=0) * (u_w - u) ** 2, axis=0)
-        s_w = np.sum(np.sum((a - u_w) ** 2, axis=0), axis=0)
-        msb = s_b / float(num_conditions - 1)
-        msw = s_w / (num_conditions * (num_samples - 1))
+        # Means for the full and reduced model
+        y_full = np.mean(a, axis=0)
+        y_red   = np.mean(y_full, axis=0)
 
-        return msb / msw
+        # Degrees of freedom
+        p_red = 1
+        p_full = num_conditions
+        n = num_samples * num_conditions
+        
+        # Residual sum of squares for the reduced and full model
+        rss_red  = double_sum((a - y_red)  ** 2)
+        rss_full = double_sum((a - y_full) ** 2)
+
+        numer = (rss_red - rss_full) / (p_full - p_red)
+        denom = rss_full / (n - p_full)
+        return numer / denom
+
