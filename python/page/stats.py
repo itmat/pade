@@ -118,10 +118,10 @@ class Ftest(object):
         TODO: Make sure masked input arrays work.
 
         """
-        
+
         layout_full = self.layout_full
         layout_red  = self.layout_reduced
-
+        
         data_full = apply_layout(layout_full, data)
         data_red  = apply_layout(layout_red,  data)
         
@@ -133,7 +133,7 @@ class Ftest(object):
         p_red  = len(layout_red)
         p_full = len(layout_full)
         n = len(layout_red) * len(layout_red[0])
-        
+
         # Residual sum of squares for the reduced and full model
         rss_red  = double_sum((data_red  - y_red)  ** 2)
         rss_full = double_sum((data_full - y_full) ** 2)

@@ -6,11 +6,21 @@
 
     <h2>Model</h2>
 
-    {{ job.model }}
+    <p>Full model: {{ job.full_model }}</p>
+    <p>Reduced model: {{ job.reduced_model }}</p>
 
     <h2>Results</h2>
 
     <table>
+
+      <tr>
+        <th></th>
+        <th></th>
+        <th></th>
+        <th colspan="{{job.condition_names|length}}">Means</th>
+        <th colspan="{{job.condition_names|length}}">Coefficients</th>
+      </tr>
+
       <tr>
         <th>Feature num</th>
         <th>Feature id</th>
@@ -18,11 +28,11 @@
         <th>{{ job.stat_name }} stat</th>
 
         {% for name in job.condition_names %}
-        <th>mean<br/>{{ name }}</th>
+        <th>{{ name }}</th>
         {% endfor %}
 
         {% for name in job.condition_names %}
-        <th>coeff<br/>{{ name }}</th>
+        <th>{{ name }}</th>
         {% endfor %}
       </tr>
 

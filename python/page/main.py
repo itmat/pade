@@ -31,10 +31,12 @@ class Job:
     def __init__(self, 
                  directory, 
                  stat=None,
-                 model=None):
+                 full_model=None,
+                 reduced_model=Model()):
         self.directory = directory
         self.stat_name = stat
-        self.model = model
+        self.full_model = full_model
+        self.reduced_model = reduced_model
         self._table = None
         self._feature_ids = None
 
@@ -54,8 +56,8 @@ class Job:
     def stat(self):
         if self.stat_name == 'f':
             return stats.Ftest(
-                layout_full=model_to_layout_map(self.schema, self.model).values(),
-                layout_reduced=model_to_layout_map(self.schema, Model()).values())
+                layout_full=model_to_layout_map(self.schema, self.full_model).values(),
+                layout_reduced=model_to_layout_map(self.schema, self.reduced_model).values())
         elif self.stat_name == 't':
             return stats.Ttest(alpha=1.0)
 
@@ -135,8 +137,6 @@ def main():
     logging.info('Page finishing')    
 
 def model_to_layout_map(schema, model):
-    if len(model.variables) > 1:
-        raise UsageException("I only support models with one factor at this time")
 
     for factor in model.variables:
         if factor not in schema.factors:
@@ -150,25 +150,34 @@ def do_run(args):
         directory=args.directory,
         stat=args.stat)
 
-    model = args.model
+    full_model = args.full_model
 
-    if model is None:
+    if full_model is None:
         if len(job.schema.factors) == 1:
-            model = job.schema.factors[0]
+            full_model = job.schema.factors[0]
         else:
-            msg = """You need to specify a model with --model, since you have more than one factor ({0})."""
+            msg = """You need to specify a model with --full-model, since you have more than one factor ({0})."""
             raise UsageException(msg.format(job.schema.factors.keys()))
 
     schema = job.schema
-    model = Model.parse(args.model)
+    job.full_model = Model.parse(args.full_model)
+    if args.reduced_model is not None:
+        job.reduced_model = Model.parse(args.reduced_model)
 
-    job.model = model
-
-    layout_map_full = model_to_layout_map(schema, model)
+    layout_map_full = model_to_layout_map(schema, job.full_model)
     group_keys = layout_map_full.keys()
 
-    job.condition_names = ["{0}: {1}".format(x[0], x[1]) for x in group_keys]
+    names = []
+    for key in group_keys:
+        parts = []
+        for i in range(0, len(key), 2):
+            # parts.append("{0}: {1}".format(key[i], key[i+1]))
+            parts.append("{0}".format(key[i+1]))
+        names.append("; ".join(parts))
 
+    job.condition_names = names
+
+    logging.debug("Condition names are" + str(job.condition_names))
     reshaped = stats.apply_layout(layout_map_full.values(),
                                   job.table)
     logging.debug("Shape of reshaped is " + str(np.shape(reshaped)))
@@ -311,8 +320,12 @@ def get_arguments():
 
 This directory must also contain schema.yaml file and input.txt""")
     run_parser.add_argument(
-        '--model', '-m',
-        help="""Specify the model. Required if there is more than one class.""")
+        '--full-model', '-M',
+        help="""Specify the 'full' model. Required if there is more than one class.""")
+    run_parser.add_argument(
+        '--reduced-model', '-m',
+        help="""Specify the 'reduced' model.""")
+
     run_parser.add_argument(
         '--stat', '-s',
         choices=['f', 't'],
