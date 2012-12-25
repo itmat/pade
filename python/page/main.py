@@ -74,7 +74,6 @@ class Job:
             self._load_table()
         return self._feature_ids
 
-
     def _load_table(self):
         logging.info("Loading table from " + self.input_filename)
         with open(self.input_filename) as fh:
@@ -173,37 +172,39 @@ def do_run(args):
 
     layout_map_full = model_to_layout_map(schema, job.full_model)
     logging.debug("Full layout map is " + str(layout_map_full))
-    group_keys = layout_map_full.keys()
-
-
-    reshaped = stats.apply_layout(layout_map_full.values(),
-                                  job.table)
-    logging.debug("Shape of reshaped is " + str(np.shape(reshaped)))
-    job.means = np.mean(reshaped, axis=0)
-    print "Shape of means is ", np.shape(job.means)
-    logging.debug("Shape of means is " + str(np.shape(job.means)))
-
-    job.stats = job.stat.compute(job.table)
 
     logging.info("Computing coefficients")
-    
-    # coeffs[0,0,...] is bias
-    # coeffs[i] where one dim is nonzero is main effect
-    # coeffs[i] where two dims are nonzero are first-order interactions
-    
     coeffs = find_coefficients(job.schema, job.full_model, job.table)
 
+    var_shape = schema.factor_value_shape(job.full_model.variables)
+    layout = []
+    group_keys = []
     names      = []
     (num_samples, num_features) = np.shape(job.table)
-    coeff_list = np.zeros((len(group_keys), num_features))
-    for i, idx in enumerate(np.ndindex(np.shape(coeffs)[:-1])):
+    num_groups = np.prod(var_shape)
+    coeff_list = np.zeros((int(num_groups), num_features))
+
+
+
+    for i, idx in enumerate(np.ndindex(var_shape)):
+        key = index_num_to_sym(schema, job.full_model, idx)
+        group_keys.append(key)
+        layout.append(layout_map_full[key])
         key = index_num_to_sym(schema, job.full_model, idx)
         parts = []
         for j in range(0, len(key), 2):
             parts.append("{0}".format(key[j+1]))
         names.append("; ".join(parts))
-        print "Setting", i, "to", coeffs[idx]
         coeff_list[i] = coeffs[idx]
+
+    logging.info("Computing means")
+    reshaped = stats.apply_layout(layout, job.table)
+    logging.debug("Shape of reshaped is " + str(np.shape(reshaped)))
+    job.means = np.mean(reshaped, axis=0)
+    logging.debug("Shape of means is " + str(np.shape(job.means)))
+
+    logging.info("Computing statistics")
+    job.stats = job.stat.compute(job.table)
 
     job.condition_names = names
     job.coeffs = coeff_list

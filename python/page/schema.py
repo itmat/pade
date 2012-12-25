@@ -240,7 +240,7 @@ sample_factor_mapping:
         """Returns a dictionary mapping each value of factor to the
         list of sample numbers that have that value set."""
 
-        grouping = OrderedDict()
+        grouping = {}
 
         for i, row in enumerate(self.table):
             key = []
@@ -263,6 +263,9 @@ sample_factor_mapping:
         for sample in self.sample_column_names():
             values.add(self.get_factor(sample, factor))
         return values
+
+    def factor_value_shape(self, factors):
+        return tuple([len(self.factor_values(f)) for f in factors])
 
 
 def write_yaml_block_comment(fh, comment):

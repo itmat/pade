@@ -14,7 +14,7 @@ class SchemaTest(unittest.TestCase):
         is_sample     = [False] + [True  for x in sample_nums]
 
         schema = Schema(
-            attributes=[
+            factors=[
                 ('name',    object),
                 ('sex',     object),
                 ('age',     'int'),
@@ -33,22 +33,22 @@ class SchemaTest(unittest.TestCase):
                 for treated in [True, False]:
                     counter += 1
                     name = "sample" + str(counter)
-                    schema.set_attribute(name, 'sex',     sex)
-                    schema.set_attribute(name, 'age',     age)
-                    schema.set_attribute(name, 'treated', treated)
+                    schema.set_factor(name, 'sex',     sex)
+                    schema.set_factor(name, 'age',     age)
+                    schema.set_factor(name, 'treated', treated)
         self.schema = schema
 
-    def test_attributes(self):
+    def test_factors(self):
         schema = self.schema
 
-        self.assertEquals(schema.get_attribute("sample1", "sex"), "male")
-        self.assertEquals(schema.get_attribute("sample1", "age"), 2)
-        self.assertEquals(schema.get_attribute("sample1", "treated"), True)
-        self.assertEquals(schema.get_attribute("sample11", "sex"), "female")
-        self.assertEquals(schema.get_attribute("sample10", "age"), 20)
-        self.assertEquals(schema.get_attribute("sample10", "treated"), False)
+        self.assertEquals(schema.get_factor("sample1", "sex"), "male")
+        self.assertEquals(schema.get_factor("sample1", "age"), 2)
+        self.assertEquals(schema.get_factor("sample1", "treated"), True)
+        self.assertEquals(schema.get_factor("sample11", "sex"), "female")
+        self.assertEquals(schema.get_factor("sample10", "age"), 20)
+        self.assertEquals(schema.get_factor("sample10", "treated"), False)
 
-        names = sorted(schema.attribute_names)
+        names = sorted(schema.factor_names)
         self.assertEquals(names[0], "age")
 
 
@@ -70,19 +70,76 @@ class SchemaTest(unittest.TestCase):
                           out2.getvalue())
 
     def test_sample_groups(self):
-        groups = self.schema.sample_groups("sex")
+        groups = self.schema.sample_groups(["sex"])
         self.assertEquals(groups,
-                          { "female" : range(6, 12),
-                            "male"   : range(0, 6) })
+                          { ("sex", "female") : range(6, 12),
+                            ("sex", "male")   : range(0, 6) })
 
-        groups = self.schema.sample_groups("age")
+        groups = self.schema.sample_groups(["age"])
         self.assertEquals(groups,
-                          { 2  : [0, 1, 6, 7],
-                            20 : [2, 3, 8, 9],
-                            55 : [4, 5, 10, 11] })
+                          { ("age", 2)  : [0, 1, 6, 7],
+                            ("age", 20) : [2, 3, 8, 9],
+                            ("age", 55) : [4, 5, 10, 11] })
 
-        groups = self.schema.sample_groups("treated")
+        groups = self.schema.sample_groups(["treated"])
         self.assertEquals(groups,
-                          { False : [1, 3, 5, 7, 9, 11],
-                            True  : [0, 2, 4, 6, 8, 10] })
+                          { ("treated", False) : [1, 3, 5, 7, 9, 11],
+                            ("treated", True)  : [0, 2, 4, 6, 8, 10] })
 
+        groups = self.schema.sample_groups(["sex", "age", "treated"])
+        self.assertEquals(groups,
+                          { 
+                ("sex", "male", 
+                 "age", 2, 
+                 "treated", True) : [ 0 ],
+                ("sex", "male",
+                 "age", 2,
+                 "treated", False) : [ 1 ],
+
+                ("sex", "male", 
+                 "age", 20, 
+                 "treated", True) : [ 2 ],
+                ("sex", "male",
+                 "age", 20,
+                 "treated", False) : [ 3 ],
+
+                ("sex", "male", 
+                 "age", 55, 
+                 "treated", True) : [ 4 ],
+                ("sex", "male",
+                 "age", 55,
+                 "treated", False) : [ 5 ],
+
+                ("sex", "female", 
+                 "age", 2, 
+                 "treated", True) : [ 6 ],
+                ("sex", "female",
+                 "age", 2,
+                 "treated", False) : [ 7 ],
+
+                ("sex", "female", 
+                 "age", 20, 
+                 "treated", True) : [ 8 ],
+                ("sex", "female",
+                 "age", 20,
+                 "treated", False) : [ 9 ],
+
+                ("sex", "female", 
+                 "age", 55, 
+                 "treated", True) : [ 10 ],
+                ("sex", "female",
+                 "age", 55,
+                 "treated", False) : [ 11 ]
+
+                })
+                
+
+    def test_factor_value_shape(self):
+        self.assertEquals(self.schema.factor_value_shape(['sex']), (2,))
+        self.assertEquals(self.schema.factor_value_shape(['treated']), (2,))
+        self.assertEquals(self.schema.factor_value_shape(['age']), (3,))
+        self.assertEquals(self.schema.factor_value_shape(['sex', 'age', 'treated']), (2, 3, 2))
+
+if __name__ == '__main__':
+    unittest.main()
+    
