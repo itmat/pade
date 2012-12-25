@@ -17,6 +17,8 @@ class Model:
     NAME_TO_OP = { PROB_MARGINAL : '+', PROB_JOINT : '*' }
 
     def __init__(self, prob=None, variables=[]):
+        if prob is not None and prob not in self.NAME_TO_OP:
+            raise Exception("Unknown probability " + str(prob))
         self.prob      = prob
         self.variables = variables
         
@@ -69,9 +71,11 @@ class Model:
     def __str__(self):
         if len(self.variables) == 1:
             return self.variables[0]
-        else:
+        elif len(self.variables) > 1:
             op = ' ' + self.NAME_TO_OP[self.prob] + ' '
             return op.join(self.variables)
+        else:
+            return ''
 
 def add_condition_axis(data, layout):
 
