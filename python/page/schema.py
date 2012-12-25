@@ -242,7 +242,6 @@ sample_factor_mapping:
 
         grouping = OrderedDict()
 
-
         for i, row in enumerate(self.table):
             key = []
             for f in factors:
@@ -258,9 +257,13 @@ sample_factor_mapping:
     def condition_name(self, c):
         """Return a name for condition c, based on the factor values for that condition"""
         pass
-        
 
-    
+    def factor_values(self, factor):
+        values = set()
+        for sample in self.sample_column_names():
+            values.add(self.get_factor(sample, factor))
+        return values
+
 
 def write_yaml_block_comment(fh, comment):
     result = ""

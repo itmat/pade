@@ -144,6 +144,13 @@ def model_to_layout_map(schema, model):
     
     return schema.sample_groups(model.variables)
 
+def index_num_to_sym(schema, model, idx):
+    res = tuple()
+    for i, factor in enumerate(model.variables):
+        values = list(schema.factor_values(factor))
+        res += (factor, values[idx[i]])
+    return res
+
 def do_run(args):
 
     job = Job(
@@ -165,19 +172,10 @@ def do_run(args):
         job.reduced_model = Model.parse(args.reduced_model)
 
     layout_map_full = model_to_layout_map(schema, job.full_model)
+    logging.debug("Full layout map is " + str(layout_map_full))
     group_keys = layout_map_full.keys()
 
-    names = []
-    for key in group_keys:
-        parts = []
-        for i in range(0, len(key), 2):
-            # parts.append("{0}: {1}".format(key[i], key[i+1]))
-            parts.append("{0}".format(key[i+1]))
-        names.append("; ".join(parts))
 
-    job.condition_names = names
-
-    logging.debug("Condition names are" + str(job.condition_names))
     reshaped = stats.apply_layout(layout_map_full.values(),
                                   job.table)
     logging.debug("Shape of reshaped is " + str(np.shape(reshaped)))
@@ -188,12 +186,110 @@ def do_run(args):
     job.stats = job.stat.compute(job.table)
 
     logging.info("Computing coefficients")
-    job.coeffs = job.means - job.means[0]
+    
+    # coeffs[0,0,...] is bias
+    # coeffs[i] where one dim is nonzero is main effect
+    # coeffs[i] where two dims are nonzero are first-order interactions
+    
+    coeffs = find_coefficients(job.schema, job.full_model, job.table)
+
+    names      = []
+    (num_samples, num_features) = np.shape(job.table)
+    coeff_list = np.zeros((len(group_keys), num_features))
+    for i, idx in enumerate(np.ndindex(np.shape(coeffs)[:-1])):
+        key = index_num_to_sym(schema, job.full_model, idx)
+        parts = []
+        for j in range(0, len(key), 2):
+            parts.append("{0}".format(key[j+1]))
+        names.append("; ".join(parts))
+        print "Setting", i, "to", coeffs[idx]
+        coeff_list[i] = coeffs[idx]
+
+    job.condition_names = names
+    job.coeffs = coeff_list
+    logging.debug("Condition names are" + str(job.condition_names))
 
     report.make_report(job)
 
 
 
+def find_coefficients(schema, model, data):
+    factors = model.variables
+
+    layout_map = model_to_layout_map(schema, model)    
+    values = [schema.sample_groups([f]).keys() for f in factors]
+    shape = tuple([len(v) for v in values])
+    (num_samples, num_features) = np.shape(data)
+    shape += (num_features,)
+    coeffs = np.zeros(shape)
+
+    sym_idx    = lambda(idx): index_num_to_sym(schema, model, idx)
+    col_nums   = lambda(idx): layout_map[sym_idx(idx)]
+    group_mean = lambda(idx): np.mean(data[col_nums(idx)], axis=0)
+
+    # Find the bias term
+    bias_idx = tuple([0 for dim in shape[:-1]])
+    coeffs[bias_idx] = group_mean(bias_idx)
+
+    # Estimate the main effects
+    for i, f in enumerate(factors):
+        values = list(schema.factor_values(f))
+        for j in range(1, len(values)):
+            idx = np.zeros(len(shape) - 1, int)
+            idx[i]= j
+            print "Idx is ", idx
+            idx = tuple(idx)
+            coeffs[idx] = group_mean(idx) - coeffs[bias_idx]
+
+    # Estimate the interactions between each pair of factors
+    for i1 in range(len(factors)):
+        f1 = factors[i1]
+        vals1 = list(schema.factor_values(f1))
+
+        for i2 in range(i1 + 1, len(factors)):
+            f2 = factors[i2]
+            vals2 = list(schema.factor_values(f2))
+            for j1 in range(1, len(vals1)):
+
+                idx1 = np.copy(bias_idx)
+                idx1[i1] = j1
+                idx1 = tuple(idx1)
+                for j2 in range(1, len(vals2)):
+                    idx2 = np.copy(bias_idx)
+                    idx2[i2] = j2
+                    idx2 = tuple(idx2)
+                    idx = np.copy(bias_idx)
+                    idx[i1] = j1
+                    idx[i2] = j2
+                    idx = tuple(idx)
+                    coeffs[idx] = group_mean(idx) - coeffs[bias_idx] - coeffs[idx1] - coeffs[idx2]
+
+    print coeffs[..., 22]
+    return coeffs
+
+def bootstrap(data, stat, R):
+    
+    # Compute the statistic for the raw data
+
+    # Get the coefficients
+    
+    # Find the predicted value for each data point in the raw data
+    # using the coefficients
+
+    # Find the error terms
+
+    # Permute the error terms. For each permutation: Add the errors to
+    # the data (or the predictions?) and compute the statistic again.
+
+    # One bias term (present in every prediction)
+
+    # For each factor that has n values, n - 1 coefficients
+
+    # For each interaction, 1 coefficient
+    
+    # Shape of coefficients is cross-product of factor values
+
+    pass
 
 def init_schema(infile=None):
     """Creates a new schema based on the given infile.
