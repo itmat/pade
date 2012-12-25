@@ -184,8 +184,6 @@ def do_run(args):
     num_groups = np.prod(var_shape)
     coeff_list = np.zeros((int(num_groups), num_features))
 
-
-
     for i, idx in enumerate(np.ndindex(var_shape)):
         key = index_num_to_sym(schema, job.full_model, idx)
         group_keys.append(key)
@@ -212,7 +210,17 @@ def do_run(args):
 
     report.make_report(job)
 
+    prediction = np.zeros_like(job.table)
 
+    layout_map_red = model_to_layout_map(schema, job.reduced_model)
+
+    for grp in layout_map_red.values():
+        print grp
+        data = job.table[grp]
+        means = np.mean(data, axis=0)
+        prediction[grp] = means
+
+    bootstrap(job.table, prediction, job.stat, 1000)
 
 def find_coefficients(schema, model, data):
     factors = model.variables
@@ -238,7 +246,6 @@ def find_coefficients(schema, model, data):
         for j in range(1, len(values)):
             idx = np.zeros(len(shape) - 1, int)
             idx[i]= j
-            print "Idx is ", idx
             idx = tuple(idx)
             coeffs[idx] = group_mean(idx) - coeffs[bias_idx]
 
@@ -265,22 +272,33 @@ def find_coefficients(schema, model, data):
                     idx = tuple(idx)
                     coeffs[idx] = group_mean(idx) - coeffs[bias_idx] - coeffs[idx1] - coeffs[idx2]
 
-    print coeffs[..., 22]
     return coeffs
 
-def bootstrap(data, stat, R):
+def bootstrap(data, prediction, stat_fn, R):
     
-    # Compute the statistic for the raw data
+    n = np.shape(data)[0]
 
-    # Get the coefficients
-    
-    # Find the predicted value for each data point in the raw data
-    # using the coefficients
+    baseline_stats = stat_fn.compute(data)
+#    baseline_stats = stat_fn.compute(data - prediction)
+    idxs = np.random.random_integers(0, n - 1, (R, n))
 
     # Find the error terms
+    residuals = data - prediction
+    results = np.zeros(np.shape(data)[1:])
 
     # Permute the error terms. For each permutation: Add the errors to
     # the data (or the predictions?) and compute the statistic again.
+    for i, permutation in enumerate(idxs):
+        permuted = prediction + residuals[permutation]
+        
+#        permuted = residuals[permutation]
+        stats = stat_fn.compute(permuted)
+
+        better = baseline_stats >= stats
+        results += better
+    print results
+    # 0.964438, 0.964438,  1.065872, 1.07578
+    # 2.421239, 2.1944845, 2.421239, 2.410962
 
     # One bias term (present in every prediction)
 
@@ -393,7 +411,7 @@ def get_arguments():
         required=True,
         help="""A class that can be set for each sample. You can
         specify this option more than once, to use more than one
-        class.""")
+p        class.""")
     setup_parser.add_argument(
         '--directory', '-D',
         default=Job.DEFAULT_DIRECTORY,

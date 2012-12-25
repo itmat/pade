@@ -124,7 +124,7 @@ class Ftest(object):
         
         data_full = apply_layout(layout_full, data)
         data_red  = apply_layout(layout_red,  data)
-        
+    
         # Means for the full and reduced model
         y_full = np.mean(data_full, axis=0)
         y_red  = np.mean(data_red,  axis=0)
