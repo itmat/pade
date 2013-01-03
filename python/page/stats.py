@@ -2,8 +2,12 @@ import numpy as np
 import numpy.ma as ma
 import numbers
 
+class Statistic(object):
 
-class Ttest(object):
+    def __call__(self, data):
+        return self.compute(data)
+
+class Ttest(Statistic):
 
     TUNING_PARAM_RANGE_VALUES = np.array([
             0.0001,
@@ -100,14 +104,11 @@ def apply_layout(layout, data):
         res[i] = data[idxs]
     return res.swapaxes(0, 1)
 
-class Ftest(object):
+class Ftest(Statistic):
 
     def __init__(self, layout_full, layout_reduced):
         self.layout_full = layout_full
         self.layout_reduced = layout_reduced
-
-    def __call__(self, data):
-        return self.compute(data)
 
     def compute(self, data):
         """Compute the f-test for the given ndarray.

@@ -32,7 +32,7 @@ class StatTest(unittest.TestCase):
         data = np.swapaxes(data, 0, 2)
         alpha = 1.62026604316528 * Ttest.TUNING_PARAM_RANGE_VALUES[4]
         stat = Ttest(alpha)
-        result = stat.compute(data)
+        result = stat(data)
 
         expected = [1.51898640652018,
                     1.51898640652018]
@@ -62,7 +62,7 @@ class StatTest(unittest.TestCase):
         data = np.swapaxes(data, 0, 2)
         alpha = 1.62026604316528 * Ttest.TUNING_PARAM_RANGE_VALUES[4]
         stat = Ttest(alpha)
-        result = stat.compute(data)
+        result = stat(data)
 
         expected = [1.51898640652018,
                     1.51898640652018,
@@ -83,7 +83,7 @@ class StatTest(unittest.TestCase):
         data = np.swapaxes(data, 0, 1)
         alpha = 1.62026604316528 * Ttest.TUNING_PARAM_RANGE_VALUES[4]
         stat = Ttest(alpha)
-        result = stat.compute(data)
+        result = stat(data)
 
         expected = 1.51898640652018
         self.assertAlmostEqual(result, expected)
@@ -100,7 +100,7 @@ class StatTest(unittest.TestCase):
         a2 = np.concatenate((self.ftest_in,
                              self.ftest_in)).reshape((2, 18)).swapaxes(0, 1)
         print a2
-        got = ftest.compute(a2)
+        got = ftest(a2)
         self.assertEqual(np.shape(got), (2,))
         self.assertAlmostEqual(got[0], expected)
         self.assertAlmostEqual(got[1], expected)
