@@ -9,13 +9,14 @@ import os
 import scipy.stats.mstats
 import shutil
 import tokenize
+import matplotlib.pyplot as plt
 
 from StringIO import StringIO
 from textwrap import fill
 from jinja2 import Environment, PackageLoader
 
-from schema import Schema
-import stats
+from page.schema import Schema
+import page.stats as stats
 
 REAL_PATH = os.path.realpath(__file__)
 
@@ -75,6 +76,47 @@ def chdir(path):
         os.chdir(cwd)
 
 
+def bins_uniform(num_bins, stats):
+
+    base_shape = np.shape(stats)[:-1]
+    bins = np.zeros(base_shape + (num_bins + 1,))
+    for idx in np.ndindex(base_shape):
+        maxval = np.max(stats[idx])
+        edges = np.concatenate((np.linspace(0, maxval, num_bins), [np.inf]))
+        edges[0] = - np.inf
+        bins[idx] = edges
+
+    return bins
+
+
+def bins_custom(unperm_stats):
+    """Get an array of bin edges based on the actual computed
+    statistic values. unperm_stats is an M x N array, where
+    unperm_stats[m, n] gives the statistic value for feature m in
+    condition n. Returns an M + 2 x N array, where bins[m, n] and
+    bins[m + 1, n] define a bin in which to count features for
+    condition n. There is a bin edge for negative and positive
+    infinity, and one for each statistic value.
+
+    TODO: We should be able to make the dimensionality of this
+    function flexible.
+    """
+
+    (m, n) = np.shape(unperm_stats)
+    bins = np.zeros((m + 2, n))
+    for i in range(S):
+        for c in range(1, n):
+            bins[i, 0,     c]  = -np.inf
+            bins[i, 1 : m + 1, c] = sorted(unperm_stats[i, :, c])
+            bins[i, m + 1, c] = np.inf
+    return bins
+
+
+def plot_raw_stat_hist(stats):
+    plt.hist(stats, log=True, bins=250)
+    plt.savefig("raw_stats")
+
+
 def make_report(job):
     with chdir(job.directory):
         env = Environment(loader=PackageLoader('page'))
@@ -88,7 +130,7 @@ def make_report(job):
 def setup_css(env):
 
     src = os.path.join(os.path.dirname(REAL_PATH),
-                       '996grid/code/css')
+                       'page/996grid/code/css')
 
     shutil.rmtree('css', True)
     shutil.copytree(src, 'css')
@@ -183,7 +225,52 @@ def do_run(args):
         prediction[grp] = means
 
     boot = Boot(job.table, prediction, job.stat, 1500)
-    boot.ci()
+    ci = boot.ci()
+    summarize_ci(ci, boot.raw_stats)
+    plot_raw_stat_hist(boot.raw_stats)
+
+    bins = bins_uniform(1000, boot.raw_stats)
+    unperm_counts = feature_count_by_stat(boot.raw_stats, bins)
+    perm_counts   = feature_count_by_mean_stat(boot.permuted_stats, bins)
+    print perm_counts
+
+
+def cumulative_hist(values, bins):
+    (hist, ignore) = np.histogram(values, bins)
+    return np.cumsum(hist[::-1])[::-1]
+
+
+def feature_count_by_stat(stats, edges):
+    """Count the number of features by statistic value.
+
+    stats is a (class x feature) array where unperm_stats[class,
+    feature] gives the statistic for the given feature, class
+    combination. edges is a (class, bins + 1) monotonically increasing
+    array where each pair of consecutive items defines the edges of a
+    bin. Returns a (classes x bins) array where each item gives the
+    number of features whose statistic value falls in the given bin
+    for the given class.
+
+    TODO: We should be able to make the dimensionality of this
+    function flexible.
+    """
+    logging.debug("Shape of stats is " + str(np.shape(stats)))
+    logging.debug("Shape of edges is " + str(np.shape(edges)))
+
+    return cumulative_hist(stats, edges)
+
+def feature_count_by_mean_stat(stats, edges):
+    logging.info("Accumulating counts for permuted data")
+    logging.debug("Shape of stats is " + str(np.shape(stats)))
+    counts = np.zeros(np.shape(stats[1:]))
+
+    for i, row in enumerate(stats):
+        counts += cumulative_hist(row, edges)
+    counts /= len(stats)
+    return counts
+    
+
+
 
 def find_coefficients(schema, model, data):
     factors = model.variables
@@ -446,6 +533,8 @@ class Boot:
         R - The number of samples to run. Defaults to 1000.
         
         """
+        logging.info("Computing statistics based on sampled residuals")
+
         # Number of samples
         m = np.shape(data)[0]
 
@@ -477,13 +566,19 @@ class Boot:
         being differentially expressed is at least levels[j].
 
         """
+        logging.info("Computing confidence intervals")
         intervals = scipy.stats.mstats.mquantiles(
             self.permuted_stats, prob=levels, axis=0)
-        intervals = intervals.swapaxes(0, 1)
-        print self.raw_stats[0]
-        print sorted(self.permuted_stats[:, 0])
-        print intervals[0]
-        
+        return intervals
+
+def summarize_ci(ci, stats):
+    print "CI", np.shape(ci)
+    print "Stats", np.shape(stats)
+    
+    for i in range(len(ci)):
+        print i, np.sum(stats > ci[i])
+
+
 def init_schema(infile=None):
     """Creates a new schema based on the given infile.
 
