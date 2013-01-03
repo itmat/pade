@@ -220,7 +220,7 @@ def do_run(args):
         means = np.mean(data, axis=0)
         prediction[grp] = means
 
-    bootstrap(job.table, prediction, job.stat, 1000)
+    bootstrap(job.table, prediction, job.stat, 1500)
 
 def find_coefficients(schema, model, data):
     factors = model.variables
@@ -276,39 +276,29 @@ def find_coefficients(schema, model, data):
 
 def bootstrap(data, prediction, stat_fn, R):
     
-    n = np.shape(data)[0]
+    # Number of samples
+    m = np.shape(data)[0]
 
-    baseline_stats = stat_fn.compute(data)
-#    baseline_stats = stat_fn.compute(data - prediction)
-    idxs = np.random.random_integers(0, n - 1, (R, n))
+    # An R x m array where each row is a list of indexes into data,
+    # randomly sampled.
+    idxs = np.random.random_integers(0, m - 1, (R, m))
 
     # Find the error terms
     residuals = data - prediction
-    results = np.zeros(np.shape(data)[1:])
+    
+    # We'll return an R x n array, where n is the number of
+    # features. Each row is the array of statistics for all the
+    # features, using a different random sampling.
+    results = np.zeros((R,) + np.shape(data)[1:])
 
     # Permute the error terms. For each permutation: Add the errors to
     # the data (or the predictions?) and compute the statistic again.
     for i, permutation in enumerate(idxs):
-        permuted = prediction + residuals[permutation]
-        
-#        permuted = residuals[permutation]
-        stats = stat_fn.compute(permuted)
+        permuted   = prediction + residuals[permutation]
+        results[i] = stat_fn.compute(permuted)
 
-        better = baseline_stats >= stats
-        results += better
-    print results
-    # 0.964438, 0.964438,  1.065872, 1.07578
-    # 2.421239, 2.1944845, 2.421239, 2.410962
+    return results
 
-    # One bias term (present in every prediction)
-
-    # For each factor that has n values, n - 1 coefficients
-
-    # For each interaction, 1 coefficient
-    
-    # Shape of coefficients is cross-product of factor values
-
-    pass
 
 def init_schema(infile=None):
     """Creates a new schema based on the given infile.
