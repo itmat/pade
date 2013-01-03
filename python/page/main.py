@@ -38,6 +38,13 @@ class ModelExpressionException(Exception):
 ### Bare functions
 ###
 
+def fix_newlines(msg):
+    output = ""
+    for line in msg.splitlines():
+        output += fill(line) + "\n"
+    return output
+
+
 def add_condition_axis(data, layout):
 
     num_samples = len(data)
@@ -89,198 +96,6 @@ def setup_css(env):
     with open('css/custom.css', 'w') as out:
         template = env.get_template('custom.css')
         out.write(template.render())
-
-##############################################################################
-###
-### Classes
-###
-
-
-class Model:
-    
-    PROB_MARGINAL    = "marginal"
-    PROB_JOINT       = "joint"
-
-    OP_TO_NAME = { '+' : PROB_MARGINAL, '*' : PROB_JOINT }
-    NAME_TO_OP = { PROB_MARGINAL : '+', PROB_JOINT : '*' }
-
-    def __init__(self, prob=None, variables=[]):
-        if prob is not None and prob not in self.NAME_TO_OP:
-            raise Exception("Unknown probability " + str(prob))
-        self.prob      = prob
-        self.variables = variables
-        
-    @classmethod
-    def parse(cls, string):
-        """Parse a model from a string.
-
-        string can either be "VARIABLE", "VARIABLE * VARIABLE", or
-        "VARIABLE + VARIABLE". We may support more complex models
-        later on.
-
-        """
-        operator = None
-        variables = []
-
-        io = StringIO(string)
-        toks = tokenize.generate_tokens(lambda : io.readline())
-
-        # First token should always be a variable
-        t = toks.next()
-        (tok_type, tok, start, end, line) = t
-        if tok_type != tokenize.NAME:
-            raise ModelExpressionException("Unexpected token " + tok)
-        variables.append(tok)
-
-        # Second token should be either the end marker or + or *
-        t = toks.next()
-        (tok_type, tok, start, end, line) = t
-        if tok_type == tokenize.ENDMARKER:
-            return Model(variables=variables)
-        elif tok_type == tokenize.OP:
-            operator = Model.OP_TO_NAME[tok]
-            # raise ModelExpressionException("Unexpected operator " + tok)
-        else:
-            raise ModelExpressionException("Unexpected token " + tok)
-
-        t = toks.next()
-        (tok_type, tok, start, end, line) = t
-        if tok_type != tokenize.NAME:
-            raise ModelExpressionException("Unexpected token " + tok)
-        variables.append(tok)
-
-        t = toks.next()
-        (tok_type, tok, start, end, line) = t
-        if tok_type != tokenize.ENDMARKER:
-            raise ModelExpressionException("Expected end of expression, got " + tok)
-
-        return Model(prob=operator, variables=variables)
-
-    def __str__(self):
-        if len(self.variables) == 1:
-            return self.variables[0]
-        elif len(self.variables) > 1:
-            op = ' ' + self.NAME_TO_OP[self.prob] + ' '
-            return op.join(self.variables)
-        else:
-            return ''
-
-def fix_newlines(msg):
-    output = ""
-    for line in msg.splitlines():
-        output += fill(line) + "\n"
-    return output
-
-class Job:
-
-    DEFAULT_DIRECTORY = "pageseq_out"
-
-    def __init__(self, 
-                 directory, 
-                 stat=None,
-                 full_model=None,
-                 reduced_model=Model()):
-        self.directory = directory
-        self.stat_name = stat
-        self.full_model = full_model
-        self.reduced_model = reduced_model
-        self._table = None
-        self._feature_ids = None
-
-    @property
-    def schema_filename(self):
-        return os.path.join(self.directory, 'schema.yaml')
-
-    @property
-    def input_filename(self):
-        return os.path.join(self.directory, 'input.txt')
-    
-    @property
-    def schema(self):
-        return Schema.load(open(self.schema_filename), self.input_filename)
-
-    @property
-    def stat(self):
-        if self.stat_name == 'f':
-            return stats.Ftest(
-                layout_full=model_to_layout_map(self.schema, self.full_model).values(),
-                layout_reduced=model_to_layout_map(self.schema, self.reduced_model).values())
-        elif self.stat_name == 't':
-            return stats.Ttest(alpha=1.0)
-
-    @property
-    def table(self):
-        """Returns the data table as (sample x feature) ndarray."""
-        if self._table is None:
-            self._load_table()
-        return self._table
-
-    @property
-    def feature_ids(self):
-        if self._feature_ids is None:
-            self._load_table()
-        return self._feature_ids
-
-    def _load_table(self):
-        logging.info("Loading table from " + self.input_filename)
-        with open(self.input_filename) as fh:
-
-            headers = fh.next().rstrip().split("\t")
-
-            ids = []
-            table = []
-
-            for line in fh:
-                row = line.rstrip().split("\t")
-                rowid = row[0]
-                values = [float(x) for x in row[1:]]
-                ids.append(rowid)
-                table.append(values)
-
-            self._table = np.array(table).swapaxes(0, 1)
-            self._feature_ids = ids
-
-            logging.info("Table shape is " + str(np.shape(self._table)))
-            logging.info("Loaded " + str(len(self._feature_ids)) + " features")
-
-
-    @property
-    def num_features(self):
-        return len(self.feature_ids)
-            
-
-def main():
-    """Run pageseq."""
-
-    logging.basicConfig(level=logging.DEBUG,
-                        format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
-                        datefmt='%m-%d %H:%M',
-                        filename='page.log',
-                        filemode='w')
-
-    args = get_arguments()
-
-    console = logging.StreamHandler()
-    formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
-    console.setFormatter(formatter)
-
-    if args.debug:
-        console.setLevel(logging.DEBUG)
-    elif args.verbose:
-        console.setLevel(logging.INFO)
-    else:
-        console.setLevel(logging.ERROR)
-
-    logging.getLogger('').addHandler(console)
-
-    logging.info('Page starting')
-
-    try:
-        args.func(args)
-    except UsageException as e:
-        print fix_newlines("ERROR: " + e.message)
-    
-    logging.info('Page finishing')    
 
 def model_to_layout_map(schema, model):
 
@@ -421,6 +236,195 @@ def find_coefficients(schema, model, data):
                     coeffs[idx] = group_mean(idx) - coeffs[bias_idx] - coeffs[idx1] - coeffs[idx2]
 
     return coeffs
+
+
+
+##############################################################################
+###
+### Classes
+###
+
+
+class Model:
+    
+    PROB_MARGINAL    = "marginal"
+    PROB_JOINT       = "joint"
+
+    OP_TO_NAME = { '+' : PROB_MARGINAL, '*' : PROB_JOINT }
+    NAME_TO_OP = { PROB_MARGINAL : '+', PROB_JOINT : '*' }
+
+    def __init__(self, prob=None, variables=[]):
+        if prob is not None and prob not in self.NAME_TO_OP:
+            raise Exception("Unknown probability " + str(prob))
+        self.prob      = prob
+        self.variables = variables
+        
+    @classmethod
+    def parse(cls, string):
+        """Parse a model from a string.
+
+        string can either be "VARIABLE", "VARIABLE * VARIABLE", or
+        "VARIABLE + VARIABLE". We may support more complex models
+        later on.
+
+        """
+        operator = None
+        variables = []
+
+        io = StringIO(string)
+        toks = tokenize.generate_tokens(lambda : io.readline())
+
+        # First token should always be a variable
+        t = toks.next()
+        (tok_type, tok, start, end, line) = t
+        if tok_type != tokenize.NAME:
+            raise ModelExpressionException("Unexpected token " + tok)
+        variables.append(tok)
+
+        # Second token should be either the end marker or + or *
+        t = toks.next()
+        (tok_type, tok, start, end, line) = t
+        if tok_type == tokenize.ENDMARKER:
+            return Model(variables=variables)
+        elif tok_type == tokenize.OP:
+            operator = Model.OP_TO_NAME[tok]
+            # raise ModelExpressionException("Unexpected operator " + tok)
+        else:
+            raise ModelExpressionException("Unexpected token " + tok)
+
+        t = toks.next()
+        (tok_type, tok, start, end, line) = t
+        if tok_type != tokenize.NAME:
+            raise ModelExpressionException("Unexpected token " + tok)
+        variables.append(tok)
+
+        t = toks.next()
+        (tok_type, tok, start, end, line) = t
+        if tok_type != tokenize.ENDMARKER:
+            raise ModelExpressionException("Expected end of expression, got " + tok)
+
+        return Model(prob=operator, variables=variables)
+
+    def __str__(self):
+        if len(self.variables) == 1:
+            return self.variables[0]
+        elif len(self.variables) > 1:
+            op = ' ' + self.NAME_TO_OP[self.prob] + ' '
+            return op.join(self.variables)
+        else:
+            return ''
+
+
+class Job:
+
+    DEFAULT_DIRECTORY = "pageseq_out"
+
+    def __init__(self, 
+                 directory, 
+                 stat=None,
+                 full_model=None,
+                 reduced_model=Model()):
+        self.directory = directory
+        self.stat_name = stat
+        self.full_model = full_model
+        self.reduced_model = reduced_model
+        self._table = None
+        self._feature_ids = None
+
+    @property
+    def schema_filename(self):
+        return os.path.join(self.directory, 'schema.yaml')
+
+    @property
+    def input_filename(self):
+        return os.path.join(self.directory, 'input.txt')
+    
+    @property
+    def schema(self):
+        return Schema.load(open(self.schema_filename), self.input_filename)
+
+    @property
+    def stat(self):
+        if self.stat_name == 'f':
+            return stats.Ftest(
+                layout_full=model_to_layout_map(self.schema, self.full_model).values(),
+                layout_reduced=model_to_layout_map(self.schema, self.reduced_model).values())
+        elif self.stat_name == 't':
+            return stats.Ttest(alpha=1.0)
+
+    @property
+    def table(self):
+        """Returns the data table as (sample x feature) ndarray."""
+        if self._table is None:
+            self._load_table()
+        return self._table
+
+    @property
+    def feature_ids(self):
+        if self._feature_ids is None:
+            self._load_table()
+        return self._feature_ids
+
+    def _load_table(self):
+        logging.info("Loading table from " + self.input_filename)
+        with open(self.input_filename) as fh:
+
+            headers = fh.next().rstrip().split("\t")
+
+            ids = []
+            table = []
+
+            for line in fh:
+                row = line.rstrip().split("\t")
+                rowid = row[0]
+                values = [float(x) for x in row[1:]]
+                ids.append(rowid)
+                table.append(values)
+
+            self._table = np.array(table).swapaxes(0, 1)
+            self._feature_ids = ids
+
+            logging.info("Table shape is " + str(np.shape(self._table)))
+            logging.info("Loaded " + str(len(self._feature_ids)) + " features")
+
+
+    @property
+    def num_features(self):
+        return len(self.feature_ids)
+            
+
+def main():
+    """Run pageseq."""
+
+    logging.basicConfig(level=logging.DEBUG,
+                        format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+                        datefmt='%m-%d %H:%M',
+                        filename='page.log',
+                        filemode='w')
+
+    args = get_arguments()
+
+    console = logging.StreamHandler()
+    formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
+    console.setFormatter(formatter)
+
+    if args.debug:
+        console.setLevel(logging.DEBUG)
+    elif args.verbose:
+        console.setLevel(logging.INFO)
+    else:
+        console.setLevel(logging.ERROR)
+
+    logging.getLogger('').addHandler(console)
+
+    logging.info('Page starting')
+
+    try:
+        args.func(args)
+    except UsageException as e:
+        print fix_newlines("ERROR: " + e.message)
+    
+    logging.info('Page finishing')    
 
 
 class Boot:
