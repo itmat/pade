@@ -6,6 +6,7 @@ import errno
 import shutil
 import numpy as np
 import tokenize
+import scipy.stats.mstats
 
 from StringIO import StringIO
 from textwrap import fill
@@ -322,7 +323,8 @@ def do_run(args):
         means = np.mean(data, axis=0)
         prediction[grp] = means
 
-    bootstrap(job.table, prediction, job.stat, 1500)
+    boot = Boot(job.table, prediction, job.stat, 1500)
+    boot.ci()
 
 def find_coefficients(schema, model, data):
     factors = model.variables
@@ -377,32 +379,63 @@ def find_coefficients(schema, model, data):
     return coeffs
 
 
-def bootstrap(data, prediction, stat_fn, R):
-    
-    # Number of samples
-    m = np.shape(data)[0]
+class Boot:
+    """Bootstrap results."""
 
-    # An R x m array where each row is a list of indexes into data,
-    # randomly sampled.
-    idxs = np.random.random_integers(0, m - 1, (R, m))
+    DEFAULT_LEVELS = np.linspace(0.5, 0.95, num=10)
 
-    # Find the error terms
-    residuals = data - prediction
-    
-    # We'll return an R x n array, where n is the number of
-    # features. Each row is the array of statistics for all the
-    # features, using a different random sampling.
-    results = np.zeros((R,) + np.shape(data)[1:])
+    def __init__(self, data, prediction, stat_fn, R=1000):
+        """Run bootstrapping.
 
-    # Permute the error terms. For each permutation: Add the errors to
-    # the data (or the predictions?) and compute the statistic again.
-    for i, permutation in enumerate(idxs):
-        permuted   = prediction + residuals[permutation]
-        results[i] = stat_fn.compute(permuted)
+        data - An m x ... array of data points
 
-    return results
+        prediction - An ndarray of the same shape as data, giving the
+                     predicted values for the data points.
 
+        stat_fn - A callable that takes data and returns a statistic
+                  value.
 
+        R - The number of samples to run. Defaults to 1000.
+        
+        """
+        # Number of samples
+        m = np.shape(data)[0]
+
+        # An R x m array where each row is a list of indexes into data,
+        # randomly sampled.
+        idxs = np.random.random_integers(0, m - 1, (R, m))
+
+        # We'll return an R x n array, where n is the number of
+        # features. Each row is the array of statistics for all the
+        # features, using a different random sampling.
+        results = np.zeros((R,) + np.shape(data)[1:])
+
+        # Permute the error terms. For each permutation: Add the errors to
+        # the data (or the predictions?) and compute the statistic again.
+        residuals = data - prediction
+        for i, permutation in enumerate(idxs):
+            permuted   = prediction + residuals[permutation]
+            results[i] = stat_fn(permuted)
+
+        self.permuted_stats = results
+        self.raw_stats      = stat_fn(data)
+
+    def ci(self, levels=DEFAULT_LEVELS):
+        """Return the confidence intervals for the given levels.
+
+        The result is an n x L array, where n is the number of
+        features and L is the number of levels. ci[i, j] gives the
+        value of the statistic for which the confidence of feature[i]
+        being differentially expressed is at least levels[j].
+
+        """
+        intervals = scipy.stats.mstats.mquantiles(
+            self.permuted_stats, prob=levels, axis=0)
+        intervals = intervals.swapaxes(0, 1)
+        print self.raw_stats[0]
+        print sorted(self.permuted_stats[:, 0])
+        print intervals[0]
+        
 def init_schema(infile=None):
     """Creates a new schema based on the given infile.
 
@@ -542,8 +575,6 @@ This directory must also contain schema.yaml file and input.txt""")
     run_parser.set_defaults(func=do_run)
 
     return uberparser.parse_args()
-
-
 
 
 if __name__ == '__main__':
