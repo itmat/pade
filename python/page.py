@@ -220,14 +220,20 @@ def do_run(args):
         means = np.mean(data, axis=0)
         prediction[grp] = means
 
-    boot = Boot(job.table, prediction, job.stat, 1500)
+    boot = Boot(job.table, prediction, job.stat, 10000)
     ci = boot.ci()
 
-    plot_raw_stat_hist(boot.raw_stats)
+#    raw_stats = np.sqrt(boot.raw_stats)
+#    perm_stats = np.sqrt(boot.permuted_stats)
 
-    bins = bins_custom(1000, boot.raw_stats)
-    raw_counts = feature_count_by_stat(boot.raw_stats, bins)
-    perm_counts   = feature_count_by_mean_stat(boot.permuted_stats, bins)
+    raw_stats = boot.raw_stats
+    perm_stats = boot.permuted_stats
+
+    plot_raw_stat_hist(raw_stats)
+
+    bins = bins_custom(1000, raw_stats)
+    raw_counts = feature_count_by_stat(raw_stats, bins)
+    perm_counts   = feature_count_by_mean_stat(perm_stats, bins)
     scores = confidence_scores(raw_counts, perm_counts)
 
     for i in range(len(raw_counts)):
