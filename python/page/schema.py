@@ -26,8 +26,6 @@ class Schema(object):
                   column_names. is_sample[i] indicates if the ith
                   column contains a sample.
 
-  filename      - the filename for the schema.
-
 Any columns for which is_feature_id is true will be treated as feature
 ids, and any for which is_sample is true will be assumed to contain
 intensity values. No column should have both is_feature_id and

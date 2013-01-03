@@ -95,7 +95,7 @@ class StatTest(unittest.TestCase):
         ftest = Ftest(
             layout_full=[range(i, 18, 3) for i in range(3)],
             layout_reduced=[range(18)])
-        self.assertAlmostEqual(expected, ftest.compute(self.ftest_in.swapaxes(0, 1)))
+        self.assertAlmostEqual(expected, ftest(self.ftest_in.swapaxes(0, 1)))
 
         a2 = np.concatenate((self.ftest_in,
                              self.ftest_in)).reshape((2, 18)).swapaxes(0, 1)

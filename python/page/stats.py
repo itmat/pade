@@ -2,6 +2,7 @@ import numpy as np
 import numpy.ma as ma
 import numbers
 
+
 class Ttest(object):
 
     TUNING_PARAM_RANGE_VALUES = np.array([
@@ -104,6 +105,9 @@ class Ftest(object):
     def __init__(self, layout_full, layout_reduced):
         self.layout_full = layout_full
         self.layout_reduced = layout_reduced
+
+    def __call__(self, data):
+        return self.compute(data)
 
     def compute(self, data):
         """Compute the f-test for the given ndarray.

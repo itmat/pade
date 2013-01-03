@@ -1,7 +1,17 @@
 import os
 import shutil
-from common import chdir
 from jinja2 import Environment, PackageLoader
+import contextlib
+
+@contextlib.contextmanager
+def chdir(path):
+    cwd = os.getcwd()
+    try:
+        os.chdir(path)
+        yield
+    finally:
+        os.chdir(cwd)
+
 
 def make_report(job):
     with chdir(job.directory):
