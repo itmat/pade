@@ -1,20 +1,23 @@
 # External imports
-import logging
+
 import argparse
-import os
+import contextlib
 import errno
-import shutil
+import logging
 import numpy as np
-import tokenize
+import os
 import scipy.stats.mstats
+import shutil
+import tokenize
 
 from StringIO import StringIO
 from textwrap import fill
+from jinja2 import Environment, PackageLoader
 
-# PaGE imports
 from schema import Schema
-import report
 import stats
+
+REAL_PATH = os.path.realpath(__file__)
 
 ##############################################################################
 ###
@@ -51,6 +54,47 @@ def add_condition_axis(data, layout):
         res[i] = data[layout[i]]
 
     return res
+
+
+@contextlib.contextmanager
+def chdir(path):
+    cwd = os.getcwd()
+    try:
+        logging.info("Changing cwd from " + cwd + " to " + path)
+        os.chdir(path)
+        yield
+    finally:
+        logging.info("Changing cwd from " + path + " back to " + cwd)
+        os.chdir(cwd)
+
+
+def make_report(job):
+    with chdir(job.directory):
+        env = Environment(loader=PackageLoader('page'))
+        setup_css(env)
+        template = env.get_template('index.html')
+        with open('index.html', 'w') as out:
+            out.write(template.render(
+                job=job
+                ))
+
+def setup_css(env):
+
+    src = os.path.join(os.path.dirname(REAL_PATH),
+                       '996grid/code/css')
+
+    shutil.rmtree('css', True)
+    shutil.copytree(src, 'css')
+
+    with open('css/custom.css', 'w') as out:
+        template = env.get_template('custom.css')
+        out.write(template.render())
+
+##############################################################################
+###
+### Classes
+###
+
 
 class Model:
     
@@ -311,7 +355,7 @@ def do_run(args):
     job.coeffs = coeff_list
     logging.debug("Condition names are" + str(job.condition_names))
 
-    report.make_report(job)
+    make_report(job)
 
     prediction = np.zeros_like(job.table)
 
