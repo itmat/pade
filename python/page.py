@@ -89,7 +89,7 @@ def bins_uniform(num_bins, stats):
     return bins
 
 
-def bins_custom(unperm_stats):
+def bins_custom(num_bins, stats):
     """Get an array of bin edges based on the actual computed
     statistic values. unperm_stats is an M x N array, where
     unperm_stats[m, n] gives the statistic value for feature m in
@@ -102,13 +102,10 @@ def bins_custom(unperm_stats):
     function flexible.
     """
 
-    (m, n) = np.shape(unperm_stats)
-    bins = np.zeros((m + 2, n))
-    for i in range(S):
-        for c in range(1, n):
-            bins[i, 0,     c]  = -np.inf
-            bins[i, 1 : m + 1, c] = sorted(unperm_stats[i, :, c])
-            bins[i, m + 1, c] = np.inf
+    base_shape = np.shape(stats)[:-1]
+    bins = np.zeros(base_shape + (num_bins + 1,))
+    bins[ : -1] = sorted(stats)
+    bins[-1] = np.inf
     return bins
 
 
@@ -219,25 +216,27 @@ def do_run(args):
     layout_map_red = model_to_layout_map(schema, job.reduced_model)
 
     for grp in layout_map_red.values():
-        print grp
         data = job.table[grp]
         means = np.mean(data, axis=0)
         prediction[grp] = means
 
     boot = Boot(job.table, prediction, job.stat, 1500)
     ci = boot.ci()
-    summarize_ci(ci, boot.raw_stats)
+
     plot_raw_stat_hist(boot.raw_stats)
 
-    bins = bins_uniform(1000, boot.raw_stats)
-    unperm_counts = feature_count_by_stat(boot.raw_stats, bins)
+    bins = bins_custom(1000, boot.raw_stats)
+    raw_counts = feature_count_by_stat(boot.raw_stats, bins)
     perm_counts   = feature_count_by_mean_stat(boot.permuted_stats, bins)
-    print perm_counts
+    scores = confidence_scores(raw_counts, perm_counts)
+
+    for i in range(len(raw_counts)):
+        print (bins[i], raw_counts[i], perm_counts[i], scores[i])
 
 
 def cumulative_hist(values, bins):
     (hist, ignore) = np.histogram(values, bins)
-    return np.cumsum(hist[::-1])[::-1]
+    return np.array(np.cumsum(hist[::-1])[::-1], float)
 
 
 def feature_count_by_stat(stats, edges):
@@ -262,7 +261,7 @@ def feature_count_by_stat(stats, edges):
 def feature_count_by_mean_stat(stats, edges):
     logging.info("Accumulating counts for permuted data")
     logging.debug("Shape of stats is " + str(np.shape(stats)))
-    counts = np.zeros(np.shape(stats[1:]))
+    counts = np.zeros(np.shape(stats)[1:])
 
     for i, row in enumerate(stats):
         counts += cumulative_hist(row, edges)
@@ -270,6 +269,8 @@ def feature_count_by_mean_stat(stats, edges):
     return counts
     
 
+def confidence_scores(raw_counts, perm_counts):
+    return (raw_counts - perm_counts) / raw_counts
 
 
 def find_coefficients(schema, model, data):
@@ -570,13 +571,6 @@ class Boot:
         intervals = scipy.stats.mstats.mquantiles(
             self.permuted_stats, prob=levels, axis=0)
         return intervals
-
-def summarize_ci(ci, stats):
-    print "CI", np.shape(ci)
-    print "Stats", np.shape(stats)
-    
-    for i in range(len(ci)):
-        print i, np.sum(stats > ci[i])
 
 
 def init_schema(infile=None):
