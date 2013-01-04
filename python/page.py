@@ -1,23 +1,22 @@
 # External imports
 
+import StringIO
 import argparse
+import collections
 import contextlib
 import errno
+import jinja2
 import logging
+import matplotlib.pyplot as plt
+import numbers
+import numpy.ma as ma
 import numpy as np
 import os
 import scipy.stats.mstats
 import shutil
+import textwrap
 import tokenize
-import matplotlib.pyplot as plt
 import yaml
-import numpy.ma as ma
-import numbers
-
-from collections import OrderedDict
-from StringIO import StringIO
-from textwrap import fill
-from jinja2 import Environment, PackageLoader
 
 
 REAL_PATH = os.path.realpath(__file__)
@@ -44,7 +43,7 @@ class ModelExpressionException(Exception):
 def fix_newlines(msg):
     output = ""
     for line in msg.splitlines():
-        output += fill(line) + "\n"
+        output += textwrap.fill(line) + "\n"
     return output
 
 
@@ -70,11 +69,11 @@ def add_condition_axis(data, layout):
 def chdir(path):
     cwd = os.getcwd()
     try:
-        logging.info("Changing cwd from " + cwd + " to " + path)
+        logging.debug("Changing cwd from " + cwd + " to " + path)
         os.chdir(path)
         yield
     finally:
-        logging.info("Changing cwd from " + path + " back to " + cwd)
+        logging.debug("Changing cwd from " + path + " back to " + cwd)
         os.chdir(cwd)
 
 
@@ -118,7 +117,7 @@ def plot_raw_stat_hist(stats):
 
 def make_report(job):
     with chdir(job.directory):
-        env = Environment(loader=PackageLoader('page'))
+        env = jinja2.Environment(loader=jinja2.PackageLoader('page'))
         setup_css(env)
         template = env.get_template('index.html')
         with open('index.html', 'w') as out:
@@ -129,7 +128,7 @@ def make_report(job):
 def setup_css(env):
 
     src = os.path.join(os.path.dirname(REAL_PATH),
-                       'page/996grid/code/css')
+                       '996grid/code/css')
 
     shutil.rmtree('css', True)
     shutil.copytree(src, 'css')
@@ -199,7 +198,7 @@ def do_run(args):
         coeff_list[i] = coeffs[idx]
 
     logging.info("Computing means")
-    reshaped = stats.apply_layout(layout, job.table)
+    reshaped = apply_layout(layout, job.table)
     logging.debug("Shape of reshaped is " + str(np.shape(reshaped)))
     job.means = np.mean(reshaped, axis=0)
     logging.debug("Shape of means is " + str(np.shape(job.means)))
@@ -367,7 +366,7 @@ class Model:
         operator = None
         variables = []
 
-        io = StringIO(string)
+        io = StringIO.StringIO(string)
         toks = tokenize.generate_tokens(lambda : io.readline())
 
         # First token should always be a variable
@@ -442,11 +441,11 @@ class Job:
     @property
     def stat(self):
         if self.stat_name == 'f':
-            return stats.Ftest(
+            return Ftest(
                 layout_full=model_to_layout_map(self.schema, self.full_model).values(),
                 layout_reduced=model_to_layout_map(self.schema, self.reduced_model).values())
         elif self.stat_name == 't':
-            return stats.Ttest(alpha=1.0)
+            return Ttest(alpha=1.0)
 
     @property
     def table(self):
@@ -557,7 +556,7 @@ is_sample are false will simply be ignored.
         else:
             column_names = np.array(column_names)
 
-        self.factors = OrderedDict()
+        self.factors = collections.OrderedDict()
         self.is_feature_id = np.array(is_feature_id, dtype=bool)
         self.is_sample     = np.array(is_sample,     dtype=bool)
         self.column_names  = column_names
@@ -787,7 +786,7 @@ sample_factor_mapping:
 def write_yaml_block_comment(fh, comment):
     result = ""
     for line in comment.splitlines():
-        result += fill(line, initial_indent = "# ", subsequent_indent="# ")
+        result += textwrap.fill(line, initial_indent = "# ", subsequent_indent="# ")
         result += "\n"
     fh.write(unicode(result))
 
