@@ -201,9 +201,11 @@ def plot_counts_by_stat(raw_stats, resampled_stats, bins, filename='counts_by_st
         plt.xlabel('Statistic value')
         plt.ylabel('Features with statistic >= value')
         plt.legend()
-    
 
-def do_run(args):
+def args_to_job(args):
+    """Construct a job based on the command-line arguments."""
+
+    logging.info("Constructing job based on command-line arguments")
 
     job = Job(
         directory=args.directory,
@@ -219,77 +221,89 @@ def do_run(args):
             raise UsageException(msg.format(job.schema.factors.keys()))
 
     schema = job.schema
+
     job.full_model = Model(schema, args.full_model)
     job.reduced_model = Model(schema, args.reduced_model)
 
-    layout_map_full = job.full_model.layout_map()
-    logging.debug("Full layout map is " + str(layout_map_full))
+    return job
 
-    logging.info("Computing coefficients")
-    coeffs = find_coefficients(job.full_model, job.table)
-    var_shape = job.full_model.factor_value_shape()
+def predicted_values(job):
+    prediction = np.zeros_like(job.table)
 
-    layout = []
-    group_keys = []
-    names      = []
-    (num_samples, num_features) = np.shape(job.table)
-    num_groups = np.prod(var_shape)
-    coeff_list = np.zeros((int(num_groups), num_features))
+    for grp in job.reduced_model.layout_map().values():
+        data = job.table[grp]
+        means = np.mean(data, axis=0)
+        prediction[grp] = means
+    return prediction
 
+
+def model_col_names(model):
+    var_shape = model.factor_value_shape()
+    names = []
     for i, idx in enumerate(np.ndindex(var_shape)):
-        key = job.full_model.index_num_to_sym(idx)
-        group_keys.append(key)
-        layout.append(layout_map_full[key])
-
+        key = model.index_num_to_sym(idx)
         parts = []
         for j in range(0, len(key), 2):
             parts.append("{0}".format(key[j+1]))
         names.append("; ".join(parts))
-        coeff_list[i] = coeffs[idx]
+    return names
 
-    logging.info("Computing means")
-    reshaped = apply_layout(layout, job.table)
-    logging.debug("Shape of reshaped is " + str(np.shape(reshaped)))
-    job.means = np.mean(reshaped, axis=0)
-    logging.debug("Shape of means is " + str(np.shape(job.means)))
 
-    logging.info("Computing statistics")
-    job.stats = job.stat(job.table)
-
-    job.condition_names = names
-    job.coeffs = coeff_list
-    logging.debug("Condition names are" + str(job.condition_names))
-
-    make_report(job)
-
-    prediction = np.zeros_like(job.table)
-
-    layout_map_red = job.reduced_model.layout_map()
-
-    for grp in layout_map_red.values():
-        data = job.table[grp]
-        means = np.mean(data, axis=0)
-        prediction[grp] = means
-
-    boot = Boot(job.table, prediction, job.stat, 10000,
+def do_boot(args):
+    logging.info("Running bootstrapping step")
+    job = args_to_job(args)
+    prediction = predicted_values(job)
+    boot = Boot(job.table, prediction, job.stat, args.num_samples,
                 sample_indexes_path='indexes')
     boot()
+    return boot
 
-    raw_stats = boot.raw_stats
-    perm_stats = boot.permuted_stats
 
-    plot_raw_stat_hist(raw_stats)
+class Step:
+    def __init__(self, fn):
+        self.__call__ = fn
 
-    bins = bins_custom(1000, raw_stats)
-    raw_counts = feature_count_by_stat(raw_stats, bins)
-    perm_counts   = feature_count_by_mean_stat(perm_stats, bins)
-    scores = confidence_scores(raw_counts, perm_counts)
+def do_run(args):
 
-    plot_counts_by_stat(raw_counts, perm_counts, bins)
-    plot_conf_by_stat(scores, bins)
+        job = args_to_job(args)
 
-    for i in range(len(raw_counts)):
-        print (bins[i], raw_counts[i], perm_counts[i], scores[i])
+        var_shape = job.full_model.factor_value_shape()
+        num_groups = np.prod(var_shape)
+
+        # Get the means and coefficients, which will come back as an
+        # ndarray. We will need to flatten them for display purposes.
+        (means, coeffs) = find_coefficients(job.full_model, job.table)
+        job.coeffs = np.zeros((int(num_groups),) + np.shape(job.table)[1:])
+        job.means =  np.zeros((int(num_groups),) + np.shape(job.table)[1:])
+        for i, idx in enumerate(np.ndindex(var_shape)):
+            job.coeffs[i] = coeffs[idx]
+            job.means[i] = means[idx]
+
+        job.condition_names = model_col_names(job.full_model)
+
+        logging.info("Computing statistics")
+        job.stats = job.stat(job.table)
+
+        make_report(job)
+
+        prediction = predicted_values(job)
+
+        boot = do_boot(args)
+
+        raw_stats = boot.raw_stats
+        perm_stats = boot.permuted_stats
+
+        bins        = bins_custom(1000, raw_stats)
+        raw_counts  = feature_count_by_stat(raw_stats, bins)
+        perm_counts = feature_count_by_mean_stat(perm_stats, bins)
+        scores      = confidence_scores(raw_counts, perm_counts)
+
+        plot_counts_by_stat(raw_counts, perm_counts, bins)
+        plot_conf_by_stat(scores, bins)
+        plot_raw_stat_hist(raw_stats)
+
+        for i in range(len(raw_counts)):
+            print (bins[i], raw_counts[i], perm_counts[i], scores[i])
 
 
 def cumulative_hist(values, bins):
@@ -341,6 +355,8 @@ def confidence_scores(raw_counts, perm_counts):
 
 
 def find_coefficients(model, data):
+    logging.info("Finding means and coefficients for model " + str(model.expr))
+
     factors = model.expr.variables
 
     layout_map = model.layout_map()    
@@ -349,10 +365,14 @@ def find_coefficients(model, data):
     (num_samples, num_features) = np.shape(data)
     shape += (num_features,)
     coeffs = np.zeros(shape)
+    means  = np.zeros(shape)
 
     sym_idx    = lambda(idx): model.index_num_to_sym(idx)
     col_nums   = lambda(idx): layout_map[sym_idx(idx)]
     group_mean = lambda(idx): np.mean(data[col_nums(idx)], axis=0)
+
+    for idx in np.ndindex(shape[:-1]):
+        means[idx] = group_mean(idx)
 
     # Find the bias term
     bias_idx = tuple([0 for dim in shape[:-1]])
@@ -390,7 +410,7 @@ def find_coefficients(model, data):
                     idx = tuple(idx)
                     coeffs[idx] = group_mean(idx) - coeffs[bias_idx] - coeffs[idx1] - coeffs[idx2]
 
-    return coeffs
+    return (means, coeffs)
 
 
 
@@ -1066,6 +1086,67 @@ states = [
     State('accumulated'),
     State('reported')]
 
+ARGUMENTS = {
+    'infile' : lambda p: p.add_argument(
+        'infile',
+        help="""Name of input file""",
+        default=argparse.SUPPRESS,
+        type=file),
+
+    'factor' : lambda p: p.add_argument(
+        '--factor',
+        action='append',
+        required=True,
+        help="""A class that can be set for each sample. You can
+        specify this option more than once, to use more than one
+p        class."""),
+
+    'verbose' : lambda p: p.add_argument(
+        '--verbose', '-v',
+        action='store_true',
+        help="Be verbose (print INFO level log messages)"),
+    
+    'debug' : lambda p: p.add_argument(
+        '--debug', '-d', 
+        action='store_true',
+        help="Print debugging information"),
+
+    'directory' : lambda p: p.add_argument(
+        '--directory', '-D',
+        default=Job.DEFAULT_DIRECTORY,
+        help="The directory to store the output data"),
+
+    'force' : lambda p: p.add_argument(
+        '--force', '-f',
+        action='store_true',
+        help="""Overwrite any existing files"""),
+    
+    'full_model' : lambda p: p.add_argument(
+        '--full-model', '-M',
+        help="""Specify the 'full' model. Required if there is more than one class."""),
+
+    'reduced_model' : lambda p: p.add_argument(
+        '--reduced-model', '-m',
+        help="""Specify the 'reduced' model."""),
+    
+    'stat' : lambda p: p.add_argument(
+        '--stat', '-s',
+        choices=['f', 't'],
+        default='f',
+        help="The statistic to use"),
+    
+    'num_samples' : lambda p: p.add_argument(
+        '--num-samples', '-R',
+        type=int,
+        default=10000,
+        help="The number of samples to use for bootstrapping")
+
+}
+
+def add_args(parser, args):
+    for a in args:
+        ARGUMENTS[a](parser)
+
 
 def get_arguments():
     """Parse the command line options and return an argparse args
@@ -1074,70 +1155,49 @@ def get_arguments():
     uberparser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    uberparser.add_argument(
-        '--verbose', '-v',
-        action='store_true',
-        help="Be verbose (print INFO level log messages)")
+    subparsers = uberparser.add_subparsers(
+        title='actions',
+        description="""Normal usage is to run 'page.py setup ...', then manually edit the schema.yaml file, then run 'page.py run ...'. The other actions are available for finer control over the process, but are not normally necessary.
 
-    uberparser.add_argument(
-        '--debug', '-d', 
-        action='store_true',
-        help="Print debugging information")
-
-    subparsers = uberparser.add_subparsers()
+""")
 
     # Setup
     setup_parser = subparsers.add_parser(
         'setup',
-        description="""Set up the job configuration. This reads the input file and outputs a YAML file that you then need to fill out in order to properly configure the job.""",
+        help="""Set up the job configuration. This reads the input file and outputs a YAML file that you then need to fill out in order to properly configure the job.""",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    setup_parser.add_argument(
-        'infile',
-        help="""Name of input file""",
-        default=argparse.SUPPRESS,
-        type=file)
-    setup_parser.add_argument(
-        '--factor',
-        action='append',
-        required=True,
-        help="""A class that can be set for each sample. You can
-        specify this option more than once, to use more than one
-p        class.""")
-    setup_parser.add_argument(
-        '--directory', '-D',
-        default=Job.DEFAULT_DIRECTORY,
-        help="The directory to store the output data")
-    setup_parser.add_argument(
-        '--force', '-f',
-        action='store_true',
-        help="""Overwrite any existing files""")
+
+    add_args(setup_parser, ['infile', 'factor', 'directory', 'verbose', 'debug', 'force'])
 
     setup_parser.set_defaults(func=do_setup)
 
     # Run
     run_parser = subparsers.add_parser(
         'run',
-        description="""Run the job.""",
+        help="""Run the job. Combines sample, boot, fdr, and report.""",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    run_parser.add_argument(
-        '--directory', '-d',
-        default=Job.DEFAULT_DIRECTORY,
-        help="""The directory to store the output data.
 
-This directory must also contain schema.yaml file and input.txt""")
-    run_parser.add_argument(
-        '--full-model', '-M',
-        help="""Specify the 'full' model. Required if there is more than one class.""")
-    run_parser.add_argument(
-        '--reduced-model', '-m',
-        help="""Specify the 'reduced' model.""")
+    add_args(run_parser, [
+            'directory', 'full_model', 'reduced_model', 'stat', 'verbose', 'debug', 'num_samples'])
 
-    run_parser.add_argument(
-        '--stat', '-s',
-        choices=['f', 't'],
-        default='f',
-        help="The statistic to use")
-    run_parser.set_defaults(func=do_run)
+    sample_parser = subparsers.add_parser(
+        'sample',
+        help="""Generate the sampling indexes""")
+    add_args(sample_parser, ['num_samples', 'full_model', 'reduced_model'])
+
+    boot_parser = subparsers.add_parser(
+        'boot',
+        help="""Run bootstrapping.""")
+
+    fdr_parser = subparsers.add_parser(
+        'fdr',
+        help="""Calculate the FDR.""")
+
+    report_parser = subparsers.add_parser(
+        'report',
+        help="""Generate report.""")
+
+    run_parser.set_defaults(func=Step(do_run))
 
     return uberparser.parse_args()
 
