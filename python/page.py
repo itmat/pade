@@ -10,13 +10,15 @@ import scipy.stats.mstats
 import shutil
 import tokenize
 import matplotlib.pyplot as plt
+import yaml
+import numpy.ma as ma
+import numbers
 
+from collections import OrderedDict
 from StringIO import StringIO
 from textwrap import fill
 from jinja2 import Environment, PackageLoader
 
-from page.schema import Schema
-import page.stats as stats
 
 REAL_PATH = os.path.realpath(__file__)
 
@@ -521,6 +523,277 @@ def main():
     logging.info('Page finishing')    
 
 
+class Schema(object):
+
+    def __init__(self, 
+                 factors=[],
+                 is_feature_id=None,
+                 is_sample=None,
+                 column_names=None):
+        """Construct a Schema. 
+
+  factors    - a list of allowable factors for the sample.
+
+  column_names  - a list of strings, giving names for the columns.
+
+  is_feature_id - a list of booleans of the same length as
+                  column_names. is_feature_id[i] indicates if the ith
+                  column contains feature ids (e.g. gene names).
+
+  is_sample     - a list of booleans of the same length as
+                  column_names. is_sample[i] indicates if the ith
+                  column contains a sample.
+
+Any columns for which is_feature_id is true will be treated as feature
+ids, and any for which is_sample is true will be assumed to contain
+intensity values. No column should have both is_feature_id and
+is_sample set to true. Any columns where both is_feature_id and
+is_sample are false will simply be ignored.
+
+  """
+
+        if column_names is None:
+            raise Exception("I need column names")
+        else:
+            column_names = np.array(column_names)
+
+        self.factors = OrderedDict()
+        self.is_feature_id = np.array(is_feature_id, dtype=bool)
+        self.is_sample     = np.array(is_sample,     dtype=bool)
+        self.column_names  = column_names
+        self.table = None
+        self.sample_to_column  = []
+        self.sample_name_index = {}
+
+        for i in range(len(self.is_sample)):
+            if self.is_sample[i]:
+                n = len(self.sample_to_column)
+                self.sample_name_index[column_names[i]] = n
+                self.sample_to_column.append(i)
+
+        for (name, dtype) in factors:
+            self.add_factor(name, dtype)
+
+    @property
+    def factor_names(self):
+        """Return a list of the factor names for this schema."""
+
+        return [x for x in self.factors]
+
+    def sample_column_names(self):
+        """Return a list of the names of columns that contain
+        intensities."""
+
+        return self.column_names[self.is_sample]
+
+    def add_factor(self, name, dtype):
+        """Add an factor with the given name and data type, which
+        must be a valid numpy dtype."""
+        
+        default = None
+        if dtype == "int":
+            default = 0
+        else:
+            default = None
+
+        new_table = []
+
+        self.factors[name] = dtype
+
+        if self.table is None:
+            new_table = [(default,) for s in self.sample_column_names()]
+
+        else:
+            for row in self.table:
+                row = tuple(row) + (default,)
+                new_table.append(row)
+            
+        self.table = np.array(new_table, dtype=[(k, v) for k, v in self.factors.iteritems()])
+        
+    def drop_factor(self, name):
+        """Remove the factor with the given name."""
+
+        self.table = drop_fields(name)
+        del self.factors[name]
+
+    @classmethod
+    def load(cls, stream, infile):
+        """Load a schema from the specified stream, which must
+        represent a YAML document in the format produced by
+        Schema.dump. The type of stream can be any type accepted by
+        yaml.load."""
+        col_names = None
+
+        if isinstance(infile, str):
+            infile = open(infile)
+
+        header_line = infile.next().rstrip()
+        col_names = header_line.split("\t")
+
+        doc = yaml.load(stream)
+
+        # Build the arrays of column names, feature id booleans, and
+        # sample booleans
+        feature_id_cols = set(doc['feature_id_columns'])
+
+        is_feature_id = [c in feature_id_cols for c in col_names]
+        is_sample     = [c in doc['sample_factor_mapping'] for c in col_names]
+
+        schema = Schema(
+            column_names=col_names,
+            is_feature_id=is_feature_id,
+            is_sample=is_sample)
+
+        # Now add all the factors and their types
+        factors = doc['factors']
+        for factor in factors:
+            dtype = factor['dtype'] if 'dtype' in factor else object
+            schema.add_factor(factor['name'], 
+                                 dtype)
+
+        for sample, attrs in doc['sample_factor_mapping'].iteritems():
+            for name, value in attrs.iteritems():
+                schema.set_factor(sample, name, value)
+
+        return schema
+    
+    def save(self, out):
+        """Save the schema to the specified file."""
+
+        # Need to convert column names to strings, from whatever numpy
+        # type they're stored as.
+        names = [str(name) for name in self.column_names]
+
+        sample_cols     = {}
+        feature_id_cols = []
+
+        for i, name in enumerate(names):
+
+            if self.is_feature_id[i]:
+                feature_id_cols.append(name)
+
+            elif self.is_sample[i]:
+                
+                sample_cols[name] = {}
+                for factor in self.factors:
+                    value = self.get_factor(name, factor)
+#                    if self.factors[factor].startswith("S"):
+#                        value = str(value)
+
+                    if type(value) == str:
+                        pass
+                    elif type(value) == np.int32:
+                        value = int(value)
+                    elif type(value) == np.bool_:
+                        value = bool(value)
+                    
+                    sample_cols[name][factor] = value
+
+        factors = []
+        for name, type_ in self.factors.iteritems():
+            a = { "name" : name }
+            if type_ != object:
+                a['dtype'] = type_
+            factors.append(a)
+
+        doc = {
+            "factors"               : factors,
+            "feature_id_columns"       : feature_id_cols,
+            "sample_factor_mapping" : sample_cols,
+            }
+
+        data = yaml.dump(doc, default_flow_style=False, encoding=None)
+
+        for line in data.splitlines():
+            if (line == "factors:"):
+                write_yaml_block_comment(out, """This lists all the factors defined for this file.
+""")
+
+            elif (line == "feature_id_columns:"):
+                out.write(unicode("\n"))
+                write_yaml_block_comment(out, """This lists all of the columns that contain feature IDs (for example gene ids).""")
+
+            elif (line == "sample_factor_mapping:"):
+                out.write(unicode("\n"))
+                write_yaml_block_comment(out, """This sets all of the factors for all columns that represent samples. You should fill out this section to set each factor for each sample. For example, if you had a sample called sample1 that recieved some kind of treatment, and one called sample2 that did not, you might have:
+
+sample_factor_mapping:
+  sample1:
+    treated: yes
+  sample2:
+    treated: no
+
+""")
+
+            out.write(unicode(line) + "\n")
+
+
+    def set_factor(self, sample_name, factor, value):
+        """Set an factor for a sample, identified by sample
+        name."""
+
+        sample_num = self.sample_num(sample_name)
+        self.table[sample_num][factor] = value
+
+    def get_factor(self, sample_name, factor):
+        """Get an factor for a sample, identified by sample
+        name."""
+
+        sample_num = self.sample_num(sample_name)
+        value = self.table[sample_num][factor]
+#        if self.factors[factor].startswith("S"):
+#            value = str(value)
+        return value
+
+    def sample_num(self, sample_name):
+        """Return the sample number for sample with the given
+        name. The sample number is the index into the table for the
+        sample."""
+
+        return self.sample_name_index[sample_name]
+
+    def sample_groups(self, factors):
+        """Returns a dictionary mapping each value of factor to the
+        list of sample numbers that have that value set."""
+
+        grouping = {}
+
+        for i, row in enumerate(self.table):
+            key = []
+            for f in factors:
+                key.append(f)
+                key.append(self.table[f][i])
+            key = tuple(key)
+            if key not in grouping:
+                grouping[key] = []
+            grouping[key].append(i)
+
+        return grouping
+
+    def condition_name(self, c):
+        """Return a name for condition c, based on the factor values for that condition"""
+        pass
+
+    def factor_values(self, factor):
+        values = set()
+        for sample in self.sample_column_names():
+            values.add(self.get_factor(sample, factor))
+        return values
+
+    def factor_value_shape(self, factors):
+        return tuple([len(self.factor_values(f)) for f in factors])
+
+
+def write_yaml_block_comment(fh, comment):
+    result = ""
+    for line in comment.splitlines():
+        result += fill(line, initial_indent = "# ", subsequent_indent="# ")
+        result += "\n"
+    fh.write(unicode(result))
+
+
+
+
 class Boot:
     """Bootstrap results."""
 
@@ -718,6 +991,152 @@ This directory must also contain schema.yaml file and input.txt""")
     run_parser.set_defaults(func=do_run)
 
     return uberparser.parse_args()
+
+class Statistic(object):
+
+    def __call__(self, data):
+        return self.compute(data)
+
+class Ttest(Statistic):
+
+    TUNING_PARAM_RANGE_VALUES = np.array([
+            0.0001,
+            0.01,
+            0.1,
+            0.3,
+            0.5,
+            1.0,
+            1.5,
+            2.0,
+            3.0,
+            10,
+            ])
+    
+    def __init__(self, alpha):
+        self.alpha = alpha
+
+        if isinstance(alpha, numbers.Number):
+            self.children = None
+        else:
+            self.children = [Ttest(a) for a in alpha]
+
+    @classmethod
+    def compute_s(cls, data):
+        """
+        v1 and v2 should have the same number of rows.
+        """
+                
+        var = np.var(data, ddof=1, axis=1)
+        size = ma.count(data, axis=1)
+        return np.sqrt(np.sum(var * size, axis=0) / np.sum(size, axis=0))
+
+
+    @classmethod
+    def find_default_alpha(cls, table):
+        """
+        Return a default value for alpha. 
+        
+        Table should be an ndarray, with shape (conditions, samples, features).
+        
+        """
+
+        alphas = np.zeros(len(table))
+        (num_classes, samples_per_class, num_features) = np.shape(table)
+
+        for c in range(1, num_classes):
+            subset = table[([c, 0],)]
+            values = cls.compute_s(subset)
+            mean = np.mean(values)
+            residuals = values[values < mean] - mean
+            sd = np.sqrt(sum(residuals ** 2) / (len(residuals) - 1))
+            alphas[c] = mean * 2 / np.sqrt(samples_per_class * 2)
+
+        return alphas
+
+
+    def compute(self, data):
+        """Computes the t-stat.
+
+        Input must be an ndarray with at least 2 dimensions. Axis 0
+        should be class, and axis 1 should be sample. If there are
+        more than two axes, the t-stat will be vectorized to all axes
+        past axis .
+        """
+
+        class_axis = 0
+        sample_axis = 1
+
+        n = ma.count(data, axis=1)
+        n1 = n[0]
+        n2 = n[1]
+
+        # Variance for each row of v1 and v2 with one degree of
+        # freedom. var1 and var2 will be 1-d arrays, one variance for each
+        # feature in the input.
+        var   = np.var(data, ddof=1, axis=sample_axis)
+        means = np.mean(data, axis=sample_axis)
+        prod  = var * (n - 1)
+        S     = np.sqrt((prod[0] + prod[1]) / (n1 + n2 - 2))
+        numer = (means[0] - means[1]) * np.sqrt(n1 * n2)
+        denom = (self.alpha + S) * np.sqrt(n1 + n2)
+
+        return numer / denom
+
+def double_sum(data):
+    return np.sum(np.sum(data, axis=0), axis=0)
+
+def apply_layout(layout, data):
+
+    shape = (len(layout), len(layout[0])) + np.shape(data)[1:]
+
+    res = np.zeros(shape)
+    for i, idxs in enumerate(layout):
+        res[i] = data[idxs]
+    return res.swapaxes(0, 1)
+
+class Ftest(Statistic):
+
+    def __init__(self, layout_full, layout_reduced):
+        self.layout_full = layout_full
+        self.layout_reduced = layout_reduced
+
+    def compute(self, data):
+        """Compute the f-test for the given ndarray.
+
+        Input must have 2 or more dimensions. Axis 0 must be sample,
+        axis 1 must be condition. Operations are vectorized over any
+        subsequent axes. So, for example, an input array with shape
+        (3, 2) would represent 1 feature for 2 conditions, each with
+        at most 3 samples. An input array with shape (5, 3, 2) would
+        be 5 features for 3 samples of 2 conditions.
+
+        TODO: Make sure masked input arrays work.
+
+        """
+
+        layout_full = self.layout_full
+        layout_red  = self.layout_reduced
+        
+        data_full = apply_layout(layout_full, data)
+        data_red  = apply_layout(layout_red,  data)
+    
+        # Means for the full and reduced model
+        y_full = np.mean(data_full, axis=0)
+        y_red  = np.mean(data_red,  axis=0)
+
+        # Degrees of freedom
+        p_red  = len(layout_red)
+        p_full = len(layout_full)
+        n = len(layout_red) * len(layout_red[0])
+
+        # Residual sum of squares for the reduced and full model
+        rss_red  = double_sum((data_red  - y_red)  ** 2)
+        rss_full = double_sum((data_full - y_full) ** 2)
+
+        numer = (rss_red - rss_full) / (p_full - p_red)
+        denom = rss_full / (n - p_full)
+        return numer / denom
+
 
 
 if __name__ == '__main__':

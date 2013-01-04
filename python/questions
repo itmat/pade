@@ -1,9 +1,0 @@
-We currently pick one of the conditions as a reference, and report all
-genes as up- or down- regulated with respect to that condition. Is
-this still the way we would do it when we use ANOVA? Would we instead
-be reporting genes that or up- or down- regulated against the
-background levels?
-
-We can simplify a lot of the code by changing the functions to only
-compute up-regulated genes, and then just run it with the conditions
-switched to get down-regulated ones.

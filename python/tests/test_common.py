@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 
-from page.common import Model, ModelExpressionException, add_condition_axis
+from page import Model, ModelExpressionException, add_condition_axis
 
 class CommonTest(unittest.TestCase):
 

@@ -1,7 +1,7 @@
 import contextlib
 import tempfile
 import shutil
-import page.main
+import page
 import os
 
 @contextlib.contextmanager
@@ -14,11 +14,11 @@ def tempdir():
 
 @contextlib.contextmanager
 def sample_job(infile, factor_map):
-    schema = page.main.init_schema(infile)
+    schema = page.init_schema(infile)
 
     with tempdir() as tmp:
         filename = os.path.join(tmp, 'schema.yaml')
-        job = page.main.init_job(
+        job = page.init_job(
             directory=tmp,
             infile=infile,
             factors=factor_map.keys())

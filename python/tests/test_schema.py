@@ -1,7 +1,7 @@
 import unittest
 import io
 
-from page.schema import Schema
+from page import Schema
 
 class SchemaTest(unittest.TestCase):
 

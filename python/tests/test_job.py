@@ -1,12 +1,11 @@
 import unittest
 import contextlib
-import page.main
+import page
 import os
 import numpy as np
 
-from page.test.utils import sample_job
-
-from page.common import Model, ModelExpressionException
+from tests.utils import sample_job
+from page import Model, ModelExpressionException
 
 class CommonTest(unittest.TestCase):
 
@@ -30,7 +29,7 @@ class CommonTest(unittest.TestCase):
         
 
     def test_table(self):
-        schema = page.main.init_schema(self.sample_input_4_class)
+        schema = page.init_schema(self.sample_input_4_class)
         
         with sample_job(self.sample_input_4_class,
                         self.factor_map_treated_sex) as job:
@@ -46,19 +45,19 @@ class CommonTest(unittest.TestCase):
                         self.factor_map_treated_sex) as job:
 
             # One class
-            layout_map = page.main.model_to_layout_map(job.schema, model)
+            layout_map = page.model_to_layout_map(job.schema, model)
             self.assertEquals(
                 layout_map.keys(),
-                [('treated', False),
-                 ('treated', True)])
+                [('treated', True),
+                 ('treated', False)])
             self.assertEquals(
                 layout_map.values(),
-                [[0, 1, 2, 3, 4, 5, 6, 7], 
-                 [8, 9, 10, 11, 12, 13, 14, 15]])
+                [[8, 9, 10, 11, 12, 13, 14, 15],
+                 [0, 1, 2, 3, 4, 5, 6, 7]])
 
             # No classes
             model = Model()
-            layout_map = page.main.model_to_layout_map(job.schema, model)
+            layout_map = page.model_to_layout_map(job.schema, model)
             self.assertEquals(
                 layout_map.keys(),
                 [tuple()])
