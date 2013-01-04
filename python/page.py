@@ -40,6 +40,33 @@ class ModelExpressionException(Exception):
 ### Bare functions
 ###
 
+def double_sum(data):
+    """Returns the sum of data over the first two axes."""
+    return np.sum(np.sum(data, axis=0), axis=0)
+
+def apply_layout(layout, data):
+    """Reshape the given data so based on the layout.
+
+    layout - A list of lists. Each inner list is a sequence of indexes
+    into data, representing a group of samples that share the same
+    factor values. All of the inner lists must currently have the same
+    length.
+
+    data - An m x n array, where m is the number of samples and n is
+    the number of features.
+
+    Returns an m1 x m2 x n array, where m1 is the number of groups, m2
+    is the number of samples in each group, and n is the number of features.
+
+    """
+    shape = (len(layout), len(layout[0])) + np.shape(data)[1:]
+
+    res = np.zeros(shape)
+    for i, idxs in enumerate(layout):
+        res[i] = data[idxs]
+    return res.swapaxes(0, 1)
+
+
 def fix_newlines(msg):
     """Attempt to wrap long lines as paragraphs.
 
@@ -227,7 +254,7 @@ def do_run(args):
     logging.debug("Shape of means is " + str(np.shape(job.means)))
 
     logging.info("Computing statistics")
-    job.stats = job.stat.compute(job.table)
+    job.stats = job.stat(job.table)
 
     job.condition_names = names
     job.coeffs = coeff_list
@@ -306,24 +333,9 @@ def adjust_num_diff(V0, R):
         V[i] = V[0] - V[0] / num_ids * (R - V[i - 1])
     return V[5]
 
-#sub AdjustNumDiff {
-#    my ($V, $R, $num_ids) = @_;
-#    my @V;
-#    $V[0] = $V;
-#    for(my $i=1; $i<6; $i++) {
-#	$V[$i] = $V[0]-$V[0]/$num_ids*($R-$V[$i-1]);
-#    }
-#    return $V[5];
-#}
-
-    
 
 def confidence_scores(raw_counts, perm_counts):
-
     adjusted = adjust_num_diff(perm_counts, raw_counts)
-#    for i in range(len(perm_counts)):
-#        print perm_counts[i], adjusted[i]
-
     return (raw_counts - adjusted) / raw_counts
 
 
@@ -514,19 +526,22 @@ class Job:
         self._feature_ids = None
 
     @property
-    def schema_filename(self):
+    def schema_path(self):
+        """The path to the schema."""
         return os.path.join(self.directory, 'schema.yaml')
 
     @property
-    def input_filename(self):
+    def input_path(self):
+        """Path to the input file."""
         return os.path.join(self.directory, 'input.txt')
     
     @property
     def schema(self):
-        return Schema.load(open(self.schema_filename), self.input_filename)
+        return Schema.load(open(self.schema_path), self.input_path)
 
     @property
     def stat(self):
+        """The statistic used for this job."""
         if self.stat_name == 'f':
             return Ftest(
                 layout_full=self.full_model.layout_map().values(),
@@ -536,20 +551,27 @@ class Job:
 
     @property
     def table(self):
-        """Returns the data table as (sample x feature) ndarray."""
+        """The data table as a (sample x feature) ndarray."""
         if self._table is None:
             self._load_table()
         return self._table
 
     @property
     def feature_ids(self):
+        """Array of the ids of features from my input file."""
         if self._feature_ids is None:
             self._load_table()
         return self._feature_ids
 
+    @property
+    def num_features(self):
+        """Number of features for this job."""
+        return len(self.feature_ids)
+            
+
     def _load_table(self):
-        logging.info("Loading table from " + self.input_filename)
-        with open(self.input_filename) as fh:
+        logging.info("Loading table from " + self.input_path)
+        with open(self.input_path) as fh:
 
             headers = fh.next().rstrip().split("\t")
 
@@ -569,11 +591,6 @@ class Job:
             logging.info("Table shape is " + str(np.shape(self._table)))
             logging.info("Loaded " + str(len(self._feature_ids)) + " features")
 
-
-    @property
-    def num_features(self):
-        return len(self.feature_ids)
-            
 
 def main():
     """Run pageseq."""
@@ -875,8 +892,6 @@ def write_yaml_block_comment(fh, comment):
     fh.write(unicode(result))
 
 
-
-
 class Boot:
     """Bootstrap results."""
 
@@ -975,7 +990,7 @@ def init_job(infile, factors, directory, force=False):
 
     mode = 'w' if force else 'wx'
     try:
-        out = open(job.schema_filename, mode)
+        out = open(job.schema_path, mode)
         schema.save(out)
     except IOError as e:
         if e.errno == errno.EEXIST:
@@ -984,8 +999,8 @@ def init_job(infile, factors, directory, force=False):
 
     logging.info("Copying {0} to {1}".format(
         infile.name,
-        job.input_filename))
-    shutil.copyfile(infile.name, job.input_filename)
+        job.input_path))
+    shutil.copyfile(infile.name, job.input_path)
     return job
 
 def do_setup(args):
@@ -998,8 +1013,11 @@ def do_setup(args):
     print fix_newlines("""
 I have generated a schema for your input file, with factors {factors}, and saved it to "{filename}". You should now edit that file to set the factors for each sample. The file contains instructions on how to edit it.
 """).format(factors=job.schema.factors.keys(),
-            filename=job.schema_filename)
+            filename=job.schema_path)
 
+class Step:
+    def __init__(self, name, forward, reverse):
+        
 
 def get_arguments():
     """Parse the command line options and return an argparse args
@@ -1075,12 +1093,8 @@ This directory must also contain schema.yaml file and input.txt""")
 
     return uberparser.parse_args()
 
-class Statistic(object):
 
-    def __call__(self, data):
-        return self.compute(data)
-
-class Ttest(Statistic):
+class Ttest:
 
     TUNING_PARAM_RANGE_VALUES = np.array([
             0.0001,
@@ -1137,7 +1151,7 @@ class Ttest(Statistic):
         return alphas
 
 
-    def compute(self, data):
+    def __call__(self, data):
         """Computes the t-stat.
 
         Input must be an ndarray with at least 2 dimensions. Axis 0
@@ -1165,25 +1179,15 @@ class Ttest(Statistic):
 
         return numer / denom
 
-def double_sum(data):
-    return np.sum(np.sum(data, axis=0), axis=0)
 
-def apply_layout(layout, data):
-
-    shape = (len(layout), len(layout[0])) + np.shape(data)[1:]
-
-    res = np.zeros(shape)
-    for i, idxs in enumerate(layout):
-        res[i] = data[idxs]
-    return res.swapaxes(0, 1)
-
-class Ftest(Statistic):
+class Ftest:
 
     def __init__(self, layout_full, layout_reduced):
         self.layout_full = layout_full
         self.layout_reduced = layout_reduced
 
-    def compute(self, data):
+
+    def __call__(self, data):
         """Compute the f-test for the given ndarray.
 
         Input must have 2 or more dimensions. Axis 0 must be sample,
@@ -1197,20 +1201,17 @@ class Ftest(Statistic):
 
         """
 
-        layout_full = self.layout_full
-        layout_red  = self.layout_reduced
-        
-        data_full = apply_layout(layout_full, data)
-        data_red  = apply_layout(layout_red,  data)
+        data_full = apply_layout(self.layout_full, data)
+        data_red  = apply_layout(self.layout_reduced,  data)
     
         # Means for the full and reduced model
         y_full = np.mean(data_full, axis=0)
         y_red  = np.mean(data_red,  axis=0)
 
         # Degrees of freedom
-        p_red  = len(layout_red)
-        p_full = len(layout_full)
-        n = len(layout_red) * len(layout_red[0])
+        p_red  = len(self.layout_reduced)
+        p_full = len(self.layout_full)
+        n = len(self.layout_reduced) * len(self.layout_reduced[0])
 
         # Residual sum of squares for the reduced and full model
         rss_red  = double_sum((data_red  - y_red)  ** 2)
@@ -1219,7 +1220,6 @@ class Ftest(Statistic):
         numer = (rss_red - rss_full) / (p_full - p_red)
         denom = rss_full / (n - p_full)
         return numer / denom
-
 
 
 if __name__ == '__main__':
