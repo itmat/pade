@@ -271,8 +271,9 @@ def do_run(args):
         means = np.mean(data, axis=0)
         prediction[grp] = means
 
-    boot = Boot(job.table, prediction, job.stat, 10000)
-    ci = boot.ci()
+    boot = Boot(job.table, prediction, job.stat, 10000,
+                sample_indexes_path='indexes')
+    boot()
 
     raw_stats = boot.raw_stats
     perm_stats = boot.permuted_stats
@@ -897,7 +898,8 @@ class Boot:
 
     DEFAULT_LEVELS = np.linspace(0.5, 0.95, num=10)
 
-    def __init__(self, data, prediction, stat_fn, R=1000):
+
+    def __init__(self, data, prediction, stat_fn, R=1000, sample_indexes_path=None):
         """Run bootstrapping.
 
         data - An m x ... array of data points
@@ -911,29 +913,61 @@ class Boot:
         R - The number of samples to run. Defaults to 1000.
         
         """
-        logging.info("Computing statistics based on sampled residuals")
+
+        self.data = data
+        self.prediction = prediction
+        self.stat_fn = stat_fn
+        self.R = R
+        self.sample_indexes_path = sample_indexes_path
+        self.sample_indexes = None
+
+        idxs = None
+        need_save = False
 
         # Number of samples
-        m = np.shape(data)[0]
+        m = np.shape(self.data)[0]
+
+
+
+        if sample_indexes_path is not None:
+            try:
+                idxs = np.load(sample_indexes_path)
+                logging.info("Loaded sample indexes from " + sample_indexes_path)
+            except:
+                logging.info("Don't have sample indexes yet, generating new ones")
+                need_save = True
+                
+        if idxs is None:
+            idxs = np.random.random_integers(0, m - 1, (R, m))
+
+        if need_save:
+            logging.info("Saving sample indexes")
+            with open(sample_indexes_path, 'w') as out:
+                np.save(out, idxs)
+
+        self.sample_indexes = idxs
+
+    def __call__(self):
+        logging.info("Computing statistics based on sampled residuals")
 
         # An R x m array where each row is a list of indexes into data,
         # randomly sampled.
-        idxs = np.random.random_integers(0, m - 1, (R, m))
+        idxs = self.sample_indexes
 
         # We'll return an R x n array, where n is the number of
         # features. Each row is the array of statistics for all the
         # features, using a different random sampling.
-        results = np.zeros((R,) + np.shape(data)[1:])
+        results = np.zeros((self.R,) + np.shape(self.data)[1:])
 
         # Permute the error terms. For each permutation: Add the errors to
         # the data (or the predictions?) and compute the statistic again.
-        residuals = data - prediction
+        residuals = self.data - self.prediction
         for i, permutation in enumerate(idxs):
-            permuted   = prediction + residuals[permutation]
-            results[i] = stat_fn(permuted)
+            permuted   = self.prediction + residuals[permutation]
+            results[i] = self.stat_fn(permuted)
 
         self.permuted_stats = results
-        self.raw_stats      = stat_fn(data)
+        self.raw_stats      = self.stat_fn(self.data)
 
     def ci(self, levels=DEFAULT_LEVELS):
         """Return the confidence intervals for the given levels.
@@ -1015,9 +1049,23 @@ I have generated a schema for your input file, with factors {factors}, and saved
 """).format(factors=job.schema.factors.keys(),
             filename=job.schema_path)
 
-class Step:
-    def __init__(self, name, forward, reverse):
+class Transition:
+    def __init__(self, name, from_state, to_state, action):
         
+        pass
+
+class State:
+    def __init__(self, name):
+        self.name = name
+
+states = [
+    State('empty'),
+    State('initialized'),
+    State('ready'),
+    State('bootstrapped'),
+    State('accumulated'),
+    State('reported')]
+
 
 def get_arguments():
     """Parse the command line options and return an argparse args
