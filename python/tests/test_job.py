@@ -5,7 +5,7 @@ import os
 import numpy as np
 
 from tests.utils import sample_job
-from page import Model, ModelExpressionException
+from page import *
 
 class CommonTest(unittest.TestCase):
 
@@ -40,7 +40,7 @@ class CommonTest(unittest.TestCase):
 
 
     def test_model_to_layout(self):
-        model = Model(variables=['treated'])
+        model = ModelExpression(variables=['treated'])
         with sample_job(self.sample_input_4_class,
                         self.factor_map_treated_sex) as job:
 
@@ -56,7 +56,7 @@ class CommonTest(unittest.TestCase):
                  [0, 1, 2, 3, 4, 5, 6, 7]])
 
             # No classes
-            model = Model()
+            model = ModelExpression()
             layout_map = page.model_to_layout_map(job.schema, model)
             self.assertEquals(
                 layout_map.keys(),

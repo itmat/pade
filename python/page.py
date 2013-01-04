@@ -41,32 +41,58 @@ class ModelExpressionException(Exception):
 ###
 
 def fix_newlines(msg):
+    """Attempt to wrap long lines as paragraphs.
+
+    Treats each line in the given message as a paragraph. Wraps each
+    paragraph to avoid long lines. Returns a string that contains all
+    the wrapped paragraphs, separated by blank lines.
+
+    """
     output = ""
     for line in msg.splitlines():
         output += textwrap.fill(line) + "\n"
     return output
 
 
-def add_condition_axis(data, layout):
+def make_report(job):
+    """Make the HTML report for the given job."""
 
-    num_samples = len(data)
-    num_conditions = len(layout)
-    num_samples_per_condition = len(layout[0])
+    with chdir(job.directory):
+        env = jinja2.Environment(loader=jinja2.PackageLoader('page'))
+        setup_css(env)
+        template = env.get_template('index.html')
+        with open('index.html', 'w') as out:
+            out.write(template.render(
+                job=job
+                ))
 
-    if num_conditions * num_samples_per_condition != num_samples:
-        raise Exception("Bad layout")
+@contextlib.contextmanager
+def figure(path):
+    """Context manager for saving a figure.
 
-    shape = (num_conditions, num_samples_per_condition) + np.shape(data)[1:]
-    res = np.zeros(shape)
+    Clears the current figure, yeilds, then saves the figure to the
+    given path and clears the figure again.
 
-    for i, cond_cols in enumerate(layout):
-        res[i] = data[layout[i]]
-
-    return res
-
+    """
+    try:
+        logging.debug("Creating figure " + path)
+        plt.clf()
+        yield
+        plt.savefig(path)
+    finally:
+        plt.clf()
 
 @contextlib.contextmanager
 def chdir(path):
+    """Context manager for changing working directory.
+
+    cds to the given path, yeilds, then changes back.
+
+    >>> with chdir("/tmp"):
+    >>>   # Do something in the tmp dir
+    >>>   pass
+    
+    """
     cwd = os.getcwd()
     try:
         logging.debug("Changing cwd from " + cwd + " to " + path)
@@ -78,7 +104,12 @@ def chdir(path):
 
 
 def bins_uniform(num_bins, stats):
+    """Returns a set of evenly sized bins for the given stats.
 
+    Stats should be an array of statistic values, and num_bins should
+    be an integer. Returns an array of bin edges, of size num_bins + 1.
+
+    """
     base_shape = np.shape(stats)[:-1]
     bins = np.zeros(base_shape + (num_bins + 1,))
     for idx in np.ndindex(base_shape):
@@ -92,17 +123,16 @@ def bins_uniform(num_bins, stats):
 
 def bins_custom(num_bins, stats):
     """Get an array of bin edges based on the actual computed
-    statistic values. unperm_stats is an M x N array, where
-    unperm_stats[m, n] gives the statistic value for feature m in
-    condition n. Returns an M + 2 x N array, where bins[m, n] and
-    bins[m + 1, n] define a bin in which to count features for
-    condition n. There is a bin edge for negative and positive
-    infinity, and one for each statistic value.
+    statistic values. stats is an array of length n. Returns an array
+    of length num_bins + 1, where bins[m, n] and bins[m + 1, n] define
+    a bin in which to count features for condition n. There is a bin
+    edge for negative and positive infinity, and one for each
+    statistic value.
 
     TODO: We should be able to make the dimensionality of this
     function flexible.
-    """
 
+    """
     base_shape = np.shape(stats)[:-1]
     bins = np.zeros(base_shape + (num_bins + 1,))
     bins[ : -1] = sorted(stats)
@@ -111,21 +141,13 @@ def bins_custom(num_bins, stats):
 
 
 def plot_raw_stat_hist(stats):
-    plt.hist(stats, log=True, bins=250)
-    plt.savefig("raw_stats")
+    """Plot the distribution of the given statistic values."""
+    with figure("raw_stats"):
+        plt.hist(stats, log=True, bins=250)
 
-
-def make_report(job):
-    with chdir(job.directory):
-        env = jinja2.Environment(loader=jinja2.PackageLoader('page'))
-        setup_css(env)
-        template = env.get_template('index.html')
-        with open('index.html', 'w') as out:
-            out.write(template.render(
-                job=job
-                ))
 
 def setup_css(env):
+    """Copy the css from 996grid/code/css into its output location."""
 
     src = os.path.join(os.path.dirname(REAL_PATH),
                        '996grid/code/css')
@@ -137,13 +159,23 @@ def setup_css(env):
         template = env.get_template('custom.css')
         out.write(template.render())
 
-def model_to_layout_map(schema, model):
 
+def validate_model(schema, model):
+    """Validate the model against the given schema.
+
+    Raises an exception if the model refers to any variables that are
+    not defined in schema.
+
+    """
     for factor in model.variables:
         if factor not in schema.factors:
             raise UsageException("Factor '" + factor + "' is not defined in the schema. Valid factors are " + str(schema.factors.keys()))
-    
+
+
+def model_to_layout_map(schema, model):
+    validate_model(schema, model)
     return schema.sample_groups(model.variables)
+
 
 def index_num_to_sym(schema, model, idx):
     res = tuple()
@@ -151,6 +183,22 @@ def index_num_to_sym(schema, model, idx):
         values = list(schema.factor_values(factor))
         res += (factor, values[idx[i]])
     return res
+
+def plot_conf_by_stat(conf, bins, filename='conf_by_stat'):
+    with figure(filename):
+        plt.plot(conf, bins[1:])
+        plt.semilogy()
+
+def plot_counts_by_stat(raw_stats, resampled_stats, bins, filename='counts_by_stat'):
+    with figure(filename):
+        plt.plot(bins[1:], raw_stats, label='raw')
+        plt.plot(bins[1:], resampled_stats, label='resampled')
+        plt.loglog()
+        plt.title('Count of features by statistic')
+        plt.xlabel('Statistic value')
+        plt.ylabel('Features with statistic >= value')
+        plt.legend()
+    
 
 def do_run(args):
 
@@ -168,9 +216,9 @@ def do_run(args):
             raise UsageException(msg.format(job.schema.factors.keys()))
 
     schema = job.schema
-    job.full_model = Model.parse(args.full_model)
+    job.full_model = ModelExpression.parse(args.full_model)
     if args.reduced_model is not None:
-        job.reduced_model = Model.parse(args.reduced_model)
+        job.reduced_model = ModelExpression.parse(args.reduced_model)
 
     layout_map_full = model_to_layout_map(schema, job.full_model)
     logging.debug("Full layout map is " + str(layout_map_full))
@@ -224,9 +272,6 @@ def do_run(args):
     boot = Boot(job.table, prediction, job.stat, 10000)
     ci = boot.ci()
 
-#    raw_stats = np.sqrt(boot.raw_stats)
-#    perm_stats = np.sqrt(boot.permuted_stats)
-
     raw_stats = boot.raw_stats
     perm_stats = boot.permuted_stats
 
@@ -236,6 +281,9 @@ def do_run(args):
     raw_counts = feature_count_by_stat(raw_stats, bins)
     perm_counts   = feature_count_by_mean_stat(perm_stats, bins)
     scores = confidence_scores(raw_counts, perm_counts)
+
+    plot_counts_by_stat(raw_counts, perm_counts, bins)
+    plot_conf_by_stat(scores, bins)
 
     for i in range(len(raw_counts)):
         print (bins[i], raw_counts[i], perm_counts[i], scores[i])
@@ -274,10 +322,34 @@ def feature_count_by_mean_stat(stats, edges):
         counts += cumulative_hist(row, edges)
     counts /= len(stats)
     return counts
+
+def adjust_num_diff(V0, R):
+    V = np.zeros((6,) + np.shape(V0))
+    V[0] = V0
+    num_ids = len(V0)
+    for i in range(1, 6):
+        V[i] = V[0] - V[0] / num_ids * (R - V[i - 1])
+    return V[5]
+
+#sub AdjustNumDiff {
+#    my ($V, $R, $num_ids) = @_;
+#    my @V;
+#    $V[0] = $V;
+#    for(my $i=1; $i<6; $i++) {
+#	$V[$i] = $V[0]-$V[0]/$num_ids*($R-$V[$i-1]);
+#    }
+#    return $V[5];
+#}
+
     
 
 def confidence_scores(raw_counts, perm_counts):
-    return (raw_counts - perm_counts) / raw_counts
+
+    adjusted = adjust_num_diff(perm_counts, raw_counts)
+#    for i in range(len(perm_counts)):
+#        print perm_counts[i], adjusted[i]
+
+    return (raw_counts - adjusted) / raw_counts
 
 
 def find_coefficients(schema, model, data):
@@ -340,7 +412,7 @@ def find_coefficients(schema, model, data):
 ###
 
 
-class Model:
+class ModelExpression:
     
     PROB_MARGINAL    = "marginal"
     PROB_JOINT       = "joint"
@@ -380,9 +452,9 @@ class Model:
         t = toks.next()
         (tok_type, tok, start, end, line) = t
         if tok_type == tokenize.ENDMARKER:
-            return Model(variables=variables)
+            return ModelExpression(variables=variables)
         elif tok_type == tokenize.OP:
-            operator = Model.OP_TO_NAME[tok]
+            operator = ModelExpression.OP_TO_NAME[tok]
             # raise ModelExpressionException("Unexpected operator " + tok)
         else:
             raise ModelExpressionException("Unexpected token " + tok)
@@ -398,7 +470,7 @@ class Model:
         if tok_type != tokenize.ENDMARKER:
             raise ModelExpressionException("Expected end of expression, got " + tok)
 
-        return Model(prob=operator, variables=variables)
+        return ModelExpression(prob=operator, variables=variables)
 
     def __str__(self):
         if len(self.variables) == 1:
@@ -418,7 +490,7 @@ class Job:
                  directory, 
                  stat=None,
                  full_model=None,
-                 reduced_model=Model()):
+                 reduced_model=ModelExpression()):
         self.directory = directory
         self.stat_name = stat
         self.full_model = full_model
