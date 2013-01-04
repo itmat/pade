@@ -1,7 +1,7 @@
 import unittest
 import io
 
-from page import Schema
+from page import *
 
 class SchemaTest(unittest.TestCase):
 
@@ -135,10 +135,14 @@ class SchemaTest(unittest.TestCase):
                 
 
     def test_factor_value_shape(self):
-        self.assertEquals(self.schema.factor_value_shape(['sex']), (2,))
-        self.assertEquals(self.schema.factor_value_shape(['treated']), (2,))
-        self.assertEquals(self.schema.factor_value_shape(['age']), (3,))
-        self.assertEquals(self.schema.factor_value_shape(['sex', 'age', 'treated']), (2, 3, 2))
+        model = lambda(expr): Model(self.schema, expr)
+
+        shape = lambda(expr): model(expr).factor_value_shape()
+
+        self.assertEquals(shape('sex'), (2,))
+        self.assertEquals(shape('treated'), (2,))
+        self.assertEquals(shape('age'), (3,))
+        self.assertEquals(shape('sex * age'), (2, 3))
 
 if __name__ == '__main__':
     unittest.main()

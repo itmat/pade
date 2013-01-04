@@ -40,12 +40,15 @@ class CommonTest(unittest.TestCase):
 
 
     def test_model_to_layout(self):
-        model = ModelExpression(variables=['treated'])
+
         with sample_job(self.sample_input_4_class,
                         self.factor_map_treated_sex) as job:
 
+
+
             # One class
-            layout_map = page.model_to_layout_map(job.schema, model)
+            model = Model(job.schema, 'treated')
+            layout_map = model.layout_map()
             self.assertEquals(
                 layout_map.keys(),
                 [('treated', True),
@@ -56,8 +59,8 @@ class CommonTest(unittest.TestCase):
                  [0, 1, 2, 3, 4, 5, 6, 7]])
 
             # No classes
-            model = ModelExpression()
-            layout_map = page.model_to_layout_map(job.schema, model)
+            model = Model(job.schema, '')
+            layout_map = model.layout_map()
             self.assertEquals(
                 layout_map.keys(),
                 [tuple()])

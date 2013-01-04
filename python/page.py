@@ -160,30 +160,6 @@ def setup_css(env):
         out.write(template.render())
 
 
-def validate_model(schema, model):
-    """Validate the model against the given schema.
-
-    Raises an exception if the model refers to any variables that are
-    not defined in schema.
-
-    """
-    for factor in model.variables:
-        if factor not in schema.factors:
-            raise UsageException("Factor '" + factor + "' is not defined in the schema. Valid factors are " + str(schema.factors.keys()))
-
-
-def model_to_layout_map(schema, model):
-    validate_model(schema, model)
-    return schema.sample_groups(model.variables)
-
-
-def index_num_to_sym(schema, model, idx):
-    res = tuple()
-    for i, factor in enumerate(model.variables):
-        values = list(schema.factor_values(factor))
-        res += (factor, values[idx[i]])
-    return res
-
 def plot_conf_by_stat(conf, bins, filename='conf_by_stat'):
     with figure(filename):
         plt.plot(conf, bins[1:])
@@ -216,17 +192,16 @@ def do_run(args):
             raise UsageException(msg.format(job.schema.factors.keys()))
 
     schema = job.schema
-    job.full_model = ModelExpression.parse(args.full_model)
-    if args.reduced_model is not None:
-        job.reduced_model = ModelExpression.parse(args.reduced_model)
+    job.full_model = Model(schema, args.full_model)
+    job.reduced_model = Model(schema, args.reduced_model)
 
-    layout_map_full = model_to_layout_map(schema, job.full_model)
+    layout_map_full = job.full_model.layout_map()
     logging.debug("Full layout map is " + str(layout_map_full))
 
     logging.info("Computing coefficients")
-    coeffs = find_coefficients(job.schema, job.full_model, job.table)
+    coeffs = find_coefficients(job.full_model, job.table)
+    var_shape = job.full_model.factor_value_shape()
 
-    var_shape = schema.factor_value_shape(job.full_model.variables)
     layout = []
     group_keys = []
     names      = []
@@ -235,10 +210,10 @@ def do_run(args):
     coeff_list = np.zeros((int(num_groups), num_features))
 
     for i, idx in enumerate(np.ndindex(var_shape)):
-        key = index_num_to_sym(schema, job.full_model, idx)
+        key = job.full_model.index_num_to_sym(idx)
         group_keys.append(key)
         layout.append(layout_map_full[key])
-        key = index_num_to_sym(schema, job.full_model, idx)
+
         parts = []
         for j in range(0, len(key), 2):
             parts.append("{0}".format(key[j+1]))
@@ -262,7 +237,7 @@ def do_run(args):
 
     prediction = np.zeros_like(job.table)
 
-    layout_map_red = model_to_layout_map(schema, job.reduced_model)
+    layout_map_red = job.reduced_model.layout_map()
 
     for grp in layout_map_red.values():
         data = job.table[grp]
@@ -352,17 +327,17 @@ def confidence_scores(raw_counts, perm_counts):
     return (raw_counts - adjusted) / raw_counts
 
 
-def find_coefficients(schema, model, data):
-    factors = model.variables
+def find_coefficients(model, data):
+    factors = model.expr.variables
 
-    layout_map = model_to_layout_map(schema, model)    
-    values = [schema.sample_groups([f]).keys() for f in factors]
+    layout_map = model.layout_map()    
+    values = [model.schema.sample_groups([f]).keys() for f in factors]
     shape = tuple([len(v) for v in values])
     (num_samples, num_features) = np.shape(data)
     shape += (num_features,)
     coeffs = np.zeros(shape)
 
-    sym_idx    = lambda(idx): index_num_to_sym(schema, model, idx)
+    sym_idx    = lambda(idx): model.index_num_to_sym(idx)
     col_nums   = lambda(idx): layout_map[sym_idx(idx)]
     group_mean = lambda(idx): np.mean(data[col_nums(idx)], axis=0)
 
@@ -372,7 +347,7 @@ def find_coefficients(schema, model, data):
 
     # Estimate the main effects
     for i, f in enumerate(factors):
-        values = list(schema.factor_values(f))
+        values = list(model.schema.factor_values(f))
         for j in range(1, len(values)):
             idx = np.zeros(len(shape) - 1, int)
             idx[i]= j
@@ -382,11 +357,11 @@ def find_coefficients(schema, model, data):
     # Estimate the interactions between each pair of factors
     for i1 in range(len(factors)):
         f1 = factors[i1]
-        vals1 = list(schema.factor_values(f1))
+        vals1 = list(model.schema.factor_values(f1))
 
         for i2 in range(i1 + 1, len(factors)):
             f2 = factors[i2]
-            vals2 = list(schema.factor_values(f2))
+            vals2 = list(model.schema.factor_values(f2))
             for j1 in range(1, len(vals1)):
 
                 idx1 = np.copy(bias_idx)
@@ -435,6 +410,10 @@ class ModelExpression:
         later on.
 
         """
+
+        if string is None or string.strip() == '':
+            return ModelExpression()
+
         operator = None
         variables = []
 
@@ -481,6 +460,42 @@ class ModelExpression:
         else:
             return ''
 
+class Model:
+    def __init__(self, schema, expr):
+        self.schema = schema
+        self.expr = ModelExpression.parse(expr)
+        self.validate_model()
+
+    def validate_model(self):
+        """Validate the model against the given schema.
+
+        Raises an exception if the model refers to any variables that are
+        not defined in schema.
+        
+        """
+        
+        for factor in self.expr.variables:
+            if factor not in self.schema.factors:
+                raise UsageException("Factor '" + factor + "' is not defined in the schema. Valid factors are " + str(self.schema.factors.keys()))
+
+
+    def layout_map(self):
+        return self.schema.sample_groups(self.expr.variables)
+
+    def index_num_to_sym(self, idx):
+        schema = self.schema
+        expr  = self.expr
+        res = tuple()
+        for i, factor in enumerate(expr.variables):
+            values = list(schema.factor_values(factor))
+            res += (factor, values[idx[i]])
+        return res
+
+    def factor_value_shape(self):
+        schema = self.schema
+        factors = self.expr.variables
+        return tuple([len(schema.factor_values(f)) for f in factors])
+
 
 class Job:
 
@@ -490,7 +505,7 @@ class Job:
                  directory, 
                  stat=None,
                  full_model=None,
-                 reduced_model=ModelExpression()):
+                 reduced_model=None):
         self.directory = directory
         self.stat_name = stat
         self.full_model = full_model
@@ -514,8 +529,8 @@ class Job:
     def stat(self):
         if self.stat_name == 'f':
             return Ftest(
-                layout_full=model_to_layout_map(self.schema, self.full_model).values(),
-                layout_reduced=model_to_layout_map(self.schema, self.reduced_model).values())
+                layout_full=self.full_model.layout_map().values(),
+                layout_reduced=self.reduced_model.layout_map().values())
         elif self.stat_name == 't':
             return Ttest(alpha=1.0)
 
@@ -850,9 +865,6 @@ sample_factor_mapping:
         for sample in self.sample_column_names():
             values.add(self.get_factor(sample, factor))
         return values
-
-    def factor_value_shape(self, factors):
-        return tuple([len(self.factor_values(f)) for f in factors])
 
 
 def write_yaml_block_comment(fh, comment):
