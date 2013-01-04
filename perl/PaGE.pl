@@ -2486,16 +2486,16 @@ sub ComputeTstatVector {
 
 # hard coded in several places
     my @tuning_param_range_values;
-    $tuning_param_range_values[0] = .0001;
-    $tuning_param_range_values[1] = .01;
-    $tuning_param_range_values[2] = .1;
-    $tuning_param_range_values[3] = .3;
-    $tuning_param_range_values[4] = .5;
-    $tuning_param_range_values[5] = 1;
-    $tuning_param_range_values[6] = 1.5;
-    $tuning_param_range_values[7] = 2;
-    $tuning_param_range_values[8] = 3;
-    $tuning_param_range_values[9] = 10;
+    $tuning_param_range_values[0] = 0;
+    $tuning_param_range_values[1] = 0;
+    $tuning_param_range_values[2] = 0;
+    $tuning_param_range_values[3] = 0;
+    $tuning_param_range_values[4] = 0;
+    $tuning_param_range_values[5] = 0;
+    $tuning_param_range_values[6] = 0;
+    $tuning_param_range_values[7] = 0;
+    $tuning_param_range_values[8] = 0;
+    $tuning_param_range_values[9] = 0;
     my $num_range_values = @tuning_param_range_values;
 
     for($i=0;$i<$length_vector1;$i++) {
@@ -2682,16 +2682,16 @@ sub ComputeOneSampleTstatVector {
     my $sd;
 # hard coded in several places
     my @tuning_param_range_values;
-    $tuning_param_range_values[0] = .0001;
-    $tuning_param_range_values[1] = .01;
-    $tuning_param_range_values[2] = .1;
-    $tuning_param_range_values[3] = .3;
-    $tuning_param_range_values[4] = .5;
-    $tuning_param_range_values[5] = 1;
-    $tuning_param_range_values[6] = 1.5;
-    $tuning_param_range_values[7] = 2;
-    $tuning_param_range_values[8] = 3;
-    $tuning_param_range_values[9] = 10;
+    $tuning_param_range_values[0] = 0;
+    $tuning_param_range_values[1] = 0;
+    $tuning_param_range_values[2] = 0;
+    $tuning_param_range_values[3] = 0;
+    $tuning_param_range_values[4] = 0;
+    $tuning_param_range_values[5] = 0;
+    $tuning_param_range_values[6] = 0;
+    $tuning_param_range_values[7] = 0;
+    $tuning_param_range_values[8] = 0;
+    $tuning_param_range_values[9] = 0;
     my $num_range_values = @tuning_param_range_values;
 
     $j=0;

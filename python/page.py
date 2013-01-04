@@ -179,8 +179,14 @@ def make_report(job):
 
 def plot_conf_by_stat(conf, bins, filename='conf_by_stat'):
     with figure(filename):
-        plt.plot(conf, bins[1:])
-        plt.semilogy()
+        plt.plot(bins[1:], conf, label='raw',)
+        plt.plot(bins[1:], ensure_scores_increase(conf),
+                 label='increasing')
+        plt.xlabel('statistic')
+        plt.ylabel('confidence')
+        plt.legend(loc=2)
+        plt.title("Confidence level by statistic")
+        plt.semilogx()
 
 
 def plot_counts_by_stat(raw_stats, resampled_stats, bins, filename='counts_by_stat'):
@@ -271,6 +277,13 @@ def model_col_names(model):
             parts.append("{0}".format(key[j+1]))
         names.append("; ".join(parts))
     return names
+
+
+def ensure_scores_increase(scores):
+    res = np.copy(scores)
+    for i in range(1, len(res)):
+        res[i] = max(res[i], res[i - 1])
+    return res
 
 
 def do_boot(args):
