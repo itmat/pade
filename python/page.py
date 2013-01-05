@@ -307,8 +307,9 @@ def do_boot(args):
     logging.info("Running bootstrapping step")
     job = args_to_job(args)
     prediction = predicted_values(job)
+    
     boot = Boot(job.table, prediction, job.stat, args.num_samples,
-                sample_indexes_path='indexes',
+                sample_indexes_path=os.path.join(job.directory, 'indexes'),
                 sample_from=args.sample_from)
     boot()
     return boot
@@ -1288,7 +1289,7 @@ p        class."""),
     'num_samples' : lambda p: p.add_argument(
         '--num-samples', '-R',
         type=int,
-        default=10000,
+        default=1000,
         help="The number of samples to use for bootstrapping"),
 
     'sample_from' : lambda p: p.add_argument(
