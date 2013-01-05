@@ -6,14 +6,35 @@
 
     <h2>Model</h2>
 
-    <p>Full model: {{ job.full_model }}</p>
-    <p>Reduced model: {{ job.reduced_model }}</p>
+    <p>Full model: {{ job.full_model.expr }}</p>
+    <p>Reduced model: {{ job.reduced_model.expr }}</p>
 
-    <h2>Results</h2>
+    <h2>Summary</h2>
+
+    <table>
+      <tr>
+        <th>Score</th>
+        <th>Features</th>
+      </tr>
+
+      {% for i in range(fdr.summary_counts | length) %}
+      <tr>
+        <td>{{ fdr.summary_bins[i] }}</td>
+        <td>{{ fdr.summary_counts[i] }}</td>
+      </tr>
+      {% endfor %}
+
+    </table>
+
+    <img src="counts_by_stat.png"></img>
+    <img src="conf_by_stat.png"></img>
+
+    <h2>Details</h2>
 
     <table>
 
       <tr>
+        <th></th>
         <th></th>
         <th></th>
         <th></th>
@@ -42,7 +63,7 @@
         <td>{{ i }}</td>
         <td>{{ job.feature_ids[i] }}</td>
 
-        <td>{{ job.scores[i] }}</td>
+        <td>{{ "%.2f"|format(fdr.feature_to_score[i]) }}</td>
 
         <!-- Should get list of stats -->
         <td>{{ "%.2f"|format(job.stats[i]) }}</td>
