@@ -25,6 +25,7 @@
         <th>Feature num</th>
         <th>Feature id</th>
 
+        <th>Score</th>
         <th>{{ job.stat_name }} stat</th>
 
         {% for name in job.condition_names %}
@@ -40,6 +41,8 @@
       <tr>
         <td>{{ i }}</td>
         <td>{{ job.feature_ids[i] }}</td>
+
+        <td>{{ job.scores[i] }}</td>
 
         <!-- Should get list of stats -->
         <td>{{ "%.2f"|format(job.stats[i]) }}</td>

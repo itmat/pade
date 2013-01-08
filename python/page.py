@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # External imports
 
 import StringIO
@@ -81,18 +83,6 @@ def fix_newlines(msg):
     return output
 
 
-def make_report(job):
-    """Make the HTML report for the given job."""
-
-    with chdir(job.directory):
-        env = jinja2.Environment(loader=jinja2.PackageLoader('page'))
-        setup_css(env)
-        template = env.get_template('index.html')
-        with open('index.html', 'w') as out:
-            out.write(template.render(
-                job=job
-                ))
-
 @contextlib.contextmanager
 def figure(path):
     """Context manager for saving a figure.
@@ -134,7 +124,13 @@ def bins_uniform(num_bins, stats):
     """Returns a set of evenly sized bins for the given stats.
 
     Stats should be an array of statistic values, and num_bins should
-    be an integer. Returns an array of bin edges, of size num_bins + 1.
+    be an integer. Returns an array of bin edges, of size num_bins +
+    1. The bins are evenly spaced between the smallest and largest
+    value in stats.
+
+    Note that this may not be the best method for binning the
+    statistics, especially if the distribution is heavily skewed
+    towards one end.
 
     """
     base_shape = np.shape(stats)[:-1]
@@ -156,15 +152,46 @@ def bins_custom(num_bins, stats):
     edge for negative and positive infinity, and one for each
     statistic value.
 
-    TODO: We should be able to make the dimensionality of this
-    function flexible.
-
     """
     base_shape = np.shape(stats)[:-1]
     bins = np.zeros(base_shape + (num_bins + 1,))
     bins[ : -1] = sorted(stats)
     bins[-1] = np.inf
     return bins
+
+
+##############################################################################
+###
+### Plotting and reporting
+### 
+
+def make_report(job):
+    """Make the HTML report for the given job."""
+    with chdir(job.directory):
+        env = jinja2.Environment(loader=jinja2.PackageLoader('page'))
+        setup_css(env)
+        template = env.get_template('index.html')
+        with open('index.html', 'w') as out:
+            out.write(template.render(
+                job=job
+                ))
+
+
+def plot_conf_by_stat(conf, bins, filename='conf_by_stat'):
+    with figure(filename):
+        plt.plot(conf, bins[1:])
+        plt.semilogy()
+
+
+def plot_counts_by_stat(raw_stats, resampled_stats, bins, filename='counts_by_stat'):
+    with figure(filename):
+        plt.plot(bins[1:], raw_stats, label='raw')
+        plt.plot(bins[1:], resampled_stats, label='resampled')
+        plt.loglog()
+        plt.title('Count of features by statistic')
+        plt.xlabel('Statistic value')
+        plt.ylabel('Features with statistic >= value')
+        plt.legend()
 
 
 def plot_raw_stat_hist(stats):
@@ -186,21 +213,6 @@ def setup_css(env):
         template = env.get_template('custom.css')
         out.write(template.render())
 
-
-def plot_conf_by_stat(conf, bins, filename='conf_by_stat'):
-    with figure(filename):
-        plt.plot(conf, bins[1:])
-        plt.semilogy()
-
-def plot_counts_by_stat(raw_stats, resampled_stats, bins, filename='counts_by_stat'):
-    with figure(filename):
-        plt.plot(bins[1:], raw_stats, label='raw')
-        plt.plot(bins[1:], resampled_stats, label='resampled')
-        plt.loglog()
-        plt.title('Count of features by statistic')
-        plt.xlabel('Statistic value')
-        plt.ylabel('Features with statistic >= value')
-        plt.legend()
 
 def args_to_job(args):
     """Construct a job based on the command-line arguments."""
@@ -227,9 +239,15 @@ def args_to_job(args):
 
     return job
 
-def predicted_values(job):
-    prediction = np.zeros_like(job.table)
 
+def predicted_values(job):
+    """Return the values predicted by the reduced model.
+    
+    The return value has the same shape as the input table, with each
+    cell containing the mean of all the cells in the same group, as
+    defined by the reduced model.
+    """
+    prediction = np.zeros_like(job.table)
     for grp in job.reduced_model.layout_map().values():
         data = job.table[grp]
         means = np.mean(data, axis=0)
@@ -238,6 +256,12 @@ def predicted_values(job):
 
 
 def model_col_names(model):
+    """Return a flat list of names for the columns of the given model.
+
+    Returns a string for each of the combinations of factor values for
+    the given model.
+
+    """
     var_shape = model.factor_value_shape()
     names = []
     for i, idx in enumerate(np.ndindex(var_shape)):
@@ -250,6 +274,9 @@ def model_col_names(model):
 
 
 def do_boot(args):
+    """Run bootstrapping and return the resulting Boot object.
+
+    """
     logging.info("Running bootstrapping step")
     job = args_to_job(args)
     prediction = predicted_values(job)
@@ -262,6 +289,7 @@ def do_boot(args):
 class Step:
     def __init__(self, fn):
         self.__call__ = fn
+
 
 def do_run(args):
 
@@ -284,8 +312,6 @@ def do_run(args):
         logging.info("Computing statistics")
         job.stats = job.stat(job.table)
 
-        make_report(job)
-
         prediction = predicted_values(job)
 
         boot = do_boot(args)
@@ -296,14 +322,15 @@ def do_run(args):
         bins        = bins_custom(1000, raw_stats)
         raw_counts  = feature_count_by_stat(raw_stats, bins)
         perm_counts = feature_count_by_mean_stat(perm_stats, bins)
-        scores      = confidence_scores(raw_counts, perm_counts)
+        job.scores  = confidence_scores(raw_counts, perm_counts)
 
+        make_report(job)
         plot_counts_by_stat(raw_counts, perm_counts, bins)
-        plot_conf_by_stat(scores, bins)
+        plot_conf_by_stat(job.scores, bins)
         plot_raw_stat_hist(raw_stats)
 
         for i in range(len(raw_counts)):
-            print (bins[i], raw_counts[i], perm_counts[i], scores[i])
+            print (bins[i], raw_counts[i], perm_counts[i], job.scores[i])
 
 
 def cumulative_hist(values, bins):
@@ -330,6 +357,7 @@ def feature_count_by_stat(stats, edges):
 
     return cumulative_hist(stats, edges)
 
+
 def feature_count_by_mean_stat(stats, edges):
     logging.info("Accumulating counts for permuted data")
     logging.debug("Shape of stats is " + str(np.shape(stats)))
@@ -339,6 +367,7 @@ def feature_count_by_mean_stat(stats, edges):
         counts += cumulative_hist(row, edges)
     counts /= len(stats)
     return counts
+
 
 def adjust_num_diff(V0, R):
     V = np.zeros((6,) + np.shape(V0))
@@ -350,12 +379,34 @@ def adjust_num_diff(V0, R):
 
 
 def confidence_scores(raw_counts, perm_counts):
+    """Return confidence scores.
+
+    """
     adjusted = adjust_num_diff(perm_counts, raw_counts)
     return (raw_counts - adjusted) / raw_counts
 
 
 def find_coefficients(model, data):
-    logging.info("Finding means and coefficients for model " + str(model.expr))
+    """Returns the means and coefficients of the data based on the model.
+
+    model must be a Model object.
+
+    data must be a (samples x features) 2d array.
+
+    Returns two ndarrays: means and coeffs. Both have one dimension
+    for each variable in the model, plus a final dimension for the
+    features.
+
+    For example, suppose the model has a factor called 'sex' with
+    values 'male' and 'female', and a factor called 'treatment' with
+    values 'low', 'medium', and 'high'. Suppose the data has 1000
+    features. Then means would be a (2 x 3 x 1000) array where
+    means[i, j, k] is the mean for the 1000th feature, for the ith sex
+    and jth treatment level.
+
+    """
+    logging.info("Finding means and coefficients for model " + 
+                 str(model.expr))
 
     factors = model.expr.variables
 
@@ -983,7 +1034,8 @@ class Boot:
         # the data (or the predictions?) and compute the statistic again.
         residuals = self.data - self.prediction
         for i, permutation in enumerate(idxs):
-            permuted   = self.prediction + residuals[permutation]
+            # permuted   = self.prediction + residuals[permutation]
+            permuted = self.data[permutation]
             results[i] = self.stat_fn(permuted)
 
         self.permuted_stats = results
