@@ -1104,21 +1104,21 @@ class Boot:
         # Number of samples
         m = np.shape(self.data)[0]
 
-        if sample_indexes_path is not None:
-            try:
-                idxs = np.load(sample_indexes_path)
-                logging.info("Loaded sample indexes from " + sample_indexes_path)
-            except:
-                logging.info("Don't have sample indexes yet, generating new ones")
-                need_save = True
+#        if sample_indexes_path is not None:
+#            try:
+#                idxs = np.load(sample_indexes_path)
+#                logging.info("Loaded sample indexes from " + sample_indexes_path)
+#            except:
+#                logging.info("Don't have sample indexes yet, generating new ones")
+#                need_save = True
                 
         if idxs is None:
             idxs = np.random.random_integers(0, m - 1, (R, m))
 
-        if need_save:
-            logging.info("Saving sample indexes")
-            with open(sample_indexes_path, 'w') as out:
-                np.save(out, idxs)
+#        if need_save:
+#            logging.info("Saving sample indexes")
+#            with open(sample_indexes_path, 'w') as out:
+#                np.save(out, idxs)
 
         self.sample_indexes = idxs
 
