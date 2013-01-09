@@ -285,11 +285,17 @@ def model_col_names(model):
     var_shape = model.factor_value_shape()
     names = []
     for i, idx in enumerate(np.ndindex(var_shape)):
+        print "Idx is " + str(idx)
+
         key = model.index_num_to_sym(idx)
         parts = []
-        for j in range(0, len(key), 2):
-            parts.append("{0}".format(key[j+1]))
-        names.append("; ".join(parts))
+        for j in range(len(idx)):
+            if idx[j] > 0:
+                parts.append("{0}={1}".format(key[j * 2], key[j * 2 + 1]))
+        name = ", ".join(parts)
+        if name == "":
+            name = "intercept"
+        names.append(name)
     return names
 
 

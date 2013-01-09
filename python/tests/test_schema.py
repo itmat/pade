@@ -144,6 +144,17 @@ class SchemaTest(unittest.TestCase):
         self.assertEquals(shape('age'), (3,))
         self.assertEquals(shape('sex * age'), (2, 3))
 
+    def test_col_names(self):
+        model = lambda(expr): Model(self.schema, expr)
+        self.assertEquals(
+            model_col_names(model('sex')),
+            ['intercept', 'sex=female'])
+
+        self.assertEquals(
+            model_col_names(model('sex * age')),
+            ['intercept', 'age=20'])
+
+
 if __name__ == '__main__':
     unittest.main()
     
