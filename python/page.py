@@ -247,14 +247,14 @@ def args_to_job(args):
 
     if full_model is None:
         if len(job.schema.factors) == 1:
-            full_model = job.schema.factors[0]
+            full_model = job.schema.factors.keys()[0]
         else:
             msg = """You need to specify a model with --full-model, since you have more than one factor ({0})."""
             raise UsageException(msg.format(job.schema.factors.keys()))
 
     schema = job.schema
 
-    job.full_model = Model(schema, args.full_model)
+    job.full_model = Model(schema, full_model)
     job.reduced_model = Model(schema, args.reduced_model)
 
     return job
@@ -946,9 +946,6 @@ is_sample are false will simply be ignored.
                 sample_cols[name] = {}
                 for factor in self.factors:
                     value = self.get_factor(name, factor)
-#                    if self.factors[factor].startswith("S"):
-#                        value = str(value)
-
                     if type(value) == str:
                         pass
                     elif type(value) == np.int32:
@@ -967,9 +964,11 @@ is_sample are false will simply be ignored.
 
         doc = {
             "factors"               : factors,
-            "feature_id_columns"       : feature_id_cols,
+            "feature_id_columns"    : feature_id_cols,
             "sample_factor_mapping" : sample_cols,
             }
+
+        print doc
 
         data = yaml.dump(doc, default_flow_style=False, encoding=None)
 

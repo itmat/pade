@@ -15,7 +15,6 @@ class SchemaTest(unittest.TestCase):
 
         schema = Schema(
             factors=[
-                ('name',    object),
                 ('sex',     object),
                 ('age',     'int'),
                 ('treated', 'bool')],
@@ -152,7 +151,12 @@ class SchemaTest(unittest.TestCase):
 
         self.assertEquals(
             model_col_names(model('sex * age')),
-            ['intercept', 'age=20'])
+            ['intercept',
+             'age=20',
+             'age=55',
+             'sex=female',
+             'sex=female, age=20',
+             'sex=female, age=55'])
 
 
 if __name__ == '__main__':
