@@ -273,7 +273,6 @@ def model_col_names(model):
     var_shape = model.factor_value_shape()
     names = []
     for i, idx in enumerate(np.ndindex(var_shape)):
-        print "Idx is " + str(idx)
 
         key = model.index_num_to_sym(idx)
         parts = []
@@ -314,6 +313,7 @@ class Step:
         self.__call__ = fn
 
 class FdrResults:
+    """Simple data object used to back the HTML reports."""
     def __init__(self):
         self.bins = None
         self.raw_counts = None
@@ -354,19 +354,38 @@ def do_fdr(args):
 
 class ResultTable:
 
-    def __init__(self, condition_names=None, means=None, coeffs=None, stats=None):
+    def __init__(self,
+                 condition_names=None,
+                 means=None,
+                 coeffs=None,
+                 stats=None,
+                 feature_ids=None,
+                 scores=None):
         self.means = means
         self.coeffs = coeffs
         self.condition_names = condition_names
         self.stats = stats
+        self.feature_ids = feature_ids
+        self.scores = scores
 
+    def filter_by_score(self, min_score):
+        idxs = self.scores > min_score
+
+        return ResultTable(
+            condition_names=self.condition_names,
+            means=self.means[idxs],
+            coeffs=self.coeffs[idxs],
+            stats=self.stats[idxs],
+            feature_ids=self.feature_ids[idxs],
+            scores=self.scores[idxs])
 
 def do_report(args):
 
     job = args_to_job(args)
 
     var_shape = job.full_model.factor_value_shape()
-    num_groups = np.prod(var_shape)
+    num_groups = int(np.prod(var_shape))
+    num_features = np.shape(job.table)[1]
 
     # Get the means and coefficients, which will come back as an
     # ndarray. We will need to flatten them for display purposes.
@@ -376,11 +395,11 @@ def do_report(args):
     # n-dimensional, with one dimension for each factor, plus a
     # dimension for feature. Flatten them into a 2d array (condition x
     # feature).
-    flat_coeffs = np.zeros((int(num_groups),) + np.shape(job.table)[1:]) 
+    flat_coeffs = np.zeros((num_features, num_groups))
     flat_means  = np.zeros_like(flat_coeffs)
     for i, idx in enumerate(np.ndindex(var_shape)):
-        flat_coeffs[i] = coeffs[idx]
-        flat_means[i] = means[idx]
+        flat_coeffs[:, i] = coeffs[idx]
+        flat_means[:, i]  = means[idx]
 
     prediction = predicted_values(job)
     fdr = do_fdr(args)
@@ -389,10 +408,9 @@ def do_report(args):
         means=flat_means,
         coeffs=flat_coeffs,
         condition_names=model_col_names(job.full_model),
-        stats=fdr.boot.raw_stats)
-
-
-
+        stats=fdr.boot.raw_stats,
+        feature_ids=np.array(job.feature_ids),
+        scores=fdr.feature_to_score)
 
     # Do report
 
@@ -744,11 +762,6 @@ class Job:
             self._load_table()
         return self._feature_ids
 
-    @property
-    def num_features(self):
-        """Number of features for this job."""
-        return len(self.feature_ids)
-            
 
     def _load_table(self):
         logging.info("Loading table from " + self.input_path)

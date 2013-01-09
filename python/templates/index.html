@@ -35,13 +35,11 @@
         <th></th>
         <th></th>
         <th></th>
-        <th></th>
         <th colspan="{{results.condition_names|length}}">Means</th>
         <th colspan="{{results.condition_names|length}}">Coefficients</th>
       </tr>
 
       <tr>
-        <th>Feature num</th>
         <th>Feature id</th>
 
         <th>Score</th>
@@ -56,23 +54,23 @@
         {% endfor %}
       </tr>
 
-      {% for i in range(job.num_features) %}
+      {% for i in range(results.feature_ids|length) %}
       <tr>
-        <td>{{ i }}</td>
-        <td>{{ job.feature_ids[i] }}</td>
+        <td>{{ results.feature_ids[i] }}</td>
 
-        <td>{{ "%.2f"|format(fdr.feature_to_score[i]) }}</td>
+        <!-- Confidence score -->
+        <td>{{ "%.2f"|format(results.scores[i]) }}</td>
 
-        <!-- Should get list of stats -->
+        <!-- Statistic value -->
         <td>{{ "%.2f"|format(results.stats[i]) }}</td>
 
         <!-- Mean for each condition -->
-        {% for mean in results.means.swapaxes(0, 1)[i] %}
+        {% for mean in results.means[i] %}
         <td>{{ "%.2f"|format(mean) }}</td>
         {% endfor %}
 
         <!-- Coefficient for each condition -->
-        {% for coeff in results.coeffs.swapaxes(0, 1)[i] %}
+        {% for coeff in results.coeffs[i] %}
         <td>{{ "%.2f"|format(coeff) }}</td>
         {% endfor %}
 
