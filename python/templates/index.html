@@ -18,7 +18,7 @@
       {% for i in range(fdr.summary_counts | length) %}
       <tr>
         <td>{{ fdr.summary_bins[i] }}</td>
-        <td>{{ fdr.summary_counts[i] }}</td>
+        <td><a href="conf_level_{{i}}.html">{{ fdr.summary_counts[i] }}</a></td>
       </tr>
       {% endfor %}
 
@@ -36,8 +36,8 @@
         <th></th>
         <th></th>
         <th></th>
-        <th colspan="{{job.condition_names|length}}">Means</th>
-        <th colspan="{{job.condition_names|length}}">Coefficients</th>
+        <th colspan="{{results.condition_names|length}}">Means</th>
+        <th colspan="{{results.condition_names|length}}">Coefficients</th>
       </tr>
 
       <tr>
@@ -47,11 +47,11 @@
         <th>Score</th>
         <th>{{ job.stat_name }} stat</th>
 
-        {% for name in job.condition_names %}
+        {% for name in results.condition_names %}
         <th>{{ name }}</th>
         {% endfor %}
 
-        {% for name in job.condition_names %}
+        {% for name in results.condition_names %}
         <th>{{ name }}</th>
         {% endfor %}
       </tr>
@@ -64,15 +64,15 @@
         <td>{{ "%.2f"|format(fdr.feature_to_score[i]) }}</td>
 
         <!-- Should get list of stats -->
-        <td>{{ "%.2f"|format(job.stats[i]) }}</td>
+        <td>{{ "%.2f"|format(results.stats[i]) }}</td>
 
         <!-- Mean for each condition -->
-        {% for mean in job.means.swapaxes(0, 1)[i] %}
+        {% for mean in results.means.swapaxes(0, 1)[i] %}
         <td>{{ "%.2f"|format(mean) }}</td>
         {% endfor %}
 
         <!-- Coefficient for each condition -->
-        {% for coeff in job.coeffs.swapaxes(0, 1)[i] %}
+        {% for coeff in results.coeffs.swapaxes(0, 1)[i] %}
         <td>{{ "%.2f"|format(coeff) }}</td>
         {% endfor %}
 

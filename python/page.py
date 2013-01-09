@@ -166,18 +166,6 @@ def bins_custom(num_bins, stats):
 ### Plotting and reporting
 ### 
 
-def make_report(job, fdr):
-    """Make the HTML report for the given job."""
-    with chdir(job.directory):
-        env = jinja2.Environment(loader=jinja2.PackageLoader('page'))
-        setup_css(env)
-        template = env.get_template('index.html')
-        with open('index.html', 'w') as out:
-            out.write(template.render(
-                job=job,
-                fdr=fdr
-                ))
-
 
 def plot_conf_by_stat(fdr, filename='conf_by_stat',
                       extra=None):
@@ -364,6 +352,15 @@ def do_fdr(args):
 
     return fdr
 
+class ResultTable:
+
+    def __init__(self, condition_names=None, means=None, coeffs=None, stats=None):
+        self.means = means
+        self.coeffs = coeffs
+        self.condition_names = condition_names
+        self.stats = stats
+
+
 def do_report(args):
 
     job = args_to_job(args)
@@ -374,20 +371,28 @@ def do_report(args):
     # Get the means and coefficients, which will come back as an
     # ndarray. We will need to flatten them for display purposes.
     (means, coeffs) = find_coefficients(job.full_model, job.table)
-    job.coeffs = np.zeros((int(num_groups),) + np.shape(job.table)[1:])
-    job.means =  np.zeros((int(num_groups),) + np.shape(job.table)[1:])
+
+    # The means and coefficients returned by find_coefficients are
+    # n-dimensional, with one dimension for each factor, plus a
+    # dimension for feature. Flatten them into a 2d array (condition x
+    # feature).
+    flat_coeffs = np.zeros((int(num_groups),) + np.shape(job.table)[1:]) 
+    flat_means  = np.zeros_like(flat_coeffs)
     for i, idx in enumerate(np.ndindex(var_shape)):
-        job.coeffs[i] = coeffs[idx]
-        job.means[i] = means[idx]
-
-    job.condition_names = model_col_names(job.full_model)
-
-    logging.info("Computing statistics")
-    job.stats = job.stat(job.table)
+        flat_coeffs[i] = coeffs[idx]
+        flat_means[i] = means[idx]
 
     prediction = predicted_values(job)
-
     fdr = do_fdr(args)
+
+    results = ResultTable(
+        means=flat_means,
+        coeffs=flat_coeffs,
+        condition_names=model_col_names(job.full_model),
+        stats=fdr.boot.raw_stats)
+
+
+
 
     # Do report
 
@@ -395,8 +400,18 @@ def do_report(args):
         extra = "\nstat " + job.stat_name + ", sampling " + args.sample_from
         plot_counts_by_stat(fdr, extra=extra)
         plot_conf_by_stat(fdr, extra=extra)
-    make_report(job, fdr)
-        
+
+    with chdir(job.directory):
+        env = jinja2.Environment(loader=jinja2.PackageLoader('page'))
+        setup_css(env)
+        template = env.get_template('index.html')
+        with open('index.html', 'w') as out:
+            out.write(template.render(
+                job=job,
+                fdr=fdr,
+                results=results
+                ))
+
 #    for i in range(len(fdr.raw_counts)):
 #        print (fdr.bins[i], fdr.raw_counts[i], fdr.baseline_counts[i], fdr.bin_to_score[i])
 
