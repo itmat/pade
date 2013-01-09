@@ -293,22 +293,6 @@ def ensure_scores_increase(scores):
     return res
 
 
-def do_boot(args):
-    """Run bootstrapping and return the resulting Boot object.
-
-    """
-    logging.info("Running bootstrapping step")
-    job = args_to_job(args)
-    prediction = predicted_values(job)
-    
-    boot = Boot(job.table, job.stat, 
-                R=args.num_samples,
-                prediction=prediction,
-                sample_from=args.sample_from)
-    boot()
-    return boot
-
-
 class Step:
     def __init__(self, fn):
         self.__call__ = fn
@@ -322,25 +306,46 @@ class FdrResults:
         self.bin_to_score = None
         self.feature_to_to_score = None
         self.boot = None
+        self.raw_stats = None
+
 
 def do_fdr(args):
 
-    boot = do_boot(args)
-    raw_stats = boot.raw_stats
-    baseline_stats = boot.sampled_stats
+    job = args_to_job(args)
+
+    data = job.table
+    stat = job.stat
+
+    prediction = predicted_values(job)
 
     fdr = FdrResults()
-    fdr.boot = boot
+    fdr.raw_stats  = stat(data)
+    fdr.bins       = bins_uniform(args.num_bins, fdr.raw_stats)
+    
+    initializer = np.zeros(len(fdr.bins) - 1)
+    reducer     = lambda res, val: res + cumulative_hist(val, fdr.bins)
+    finalizer   = lambda res : res / args.num_samples
 
+    boot = Boot(data, stat,
+                R=args.num_samples,
+                prediction=prediction,
+                sample_from=args.sample_from)
+    boot(                
+        initializer=initializer,
+        reducer=reducer,
+        finalizer=finalizer)
+#    boot()
+    baseline_stats = boot.results
+    
+
+    fdr.boot = boot
     # Do FDR
-    fdr.bins             = bins_uniform(args.num_bins, raw_stats)
-    fdr.raw_counts       = feature_count_by_stat(raw_stats, fdr.bins)
-    fdr.baseline_counts  = feature_count_by_mean_stat(
-        baseline_stats, fdr.bins)
+    fdr.raw_counts       = cumulative_hist(fdr.raw_stats, fdr.bins)
+    fdr.baseline_counts  = boot.results
     fdr.bin_to_score     = confidence_scores(
         fdr.raw_counts, fdr.baseline_counts)
     fdr.feature_to_score = assign_scores_to_features(
-        raw_stats, fdr.bins, fdr.bin_to_score)
+        fdr.raw_stats, fdr.bins, fdr.bin_to_score)
 
     fdr.summary_bins = [0.5, 0.55, 
                         0.6, 0.65,
@@ -409,7 +414,7 @@ def do_report(args):
         means=flat_means,
         coeffs=flat_coeffs,
         condition_names=model_col_names(job.full_model),
-        stats=fdr.boot.raw_stats,
+        stats=fdr.raw_stats,
         feature_ids=np.array(job.feature_ids),
         scores=fdr.feature_to_score)
 
@@ -417,8 +422,8 @@ def do_report(args):
 
     with chdir(job.directory):
         extra = "\nstat " + job.stat_name + ", sampling " + args.sample_from
-        plot_counts_by_stat(fdr, extra=extra)
-        plot_conf_by_stat(fdr, extra=extra)
+#        plot_counts_by_stat(fdr, extra=extra)
+#        plot_conf_by_stat(fdr, extra=extra)
 
     with chdir(job.directory):
         env = jinja2.Environment(loader=jinja2.PackageLoader('page'))
@@ -470,39 +475,6 @@ def assign_scores_to_features(stats, bins, scores):
 def cumulative_hist(values, bins):
     (hist, ignore) = np.histogram(values, bins)
     return np.array(np.cumsum(hist[::-1])[::-1], float)
-
-
-def feature_count_by_stat(stats, edges):
-    """Count the number of features by statistic value.
-
-    stats is a (class x feature) array where unperm_stats[class,
-    feature] gives the statistic for the given feature, class
-    combination. edges is a (class, bins + 1) monotonically increasing
-    array where each pair of consecutive items defines the edges of a
-    bin. Returns a (classes x bins) array where each item gives the
-    number of features whose statistic value falls in the given bin
-    for the given class.
-
-    TODO: We should be able to make the dimensionality of this
-    function flexible.
-    """
-    logging.debug("Shape of stats is " + str(np.shape(stats)))
-    logging.debug("Shape of edges is " + str(np.shape(edges)))
-
-    return cumulative_hist(stats, edges)
-
-
-def feature_count_by_mean_stat(stats, edges):
-    logging.info("Accumulating counts for permuted data into {0} bins".format(
-        len(edges) - 1))
-    logging.debug("Shape of stats is " + str(np.shape(stats)))
-    logging.debug("Shape of edges is " + str(np.shape(edges)))
-    counts = np.zeros(len(edges) - 1)
-
-    for i, row in enumerate(stats):
-        counts += cumulative_hist(row, edges)
-    counts /= len(stats)
-    return counts
 
 
 def adjust_num_diff(V0, R):
@@ -1155,10 +1127,15 @@ class Boot:
 
         self.sample_indexes = idxs
 
-    def __call__(self):
+    def __call__(self, reducer=None, initializer=None, finalizer=lambda x: x):
         logging.info("Running bootstrap with {0} samples from {1}".format(
             self.R, self.sample_from))
 
+        if reducer is None:
+            reducer = lambda res, val: res + [val]
+            initializer = []
+            finalizer = lambda x: np.array(x)
+                
         # An R x m array where each row is a list of indexes into data,
         # randomly sampled.
         idxs = self.sample_indexes
@@ -1166,13 +1143,9 @@ class Boot:
         # We'll return an R x n array, where n is the number of
         # features. Each row is the array of statistics for all the
         # features, using a different random sampling.
-        results = np.zeros((self.R,) + np.shape(self.data)[1:])
-
-        for i, permutation in enumerate(idxs):
-            results[i] = self.stat_fn(self.build_sample(permutation))
-
-        self.sampled_stats = results
-        self.raw_stats     = self.stat_fn(self.data)
+        stats   = (self.stat_fn(self.build_sample(p)) for p in idxs)
+        reduced = reduce(reducer, stats, initializer)
+        self.results = finalizer(reduced)
 
 
 def init_schema(infile=None):
