@@ -315,21 +315,20 @@ def do_fdr(args):
 
     data = job.table
     stat = job.stat
+    raw_stats = stat(data)
+    bins = bins_uniform(args.num_bins, raw_stats)
 
-    prediction = predicted_values(job)
-
-    fdr = FdrResults()
-    fdr.raw_stats  = stat(data)
-    fdr.bins       = bins_uniform(args.num_bins, fdr.raw_stats)
-    
-    initializer   = np.zeros(len(fdr.bins) - 1)
-    reduce_fn     = lambda res, val: res + cumulative_hist(val, fdr.bins)
+    initializer   = np.zeros(len(bins) - 1)
+    reduce_fn     = lambda res, val: res + cumulative_hist(val, bins)
     finalize_fn   = lambda res : res / args.num_samples
 
+    fdr = FdrResults()
+    fdr.raw_stats  = raw_stats
+    fdr.bins       = bins
     fdr.raw_counts       = cumulative_hist(fdr.raw_stats, fdr.bins)
     fdr.baseline_counts = bootstrap(data, stat, 
                                     R=args.num_samples,
-                                    prediction=prediction,
+                                    prediction=predicted_values(job),
                                     sample_from=args.sample_from,
                                     initializer=initializer,
                                     reduce_fn=reduce_fn,
@@ -338,12 +337,7 @@ def do_fdr(args):
         fdr.raw_counts, fdr.baseline_counts)
     fdr.feature_to_score = assign_scores_to_features(
         fdr.raw_stats, fdr.bins, fdr.bin_to_score)
-    fdr.summary_bins = [0.5, 0.55, 
-                        0.6, 0.65,
-                        0.7, 0.75,
-                        0.8, .85,
-                        0.9, 0.95,
-                        1.0]
+    fdr.summary_bins = np.linspace(0.5, 1.0, 11)
     fdr.summary_counts = cumulative_hist(
         fdr.feature_to_score, fdr.summary_bins)
 
