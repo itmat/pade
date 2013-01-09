@@ -12,6 +12,8 @@ import StringIO
 import time
 import itertools
 import matplotlib.pyplot as plt
+import os
+import shutil
 
 DIR = 'profile'
 STDOUT_FILENAME = DIR + '/stdout'
@@ -24,7 +26,7 @@ REPORT_FILENAME = 'report.tex'
 ### Functions assigned to command-line actions
 ###
 
-def simulate(args):
+def setup(args):
     in_filename = 'sample_data/2_class_testdata_header1.txt'
     header = ""
     lines  = []
@@ -47,26 +49,27 @@ def run_page(args):
 
         for t in range(args.times):
             for log_n in log_ns(args):
+
                 n = int(10 ** log_n)
 
                 filename = sample_filename(n)
-
-                result = time_proc(['./page.py', '--channels', '1', filename])
+                directory = os.path.join('profile', 'new_{0}'.format(n))
+                result = time_proc(['./page.py', 'run', '--directory', directory])
                 result['n'] = n
                 result['version'] = 'python'
                 stats.write(repr(result) + "\n")
                 stats.flush()
 
-                result = time_proc(['perl', 'PaGE_demo.pl', 
-                                    '--infile', filename,
-                                    '--num_channels', '1',
-                                    '--unpaired', '--data_not_logged',
-                                    '--level_confidence', 'L',
-                                    '--min_presence', '4',
-                                    '--tstat', '--use_unlogged_data'])
-                result['n'] = n
-                result['version'] = 'perl'
-                stats.write(repr(result) + "\n")
+#                result = time_proc(['perl', 'PaGE_demo.pl', 
+#                                    '--infile', filename,
+#                                    '--num_channels', '1',
+#                                    '--unpaired', '--data_not_logged',
+#                                    '--level_confidence', 'L',
+#                                    '--min_presence', '4',
+#                                    '--tstat', '--use_unlogged_data'])
+#                result['n'] = n
+#                result['version'] = 'perl'
+#                stats.write(repr(result) + "\n")
                 stats.flush()
 
 def make_report(args):
@@ -101,7 +104,7 @@ def make_report(args):
     real_times = np.mean(real_times, axis=2)
     rss        = np.mean(rss,        axis=2)
 
-    perl = version_idx['perl']
+#    perl = version_idx['perl']
     python = version_idx['python']
 
     ns = np.array(sorted(n_set))
@@ -110,26 +113,22 @@ def make_report(args):
     suffix = '(2 classes, 4 reps per class)'
 
     # Plot running times
-    perl_minutes   = real_times[:, perl] / 60.0
+#    perl_minutes   = real_times[:, perl] / 60.0
     python_minutes = real_times[:, python] / 60.0
-    plt.plot(ns, perl_minutes, label='perl')
+#    plt.plot(ns, perl_minutes, label='perl')
     plt.plot(ns, python_minutes, label='python')
     plt.title('Running times ' + suffix)
     plt.xlabel('Features')
     plt.semilogx()
     plt.ylabel('Minutes')
-    plt.text(ns[3], perl_minutes[3] - 0.5, 'perl')
-    plt.text(ns[3], python_minutes[3] + 0.5, 'python')
     plt.savefig('runningtime')
 
     # Plot memory usage
     plt.clf()
-    perl_gigs   = rss[:, perl] / 1000000000.0
+#    perl_gigs   = rss[:, perl] / 1000000000.0
     python_gigs = rss[:, python] / 1000000000.0
-    plt.plot(ns, perl_gigs, label='perl')
+#    plt.plot(ns, perl_gigs, label='perl')
     plt.plot(ns, python_gigs, label='python')
-    plt.text(ns[3], perl_gigs[3] - 0.05, 'perl')
-    plt.text(ns[3], python_gigs[3] + 0.05, 'python')
     plt.xlabel('Features')
     plt.ylabel('Memory (GB)')
     plt.semilogx()
@@ -138,18 +137,18 @@ def make_report(args):
 
     # Plot improvement of running time and memory usage
 
-    rss_improvement = rss[:, perl] / rss[:,python]
-    time_improvement = real_times[:, perl] / real_times[:,python]
-    plt.clf()
-    plt.plot(ns, rss_improvement, label='Memory usage')
-    plt.plot(ns, time_improvement, label='Running time')
-    plt.text(ns[3], rss_improvement[3] - 1, 'Memory usage')
-    plt.text(ns[3], time_improvement[3] - 1, 'Running time')
-    plt.xlabel('Features')
-    plt.ylabel('perl / python')
-    plt.semilogx()
-    plt.title('Improvement (perl / python)')
-    plt.savefig('improvement')
+#    rss_improvement = rss[:, perl] / rss[:,python]
+#    time_improvement = real_times[:, perl] / real_times[:,python]
+#    plt.clf()
+#    plt.plot(ns, rss_improvement, label='Memory usage')
+#    plt.plot(ns, time_improvement, label='Running time')
+#    plt.text(ns[3], rss_improvement[3] - 1, 'Memory usage')
+#    plt.text(ns[3], time_improvement[3] - 1, 'Running time')
+#    plt.xlabel('Features')
+#    plt.ylabel('perl / python')
+#    plt.semilogx()
+#    plt.title('Improvement (perl / python)')
+#    plt.savefig('improvement')
 
 ########################################################################
 ###
@@ -170,6 +169,15 @@ def make_sample_file(header, lines, num_lines):
             out.write("{0:d}\t{1:s}".format(counter, lines[counter % n]))
     out.close()
 
+    directory = 'profile/new_{0}'.format(num_lines)
+    subprocess.call(['python', 'page.py', 
+                     'setup', 
+                     '--factor', 'treated', 
+                     '--directory', directory,
+                     filename
+                     ])
+
+    shutil.copy('sample_data/schema_2class.yaml', os.path.join(directory, 'schema.yaml'))
 
 def log_ns(args):
     return np.linspace(3, args.max_log_n, (args.max_log_n - 3) * args.step + 1)
@@ -180,7 +188,9 @@ def time_proc(cmd):
 
     stderr = open(STDERR_FILENAME, 'w')
     stdout = open(STDOUT_FILENAME, 'a')
-    subprocess.call(cmd, stderr=stderr, stdout=stdout)
+    retcode = subprocess.call(cmd, stderr=stderr, stdout=stdout)
+    if retcode != 0:
+        raise Exception("Call failed")
     stderr.close()
     stderr = open(STDERR_FILENAME)
     result = parse_timing([line for line in stderr])
@@ -190,12 +200,15 @@ def time_proc(cmd):
 def main():
     parser = argparse.ArgumentParser()
 
+    if not os.path.exists('profile'):
+        os.makedirs('profile')
+
     subs = parser.add_subparsers(help='Action to perform')
 
-    sim_parser = subs.add_parser('simulate', help='Create simulated input files')
-    sim_parser.add_argument('--max-log-n', type=int, default=8)
+    sim_parser = subs.add_parser('setup', help='Setup jobs for profiling')
+    sim_parser.add_argument('--max-log-n', type=int, default=5)
     sim_parser.add_argument('--step', type=int, default=2)
-    sim_parser.set_defaults(func=simulate)
+    sim_parser.set_defaults(func=setup)
 
     run_parser = subs.add_parser('run', help='Run page')
     run_parser.add_argument('--max-log-n', type=int, default=8)
@@ -206,6 +219,7 @@ def main():
     report_parser = subs.add_parser('report')
     report_parser.set_defaults(func=make_report)
 
+
     args = parser.parse_args()
 
     args.func(args)
@@ -215,8 +229,11 @@ def run_tests(args):
                 
 def parse_timing(lines):
     res = {}
-    for (val, name) in re.findall("(\d+\.?\d*)\s+(real|user|sys)", lines[0]):
-        res[name] = float(val)
+
+    parts = lines[0].strip().split()
+    print "Parts are", parts
+    for i in range(3):
+        res[parts[i * 2 + 1]] = float(parts[i * 2])
     for line in lines[1:]:
         for (val, name) in re.findall("\s*(\d+)\s+(.*)", line):
             res[name] = float(val)
@@ -225,28 +242,3 @@ def parse_timing(lines):
 if __name__ == '__main__':
     main()
 
-class TestPerlVsPython(unittest.TestCase):
-
-    def test_parse_time(self):
-
-        time_output = """   4.13 real         4.03 user         0.08 sys
-  38846464  maximum resident set size
-         0  average shared memory size
-         0  average unshared data size
-         0  average unshared stack size
-     10433  page reclaims
-         0  page faults
-         0  swaps
-         0  block input operations
-         0  block output operations
-         0  messages sent
-         0  messages received
-         0  signals received
-         0  voluntary context switches
-        66  involuntary context switches
-"""
-        
-        parsed = parse_timing(time_output.splitlines())
-        self.assertAlmostEquals(parsed['real'], 4.13)
-        self.assertAlmostEquals(parsed['sys'],  0.08)
-        self.assertEquals(parsed['maximum resident set size'], 38846464)

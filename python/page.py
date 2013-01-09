@@ -301,8 +301,9 @@ def do_boot(args):
     job = args_to_job(args)
     prediction = predicted_values(job)
     
-    boot = Boot(job.table, prediction, job.stat, args.num_samples,
-                sample_indexes_path=os.path.join(job.directory, 'indexes'),
+    boot = Boot(job.table, job.stat, 
+                R=args.num_samples,
+                prediction=prediction,
                 sample_from=args.sample_from)
     boot()
     return boot
@@ -495,7 +496,8 @@ def feature_count_by_mean_stat(stats, edges):
     logging.info("Accumulating counts for permuted data into {0} bins".format(
         len(edges) - 1))
     logging.debug("Shape of stats is " + str(np.shape(stats)))
-    counts = np.zeros(np.shape(stats)[1:])
+    logging.debug("Shape of edges is " + str(np.shape(edges)))
+    counts = np.zeros(len(edges) - 1)
 
     for i, row in enumerate(stats):
         counts += cumulative_hist(row, edges)
@@ -1123,7 +1125,7 @@ class Boot:
         self.prediction = prediction
         self.stat_fn = stat_fn
         self.R = R
-        self.sample_indexes = None
+        self.sample_indexes = sample_indexes
         self.build_sample = None
         self.sample_from = sample_from
 
@@ -1147,6 +1149,8 @@ class Boot:
         m = np.shape(self.data)[0]
 
         if idxs is None:
+            print "R is ", R
+            print "M is", m
             idxs = np.random.random_integers(0, m - 1, (R, m))
 
         self.sample_indexes = idxs
@@ -1489,8 +1493,6 @@ class Ftest:
 
         numer = (rss_red - rss_full) / (p_full - p_red)
         denom = rss_full / (n - p_full)
-        if denom == 0:
-            return 0
         return numer / denom
 
 class FtestSqrt:

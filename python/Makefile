@@ -6,3 +6,4 @@ test :
 
 clean :
 	rm -f *~ *.pyc *.log tests/*~ tests/*.pyc
+
