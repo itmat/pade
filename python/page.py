@@ -322,31 +322,22 @@ def do_fdr(args):
     fdr.raw_stats  = stat(data)
     fdr.bins       = bins_uniform(args.num_bins, fdr.raw_stats)
     
-    initializer = np.zeros(len(fdr.bins) - 1)
-    reducer     = lambda res, val: res + cumulative_hist(val, fdr.bins)
-    finalizer   = lambda res : res / args.num_samples
+    initializer   = np.zeros(len(fdr.bins) - 1)
+    reduce_fn     = lambda res, val: res + cumulative_hist(val, fdr.bins)
+    finalize_fn   = lambda res : res / args.num_samples
 
-    boot = Boot(data, stat,
-                R=args.num_samples,
-                prediction=prediction,
-                sample_from=args.sample_from)
-    boot(                
-        initializer=initializer,
-        reducer=reducer,
-        finalizer=finalizer)
-#    boot()
-    baseline_stats = boot.results
-    
-
-    fdr.boot = boot
-    # Do FDR
     fdr.raw_counts       = cumulative_hist(fdr.raw_stats, fdr.bins)
-    fdr.baseline_counts  = boot.results
+    fdr.baseline_counts = bootstrap(data, stat, 
+                                    R=args.num_samples,
+                                    prediction=prediction,
+                                    sample_from=args.sample_from,
+                                    initializer=initializer,
+                                    reduce_fn=reduce_fn,
+                                    finalize_fn=finalize_fn)
     fdr.bin_to_score     = confidence_scores(
         fdr.raw_counts, fdr.baseline_counts)
     fdr.feature_to_score = assign_scores_to_features(
         fdr.raw_stats, fdr.bins, fdr.bin_to_score)
-
     fdr.summary_bins = [0.5, 0.55, 
                         0.6, 0.65,
                         0.7, 0.75,
@@ -1070,82 +1061,48 @@ def write_yaml_block_comment(fh, comment):
     fh.write(unicode(result))
 
 
-class Boot:
-    """Bootstrap results."""
+def bootstrap(data,
+              stat_fn,
+              R=1000,
+              prediction=None,
+              sample_indexes=None,
+              sample_from='residuals',
+              reduce_fn=None, initializer=None, finalize_fn=lambda x: x):
 
-    def __init__(self,
-                 data,
-                 stat_fn,
-                 R=1000,
-                 prediction=None,
-                 sample_indexes=None,
-                 sample_from='residuals'):
-        """Run bootstrapping.
+    build_sample = None
+    if sample_from == 'raw':
+        build_sample = lambda idxs: data[idxs]
+    elif sample_from == 'residuals':
+        if prediction is None:
+            raise Exception("I need predicted values in order to sample from residuals")
+        residuals = data - prediction
+        build_sample = lambda idxs: prediction + residuals[idxs]
+    else:
+        raise Exception(
+            "sample_from most be either 'raw' or 'residuals'" +
+            " not '" + sample_from + "'")
 
-        data - An m x ... array of data points
+    # Number of samples
+    m = np.shape(data)[0]
 
-        prediction - An ndarray of the same shape as data, giving the
-                     predicted values for the data points.
+    idxs = np.random.random_integers(0, m - 1, (R, m))
 
-        stat_fn - A callable that takes data and returns a statistic
-                  value.
+    logging.info("Running bootstrap with {0} samples from {1}".format(
+            R, sample_from))
 
-        R - The number of samples to run. Defaults to 1000.
-        
-        """
-        self.data = data
-        self.prediction = prediction
-        self.stat_fn = stat_fn
-        self.R = R
-        self.sample_indexes = sample_indexes
-        self.build_sample = None
-        self.sample_from = sample_from
-
-        if sample_from == 'raw':
-            self.build_sample = lambda idxs: self.data[idxs]
-        elif sample_from == 'residuals':
-
-            if prediction is None:
-                raise Exception("I need predicted values in order to sample from residuals")
-            residuals = self.data - self.prediction
-            self.build_sample = lambda idxs: self.prediction + residuals[idxs]
-        else:
-            raise Exception(
-                "sample_from most be either 'raw' or 'residuals'" +
-                " not '" + sample_from + "'")
-
-        idxs = None
-        need_save = False
-
-        # Number of samples
-        m = np.shape(self.data)[0]
-
-        if idxs is None:
-            print "R is ", R
-            print "M is", m
-            idxs = np.random.random_integers(0, m - 1, (R, m))
-
-        self.sample_indexes = idxs
-
-    def __call__(self, reducer=None, initializer=None, finalizer=lambda x: x):
-        logging.info("Running bootstrap with {0} samples from {1}".format(
-            self.R, self.sample_from))
-
-        if reducer is None:
-            reducer = lambda res, val: res + [val]
-            initializer = []
-            finalizer = lambda x: np.array(x)
+    if reduce_fn is None:
+        reduce_fn = lambda res, val: res + [val]
+        initializer = []
+        finalize_fn = lambda x: np.array(x)
                 
-        # An R x m array where each row is a list of indexes into data,
-        # randomly sampled.
-        idxs = self.sample_indexes
 
-        # We'll return an R x n array, where n is the number of
-        # features. Each row is the array of statistics for all the
-        # features, using a different random sampling.
-        stats   = (self.stat_fn(self.build_sample(p)) for p in idxs)
-        reduced = reduce(reducer, stats, initializer)
-        self.results = finalizer(reduced)
+    # We'll return an R x n array, where n is the number of
+    # features. Each row is the array of statistics for all the
+    # features, using a different random sampling.
+    samples = (build_sample(p) for p in idxs)
+    stats   = (stat_fn(s) for s in samples)
+    reduced = reduce(reduce_fn, stats, initializer)
+    return finalize_fn(reduced)
 
 
 def init_schema(infile=None):
