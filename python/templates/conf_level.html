@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Details for score >= {{ min_score }} {% endblock %}
+{% block content %}
+
+<table>
+
+  <tr>
+    <th></th>
+    <th></th>
+    <th></th>
+    <th colspan="{{results.condition_names|length}}">Means</th>
+    <th colspan="{{results.condition_names|length}}">Coefficients</th>
+  </tr>
+
+  <tr>
+    <th>Feature id</th>
+    
+    <th>Score</th>
+    <th>{{ job.stat_name }} stat</th>
+
+    {% for name in results.condition_names %}
+    <th>{{ name }}</th>
+    {% endfor %}
+
+    {% for name in results.condition_names %}
+    <th>{{ name }}</th>
+    {% endfor %}
+  </tr>
+
+  {% for i in range(results.feature_ids|length) %}
+  <tr>
+    <td>{{ results.feature_ids[i] }}</td>
+
+    <!-- Confidence score -->
+    <td>{{ "%.2f"|format(results.scores[i]) }}</td>
+
+    <!-- Statistic value -->
+    <td>{{ "%.2f"|format(results.stats[i]) }}</td>
+
+    <!-- Mean for each condition -->
+    {% for mean in results.means[i] %}
+    <td>{{ "%.2f"|format(mean) }}</td>
+    {% endfor %}
+
+    <!-- Coefficient for each condition -->
+    {% for coeff in results.coeffs[i] %}
+    <td>{{ "%.2f"|format(coeff) }}</td>
+    {% endfor %}
+
+  </tr>
+  {% endfor %}
+
+</table>
+
+{% endblock %}
