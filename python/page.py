@@ -225,7 +225,7 @@ def setup_css(env):
 def args_to_job(args):
     """Construct a job based on the command-line arguments."""
 
-    logging.info("Constructing job based on command-line arguments")
+    logging.debug("Constructing job based on command-line arguments")
 
     job = Job(
         directory=args.directory,
@@ -326,13 +326,13 @@ def do_fdr(args):
 
     boot = do_boot(args)
     raw_stats = boot.raw_stats
-    baseline_stats = boot.permuted_stats
+    baseline_stats = boot.sampled_stats
 
     fdr = FdrResults()
     fdr.boot = boot
 
     # Do FDR
-    fdr.bins             = bins_uniform(1000, raw_stats)
+    fdr.bins             = bins_uniform(args.num_bins, raw_stats)
     fdr.raw_counts       = feature_count_by_stat(raw_stats, fdr.bins)
     fdr.baseline_counts  = feature_count_by_mean_stat(
         baseline_stats, fdr.bins)
@@ -430,6 +430,16 @@ def do_report(args):
                 results=results
                 ))
 
+        template = env.get_template('conf_level.html')
+        for level in range(len(fdr.summary_counts)):
+            score=fdr.summary_bins[level]
+            with open('conf_level_{0}.html'.format(level), 'w') as out:
+                out.write(template.render(
+                    min_score=score,
+                    job=job,
+                    fdr=fdr,
+                    results=results.filter_by_score(score)))
+
 #    for i in range(len(fdr.raw_counts)):
 #        print (fdr.bins[i], fdr.raw_counts[i], fdr.baseline_counts[i], fdr.bin_to_score[i])
 
@@ -482,7 +492,8 @@ def feature_count_by_stat(stats, edges):
 
 
 def feature_count_by_mean_stat(stats, edges):
-    logging.info("Accumulating counts for permuted data")
+    logging.info("Accumulating counts for permuted data into {0} bins".format(
+        len(edges) - 1))
     logging.debug("Shape of stats is " + str(np.shape(stats)))
     counts = np.zeros(np.shape(stats)[1:])
 
@@ -782,7 +793,7 @@ class Job:
             self._table = np.array(table).swapaxes(0, 1)
             self._feature_ids = ids
 
-            logging.info("Table shape is " + str(np.shape(self._table)))
+            logging.debug("Table shape is " + str(np.shape(self._table)))
             logging.info("Loaded " + str(len(self._feature_ids)) + " features")
 
 
@@ -791,14 +802,14 @@ def main():
 
     logging.basicConfig(level=logging.DEBUG,
                         format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
-                        datefmt='%m-%d %H:%M',
+                        datefmt='%Y-%m-%d %H:%M:%S',
                         filename='page.log',
                         filemode='w')
 
     args = get_arguments()
 
     console = logging.StreamHandler()
-    formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
+    formatter = logging.Formatter('%(levelname)-8s %(message)s')
     console.setFormatter(formatter)
 
     if args.debug:
@@ -1088,10 +1099,12 @@ def write_yaml_block_comment(fh, comment):
 class Boot:
     """Bootstrap results."""
 
-    DEFAULT_LEVELS = np.linspace(0.5, 0.95, num=10)
-
-
-    def __init__(self, data, prediction, stat_fn, R=1000, sample_indexes_path=None,
+    def __init__(self,
+                 data,
+                 stat_fn,
+                 R=1000,
+                 prediction=None,
+                 sample_indexes=None,
                  sample_from='residuals'):
         """Run bootstrapping.
 
@@ -1106,30 +1119,26 @@ class Boot:
         R - The number of samples to run. Defaults to 1000.
         
         """
-
         self.data = data
         self.prediction = prediction
         self.stat_fn = stat_fn
         self.R = R
-        self.sample_indexes_path = sample_indexes_path
         self.sample_indexes = None
         self.build_sample = None
-
-        # Permute the error terms. For each permutation: Add the errors to
-        # the data (or the predictions?) and compute the statistic again.
-        residuals = self.data - self.prediction
+        self.sample_from = sample_from
 
         if sample_from == 'raw':
-            logging.info("Sampling raw data")
             self.build_sample = lambda idxs: self.data[idxs]
         elif sample_from == 'residuals':
-            logging.info("Sampling residuals")
+
+            if prediction is None:
+                raise Exception("I need predicted values in order to sample from residuals")
+            residuals = self.data - self.prediction
             self.build_sample = lambda idxs: self.prediction + residuals[idxs]
         else:
             raise Exception(
                 "sample_from most be either 'raw' or 'residuals'" +
                 " not '" + sample_from + "'")
-        
 
         idxs = None
         need_save = False
@@ -1137,26 +1146,14 @@ class Boot:
         # Number of samples
         m = np.shape(self.data)[0]
 
-#        if sample_indexes_path is not None:
-#            try:
-#                idxs = np.load(sample_indexes_path)
-#                logging.info("Loaded sample indexes from " + sample_indexes_path)
-#            except:
-#                logging.info("Don't have sample indexes yet, generating new ones")
-#                need_save = True
-                
         if idxs is None:
             idxs = np.random.random_integers(0, m - 1, (R, m))
-
-#        if need_save:
-#            logging.info("Saving sample indexes")
-#            with open(sample_indexes_path, 'w') as out:
-#                np.save(out, idxs)
 
         self.sample_indexes = idxs
 
     def __call__(self):
-        logging.info("Running bootstrap")
+        logging.info("Running bootstrap with {0} samples from {1}".format(
+            self.R, self.sample_from))
 
         # An R x m array where each row is a list of indexes into data,
         # randomly sampled.
@@ -1170,22 +1167,8 @@ class Boot:
         for i, permutation in enumerate(idxs):
             results[i] = self.stat_fn(self.build_sample(permutation))
 
-        self.permuted_stats = results
-        self.raw_stats      = self.stat_fn(self.data)
-
-    def ci(self, levels=DEFAULT_LEVELS):
-        """Return the confidence intervals for the given levels.
-
-        The result is an n x L array, where n is the number of
-        features and L is the number of levels. ci[i, j] gives the
-        value of the statistic for which the confidence of feature[i]
-        being differentially expressed is at least levels[j].
-
-        """
-        logging.info("Computing confidence intervals")
-        intervals = scipy.stats.mstats.mquantiles(
-            self.permuted_stats, prob=levels, axis=0)
-        return intervals
+        self.sampled_stats = results
+        self.raw_stats     = self.stat_fn(self.data)
 
 
 def init_schema(infile=None):
@@ -1329,7 +1312,13 @@ p        class."""),
         '--sample-from',
         choices=['raw', 'residuals'],
         default='residuals',
-        help='Indicate whether to do bootstrapping based on samples from the raw data or sampled residuals')
+        help='Indicate whether to do bootstrapping based on samples from the raw data or sampled residuals'),
+
+    'num_bins' : lambda p: p.add_argument(
+        '--num-bins',
+        type=int,
+        default=1000,
+        help="Number of bins to divide the statistic space into.")
 
 }
 
@@ -1368,36 +1357,7 @@ def get_arguments():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     add_args(run_parser, [
-            'directory', 'full_model', 'reduced_model', 'stat', 'verbose', 'debug', 'num_samples', 'sample_from'])
-
-    sample_parser = subparsers.add_parser(
-        'sample',
-        help="""Generate the sampling indexes""")
-    add_args(sample_parser, ['num_samples', 'full_model', 'reduced_model'])
-
-    boot_parser = subparsers.add_parser(
-        'boot',
-        help="""Run bootstrapping.""")
-    add_args(boot_parser, ['num_samples', 'full_model', 'reduced_model',
-                           'verbose', 'stat', 'debug', 'directory',
-                           'sample_from'])
-    boot_parser.set_defaults(func=do_boot)
-
-    fdr_parser = subparsers.add_parser(
-        'fdr',
-        help="""Calculate the FDR.""")
-    add_args(fdr_parser, ['num_samples', 'full_model', 'reduced_model',
-                           'verbose', 'stat', 'debug', 'directory',
-                          'sample_from'])
-    fdr_parser.set_defaults(func=do_fdr)
-
-    report_parser = subparsers.add_parser(
-        'report',
-        help="""Generate report.""")
-    add_args(report_parser, ['num_samples', 'full_model', 'reduced_model',
-                             'verbose', 'stat', 'debug', 'directory',
-                             'sample_from'])
-    report_parser.set_defaults(func=do_report)
+            'directory', 'full_model', 'reduced_model', 'stat', 'verbose', 'debug', 'num_samples', 'sample_from', 'num_bins'])
 
     run_parser.set_defaults(func=Step(do_run))
 
@@ -1529,6 +1489,8 @@ class Ftest:
 
         numer = (rss_red - rss_full) / (p_full - p_red)
         denom = rss_full / (n - p_full)
+        if denom == 0:
+            return 0
         return numer / denom
 
 class FtestSqrt:
