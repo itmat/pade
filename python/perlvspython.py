@@ -98,13 +98,12 @@ def make_report(args):
                0)
         print "Key is " + str(key)
 
-        real_times[key] = x['real']
-        rss[key] = x['maximum resident set size']
+        real_times[key] = x['elapsed_seconds']
+        rss[key] = x['rss_gb']
 
     real_times = np.mean(real_times, axis=2)
     rss        = np.mean(rss,        axis=2)
 
-#    perl = version_idx['perl']
     python = version_idx['python']
 
     ns = np.array(sorted(n_set))
@@ -113,9 +112,7 @@ def make_report(args):
     suffix = '(2 classes, 4 reps per class)'
 
     # Plot running times
-#    perl_minutes   = real_times[:, perl] / 60.0
     python_minutes = real_times[:, python] / 60.0
-#    plt.plot(ns, perl_minutes, label='perl')
     plt.plot(ns, python_minutes, label='python')
     plt.title('Running times ' + suffix)
     plt.xlabel('Features')
@@ -125,13 +122,11 @@ def make_report(args):
 
     # Plot memory usage
     plt.clf()
-#    perl_gigs   = rss[:, perl] / 1000000000.0
-    python_gigs = rss[:, python] / 1000000000.0
-#    plt.plot(ns, perl_gigs, label='perl')
+    python_gigs = rss[:, python]
     plt.plot(ns, python_gigs, label='python')
     plt.xlabel('Features')
     plt.ylabel('Memory (GB)')
-    plt.semilogx()
+    plt.loglog()
     plt.title('Memory usage ' + suffix)
     plt.savefig('rss')
 
@@ -170,31 +165,40 @@ def make_sample_file(header, lines, num_lines):
     out.close()
 
     directory = 'profile/new_{0}'.format(num_lines)
-    subprocess.call(['python', 'page.py', 
+
+    retcode = subprocess.call(['python', 'page.py', 
                      'setup', 
                      '--factor', 'treated', 
                      '--directory', directory,
                      filename
                      ])
-
+    if retcode != 0:
+        raise Exception("Setup failed")
     shutil.copy('sample_data/schema_2class.yaml', os.path.join(directory, 'schema.yaml'))
 
 def log_ns(args):
     return np.linspace(3, args.max_log_n, (args.max_log_n - 3) * args.step + 1)
 
 def time_proc(cmd):
-    cmd = ['/usr/bin/time', '-l'] + cmd
+    cmd = ['/usr/bin/time', '-f', '%e %M'] + cmd
     print "Running " + str(cmd)
 
     stderr = open(STDERR_FILENAME, 'w')
     stdout = open(STDOUT_FILENAME, 'a')
     retcode = subprocess.call(cmd, stderr=stderr, stdout=stdout)
     if retcode != 0:
-        raise Exception("Call failed")
+        raise Exception("Call failed: ")
     stderr.close()
     stderr = open(STDERR_FILENAME)
-    result = parse_timing([line for line in stderr])
-    stderr.close()
+    lines = [x for x in stderr]
+    print lines
+    (elapsed_seconds, rss_kb) = lines[0].split()
+    elapsed_seconds = float(elapsed_seconds)
+    rss_gb = float(rss_kb) / 1000000
+    result = {
+        'elapsed_seconds' : elapsed_seconds,
+        'rss_gb'          : rss_gb
+        }
     return result
     
 def main():
@@ -226,16 +230,18 @@ def main():
 
 def run_tests(args):
     unittest.main()
-                
+    
+time_out_handlers = {
+    'time' : {
+        'User time (seconds)'
+        }
+}
+            
 def parse_timing(lines):
     res = {}
 
-    parts = lines[0].strip().split()
-    print "Parts are", parts
-    for i in range(3):
-        res[parts[i * 2 + 1]] = float(parts[i * 2])
     for line in lines[1:]:
-        for (val, name) in re.findall("\s*(\d+)\s+(.*)", line):
+        for (name, val) in re.findall("\s*(.+):\s+(.*)", line):
             res[name] = float(val)
     return res
 

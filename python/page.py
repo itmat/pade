@@ -177,7 +177,6 @@ def plot_conf_by_stat(fdr, filename='conf_by_stat',
                  label='increasing')
         plt.xlabel('statistic')
         plt.ylabel('confidence')
-#        plt.legend(loc=2)
         title = "Confidence level by statistic"
         if extra:
             title += extra
@@ -293,10 +292,6 @@ def ensure_scores_increase(scores):
     return res
 
 
-class Step:
-    def __init__(self, fn):
-        self.__call__ = fn
-
 class FdrResults:
     """Simple data object used to back the HTML reports."""
     def __init__(self):
@@ -307,7 +302,8 @@ class FdrResults:
         self.feature_to_to_score = None
         self.boot = None
         self.raw_stats = None
-
+        self.summary_bins = None
+        self.summary_counts = None
 
 def do_fdr(args):
 
@@ -1164,23 +1160,6 @@ I have generated a schema for your input file, with factors {factors}, and saved
 """).format(factors=job.schema.factors.keys(),
             filename=job.schema_path)
 
-class Transition:
-    def __init__(self, name, from_state, to_state, action):
-        
-        pass
-
-class State:
-    def __init__(self, name):
-        self.name = name
-
-states = [
-    State('empty'),
-    State('initialized'),
-    State('ready'),
-    State('bootstrapped'),
-    State('accumulated'),
-    State('reported')]
-
 ARGUMENTS = {
     'infile' : lambda p: p.add_argument(
         'infile',
@@ -1287,7 +1266,7 @@ def get_arguments():
     add_args(run_parser, [
             'directory', 'full_model', 'reduced_model', 'stat', 'verbose', 'debug', 'num_samples', 'sample_from', 'num_bins'])
 
-    run_parser.set_defaults(func=Step(do_run))
+    run_parser.set_defaults(func=do_run)
 
     return uberparser.parse_args()
 
