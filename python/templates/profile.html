@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Profile{% endblock %}
+{% block content %}
+
+<table>
+  <tr>
+    <th>event</th>
+    <th>label</th>
+    <th>maxrss</th>
+    <th>maxrss increase</th>
+    <th>increase percent</th>
+  </tr>
+
+  {% for event in profile %}
+  <tr>
+    <td>{{ event['level'] }}</td>
+    <td>{{ event['label'] }}</td>
+    <td>{{ event['maxrss'] }}</td>
+    <td>{{ event['maxrss_increase'] }}</td>
+    <td>{{ event['increase_percent'] }}</td>
+  </tr>
+  {% endfor %}
+
+</table>
+
+{% endblock %}
