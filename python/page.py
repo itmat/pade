@@ -400,7 +400,7 @@ class ResultTable:
     def __len__(self):
         return len(self.feature_ids)
 
-    def pages(self, rows_per_page=15):
+    def pages(self, rows_per_page=100):
         for start in range(0, len(self), rows_per_page):
             size = min(rows_per_page, len(self) - start)
             end = start + size
@@ -483,10 +483,13 @@ def do_report(args):
                 for page_num, page in enumerate(pages):
                     with open('conf_level_{0}_page_{1}.html'.format(level, page_num), 'w') as out:
                         out.write(template.render(
+                                conf_level=level,
                                 min_score=score,
                                 job=job,
                                 fdr=fdr,
-                                results=page))
+                                results=page,
+                                page_num=page_num,
+                                num_pages=len(pages)))
 
 do_run = do_report
 
