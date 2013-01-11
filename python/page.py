@@ -132,12 +132,12 @@ def maxrss():
 def profiling(label):
     if PROFILE:
         pre_maxrss = maxrss()
-        logging.debug("Starting " + label)
+#        logging.debug("Starting " + label)
         PROFILE_RESULTS.append(('enter', label, pre_maxrss, 0))
         yield
         post_maxrss = maxrss()
         PROFILE_RESULTS.append(('exit', label, post_maxrss, post_maxrss - pre_maxrss))
-        logging.debug("Stopping " + label)
+#        logging.debug("Stopping " + label)
     else:
         yield
 
@@ -360,7 +360,8 @@ def do_fdr(args):
                                         reduce_fn=reduce_fn,
                                         finalize_fn=finalize_fn)
         fdr.bin_to_score     = confidence_scores(
-            fdr.raw_counts, fdr.baseline_counts)
+            fdr.raw_counts, fdr.baseline_counts, len(raw_stats))
+
         fdr.feature_to_score = assign_scores_to_features(
             fdr.raw_stats, fdr.bins, fdr.bin_to_score)
         fdr.summary_bins = np.linspace(0.5, 1.0, 11)
@@ -398,47 +399,54 @@ class ResultTable:
 @profiled
 def do_report(args):
 
-    job = args_to_job(args)
 
-    var_shape = job.full_model.factor_value_shape()
-    num_groups = int(np.prod(var_shape))
-    num_features = np.shape(job.table)[1]
+    with profiling("do_report: prologue"):
 
-    # Get the means and coefficients, which will come back as an
-    # ndarray. We will need to flatten them for display purposes.
-    (means, coeffs) = find_coefficients(job.full_model, job.table)
+        job = args_to_job(args)
 
-    # The means and coefficients returned by find_coefficients are
-    # n-dimensional, with one dimension for each factor, plus a
-    # dimension for feature. Flatten them into a 2d array (condition x
-    # feature).
-    flat_coeffs = np.zeros((num_features, num_groups))
-    flat_means  = np.zeros_like(flat_coeffs)
-    for i, idx in enumerate(np.ndindex(var_shape)):
-        flat_coeffs[:, i] = coeffs[idx]
-        flat_means[:, i]  = means[idx]
+        var_shape = job.full_model.factor_value_shape()
+        num_groups = int(np.prod(var_shape))
+        num_features = np.shape(job.table)[1]
 
-    prediction = predicted_values(job)
+        # Get the means and coefficients, which will come back as an
+        # ndarray. We will need to flatten them for display purposes.
+        (means, coeffs) = find_coefficients(job.full_model, job.table)
+
+        # The means and coefficients returned by find_coefficients are
+        # n-dimensional, with one dimension for each factor, plus a
+        # dimension for feature. Flatten them into a 2d array (condition x
+        # feature).
+        flat_coeffs = np.zeros((num_features, num_groups))
+        flat_means  = np.zeros_like(flat_coeffs)
+        for i, idx in enumerate(np.ndindex(var_shape)):
+            flat_coeffs[:, i] = coeffs[idx]
+            flat_means[:, i]  = means[idx]
+
+        prediction = predicted_values(job)
+
+    results = None
+
     fdr = do_fdr(args)
 
-    results = ResultTable(
-        means=flat_means,
-        coeffs=flat_coeffs,
-        condition_names=model_col_names(job.full_model),
-        stats=fdr.raw_stats,
-        feature_ids=np.array(job.feature_ids),
-        scores=fdr.feature_to_score)
+    with profiling("do_report: build results table"):
+
+        results = ResultTable(
+            means=flat_means,
+            coeffs=flat_coeffs,
+            condition_names=model_col_names(job.full_model),
+            stats=fdr.raw_stats,
+            feature_ids=np.array(job.feature_ids),
+            scores=fdr.feature_to_score)
 
     # Do report
 
 
-    with profiling('build report'):
-        with chdir(job.directory):
-            extra = "\nstat " + job.stat_name + ", sampling " + args.sample_from
-#        plot_counts_by_stat(fdr, extra=extra)
-#        plot_conf_by_stat(fdr, extra=extra)
+    with profiling('do_report: build report'):
 
         with chdir(job.directory):
+            extra = "\nstat " + job.stat_name + ", sampling " + args.sample_from
+#           plot_counts_by_stat(fdr, extra=extra)
+#           plot_conf_by_stat(fdr, extra=extra)
             env = jinja2.Environment(loader=jinja2.PackageLoader('page'))
             setup_css(env)
             template = env.get_template('index.html')
@@ -452,6 +460,8 @@ def do_report(args):
             template = env.get_template('conf_level.html')
             for level in range(len(fdr.summary_counts)):
                 score=fdr.summary_bins[level]
+                filtered = results.filter_by_score(score)
+
                 with open('conf_level_{0}.html'.format(level), 'w') as out:
                     out.write(template.render(
                             min_score=score,
@@ -478,6 +488,11 @@ def assign_scores_to_features(stats, bins, scores):
     Returns an array that gives the confidence score for each feature.
 
     """
+    logging.info("Assiging scores to features")
+    logging.info(("I have {num_stats} stats, {num_bins} bins, and " +
+                  "{num_scores} scores").format(num_stats=len(stats),
+                                                num_bins=len(bins),
+                                                num_scores=len(scores)))
 
     return np.array([scores[bisect(bins, stat) - 1]  for stat in stats])
 
@@ -487,21 +502,23 @@ def cumulative_hist(values, bins):
     return np.array(np.cumsum(hist[::-1])[::-1], float)
 
 
-def adjust_num_diff(V0, R):
+def adjust_num_diff(V0, R, num_ids):
     V = np.zeros((6,) + np.shape(V0))
     V[0] = V0
-    num_ids = len(V0)
     for i in range(1, 6):
         V[i] = V[0] - V[0] / num_ids * (R - V[i - 1])
     return V[5]
 
 @profiled
-def confidence_scores(raw_counts, perm_counts):
+def confidence_scores(raw_counts, perm_counts, num_features):
     """Return confidence scores.
     
     """
-    adjusted = adjust_num_diff(perm_counts, raw_counts)
-    return (raw_counts - adjusted) / raw_counts
+    if np.shape(raw_counts) != np.shape(perm_counts):
+        raise Exception("raw_counts and perm_counts must have same shape")
+    adjusted = adjust_num_diff(perm_counts, raw_counts, num_features)
+    res = (raw_counts - adjusted) / raw_counts
+    return res
 
 @profiled
 def find_coefficients(model, data):
@@ -1148,20 +1165,22 @@ def bootstrap(data,
         reduce_fn = lambda res, val: res + [val]
         initializer = []
         finalize_fn = lambda x: np.array(x)
-                
 
     # We'll return an R x n array, where n is the number of
     # features. Each row is the array of statistics for all the
     # features, using a different random sampling.
     
     reduced = None
+    samples = None
     with profiling("build samples, do stats, reduce"):
         samples = (build_sample(p) for p in idxs)
         stats   = (stat_fn(s) for s in samples)
         reduced = reduce(reduce_fn, stats, initializer)
     finalized = None
+
     with profiling("finalize"):
         finalized = finalize_fn(reduced)
+
     return finalized
 
 
