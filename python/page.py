@@ -396,6 +396,24 @@ class ResultTable:
             stats=self.stats[idxs],
             feature_ids=self.feature_ids[idxs],
             scores=self.scores[idxs])
+
+    def __len__(self):
+        return len(self.feature_ids)
+
+    def pages(self, rows_per_page=15):
+        for start in range(0, len(self), rows_per_page):
+            size = min(rows_per_page, len(self) - start)
+            end = start + size
+
+            yield ResultTable(
+                condition_names=self.condition_names,
+                means=self.means[start : end],
+                coeffs=self.coeffs[start : end],
+                stats=self.stats[start : end],
+                feature_ids=self.feature_ids[start : end],
+                scores=self.scores[start : end])
+
+            
 @profiled
 def do_report(args):
 
@@ -461,14 +479,14 @@ def do_report(args):
             for level in range(len(fdr.summary_counts)):
                 score=fdr.summary_bins[level]
                 filtered = results.filter_by_score(score)
-
-                with open('conf_level_{0}.html'.format(level), 'w') as out:
-                    out.write(template.render(
-                            min_score=score,
-                            job=job,
-                            fdr=fdr,
-                            results=results.filter_by_score(score)))
-
+                pages = list(filtered.pages())
+                for page_num, page in enumerate(pages):
+                    with open('conf_level_{0}_page_{1}.html'.format(level, page_num), 'w') as out:
+                        out.write(template.render(
+                                min_score=score,
+                                job=job,
+                                fdr=fdr,
+                                results=page))
 
 do_run = do_report
 
