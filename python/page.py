@@ -479,7 +479,7 @@ def do_report(args):
             for level in range(len(fdr.summary_counts)):
                 score=fdr.summary_bins[level]
                 filtered = results.filter_by_score(score)
-                pages = list(filtered.pages())
+                pages = list(filtered.pages(args.rows_per_page))
                 for page_num, page in enumerate(pages):
                     with open('conf_level_{0}_page_{1}.html'.format(level, page_num), 'w') as out:
                         out.write(template.render(
@@ -1341,7 +1341,13 @@ p        class."""),
         '--num-bins',
         type=int,
         default=1000,
-        help="Number of bins to divide the statistic space into.")
+        help="Number of bins to divide the statistic space into."),
+
+    'rows_per_page' : lambda p: p.add_argument(
+        '--rows-per-page',
+        type=int,
+        default=100,
+        help="Number of rows to display on each page of the report")
 
 }
 
@@ -1380,7 +1386,8 @@ def get_arguments():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     add_args(run_parser, [
-            'directory', 'full_model', 'reduced_model', 'stat', 'verbose', 'debug', 'num_samples', 'sample_from', 'num_bins', 'profile'])
+            'directory', 'full_model', 'reduced_model', 'stat', 'verbose', 'debug', 'num_samples', 'sample_from', 'num_bins', 'profile',
+            'rows_per_page'])
 
     run_parser.set_defaults(func=do_run)
 
