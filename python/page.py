@@ -20,6 +20,7 @@ import textwrap
 import tokenize
 import yaml
 import resource
+import numpy.lib.recfunctions
 
 from bisect import bisect
 
@@ -128,7 +129,8 @@ def chdir(path):
         os.chdir(cwd)
 
 def maxrss():
-    return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    bytes = float(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    return bytes / 1000000000.0
     
 @contextlib.contextmanager
 def profiling(label):
@@ -174,14 +176,27 @@ def walk_profile(profile_log):
             raise ProfileStackException(
                 "Unknown event " + event)
 
-    recs = [(e['depth'], e['order'], e['label'], e['maxrss_pre'], e['maxrss_post'])
+    recs = [(e['depth'], 
+             e['order'],
+             e['label'],
+             e['maxrss_pre'], 
+             e['maxrss_post'],
+             0.0,
+             0.0)
             for e in events]
+
     dtype=[('depth', int),
            ('order', int),
-           ('label', str),
+           ('label', 'S100'),
            ('maxrss_pre', float),
-           ('maxrss_post', float)]
+           ('maxrss_post', float),
+           ('maxrss_diff', float),
+           ('maxrss_diff_percent', float)]
+
     table = np.array(recs, dtype)
+    print table
+    table['maxrss_diff'] = table['maxrss_post'] - table['maxrss_pre']
+    table['maxrss_diff_percent'] = table['maxrss_diff'] / max(table['maxrss_post'])
     table.sort(order=['order'])
     return table
 
@@ -858,31 +873,13 @@ def print_profile():
     if not PROFILE:
         return
 
-    
-    level = 0
-    table = []
-    for row in PROFILE_RESULTS:
-        (event, label, maxrss, maxrss_increase) = row
-        if event == 'enter':
-            level += 1
-        else:
-            level -= 1
-            table.append((level, label, maxrss, maxrss_increase, 0))
-        
-    table = np.array(table,
-                     dtype=[('level', int),
-                            ('label', 'S50'),
-                            ('maxrss', int),
-                            ('maxrss_increase', float),
-                            ('increase_percent', float)])
-
-    table['increase_percent'] = table['maxrss_increase'] /  float(max(table['maxrss']))
-
+    walked = walk_profile(PROFILE_RESULTS)
+    print "Walked is ", walked
     env = jinja2.Environment(loader=jinja2.PackageLoader('page'))
     setup_css(env)
     template = env.get_template('profile.html')
     with open('profile.html', 'w') as out:
-        out.write(template.render(profile=table))
+        out.write(template.render(profile=walked))
 
 def main():
     """Run pageseq."""

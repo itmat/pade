@@ -4,20 +4,25 @@
 
 <table>
   <tr>
-    <th>event</th>
     <th>label</th>
-    <th>maxrss</th>
+    <th>maxrss pre</th>
+    <th>maxrss post</th>
     <th>maxrss increase</th>
     <th>increase percent</th>
   </tr>
 
   {% for event in profile %}
   <tr>
-    <td>{{ event['level'] }}</td>
-    <td>{{ event['label'] }}</td>
-    <td>{{ event['maxrss'] }}</td>
-    <td>{{ event['maxrss_increase'] }}</td>
-    <td>{{ event['increase_percent'] }}</td>
+    <td>
+      {% for i in range(event['depth']) %}
+      &nbsp &nbsp &nbsp &nbsp
+      {% endfor %}
+      {{ event['label'] }}
+    </td>
+    <td>{{ "%.4f"|format(event['maxrss_pre']) }}</td>
+    <td>{{ "%.4f"|format(event['maxrss_post']) }}</td>
+    <td>{{ "%.4f"|format(event['maxrss_diff']) }}</td>
+    <td>{{ "%.4f"|format(100*event['maxrss_diff_percent']) }}</td>
   </tr>
   {% endfor %}
 
