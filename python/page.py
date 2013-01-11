@@ -42,6 +42,8 @@ class ModelExpressionException(Exception):
     """Thrown when a model expression is invalid."""
     pass
 
+class ProfileStackException(Exception):
+    """Thrown when the profile stack is corrupt."""
 
 ##############################################################################
 ###
@@ -132,12 +134,10 @@ def maxrss():
 def profiling(label):
     if PROFILE:
         pre_maxrss = maxrss()
-#        logging.debug("Starting " + label)
-        PROFILE_RESULTS.append(('enter', label, pre_maxrss, 0))
+        PROFILE_RESULTS.append(('enter', label, maxrss()))
         yield
         post_maxrss = maxrss()
-        PROFILE_RESULTS.append(('exit', label, post_maxrss, post_maxrss - pre_maxrss))
-#        logging.debug("Stopping " + label)
+        PROFILE_RESULTS.append(('exit', label, maxrss()))
     else:
         yield
 
@@ -148,6 +148,42 @@ def profiled(method):
             return method(*args, **kw)
 
     return wrapped
+
+def walk_profile(profile_log):
+    stack = []
+    events = []
+    order = 0
+    for entry in profile_log:
+        (event, label, maxrss) = entry
+        if event == 'enter':
+            stack.append({
+                    'order'      : order,
+                    'depth'      : len(stack),
+                    'label'      : label,
+                    'maxrss_pre' : maxrss })
+            order += 1
+        elif event == 'exit':
+            entry = stack.pop()
+            if entry['label'] != label:
+                raise ProfileStackException(
+                    "Expected to pop {0}, got {1} instead".format(
+                        label, entry['label']))
+            entry['maxrss_post'] = maxrss
+            events.append(entry)
+        else:
+            raise ProfileStackException(
+                "Unknown event " + event)
+
+    recs = [(e['depth'], e['order'], e['label'], e['maxrss_pre'], e['maxrss_post'])
+            for e in events]
+    dtype=[('depth', int),
+           ('order', int),
+           ('label', str),
+           ('maxrss_pre', float),
+           ('maxrss_post', float)]
+    table = np.array(recs, dtype)
+    table.sort(order=['order'])
+    return table
 
 @profiled
 def bins_uniform(num_bins, stats):
