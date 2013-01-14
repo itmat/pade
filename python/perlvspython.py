@@ -15,10 +15,6 @@ import matplotlib.pyplot as plt
 import os
 import shutil
 
-DIR = 'profile'
-STDOUT_FILENAME = DIR + '/stdout'
-STDERR_FILENAME = DIR + '/stderr'
-STATS_FILENAME  = DIR + '/stats'
 REPORT_FILENAME = 'report.tex'
 
 ########################################################################
@@ -41,7 +37,7 @@ def setup(args):
             lines.append(rest)
         
     for line_count in line_counts:
-        make_sample_file(header, lines, line_count)
+        make_sample_file(args.directory, header, lines, line_count)
 
 
 def log_time(job, fh):
@@ -53,13 +49,14 @@ def log_time(job, fh):
 
 def run_page(args):
 
-    with open(STATS_FILENAME, 'w') as stats:
+    with open(os.path.join(args.directory, 'stats'), 'w') as stats:
 
         for t in range(args.times):
             for log_n in log_ns(args):
 
                 n = int(10 ** log_n)
-                filename = sample_filename(n)
+
+                filename = sample_filename(args.directory, n)
                 directory = os.path.join('profile', 'new_{0}'.format(n))
 
                 python_job = {
@@ -85,7 +82,7 @@ def run_page(args):
 
 def make_report(args):
     results = []
-    with open(STATS_FILENAME) as f:
+    with open(os.path.join(args.directory, 'stats')) as f:
         results = [eval(line) for line in f]
 
     n_set       = set([x['n'] for x in results])
@@ -169,11 +166,11 @@ def make_report(args):
 ### Other things
 ###
 
-def sample_filename(n):
-    return 'profile/in_{0:d}.txt'.format(n)
+def sample_filename(directory, n):
+    return os.path.join(directory, 'in_{0:d}.txt'.format(n))
 
-def make_sample_file(header, lines, num_lines):
-    filename = sample_filename(num_lines)
+def make_sample_file(directory, header, lines, num_lines):
+    filename = sample_filename(directory, num_lines)
     print "Writing {0}".format(filename)
 
     n = len(lines)
@@ -183,7 +180,7 @@ def make_sample_file(header, lines, num_lines):
             out.write("{0:d}\t{1:s}".format(counter, lines[counter % n]))
     out.close()
 
-    directory = 'profile/new_{0}'.format(num_lines)
+    directory = os.path.join(directory, 'new_{0}'.format(num_lines))
 
     retcode = subprocess.call(['python', 'page.py', 
                      'setup', 
@@ -198,17 +195,20 @@ def make_sample_file(header, lines, num_lines):
 def log_ns(args):
     return np.linspace(3, args.max_log_n, (args.max_log_n - 3) * args.step + 1)
 
-def time_proc(cmd):
+def time_proc(cmd, directory):
     cmd = ['/usr/bin/time', '-f', '%e %M'] + cmd
     print "Running " + str(cmd)
 
-    stderr = open(STDERR_FILENAME, 'w')
-    stdout = open(STDOUT_FILENAME, 'a')
+    stderr_filename = os.path.join(directory, "stderr")
+    stdout_filename = os.path.join(directory, "stdout")
+
+    stderr = open(stderr_filename, 'w')
+    stdout = open(stdout_filename, 'a')
     retcode = subprocess.call(cmd, stderr=stderr, stdout=stdout)
     if retcode != 0:
         raise Exception("Call failed: ")
     stderr.close()
-    stderr = open(STDERR_FILENAME)
+    stderr = open(stderr_filename)
     lines = [x for x in stderr]
     print lines
     (elapsed_seconds, rss_kb) = lines[0].split()
@@ -223,23 +223,24 @@ def time_proc(cmd):
 def main():
     parser = argparse.ArgumentParser()
 
-    if not os.path.exists('profile'):
-        os.makedirs('profile')
-
     subs = parser.add_subparsers(help='Action to perform')
 
     sim_parser = subs.add_parser('setup', help='Setup jobs for profiling')
     sim_parser.add_argument('--max-log-n', type=int, default=5)
     sim_parser.add_argument('--step', type=int, default=2)
+    sim_parser.add_argument('--directory', '-d', default='perf_report')
     sim_parser.set_defaults(func=setup)
+
 
     run_parser = subs.add_parser('run', help='Run page')
     run_parser.add_argument('--max-log-n', type=int, default=8)
     run_parser.add_argument('--step', type=int, default=2)
     run_parser.add_argument('--times', type=int, default=1)
+    run_parser.add_argument('--directory', '-d', default='perf_report')
     run_parser.set_defaults(func=run_page)
 
     report_parser = subs.add_parser('report')
+    report_parser.add_argument('--directory', '-d', default='perf_report')
     report_parser.set_defaults(func=make_report)
 
 
