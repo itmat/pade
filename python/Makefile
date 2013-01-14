@@ -1,4 +1,4 @@
-PERF_MAX_LOG_N=4
+PERF_MAX_LOG_N=8
 
 cover : 
 	 nosetests --with-coverage --cover-html --cover-package page
@@ -17,7 +17,7 @@ perf_report/stats.% :
 	./perlvspython.py run -d perf_report --max-log-n $(PERF_MAX_LOG_N) -o $@
 
 qsub_stats :
-	qsub -cwd -t 1-3 page_perf.sh
+	qsub -l h_vmem=8g -cwd -t 2 page_perf.sh
 
 clean_stats :
 	rm -f page_perf.sh.* perf_report/stats*
