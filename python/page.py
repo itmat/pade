@@ -1252,12 +1252,6 @@ def init_schema(infile=None):
     is_feature_id = [i == 0 for i in range(len(headers))]
     is_sample     = [i != 0 for i in range(len(headers))]    
 
-    print fix_newlines("""
-I am assuming that the input file is tab-delimited, with a header line. I am also assuming that the first column ({0}) contains feature identifiers, and that the rest of the columns ({1}) contain expression levels. In a future release, we will be more flexible about input formats. In the meantime, if this assumption is not true, you will need to reformat your input file.
-
-""".format(headers[0],
-           ", ".join(headers[1:])))
-
     return Schema(
         is_feature_id=is_feature_id,
         is_sample=is_sample,
