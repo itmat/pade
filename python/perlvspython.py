@@ -49,7 +49,9 @@ def log_time(job, fh, directory):
 
 def run_page(args):
 
-    with open(os.path.join(args.directory, 'stats'), 'w') as stats:
+    filename = args.outfile
+
+    with open(filename, 'w') as stats:
 
         for t in range(args.times):
             for log_n in log_ns(args):
@@ -82,7 +84,8 @@ def run_page(args):
 
 def make_report(args):
     results = []
-    with open(os.path.join(args.directory, 'stats')) as f:
+    filename = args.infile
+    with open(infile) as f:
         results = [eval(line) for line in f]
 
     n_set       = set([x['n'] for x in results])
@@ -237,12 +240,13 @@ def main():
     run_parser.add_argument('--step', type=int, default=2)
     run_parser.add_argument('--times', type=int, default=1)
     run_parser.add_argument('--directory', '-d', default='perf_report')
+    run_parser.add_argument('--outfile', '-o')
     run_parser.set_defaults(func=run_page)
 
     report_parser = subs.add_parser('report')
     report_parser.add_argument('--directory', '-d', default='perf_report')
+    report_parser.add_argument('infile')
     report_parser.set_defaults(func=make_report)
-
 
     args = parser.parse_args()
 
