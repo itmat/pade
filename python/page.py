@@ -384,6 +384,15 @@ class FdrResults:
         self.summary_bins = None
         self.summary_counts = None
 
+def summarize_scores(feature_to_score, summary_bins):
+
+    shape = np.shape(feature_to_score)[:-1] + (len(summary_bins) - 1,)
+    res = np.zeros(shape, int)
+    for idx in np.ndindex(shape[:-1]):
+        res[idx] = cumulative_hist(feature_to_score[idx], summary_bins)
+    print res
+    return res
+
 @profiled
 def do_fdr(args):
 
@@ -394,7 +403,7 @@ def do_fdr(args):
     raw_stats = stat(data)
     bins = bins_uniform(args.num_bins, raw_stats)
 
-    initializer   = np.zeros(len(bins) - 1)
+    initializer   = np.zeros(cumulative_hist_shape(bins))
     reduce_fn     = lambda res, val: res + cumulative_hist(val, bins)
     finalize_fn   = lambda res : res / args.num_samples
 
@@ -410,12 +419,19 @@ def do_fdr(args):
                                         initializer=initializer,
                                         reduce_fn=reduce_fn,
                                         finalize_fn=finalize_fn)
+
+        np.savetxt("raw_counts", fdr.raw_counts)
+        np.savetxt("baseline_counts", fdr.baseline_counts)
+
         fdr.bin_to_score     = confidence_scores(
-            fdr.raw_counts, fdr.baseline_counts, len(raw_stats))
+            fdr.raw_counts, fdr.baseline_counts, np.shape(raw_stats)[-1])
+
+        np.savetxt('bin_to_score', fdr.bin_to_score)
 
         fdr.feature_to_score = assign_scores_to_features(
             fdr.raw_stats, fdr.bins, fdr.bin_to_score)
         fdr.summary_bins = np.linspace(0.5, 1.0, 11)
+        summarize_scores(fdr.feature_to_score, fdr.summary_bins)
         fdr.summary_counts = cumulative_hist(
             fdr.feature_to_score, fdr.summary_bins)
 
@@ -497,15 +513,17 @@ def do_report(args):
 
     fdr = do_fdr(args)
 
+    print "Summary is\n", fdr.summary_bins
+
     with profiling("do_report: build results table"):
 
         results = ResultTable(
             means=flat_means,
             coeffs=flat_coeffs,
             condition_names=model_col_names(job.full_model),
-            stats=fdr.raw_stats,
+            stats=fdr.raw_stats[0],
             feature_ids=np.array(job.feature_ids),
-            scores=fdr.feature_to_score)
+            scores=fdr.feature_to_score[0])
 
     # Do report
 
@@ -560,18 +578,36 @@ def assign_scores_to_features(stats, bins, scores):
     Returns an array that gives the confidence score for each feature.
 
     """
-    logging.info("Assiging scores to features")
+    logging.info("Assigning scores to features")
     logging.info(("I have {num_stats} stats, {num_bins} bins, and " +
-                  "{num_scores} scores").format(num_stats=len(stats),
-                                                num_bins=len(bins),
-                                                num_scores=len(scores)))
+                  "{num_scores} scores").format(num_stats=np.shape(stats),
+                                                num_bins=np.shape(bins),
+                                                num_scores=np.shape(scores)))
 
-    return np.array([scores[bisect(bins, stat) - 1]  for stat in stats])
+    shape = np.shape(stats)
+    res = np.zeros(shape)
 
+    for idx in np.ndindex(shape):
+        prefix = idx[:-1]
+        stat = stats[idx]
+        scores_idx = prefix + (bisect(bins[prefix], stat) - 1,)
+        res[idx] = scores[scores_idx]
+    logging.info("Scores are {0}".format(np.shape(res)))
+    return res
+
+def cumulative_hist_shape(bins):
+    shape = np.shape(bins)
+    shape = shape[:-1] + (shape[-1] - 1,)
+    return shape
 
 def cumulative_hist(values, bins):
-    (hist, ignore) = np.histogram(values, bins)
-    return np.array(np.cumsum(hist[::-1])[::-1], float)
+    shape = cumulative_hist_shape(bins)
+    res = np.zeros(shape)
+    for idx in np.ndindex(shape[:-1]):
+        (hist, ignore) = np.histogram(values[idx], bins[idx])
+        res[idx] = np.array(np.cumsum(hist[::-1])[::-1], float)
+
+    return res
 
 
 def adjust_num_diff(V0, R, num_ids):
@@ -586,10 +622,18 @@ def confidence_scores(raw_counts, perm_counts, num_features):
     """Return confidence scores.
     
     """
+    logging.info("Getting confidence scores for shape {shape} with {num_features} features".format(shape=np.shape(raw_counts),
+                                                                                                   num_features=num_features))
     if np.shape(raw_counts) != np.shape(perm_counts):
         raise Exception("raw_counts and perm_counts must have same shape")
-    adjusted = adjust_num_diff(perm_counts, raw_counts, num_features)
+    
+    shape = np.shape(raw_counts)
+    adjusted = np.zeros(shape)
+    for idx in np.ndindex(shape[:-1]):
+        adjusted[idx] = adjust_num_diff(perm_counts[idx], raw_counts[idx], num_features)
+
     res = (raw_counts - adjusted) / raw_counts
+
     return res
 
 @profiled
@@ -1515,10 +1559,10 @@ class Ttest:
 
 class Ftest:
 
-    def __init__(self, layout_full, layout_reduced):
+    def __init__(self, layout_full, layout_reduced, alpha=0):
         self.layout_full = layout_full
         self.layout_reduced = layout_reduced
-
+        self.alpha = alpha
 
     def __call__(self, data):
         """Compute the f-test for the given ndarray.
@@ -1552,6 +1596,8 @@ class Ftest:
 
         numer = (rss_red - rss_full) / (p_full - p_red)
         denom = rss_full / (n - p_full)
+        self.alpha = np.array([0.0, 0.01, 0.1, 1, 3])
+        denom = np.array([denom + x for x in self.alpha])
         return numer / denom
 
 class FtestSqrt:
