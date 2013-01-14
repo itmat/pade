@@ -40,8 +40,8 @@ def setup(args):
         make_sample_file(args.directory, header, lines, line_count)
 
 
-def log_time(job, fh):
-    result = time_proc(job['cmd'])
+def log_time(job, fh, directory):
+    result = time_proc(job['cmd'], directory)
     for k in job:
         result[k] = job[k]
     fh.write(repr(result) + "\n")
@@ -77,8 +77,8 @@ def run_page(args):
                              '--tstat', '--use_unlogged_data']
                     }
 
-                log_time(python_job, stats)
-                log_time(perl_job, stats)
+                log_time(python_job, stats, args.directory)
+                log_time(perl_job, stats, args.directory)
 
 def make_report(args):
     results = []
