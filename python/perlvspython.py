@@ -43,6 +43,14 @@ def setup(args):
     for line_count in line_counts:
         make_sample_file(header, lines, line_count)
 
+
+def log_time(job, fh):
+    result = time_proc(job['cmd'])
+    for k in job:
+        result[k] = job[k]
+    fh.write(repr(result) + "\n")
+    fh.flush()
+
 def run_page(args):
 
     with open(STATS_FILENAME, 'w') as stats:
@@ -51,26 +59,29 @@ def run_page(args):
             for log_n in log_ns(args):
 
                 n = int(10 ** log_n)
-
                 filename = sample_filename(n)
                 directory = os.path.join('profile', 'new_{0}'.format(n))
-                result = time_proc(['./page.py', 'run', '--directory', directory])
-                result['n'] = n
-                result['version'] = 'python'
-                stats.write(repr(result) + "\n")
-                stats.flush()
 
-#                result = time_proc(['perl', 'PaGE_demo.pl', 
-#                                    '--infile', filename,
-#                                    '--num_channels', '1',
-#                                    '--unpaired', '--data_not_logged',
-#                                    '--level_confidence', 'L',
-#                                    '--min_presence', '4',
-#                                    '--tstat', '--use_unlogged_data'])
-#                result['n'] = n
-#                result['version'] = 'perl'
-#                stats.write(repr(result) + "\n")
-                stats.flush()
+                python_job = {
+                    'n'       : n,
+                    'version' : 'python',
+                    'cmd'     : ['./page.py', 'run', '--directory', directory]
+                    }
+
+                perl_job = {
+                    'n' : n,
+                    'version' : 'perl',
+                    'cmd' : ['perl', 'PaGE_demo.pl', 
+                             '--infile', filename,
+                             '--num_channels', '1',
+                             '--unpaired', '--data_not_logged',
+                             '--level_confidence', 'L',
+                             '--min_presence', '4',
+                             '--tstat', '--use_unlogged_data']
+                    }
+
+                log_time(python_job, stats)
+                log_time(perl_job, stats)
 
 def make_report(args):
     results = []
