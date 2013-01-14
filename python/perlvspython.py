@@ -105,6 +105,7 @@ def make_report(args):
     rss        = np.mean(rss,        axis=2)
 
     python = version_idx['python']
+    perl   = version_idx['perl']
 
     ns = np.array(sorted(n_set))
     versions = np.array(version_set)
@@ -113,7 +114,10 @@ def make_report(args):
 
     # Plot running times
     python_minutes = real_times[:, python] / 60.0
+    perl_minutes   = real_times[:, perl] / 60.0
     plt.plot(ns, python_minutes, label='python')
+    plt.plot(ns, perl_minutes, label='perl')
+    plt.legend()
     plt.title('Running times ' + suffix)
     plt.xlabel('Features')
     plt.semilogx()
@@ -123,27 +127,31 @@ def make_report(args):
     # Plot memory usage
     plt.clf()
     python_gigs = rss[:, python]
+    perl_gigs   = rss[:, perl]
     plt.plot(ns, python_gigs, label='python')
+    plt.plot(ns, perl_gigs, label='perl')
     plt.xlabel('Features')
     plt.ylabel('Memory (GB)')
+    plt.legend()
     plt.loglog()
     plt.title('Memory usage ' + suffix)
     plt.savefig('rss')
 
+
+
     # Plot improvement of running time and memory usage
 
-#    rss_improvement = rss[:, perl] / rss[:,python]
-#    time_improvement = real_times[:, perl] / real_times[:,python]
-#    plt.clf()
-#    plt.plot(ns, rss_improvement, label='Memory usage')
-#    plt.plot(ns, time_improvement, label='Running time')
-#    plt.text(ns[3], rss_improvement[3] - 1, 'Memory usage')
-#    plt.text(ns[3], time_improvement[3] - 1, 'Running time')
-#    plt.xlabel('Features')
-#    plt.ylabel('perl / python')
-#    plt.semilogx()
-#    plt.title('Improvement (perl / python)')
-#    plt.savefig('improvement')
+    rss_improvement = rss[:, perl] / rss[:,python]
+    time_improvement = real_times[:, perl] / real_times[:,python]
+    plt.clf()
+    plt.plot(ns, rss_improvement, label='Memory usage')
+    plt.plot(ns, time_improvement, label='Running time')
+    plt.xlabel('Features')
+    plt.ylabel('perl / python')
+    plt.legend()
+    plt.semilogx()
+    plt.title('Improvement (perl / python)')
+    plt.savefig('improvement')
 
 ########################################################################
 ###
