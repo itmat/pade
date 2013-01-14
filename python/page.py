@@ -19,10 +19,16 @@ import shutil
 import textwrap
 import tokenize
 import yaml
+import resource
+import numpy.lib.recfunctions
 
 from bisect import bisect
 
 REAL_PATH = os.path.realpath(__file__)
+
+PROFILE = True
+
+PROFILE_RESULTS = []
 
 ##############################################################################
 ###
@@ -37,6 +43,8 @@ class ModelExpressionException(Exception):
     """Thrown when a model expression is invalid."""
     pass
 
+class ProfileStackException(Exception):
+    """Thrown when the profile stack is corrupt."""
 
 ##############################################################################
 ###
@@ -120,7 +128,79 @@ def chdir(path):
         logging.debug("Changing cwd from " + path + " back to " + cwd)
         os.chdir(cwd)
 
+def maxrss():
+    bytes = float(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    return bytes / 1000000000.0
+    
+@contextlib.contextmanager
+def profiling(label):
+    if PROFILE:
+        pre_maxrss = maxrss()
+        PROFILE_RESULTS.append(('enter', label, maxrss()))
+        yield
+        post_maxrss = maxrss()
+        PROFILE_RESULTS.append(('exit', label, maxrss()))
+    else:
+        yield
 
+def profiled(method):
+
+    def wrapped(*args, **kw):
+        with profiling(method.__name__):
+            return method(*args, **kw)
+
+    return wrapped
+
+def walk_profile(profile_log):
+    stack = []
+    events = []
+    order = 0
+    for entry in profile_log:
+        (event, label, maxrss) = entry
+        if event == 'enter':
+            stack.append({
+                    'order'      : order,
+                    'depth'      : len(stack),
+                    'label'      : label,
+                    'maxrss_pre' : maxrss })
+            order += 1
+        elif event == 'exit':
+            entry = stack.pop()
+            if entry['label'] != label:
+                raise ProfileStackException(
+                    "Expected to pop {0}, got {1} instead".format(
+                        label, entry['label']))
+            entry['maxrss_post'] = maxrss
+            events.append(entry)
+        else:
+            raise ProfileStackException(
+                "Unknown event " + event)
+
+    recs = [(e['depth'], 
+             e['order'],
+             e['label'],
+             e['maxrss_pre'], 
+             e['maxrss_post'],
+             0.0,
+             0.0)
+            for e in events]
+
+    dtype=[('depth', int),
+           ('order', int),
+           ('label', 'S100'),
+           ('maxrss_pre', float),
+           ('maxrss_post', float),
+           ('maxrss_diff', float),
+           ('maxrss_diff_percent', float)]
+
+    table = np.array(recs, dtype)
+    print table
+    table['maxrss_diff'] = table['maxrss_post'] - table['maxrss_pre']
+    table['maxrss_diff_percent'] = table['maxrss_diff'] / max(table['maxrss_post'])
+    table.sort(order=['order'])
+    return table
+
+@profiled
 def bins_uniform(num_bins, stats):
     """Returns a set of evenly sized bins for the given stats.
 
@@ -220,7 +300,7 @@ def setup_css(env):
         template = env.get_template('custom.css')
         out.write(template.render())
 
-
+@profiled
 def args_to_job(args):
     """Construct a job based on the command-line arguments."""
 
@@ -246,7 +326,7 @@ def args_to_job(args):
 
     return job
 
-
+@profiled
 def predicted_values(job):
     """Return the values predicted by the reduced model.
     
@@ -261,7 +341,7 @@ def predicted_values(job):
         prediction[grp] = means
     return prediction
 
-
+@profiled
 def model_col_names(model):
     """Return a flat list of names for the columns of the given model.
 
@@ -300,11 +380,11 @@ class FdrResults:
         self.baseline_counts = None
         self.bin_to_score = None
         self.feature_to_to_score = None
-        self.boot = None
         self.raw_stats = None
         self.summary_bins = None
         self.summary_counts = None
 
+@profiled
 def do_fdr(args):
 
     job = args_to_job(args)
@@ -318,24 +398,26 @@ def do_fdr(args):
     reduce_fn     = lambda res, val: res + cumulative_hist(val, bins)
     finalize_fn   = lambda res : res / args.num_samples
 
-    fdr = FdrResults()
-    fdr.raw_stats  = raw_stats
-    fdr.bins       = bins
-    fdr.raw_counts       = cumulative_hist(fdr.raw_stats, fdr.bins)
-    fdr.baseline_counts = bootstrap(data, stat, 
-                                    R=args.num_samples,
-                                    prediction=predicted_values(job),
-                                    sample_from=args.sample_from,
-                                    initializer=initializer,
-                                    reduce_fn=reduce_fn,
-                                    finalize_fn=finalize_fn)
-    fdr.bin_to_score     = confidence_scores(
-        fdr.raw_counts, fdr.baseline_counts)
-    fdr.feature_to_score = assign_scores_to_features(
-        fdr.raw_stats, fdr.bins, fdr.bin_to_score)
-    fdr.summary_bins = np.linspace(0.5, 1.0, 11)
-    fdr.summary_counts = cumulative_hist(
-        fdr.feature_to_score, fdr.summary_bins)
+    with profiling('do_fdr.build fdr'):
+        fdr = FdrResults()
+        fdr.raw_stats  = raw_stats
+        fdr.bins       = bins
+        fdr.raw_counts       = cumulative_hist(fdr.raw_stats, fdr.bins)
+        fdr.baseline_counts = bootstrap(data, stat, 
+                                        R=args.num_samples,
+                                        prediction=predicted_values(job),
+                                        sample_from=args.sample_from,
+                                        initializer=initializer,
+                                        reduce_fn=reduce_fn,
+                                        finalize_fn=finalize_fn)
+        fdr.bin_to_score     = confidence_scores(
+            fdr.raw_counts, fdr.baseline_counts, len(raw_stats))
+
+        fdr.feature_to_score = assign_scores_to_features(
+            fdr.raw_stats, fdr.bins, fdr.bin_to_score)
+        fdr.summary_bins = np.linspace(0.5, 1.0, 11)
+        fdr.summary_counts = cumulative_hist(
+            fdr.feature_to_score, fdr.summary_bins)
 
     return fdr
 
@@ -366,74 +448,103 @@ class ResultTable:
             feature_ids=self.feature_ids[idxs],
             scores=self.scores[idxs])
 
+    def __len__(self):
+        return len(self.feature_ids)
+
+    def pages(self, rows_per_page=100):
+        for start in range(0, len(self), rows_per_page):
+            size = min(rows_per_page, len(self) - start)
+            end = start + size
+
+            yield ResultTable(
+                condition_names=self.condition_names,
+                means=self.means[start : end],
+                coeffs=self.coeffs[start : end],
+                stats=self.stats[start : end],
+                feature_ids=self.feature_ids[start : end],
+                scores=self.scores[start : end])
+
+            
+@profiled
 def do_report(args):
 
-    job = args_to_job(args)
 
-    var_shape = job.full_model.factor_value_shape()
-    num_groups = int(np.prod(var_shape))
-    num_features = np.shape(job.table)[1]
+    with profiling("do_report: prologue"):
 
-    # Get the means and coefficients, which will come back as an
-    # ndarray. We will need to flatten them for display purposes.
-    (means, coeffs) = find_coefficients(job.full_model, job.table)
+        job = args_to_job(args)
 
-    # The means and coefficients returned by find_coefficients are
-    # n-dimensional, with one dimension for each factor, plus a
-    # dimension for feature. Flatten them into a 2d array (condition x
-    # feature).
-    flat_coeffs = np.zeros((num_features, num_groups))
-    flat_means  = np.zeros_like(flat_coeffs)
-    for i, idx in enumerate(np.ndindex(var_shape)):
-        flat_coeffs[:, i] = coeffs[idx]
-        flat_means[:, i]  = means[idx]
+        var_shape = job.full_model.factor_value_shape()
+        num_groups = int(np.prod(var_shape))
+        num_features = np.shape(job.table)[1]
 
-    prediction = predicted_values(job)
+        # Get the means and coefficients, which will come back as an
+        # ndarray. We will need to flatten them for display purposes.
+        (means, coeffs) = find_coefficients(job.full_model, job.table)
+
+        # The means and coefficients returned by find_coefficients are
+        # n-dimensional, with one dimension for each factor, plus a
+        # dimension for feature. Flatten them into a 2d array (condition x
+        # feature).
+        flat_coeffs = np.zeros((num_features, num_groups))
+        flat_means  = np.zeros_like(flat_coeffs)
+        for i, idx in enumerate(np.ndindex(var_shape)):
+            flat_coeffs[:, i] = coeffs[idx]
+            flat_means[:, i]  = means[idx]
+
+        prediction = predicted_values(job)
+
+    results = None
+
     fdr = do_fdr(args)
 
-    results = ResultTable(
-        means=flat_means,
-        coeffs=flat_coeffs,
-        condition_names=model_col_names(job.full_model),
-        stats=fdr.raw_stats,
-        feature_ids=np.array(job.feature_ids),
-        scores=fdr.feature_to_score)
+    with profiling("do_report: build results table"):
+
+        results = ResultTable(
+            means=flat_means,
+            coeffs=flat_coeffs,
+            condition_names=model_col_names(job.full_model),
+            stats=fdr.raw_stats,
+            feature_ids=np.array(job.feature_ids),
+            scores=fdr.feature_to_score)
 
     # Do report
 
-    with chdir(job.directory):
-        extra = "\nstat " + job.stat_name + ", sampling " + args.sample_from
-#        plot_counts_by_stat(fdr, extra=extra)
-#        plot_conf_by_stat(fdr, extra=extra)
 
-    with chdir(job.directory):
-        env = jinja2.Environment(loader=jinja2.PackageLoader('page'))
-        setup_css(env)
-        template = env.get_template('index.html')
-        with open('index.html', 'w') as out:
-            out.write(template.render(
-                job=job,
-                fdr=fdr,
-                results=results
-                ))
+    with profiling('do_report: build report'):
 
-        template = env.get_template('conf_level.html')
-        for level in range(len(fdr.summary_counts)):
-            score=fdr.summary_bins[level]
-            with open('conf_level_{0}.html'.format(level), 'w') as out:
+        with chdir(job.directory):
+            extra = "\nstat " + job.stat_name + ", sampling " + args.sample_from
+#           plot_counts_by_stat(fdr, extra=extra)
+#           plot_conf_by_stat(fdr, extra=extra)
+            env = jinja2.Environment(loader=jinja2.PackageLoader('page'))
+            setup_css(env)
+            template = env.get_template('index.html')
+            with open('index.html', 'w') as out:
                 out.write(template.render(
-                    min_score=score,
-                    job=job,
-                    fdr=fdr,
-                    results=results.filter_by_score(score)))
+                        job=job,
+                        fdr=fdr,
+                        results=results
+                        ))
 
-#    for i in range(len(fdr.raw_counts)):
-#        print (fdr.bins[i], fdr.raw_counts[i], fdr.baseline_counts[i], fdr.bin_to_score[i])
-
-
+            template = env.get_template('conf_level.html')
+            for level in range(len(fdr.summary_counts)):
+                score=fdr.summary_bins[level]
+                filtered = results.filter_by_score(score)
+                pages = list(filtered.pages(args.rows_per_page))
+                for page_num, page in enumerate(pages):
+                    with open('conf_level_{0}_page_{1}.html'.format(level, page_num), 'w') as out:
+                        out.write(template.render(
+                                conf_level=level,
+                                min_score=score,
+                                job=job,
+                                fdr=fdr,
+                                results=page,
+                                page_num=page_num,
+                                num_pages=len(pages)))
 
 do_run = do_report
 
+@profiled
 def assign_scores_to_features(stats, bins, scores):
     """Return an array that gives the confidence score for each feature.
 
@@ -449,6 +560,11 @@ def assign_scores_to_features(stats, bins, scores):
     Returns an array that gives the confidence score for each feature.
 
     """
+    logging.info("Assiging scores to features")
+    logging.info(("I have {num_stats} stats, {num_bins} bins, and " +
+                  "{num_scores} scores").format(num_stats=len(stats),
+                                                num_bins=len(bins),
+                                                num_scores=len(scores)))
 
     return np.array([scores[bisect(bins, stat) - 1]  for stat in stats])
 
@@ -458,23 +574,25 @@ def cumulative_hist(values, bins):
     return np.array(np.cumsum(hist[::-1])[::-1], float)
 
 
-def adjust_num_diff(V0, R):
+def adjust_num_diff(V0, R, num_ids):
     V = np.zeros((6,) + np.shape(V0))
     V[0] = V0
-    num_ids = len(V0)
     for i in range(1, 6):
         V[i] = V[0] - V[0] / num_ids * (R - V[i - 1])
     return V[5]
 
-
-def confidence_scores(raw_counts, perm_counts):
+@profiled
+def confidence_scores(raw_counts, perm_counts, num_features):
     """Return confidence scores.
     
     """
-    adjusted = adjust_num_diff(perm_counts, raw_counts)
-    return (raw_counts - adjusted) / raw_counts
+    if np.shape(raw_counts) != np.shape(perm_counts):
+        raise Exception("raw_counts and perm_counts must have same shape")
+    adjusted = adjust_num_diff(perm_counts, raw_counts, num_features)
+    res = (raw_counts - adjusted) / raw_counts
+    return res
 
-
+@profiled
 def find_coefficients(model, data):
     """Returns the means and coefficients of the data based on the model.
 
@@ -751,9 +869,22 @@ class Job:
             logging.debug("Table shape is " + str(np.shape(self._table)))
             logging.info("Loaded " + str(len(self._feature_ids)) + " features")
 
+def print_profile():
+    if not PROFILE:
+        return
+
+    walked = walk_profile(PROFILE_RESULTS)
+    print "Walked is ", walked
+    env = jinja2.Environment(loader=jinja2.PackageLoader('page'))
+    setup_css(env)
+    template = env.get_template('profile.html')
+    with open('profile.html', 'w') as out:
+        out.write(template.render(profile=walked))
 
 def main():
     """Run pageseq."""
+
+    global PROFILE
 
     logging.basicConfig(level=logging.DEBUG,
                         format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
@@ -783,6 +914,9 @@ def main():
     except UsageException as e:
         print fix_newlines("ERROR: " + e.message)
     
+    with chdir(args.directory):
+        print_profile()
+
     logging.info('Page finishing')    
 
 
@@ -1050,7 +1184,7 @@ def write_yaml_block_comment(fh, comment):
         result += "\n"
     fh.write(unicode(result))
 
-
+@profiled
 def bootstrap(data,
               stat_fn,
               R=1000,
@@ -1075,7 +1209,8 @@ def bootstrap(data,
     # Number of samples
     m = np.shape(data)[0]
 
-    idxs = np.random.random_integers(0, m - 1, (R, m))
+    with profiling("generate sample indexes"):
+        idxs = np.random.random_integers(0, m - 1, (R, m))
 
     logging.info("Running bootstrap with {0} samples from {1}".format(
             R, sample_from))
@@ -1084,15 +1219,23 @@ def bootstrap(data,
         reduce_fn = lambda res, val: res + [val]
         initializer = []
         finalize_fn = lambda x: np.array(x)
-                
 
     # We'll return an R x n array, where n is the number of
     # features. Each row is the array of statistics for all the
     # features, using a different random sampling.
-    samples = (build_sample(p) for p in idxs)
-    stats   = (stat_fn(s) for s in samples)
-    reduced = reduce(reduce_fn, stats, initializer)
-    return finalize_fn(reduced)
+    
+    reduced = None
+    samples = None
+    with profiling("build samples, do stats, reduce"):
+        samples = (build_sample(p) for p in idxs)
+        stats   = (stat_fn(s) for s in samples)
+        reduced = reduce(reduce_fn, stats, initializer)
+    finalized = None
+
+    with profiling("finalize"):
+        finalized = finalize_fn(reduced)
+
+    return finalized
 
 
 def init_schema(infile=None):
@@ -1148,6 +1291,7 @@ def init_job(infile, factors, directory, force=False):
     shutil.copyfile(infile.name, job.input_path)
     return job
 
+@profiled
 def do_setup(args):
     job = init_job(
         infile=args.infile,
@@ -1184,6 +1328,11 @@ p        class."""),
         '--debug', '-d', 
         action='store_true',
         help="Print debugging information"),
+
+    'profile' : lambda p: p.add_argument(
+        '--profile', '-p', 
+        action='store_true',
+        help="Print profiling information"),
 
     'directory' : lambda p: p.add_argument(
         '--directory', '-D',
@@ -1225,7 +1374,13 @@ p        class."""),
         '--num-bins',
         type=int,
         default=1000,
-        help="Number of bins to divide the statistic space into.")
+        help="Number of bins to divide the statistic space into."),
+
+    'rows_per_page' : lambda p: p.add_argument(
+        '--rows-per-page',
+        type=int,
+        default=100,
+        help="Number of rows to display on each page of the report")
 
 }
 
@@ -1253,7 +1408,7 @@ def get_arguments():
         help="""Set up the job configuration. This reads the input file and outputs a YAML file that you then need to fill out in order to properly configure the job.""",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    add_args(setup_parser, ['infile', 'factor', 'directory', 'verbose', 'debug', 'force'])
+    add_args(setup_parser, ['infile', 'factor', 'directory', 'verbose', 'debug', 'force', 'profile'])
 
     setup_parser.set_defaults(func=do_setup)
 
@@ -1264,7 +1419,8 @@ def get_arguments():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     add_args(run_parser, [
-            'directory', 'full_model', 'reduced_model', 'stat', 'verbose', 'debug', 'num_samples', 'sample_from', 'num_bins'])
+            'directory', 'full_model', 'reduced_model', 'stat', 'verbose', 'debug', 'num_samples', 'sample_from', 'num_bins', 'profile',
+            'rows_per_page'])
 
     run_parser.set_defaults(func=do_run)
 

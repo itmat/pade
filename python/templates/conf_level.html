@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Details for score >= {{ min_score }} {% endblock %}
+{% block title %}Details for score >= {{ min_score }}, page {{ page_num + 1 }} of {{ num_pages }} {% endblock %}
 {% block content %}
 
 <table>
@@ -51,5 +51,16 @@
   {% endfor %}
 
 </table>
+
+<p>
+  Page {% for i in range(num_pages) %}
+  {% if i == page_num %}
+  {{ page_num + 1}}
+  {% else %}
+  <a href="conf_level_{{conf_level}}_page_{{i}}.html">{{ i + 1 }}</a>
+  {% endif %}
+  {% endfor %}
+</p>
+
 
 {% endblock %}
