@@ -435,6 +435,8 @@ def do_fdr(args):
         fdr.summary_counts = cumulative_hist(
             fdr.feature_to_score, fdr.summary_bins)
 
+
+
     return fdr
 
 class ResultTable:
@@ -445,24 +447,36 @@ class ResultTable:
                  coeffs=None,
                  stats=None,
                  feature_ids=None,
-                 scores=None):
+                 scores=None,
+                 min_score=None):
         self.means = means
         self.coeffs = coeffs
         self.condition_names = condition_names
         self.stats = stats
         self.feature_ids = feature_ids
         self.scores = scores
+        self.min_score = min_score
+        
 
     def filter_by_score(self, min_score):
         idxs = self.scores > min_score
 
+        print "Shape of indexes is ", np.shape(idxs)
+
+        print "Sum is ", np.sum(idxs, axis=1)
+        best = np.argmax(np.sum(idxs, axis=1))
+        print "Best is", best
+        idxs = idxs[best]
+        stats = self.stats[best]
+        scores = self.scores[best]
         return ResultTable(
             condition_names=self.condition_names,
             means=self.means[idxs],
             coeffs=self.coeffs[idxs],
-            stats=self.stats[idxs],
+            stats=stats[idxs],
             feature_ids=self.feature_ids[idxs],
-            scores=self.scores[idxs])
+            scores=scores[idxs],
+            min_score=min_score)
 
     def __len__(self):
         return len(self.feature_ids)
@@ -521,9 +535,9 @@ def do_report(args):
             means=flat_means,
             coeffs=flat_coeffs,
             condition_names=model_col_names(job.full_model),
-            stats=fdr.raw_stats[0],
             feature_ids=np.array(job.feature_ids),
-            scores=fdr.feature_to_score[0])
+            stats=fdr.raw_stats,
+            scores=fdr.feature_to_score)
 
     # Do report
 
@@ -536,18 +550,15 @@ def do_report(args):
 #           plot_conf_by_stat(fdr, extra=extra)
             env = jinja2.Environment(loader=jinja2.PackageLoader('page'))
             setup_css(env)
-            template = env.get_template('index.html')
-            with open('index.html', 'w') as out:
-                out.write(template.render(
-                        job=job,
-                        fdr=fdr,
-                        results=results
-                        ))
+
+            summary_bins = fdr.summary_bins
+            summary_counts = np.zeros(len(summary_bins))
 
             template = env.get_template('conf_level.html')
-            for level in range(len(fdr.summary_counts)):
+            for level in range(len(fdr.summary_bins)):
                 score=fdr.summary_bins[level]
                 filtered = results.filter_by_score(score)
+                summary_counts[level] = len(filtered)
                 pages = list(filtered.pages(args.rows_per_page))
                 for page_num, page in enumerate(pages):
                     with open('conf_level_{0}_page_{1}.html'.format(level, page_num), 'w') as out:
@@ -559,6 +570,19 @@ def do_report(args):
                                 results=page,
                                 page_num=page_num,
                                 num_pages=len(pages)))
+
+
+            template = env.get_template('index.html')
+            with open('index.html', 'w') as out:
+                out.write(template.render(
+                        job=job,
+                        fdr=fdr,
+                        results=results,
+                        summary_bins=fdr.summary_bins,
+                        summary_counts=summary_counts
+                        
+                        ))
+
 
 do_run = do_report
 

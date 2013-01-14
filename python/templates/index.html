@@ -15,10 +15,10 @@
         <th>Features</th>
       </tr>
 
-      {% for i in range(fdr.summary_counts | length) %}
+      {% for i in range(summary_counts | length) %}
       <tr>
-        <td>{{ fdr.summary_bins[i] }}</td>
-        <td><a href="conf_level_{{i}}_page_0.html">{{ fdr.summary_counts[i] }}</a></td>
+        <td>{{ summary_bins[i] }}</td>
+        <td><a href="conf_level_{{i}}_page_0.html">{{ summary_counts[i] }}</a></td>
       </tr>
       {% endfor %}
 
