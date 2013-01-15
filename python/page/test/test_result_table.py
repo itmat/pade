@@ -1,17 +1,18 @@
 import unittest
 
-from page import *
+from page.main import *
 
 class ResultTableTest(unittest.TestCase):
 
     def setUp(self):
+        stats = np.array([np.arange(100) for x in range(4)])
         self.table = ResultTable(
             condition_names=['sex', 'treated'],
             means=np.arange(400).reshape(100, 4),
             coeffs=np.arange(400).reshape(100, 4),
-            stats=np.arange(100),
+            stats=stats,
             feature_ids=np.arange(100),
-            scores=np.arange(100) / 100.0
+            scores=stats/100.0
             )
 
     def test_filter(self):

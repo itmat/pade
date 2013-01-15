@@ -4,8 +4,8 @@ import page
 import os
 import numpy as np
 
-from tests.utils import sample_job
-from page import *
+from page.test.utils import sample_job
+from page.main import *
 
 class CommonTest(unittest.TestCase):
 
@@ -29,7 +29,7 @@ class CommonTest(unittest.TestCase):
         
 
     def test_table(self):
-        schema = page.init_schema(self.sample_input_4_class)
+        schema = init_schema(self.sample_input_4_class)
         
         with sample_job(self.sample_input_4_class,
                         self.factor_map_treated_sex) as job:

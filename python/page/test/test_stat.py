@@ -1,6 +1,6 @@
 import numpy as np
 import unittest
-from page import Ttest, Ftest
+from page.main import *
 
 class StatTest(unittest.TestCase):
 

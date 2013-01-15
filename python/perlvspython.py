@@ -262,20 +262,5 @@ def main():
 def run_tests(args):
     unittest.main()
     
-time_out_handlers = {
-    'time' : {
-        'User time (seconds)'
-        }
-}
-            
-def parse_timing(lines):
-    res = {}
-
-    for line in lines[1:]:
-        for (name, val) in re.findall("\s*(.+):\s+(.*)", line):
-            res[name] = float(val)
-    return res
-
 if __name__ == '__main__':
     main()
-
