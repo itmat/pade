@@ -438,10 +438,9 @@ class ResultTable:
 
             
 @profiled
-def do_report(args):
+def do_run(args):
 
-
-    with profiling("do_report: prologue"):
+    with profiling("do_run: prologue"):
 
         job = args_to_job(args)
 
@@ -478,9 +477,6 @@ def do_report(args):
             feature_ids=np.array(job.feature_ids),
             stats=fdr.raw_stats,
             scores=fdr.feature_to_score)
-
-    # Do report
-
 
     with profiling('do_report: build report'):
 
@@ -523,8 +519,11 @@ def do_report(args):
                         
                         ))
 
-
-do_run = do_report
+    msg = "The report is available at " + os.path.join(job.directory, "index.html")
+    if args.verbose:
+        logging.info(msg)
+    elif not args.quiet:
+        print msg
 
 @profiled
 def assign_scores_to_features(stats, bins, scores):
@@ -543,7 +542,7 @@ def assign_scores_to_features(stats, bins, scores):
 
     """
     logging.info("Assigning scores to features")
-    logging.info(("I have {num_stats} stats, {num_bins} bins, and " +
+    logging.debug(("I have {num_stats} stats, {num_bins} bins, and " +
                   "{num_scores} scores").format(num_stats=np.shape(stats),
                                                 num_bins=np.shape(bins),
                                                 num_scores=np.shape(scores)))
@@ -556,20 +555,34 @@ def assign_scores_to_features(stats, bins, scores):
         stat = stats[idx]
         scores_idx = prefix + (bisect(bins[prefix], stat) - 1,)
         res[idx] = scores[scores_idx]
-    logging.info("Scores are {0}".format(np.shape(res)))
+    logging.debug("Scores have shape {0}".format(np.shape(res)))
     return res
 
 def cumulative_hist_shape(bins):
+    """Returns the shape of the histogram with the given bins.
+
+    The shape is similar to that of bins, except the last dimension
+    has one less element.
+
+    """
     shape = np.shape(bins)
     shape = shape[:-1] + (shape[-1] - 1,)
     return shape
 
 def cumulative_hist(values, bins):
-    shape = cumulative_hist_shape(bins)
-    res = np.zeros(shape)
-    for idx in np.ndindex(shape[:-1]):
-        (hist, ignore) = np.histogram(values[idx], bins[idx])
-        res[idx] = np.array(np.cumsum(hist[::-1])[::-1], float)
+    """Create a cumulative histogram for values using the given bins.
+
+    The shape of values and bins must be the same except for the last
+    dimension.  So np.shape(values)[:-1] must equal
+    np.shape(bins[:-1]). The last dimension of values is simply a
+    listing of values. The last dimension of bins is the list of bin
+    edges for the histogram.
+
+    """
+    shape = cumulative_hist_shape(bins) res =
+    np.zeros(shape) for idx in np.ndindex(shape[:-1]): (hist, ignore)
+    = np.histogram(values[idx], bins[idx]) res[idx] =
+    np.array(np.cumsum(hist[::-1])[::-1], float)
 
     return res
 
