@@ -137,7 +137,7 @@ def make_report(args):
     plt.legend(loc=2)
     plt.title('Running times ' + suffix)
     plt.xlabel('Features')
-    # plt.semilogx()
+    plt.semilogx()
     plt.ylabel('Minutes')
     plt.savefig(os.path.join(args.directory, 'runningtime'))
 
@@ -150,7 +150,7 @@ def make_report(args):
     plt.xlabel('Features')
     plt.ylabel('Memory (GB)')
     plt.legend(loc=2)
-    # plt.semilogx()
+    plt.semilogx()
     plt.title('Memory usage ' + suffix)
     plt.savefig(os.path.join(args.directory, 'rss'))
 
@@ -166,7 +166,7 @@ def make_report(args):
     plt.xlabel('Features')
     plt.ylabel('perl / python')
     plt.legend(loc=2)
-    # plt.semilogx()
+    plt.semilogx()
     plt.title('Improvement (perl / python)')
     plt.savefig(os.path.join(args.directory, 'improvement'))
 
