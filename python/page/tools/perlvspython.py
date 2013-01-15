@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import matplotlib
-matplotlib.use('pdf')
 
 import numpy as np
 import argparse 
@@ -132,12 +131,12 @@ def make_report(args):
     idxs = perl_minutes > 0
 
 
-    plt.plot(ns, python_minutes, label='python')
-    plt.plot(ns[idxs], perl_minutes[idxs], label='perl')
+    plt.plot(ns, python_minutes, label='python', marker='o')
+    plt.plot(ns[idxs], perl_minutes[idxs], label='perl', marker='o')
     plt.legend(loc=2)
     plt.title('Running times ' + suffix)
     plt.xlabel('Features')
-    plt.semilogx()
+    #plt.semilogx()
     plt.ylabel('Minutes')
     plt.savefig(os.path.join(args.directory, 'runningtime'))
 
@@ -145,12 +144,12 @@ def make_report(args):
     plt.clf()
     python_gigs = rss[:, python]
     perl_gigs   = rss[:, perl]
-    plt.plot(ns, python_gigs, label='python')
-    plt.plot(ns[idxs], perl_gigs[idxs], label='perl')
+    plt.plot(ns, python_gigs, label='python', marker='o')
+    plt.plot(ns[idxs], perl_gigs[idxs], label='perl', marker='o')
     plt.xlabel('Features')
     plt.ylabel('Memory (GB)')
     plt.legend(loc=2)
-    plt.semilogx()
+    #plt.semilogx()
     plt.title('Memory usage ' + suffix)
     plt.savefig(os.path.join(args.directory, 'rss'))
 
@@ -161,12 +160,12 @@ def make_report(args):
     rss_improvement = rss[:, perl] / rss[:,python]
     time_improvement = real_times[:, perl] / real_times[:,python]
     plt.clf()
-    plt.plot(ns[idxs], rss_improvement[idxs], label='Memory usage')
-    plt.plot(ns[idxs], time_improvement[idxs], label='Running time')
+    plt.plot(ns[idxs], rss_improvement[idxs], label='Memory usage', marker='o')
+    plt.plot(ns[idxs], time_improvement[idxs], label='Running time', marker='o')
     plt.xlabel('Features')
     plt.ylabel('perl / python')
     plt.legend(loc=2)
-    plt.semilogx()
+    #plt.semilogx()
     plt.title('Improvement (perl / python)')
     plt.savefig(os.path.join(args.directory, 'improvement'))
 

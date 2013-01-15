@@ -24,4 +24,3 @@ clean_stats :
 
 perf : perf_report/stats.*
 	python ./page/tools/perlvspython.py report $^
-	cd perf_report; pdflatex ../page/templates/profile_comparison.tex
