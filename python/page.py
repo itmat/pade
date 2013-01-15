@@ -194,7 +194,7 @@ def walk_profile(profile_log):
            ('maxrss_diff_percent', float)]
 
     table = np.array(recs, dtype)
-    print table
+
     table['maxrss_diff'] = table['maxrss_post'] - table['maxrss_pre']
     table['maxrss_diff_percent'] = table['maxrss_diff'] / max(table['maxrss_post'])
     table.sort(order=['order'])
@@ -390,7 +390,6 @@ def summarize_scores(feature_to_score, summary_bins):
     res = np.zeros(shape, int)
     for idx in np.ndindex(shape[:-1]):
         res[idx] = cumulative_hist(feature_to_score[idx], summary_bins)
-    print res
     return res
 
 @profiled
@@ -420,13 +419,13 @@ def do_fdr(args):
                                         reduce_fn=reduce_fn,
                                         finalize_fn=finalize_fn)
 
-        np.savetxt("raw_counts", fdr.raw_counts)
-        np.savetxt("baseline_counts", fdr.baseline_counts)
-
         fdr.bin_to_score     = confidence_scores(
             fdr.raw_counts, fdr.baseline_counts, np.shape(raw_stats)[-1])
 
-        np.savetxt('bin_to_score', fdr.bin_to_score)
+        with chdir(job.directory):
+            np.savetxt("raw_counts", fdr.raw_counts)
+            np.savetxt("baseline_counts", fdr.baseline_counts)
+            np.savetxt('bin_to_score', fdr.bin_to_score)
 
         fdr.feature_to_score = assign_scores_to_features(
             fdr.raw_stats, fdr.bins, fdr.bin_to_score)
@@ -460,12 +459,7 @@ class ResultTable:
 
     def filter_by_score(self, min_score):
         idxs = self.scores > min_score
-
-        print "Shape of indexes is ", np.shape(idxs)
-
-        print "Sum is ", np.sum(idxs, axis=1)
         best = np.argmax(np.sum(idxs, axis=1))
-        print "Best is", best
         idxs = idxs[best]
         stats = self.stats[best]
         scores = self.scores[best]
@@ -526,8 +520,6 @@ def do_report(args):
     results = None
 
     fdr = do_fdr(args)
-
-    print "Summary is\n", fdr.summary_bins
 
     with profiling("do_report: build results table"):
 
@@ -943,7 +935,6 @@ def print_profile():
         return
 
     walked = walk_profile(PROFILE_RESULTS)
-    print "Walked is ", walked
     env = jinja2.Environment(loader=jinja2.PackageLoader('page'))
     setup_css(env)
     template = env.get_template('profile.html')
