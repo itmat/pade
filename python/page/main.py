@@ -291,7 +291,7 @@ def setup_css(env):
     """Copy the css from 996grid/code/css into its output location."""
 
     src = os.path.join(os.path.dirname(REAL_PATH),
-                       '996grid/code/css')
+                       '../996grid/code/css')
 
     shutil.rmtree('css', True)
     shutil.copytree(src, 'css')
