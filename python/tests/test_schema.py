@@ -14,13 +14,13 @@ class SchemaTest(unittest.TestCase):
         is_sample     = [False] + [True  for x in sample_nums]
 
         schema = Schema(
-            factors=[
-                ('sex',     object),
-                ('age',     'int'),
-                ('treated', 'bool')],
             column_names=colnames,
             is_feature_id=is_feature_id,
             is_sample=is_sample)
+
+        schema.add_factor('age', object)
+        schema.add_factor('sex', object)
+        schema.add_factor('treated', object)
 
         counter = 0
 
@@ -57,6 +57,7 @@ class SchemaTest(unittest.TestCase):
         # versions to make sure they're the same, so that we know we
         # can round-trip.
         out = io.StringIO()
+
         self.schema.save(out)
 
         with open("sample_data/test_infile.tab") as infile:

@@ -1165,8 +1165,6 @@ is_sample are false will simply be ignored.
             "sample_factor_mapping" : sample_cols,
             }
 
-        print doc
-
         data = yaml.dump(doc, default_flow_style=False, encoding=None)
 
         for line in data.splitlines():
