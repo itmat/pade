@@ -1,0 +1,44 @@
+=================
+2013-01-15 Status
+=================
+
+---------
+Completed
+---------
+
+* Initialize "schema" to describe columns in input file
+* Group columns according to "full" and "reduced" models
+* Compute means and coefficients using full model
+* Bootstrap using artificial data sets constructed by adding sampled residuals to predicted values
+* Compute distribution of f-test values over sampled data
+* Use that to compute confidence score associated with each value of f-test
+* Framework for searching over range of constant "tuning parameters"
+  for optimal value for each confidence level
+* Print paginated HTML report for each confidence level
+
+-----------
+Outstanding
+-----------
+
+* Support "marginal" model (e.g. {\tt sex + treatment}, no interaction term)
+* Add t-test back in?
+* Support logged input data?
+* Support missing values in input data?
+* Come up with formula for tuning parameters to search over?
+* Distribute work?
+* Save output and intermediate files as raw text
+
+-------------------
+Performance metrics
+-------------------
+
+* Ran Perl version and latest Python version on input file with 2 classes, 4 replicates per class, so 8 samples total.
+* Tried exponentially increasing number of features in input file
+* Capture running time and memory usage
+* Older version does 70 permutations, newer does 1,000 randomized samples.
+
+.. image:: ../perf_report/runningtime.png
+
+.. image:: ../perf_report/rss.png
+
+.. image:: ../perf_report/improvement.png

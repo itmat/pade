@@ -2,3 +2,4 @@
 *.aux
 *.log
 *~
+doc/_build
