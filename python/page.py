@@ -892,7 +892,8 @@ class Job:
         if self.stat_name == 'f':
             return Ftest(
                 layout_full=self.full_model.layout_map().values(),
-                layout_reduced=self.reduced_model.layout_map().values())
+                layout_reduced=self.reduced_model.layout_map().values(),
+                alphas=np.array([0.0, 0.01, 0.1, 1, 3]))
         elif self.stat_name == 'f_sqrt':
             return FtestSqrt(
                 layout_full=self.full_model.layout_map().values(),
@@ -1577,10 +1578,10 @@ class Ttest:
 
 class Ftest:
 
-    def __init__(self, layout_full, layout_reduced, alpha=0):
+    def __init__(self, layout_full, layout_reduced, alphas=None):
         self.layout_full = layout_full
         self.layout_reduced = layout_reduced
-        self.alpha = alpha
+        self.alphas = alphas
 
     def __call__(self, data):
         """Compute the f-test for the given ndarray.
@@ -1614,8 +1615,9 @@ class Ftest:
 
         numer = (rss_red - rss_full) / (p_full - p_red)
         denom = rss_full / (n - p_full)
-        self.alpha = np.array([0.0, 0.01, 0.1, 1, 3])
-        denom = np.array([denom + x for x in self.alpha])
+
+        if self.alphas is not None:
+            denom = np.array([denom + x for x in self.alphas])
         return numer / denom
 
 class FtestSqrt:
