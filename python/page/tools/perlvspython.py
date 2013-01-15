@@ -103,7 +103,7 @@ def make_report(args):
     times = int(np.ceil(float(len(results)) / (len(n_idx) * len(version_idx))))
 
     shape = (len(n_idx), len(version_idx), times)
-    print "Shape is " + str(shape)
+
     real_times = np.zeros(shape)
     rss        = np.zeros(shape)
 
@@ -111,7 +111,6 @@ def make_report(args):
         key = (n_idx[x['n']],
                version_idx[x['version']],
                0)
-        print "Key is " + str(key)
 
         real_times[key] = x['elapsed_seconds']
         rss[key] = x['rss_gb']
