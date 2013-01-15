@@ -53,7 +53,6 @@ class ProfileStackException(Exception):
 ### Bare functions
 ###
 
-
 def apply_layout(layout, data):
     """Reshape the given data so based on the layout.
 
@@ -382,8 +381,6 @@ def do_fdr(args):
         fdr.summary_counts = cumulative_hist(
             fdr.feature_to_score, fdr.summary_bins)
 
-
-
     return fdr
 
 class ResultTable:
@@ -579,11 +576,11 @@ def cumulative_hist(values, bins):
     edges for the histogram.
 
     """
-    shape = cumulative_hist_shape(bins) res =
-    np.zeros(shape) for idx in np.ndindex(shape[:-1]): (hist, ignore)
-    = np.histogram(values[idx], bins[idx]) res[idx] =
-    np.array(np.cumsum(hist[::-1])[::-1], float)
-
+    shape = cumulative_hist_shape(bins) 
+    res = np.zeros(shape)
+    for idx in np.ndindex(shape[:-1]): 
+        (hist, ignore) = np.histogram(values[idx], bins[idx]) 
+        res[idx] = np.array(np.cumsum(hist[::-1])[::-1], float)
     return res
 
 
