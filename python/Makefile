@@ -22,5 +22,6 @@ qsub_stats :
 clean_stats :
 	rm -f page_perf.sh.* perf_report/stats*
 
-perf : perf_report/stats
+perf : perf_report/stats.*
 	./perlvspython.py report $^
+	pdflatex templates/profile_comparison.tex

@@ -84,9 +84,13 @@ def run_page(args):
 
 def make_report(args):
     results = []
-    filename = args.infile
-    with open(infile) as f:
-        results = [eval(line) for line in f]
+
+    for f in args.infiles:
+        for line in f:
+            try:
+                results.append(eval(line))
+            except Exception as e:
+                raise Exception("Error eval'ing " + line + " from " + f, e)
 
     n_set       = set([x['n'] for x in results])
     version_set = set([x['version'] for x in results])
@@ -126,9 +130,12 @@ def make_report(args):
     # Plot running times
     python_minutes = real_times[:, python] / 60.0
     perl_minutes   = real_times[:, perl] / 60.0
+    idxs = perl_minutes > 0
+
+
     plt.plot(ns, python_minutes, label='python')
-    plt.plot(ns, perl_minutes, label='perl')
-    plt.legend()
+    plt.plot(ns[idxs], perl_minutes[idxs], label='perl')
+    plt.legend(loc=2)
     plt.title('Running times ' + suffix)
     plt.xlabel('Features')
     plt.semilogx()
@@ -140,11 +147,11 @@ def make_report(args):
     python_gigs = rss[:, python]
     perl_gigs   = rss[:, perl]
     plt.plot(ns, python_gigs, label='python')
-    plt.plot(ns, perl_gigs, label='perl')
+    plt.plot(ns[idxs], perl_gigs[idxs], label='perl')
     plt.xlabel('Features')
     plt.ylabel('Memory (GB)')
-    plt.legend()
-    plt.loglog()
+    plt.legend(loc=2)
+    plt.semilogx()
     plt.title('Memory usage ' + suffix)
     plt.savefig('rss')
 
@@ -155,11 +162,11 @@ def make_report(args):
     rss_improvement = rss[:, perl] / rss[:,python]
     time_improvement = real_times[:, perl] / real_times[:,python]
     plt.clf()
-    plt.plot(ns, rss_improvement, label='Memory usage')
-    plt.plot(ns, time_improvement, label='Running time')
+    plt.plot(ns[idxs], rss_improvement[idxs], label='Memory usage')
+    plt.plot(ns[idxs], time_improvement[idxs], label='Running time')
     plt.xlabel('Features')
     plt.ylabel('perl / python')
-    plt.legend()
+    plt.legend(loc=2)
     plt.semilogx()
     plt.title('Improvement (perl / python)')
     plt.savefig('improvement')
@@ -245,7 +252,7 @@ def main():
 
     report_parser = subs.add_parser('report')
     report_parser.add_argument('--directory', '-d', default='perf_report')
-    report_parser.add_argument('infile')
+    report_parser.add_argument('infiles', nargs='+', type=file)
     report_parser.set_defaults(func=make_report)
 
     args = parser.parse_args()
