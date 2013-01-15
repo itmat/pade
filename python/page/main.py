@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 
+"""The main program for page."""
+
 # External imports
 
 import StringIO
 import argparse
 import collections
-import contextlib
 import errno
 import jinja2
 import logging
@@ -19,10 +20,11 @@ import shutil
 import textwrap
 import tokenize
 import yaml
-import resource
 import numpy.lib.recfunctions
 
 from bisect import bisect
+
+from page.common import *
 
 REAL_PATH = os.path.realpath(__file__)
 
@@ -51,9 +53,6 @@ class ProfileStackException(Exception):
 ### Bare functions
 ###
 
-def double_sum(data):
-    """Returns the sum of data over the first two axes."""
-    return np.sum(np.sum(data, axis=0), axis=0)
 
 def apply_layout(layout, data):
     """Reshape the given data so based on the layout.
@@ -78,60 +77,6 @@ def apply_layout(layout, data):
     return res.swapaxes(0, 1)
 
 
-def fix_newlines(msg):
-    """Attempt to wrap long lines as paragraphs.
-
-    Treats each line in the given message as a paragraph. Wraps each
-    paragraph to avoid long lines. Returns a string that contains all
-    the wrapped paragraphs, separated by blank lines.
-
-    """
-    output = ""
-    for line in msg.splitlines():
-        output += textwrap.fill(line) + "\n"
-    return output
-
-
-@contextlib.contextmanager
-def figure(path):
-    """Context manager for saving a figure.
-
-    Clears the current figure, yeilds, then saves the figure to the
-    given path and clears the figure again.
-
-    """
-    try:
-        logging.debug("Creating figure " + path)
-        plt.clf()
-        yield
-        plt.savefig(path)
-    finally:
-        plt.clf()
-
-@contextlib.contextmanager
-def chdir(path):
-    """Context manager for changing working directory.
-
-    cds to the given path, yeilds, then changes back.
-
-    >>> with chdir("/tmp"):
-    >>>   # Do something in the tmp dir
-    >>>   pass
-    
-    """
-    cwd = os.getcwd()
-    try:
-        logging.debug("Changing cwd from " + cwd + " to " + path)
-        os.chdir(path)
-        yield
-    finally:
-        logging.debug("Changing cwd from " + path + " back to " + cwd)
-        os.chdir(cwd)
-
-def maxrss():
-    bytes = float(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
-    return bytes / 1000000000.0
-    
 @contextlib.contextmanager
 def profiling(label):
     if PROFILE:
@@ -196,7 +141,10 @@ def walk_profile(profile_log):
     table = np.array(recs, dtype)
 
     table['maxrss_diff'] = table['maxrss_post'] - table['maxrss_pre']
-    table['maxrss_diff_percent'] = table['maxrss_diff'] / max(table['maxrss_post'])
+    
+    table['maxrss_diff_percent'] = table['maxrss_diff']
+    if len(table['maxrss_post']) > 0:
+        table['maxrss_diff_percent'] /= max(table['maxrss_post'])
     table.sort(order=['order'])
     return table
 

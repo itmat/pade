@@ -5,6 +5,6 @@ setup(name='PaGE',
       author='Mike DeLaurentis',
       author_email='delaurentis@gmail.com',
       url='https://github.com/mdelaurentis/fasta-parser',
-#      scripts=['parse_fasta'],
+      scripts=['bin/page'],
       py_modules=['page'],
       packages=['page'])
