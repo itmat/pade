@@ -140,7 +140,7 @@ def make_report(args):
     plt.xlabel('Features')
     plt.semilogx()
     plt.ylabel('Minutes')
-    plt.savefig('runningtime')
+    plt.savefig(os.path.join(args.directory, 'runningtime'))
 
     # Plot memory usage
     plt.clf()
@@ -153,7 +153,7 @@ def make_report(args):
     plt.legend(loc=2)
     plt.semilogx()
     plt.title('Memory usage ' + suffix)
-    plt.savefig('rss')
+    plt.savefig(os.path.join(args.directory, 'rss'))
 
 
 
@@ -169,7 +169,7 @@ def make_report(args):
     plt.legend(loc=2)
     plt.semilogx()
     plt.title('Improvement (perl / python)')
-    plt.savefig('improvement')
+    plt.savefig(os.path.join(args.directory, 'improvement'))
 
 ########################################################################
 ###
