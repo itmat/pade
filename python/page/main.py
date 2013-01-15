@@ -512,15 +512,23 @@ def do_run(args):
                         fdr=fdr,
                         results=results,
                         summary_bins=fdr.summary_bins,
-                        summary_counts=summary_counts
-                        
-                        ))
+                        summary_counts=summary_counts))
 
-    msg = "The report is available at " + os.path.join(job.directory, "index.html")
-    if args.verbose:
-        logging.info(msg)
-    elif not args.quiet:
-        print msg
+    print """
+Summary of features by confidence level:
+
+Confidence |   Num.
+   Level   | Features
+-----------+---------"""
+    for i in range(len(summary_counts) - 1):
+        print "{bin:10.0%} | {count:8d}".format(
+            bin=summary_bins[i],
+            count=int(summary_counts[i]))
+
+    print """
+The full report is available at {0}""".format(
+        os.path.join(job.directory, "index.html"))
+
 
 @profiled
 def assign_scores_to_features(stats, bins, scores):
@@ -1339,11 +1347,6 @@ p        class."""),
         action='store_true',
         help="Print debugging information"),
 
-    'profile' : lambda p: p.add_argument(
-        '--profile', '-p', 
-        action='store_true',
-        help="Print profiling information"),
-
     'directory' : lambda p: p.add_argument(
         '--directory', '-D',
         default=Job.DEFAULT_DIRECTORY,
@@ -1356,11 +1359,15 @@ p        class."""),
     
     'full_model' : lambda p: p.add_argument(
         '--full-model', '-M',
-        help="""Specify the 'full' model. Required if there is more than one class."""),
+
+        help="""Specify the 'full' model. Required if there is more than one 
+class. For example, if you have factors 'batch' and 'treated', you could use
+ 'treated' or 'batch * treated'."""),
 
     'reduced_model' : lambda p: p.add_argument(
         '--reduced-model', '-m',
-        help="""Specify the 'reduced' model."""),
+        help="""Specify the 'reduced' model. The format for the argument is the
+ same as for --full-model."""),
     
     'stat' : lambda p: p.add_argument(
         '--stat', '-s',
@@ -1408,29 +1415,31 @@ def get_arguments():
 
     subparsers = uberparser.add_subparsers(
         title='actions',
-        description="""Normal usage is to run 'page.py setup ...', then manually edit the schema.yaml file, then run 'page.py run ...'. The other actions are available for finer control over the process, but are not normally necessary.
-
-""")
+        description="""Normal usage is to run 'page.py setup ...', then manually edit the
+schema.yaml file, then run 'page.py run ...'.""")
 
     # Setup
     setup_parser = subparsers.add_parser(
         'setup',
-        help="""Set up the job configuration. This reads the input file and outputs a YAML file that you then need to fill out in order to properly configure the job.""",
+        help="""Set up the job configuration. This reads the input file and
+                outputs a YAML file that you then need to fill out in order to
+                properly configure the job.""",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    add_args(setup_parser, ['infile', 'factor', 'directory', 'verbose', 'debug', 'force', 'profile'])
+    add_args(setup_parser, ['infile', 'factor', 'directory', 'verbose', 'debug', 'force'])
 
     setup_parser.set_defaults(func=do_setup)
 
     # Run
     run_parser = subparsers.add_parser(
         'run',
-        help="""Run the job. Combines sample, boot, fdr, and report.""",
+        help="""Run the job.""",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     add_args(run_parser, [
-            'directory', 'full_model', 'reduced_model', 'stat', 'verbose', 'debug', 'num_samples', 'sample_from', 'num_bins', 'profile',
-            'rows_per_page'])
+            'directory', 'full_model', 'reduced_model', 'num_samples', 
+            'num_bins', 'rows_per_page', 'stat', 'verbose', 'debug', 
+            'sample_from'])
 
     run_parser.set_defaults(func=do_run)
 
