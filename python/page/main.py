@@ -867,7 +867,7 @@ class Job:
     
     @property
     def schema(self):
-        return Schema.load(open(self.schema_path), self.input_path)
+        return Schema.load(open(self.schema_path))
 
     @property
     def stat(self):
@@ -1104,20 +1104,15 @@ is_sample are false will simply be ignored.
         del self.factors[name]
 
     @classmethod
-    def load(cls, stream, infile):
+    def load(cls, stream):
         """Load a schema from the specified stream, which must
         represent a YAML document in the format produced by
         Schema.dump. The type of stream can be any type accepted by
         yaml.load."""
-        col_names = None
-
-        if isinstance(infile, str):
-            infile = open(infile)
-
-        header_line = infile.next().rstrip()
-        col_names = header_line.split("\t")
 
         doc = yaml.load(stream)
+
+        col_names = doc['headers']
 
         # Build the arrays of column names, feature id booleans, and
         # sample booleans
@@ -1181,6 +1176,7 @@ is_sample are false will simply be ignored.
             factors.append(a)
 
         doc = {
+            'headers'               : names,
             "factors"               : factors,
             "feature_id_columns"    : feature_id_cols,
             "sample_factor_mapping" : sample_cols,
@@ -1196,6 +1192,10 @@ is_sample are false will simply be ignored.
             elif (line == "feature_id_columns:"):
                 out.write(unicode("\n"))
                 write_yaml_block_comment(out, """This lists all of the columns that contain feature IDs (for example gene ids).""")
+
+            elif (line == "headers:"):
+                out.write(unicode("\n"))
+                write_yaml_block_comment(out, """These are the headers in the input file. YOU MUST NOT CHANGE THESE!""")
 
             elif (line == "sample_factor_mapping:"):
                 out.write(unicode("\n"))

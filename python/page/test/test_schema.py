@@ -59,9 +59,7 @@ class SchemaTest(unittest.TestCase):
         out = io.StringIO()
 
         self.schema.save(out)
-
-        with open("sample_data/test_infile.tab") as infile:
-            loaded = Schema.load(out.getvalue(), infile)
+        loaded = Schema.load(out.getvalue())
 
         out2 = io.StringIO()
         loaded.save(out2)
