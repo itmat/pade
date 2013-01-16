@@ -42,3 +42,29 @@ Performance metrics
 .. image:: ../perf_report/rss.png
 
 .. image:: ../perf_report/improvement.png
+
+---------
+Takeaways
+---------
+
+* Allow user to specify number of rows to skip
+
+* Skip commented lines in input file?
+
+* Allow each sample's data to be in a separate file?
+
+* Maybe directly support SAM / BAM file input.
+
+* Make sure that leaving a column out of the schema results in it being ignored.
+
+* Instead of creating a separate report for each confidence level,
+  show each feature's q value: the highest-confidence bin that the
+  feature appears in
+
+* Need to support 100 million features, 1 billion would be really nice.
+
+* Do an FDR for the interaction coefficient.
+
+* Emit a copy of the input file, with a column indicating if there is
+  a significant interaction for each feature.
+
