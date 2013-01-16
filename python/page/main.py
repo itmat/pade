@@ -697,7 +697,6 @@ def find_coefficients(model, data):
     return (means, coeffs)
 
 
-
 ##############################################################################
 ###
 ### Classes

@@ -24,3 +24,6 @@ clean_stats :
 
 perf : perf_report/stats.*
 	python ./page/tools/perlvspython.py report $^
+
+site :
+	cd doc; make html
