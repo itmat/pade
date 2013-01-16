@@ -27,10 +27,11 @@ from bisect import bisect
 from page.common import *
 
 REAL_PATH = os.path.realpath(__file__)
-
 PROFILE = True
-
 PROFILE_RESULTS = []
+RAW_VALUE_DTYPE = float
+FEATURE_ID_DTYPE = 'S10'
+
 
 ##############################################################################
 ###
@@ -263,7 +264,8 @@ def args_to_job(args):
         if len(job.schema.factors) == 1:
             full_model = job.schema.factors.keys()[0]
         else:
-            msg = """You need to specify a model with --full-model, since you have more than one factor ({0})."""
+            msg = """You need to specify a model with --full-model, since you 
+            have more than one factor ({0})."""
             raise UsageException(msg.format(job.schema.factors.keys()))
 
     schema = job.schema
@@ -829,6 +831,30 @@ class Job:
         self._table = None
         self._feature_ids = None
 
+        if not os.path.isdir(self.data_directory):
+            os.makedirs(self.data_directory)
+
+    @property
+    def num_features(self):
+        return len(self.feature_ids)
+
+    @property
+    def data_directory(self):
+        return os.path.join(self.directory, 'data')
+
+    @property
+    def table_path(self):
+        return os.path.join(self.data_directory, 'table.npy')
+
+    @property
+    def feature_ids_path(self):
+        return os.path.join(self.data_directory, 'feature_ids.npy')
+
+    @property
+    def sample_indexes_path(self):
+        """Path to table of sample indexes"""
+        return os.path.join(self.data_directory, 'sample_indexes')
+
     @property
     def schema_path(self):
         """The path to the schema."""
@@ -862,38 +888,76 @@ class Job:
     def table(self):
         """The data table as a (sample x feature) ndarray."""
         if self._table is None:
-            self._load_table()
-        return self._table
+            shape = (self.num_features,
+                     len(self.schema.sample_column_names))
+            self._table = np.memmap(
+                self.table_path, 
+                mode='r',
+                shape=shape,
+                dtype=RAW_VALUE_DTYPE)
+        return self._table.swapaxes(0, 1)
 
     @property
     def feature_ids(self):
         """Array of the ids of features from my input file."""
         if self._feature_ids is None:
-            self._load_table()
+            self._feature_ids = np.memmap(
+                self.feature_ids_path,
+                mode='r',
+                dtype=FEATURE_ID_DTYPE)
+
         return self._feature_ids
 
+    def copy_table(self, raw_input_path):
+        logging.info("Loading table from " + raw_input_path +
+                     " to " + self.table_path + " and " + self.feature_ids_path)
+        
+        logging.info("Counting rows and columns in input file")
+        with open(raw_input_path) as fh:
 
-    def _load_table(self):
-        logging.info("Loading table from " + self.input_path)
-        with open(self.input_path) as fh:
+            headers = fh.next().rstrip().split("\t")
+            num_cols = len(headers) - 1
+            num_rows = 0
+            for line in fh:
+                num_rows += 1
+        
+        logging.info(
+            "Input has {features} features and {samples} samples".format(
+                features=num_rows,
+                samples=num_cols))
+
+        logging.info(
+            "Creating raw data table")
+
+        table = np.memmap(
+            self.table_path, 
+            mode='w+',
+            dtype=RAW_VALUE_DTYPE,
+            shape=(num_rows, num_cols))
+
+        ids = np.memmap(
+            self.feature_ids_path,
+            mode='w+',
+            dtype=FEATURE_ID_DTYPE,
+            shape=(num_rows,))
+
+        log_interval=int(num_rows / 10)
+
+        with open(raw_input_path) as fh:
 
             headers = fh.next().rstrip().split("\t")
 
-            ids = []
-            table = []
-
-            for line in fh:
+            for i, line in enumerate(fh):
                 row = line.rstrip().split("\t")
-                rowid = row[0]
-                values = [float(x) for x in row[1:]]
-                ids.append(rowid)
-                table.append(values)
+                ids[i]   = row[0]
+                table[i] = [float(x) for x in row[1:]]
+                if (i % log_interval) == log_interval - 1:
+                    logging.debug("Copied {0} rows".format(i + 1))
 
-            self._table = np.array(table).swapaxes(0, 1)
-            self._feature_ids = ids
 
-            logging.debug("Table shape is " + str(np.shape(self._table)))
-            logging.info("Loaded " + str(len(self._feature_ids)) + " features")
+        del table
+        del ids
+
 
 def print_profile():
     if not PROFILE:
@@ -1002,6 +1066,7 @@ is_sample are false will simply be ignored.
 
         return [x for x in self.factors]
 
+    @property
     def sample_column_names(self):
         """Return a list of the names of columns that contain
         intensities."""
@@ -1023,7 +1088,7 @@ is_sample are false will simply be ignored.
         self.factors[name] = dtype
 
         if self.table is None:
-            new_table = [(default,) for s in self.sample_column_names()]
+            new_table = [(default,) for s in self.sample_column_names]
 
         else:
             for row in self.table:
@@ -1195,7 +1260,7 @@ sample_factor_mapping:
 
     def factor_values(self, factor):
         values = set()
-        for sample in self.sample_column_names():
+        for sample in self.sample_column_names:
             values.add(self.get_factor(sample, factor))
         return values
 
@@ -1305,6 +1370,9 @@ def init_job(infile, factors, directory, force=False):
     logging.info("Copying {0} to {1}".format(
         infile.name,
         job.input_path))
+
+    job.copy_table(infile.name)
+
     shutil.copyfile(infile.name, job.input_path)
     return job
 
@@ -1428,6 +1496,17 @@ schema.yaml file, then run 'page.py run ...'.""")
     add_args(setup_parser, ['infile', 'factor', 'directory', 'verbose', 'debug', 'force'])
 
     setup_parser.set_defaults(func=do_setup)
+
+    # Prepare
+    prep_parser = subparsers.add_parser(
+        'prep',
+        help="""Prepare the input file for analysis, generating the samples 
+                for bootstrapping and splitting the input file (if --chunks
+                is supplied).""")
+
+    add_args(prep_parser, [
+            'directory', 'full_model', 'reduced_model', 'num_samples',
+            'verbose', 'debug'])
 
     # Run
     run_parser = subparsers.add_parser(
