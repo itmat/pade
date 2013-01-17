@@ -300,23 +300,46 @@ def summarize_scores(feature_to_score, summary_bins):
 @profiled
 def do_fdr(job):
 
+    fdr = FdrResults()
+
     data = job.table
     stat = job.stat
     raw_stats = stat(data)
-    bins = bins_uniform(job.num_bins, raw_stats)
+
+    fdr.bins = bins_uniform(job.num_bins, raw_stats)
 
     with profiling('do_fdr.build fdr'):
-        fdr = FdrResults()
-        fdr.raw_stats  = raw_stats
-        fdr.bins       = bins
-        fdr.raw_counts       = cumulative_hist(fdr.raw_stats, fdr.bins)
-        fdr.baseline_counts = bootstrap(data, stat, 
-                                        R=job.num_samples,
-                                        prediction=predicted_values(job),
-                                        sample_from=job.sample_from,
-                                        accumulator=binning_accumulator(fdr.bins, job.num_samples))
 
-        fdr.bin_to_score     = confidence_scores(
+        acc = binning_accumulator(fdr.bins, job.num_samples)
+        if job.sample_from == 'raw':
+            sample_layout = job.reduced_model.layout
+            logging.info("Sampling from raw values, within groups defined by '" + 
+                         str(job.reduced_model.expr) + "'")
+            fdr.baseline_counts = bootstrap(
+                data, stat, 
+                R=job.num_samples,
+                sample_layout=sample_layout,
+                accumulator=acc)
+
+        elif job.sample_from == 'residuals':
+            logging.info("Sampling from residuals, not using groups")
+
+            sample_layout = [ sorted(job.schema.sample_name_index.values()) ]
+            prediction = predicted_values(job)
+            residuals = data - prediction
+            fdr.baseline_counts = bootstrap(
+                data, stat, 
+                R=job.num_samples,
+                sample_layout=sample_layout,
+                residuals=residuals,
+                accumulator=acc)
+        else:
+            raise UsageException(
+                "--sample-from must be either raw or residuals")
+
+        fdr.raw_stats    = raw_stats
+        fdr.raw_counts   = cumulative_hist(fdr.raw_stats, fdr.bins)
+        fdr.bin_to_score = confidence_scores(
             fdr.raw_counts, fdr.baseline_counts, np.shape(raw_stats)[-1])
 
         with chdir(job.directory):
@@ -563,7 +586,10 @@ def confidence_scores(raw_counts, perm_counts, num_features):
     logging.info("Getting confidence scores for shape {shape} with {num_features} features".format(shape=np.shape(raw_counts),
                                                                                                    num_features=num_features))
     if np.shape(raw_counts) != np.shape(perm_counts):
-        raise Exception("raw_counts and perm_counts must have same shape")
+        raise Exception(
+            """raw_counts and perm_counts must have same shape.
+               raw_counts is {raw} and perm_counts is {perm}""".format(
+                raw=np.shape(raw_counts), perm=np.shape(perm_counts)))
     
     shape = np.shape(raw_counts)
     adjusted = np.zeros(shape)
@@ -1252,7 +1278,10 @@ def write_yaml_block_comment(fh, comment):
 
 
 def sample_indexes(layout, R):
+    """Generates R samplings of indexes based on the given layout.
 
+    layout must be a layout.
+    """
     layout = [ np.array(grp, int) for grp in layout ]
     n = sum([ len(grp) for grp in layout ])
     res = np.zeros((R, n), int)
@@ -1281,54 +1310,43 @@ DEFAULT_ACCUMULATOR = Accumulator(
 
 
 def binning_accumulator(bins, num_samples):
+    initializer = np.zeros(cumulative_hist_shape(bins))
 
-    return Accumulator(
-        initializer=np.zeros(cumulative_hist_shape(bins)),
-        reduce_fn=lambda res, val: res + cumulative_hist(val, bins),
-        finalize_fn=lambda res : res / num_samples)
+    def reduce_fn(res, val):
+        return res + cumulative_hist(val, bins)
+    
+    def finalize_fn(res):
+        return res / num_samples
+
+    return Accumulator(initializer, reduce_fn, finalize_fn)
+
 
 @profiled
 def bootstrap(data,
               stat_fn,
               R=1000,
-              prediction=None,
-              sample_indexes=None,
-              sample_from='residuals',
+              sample_layout=None,
+              indexes=None,
+              residuals=None,
               accumulator=DEFAULT_ACCUMULATOR):
 
-    logging.info("Data shape is " + str(np.shape(data)))
-    logging.info("Prediction shape is " + str(np.shape(prediction)))
-
     build_sample = None
-    if sample_from == 'raw':
+    if residuals is None:
         build_sample = lambda idxs: data[..., idxs]
-    elif sample_from == 'residuals':
-        if prediction is None:
-            raise Exception("I need predicted values in order to sample from residuals")
-        residuals = data - prediction
-        build_sample = lambda idxs: prediction + residuals[..., idxs]
     else:
-        raise Exception(
-            "sample_from most be either 'raw' or 'residuals'" +
-            " not '" + sample_from + "'")
+        build_sample = lambda idxs: data + residuals[..., idxs]
 
-    # Number of samples
-    m = np.shape(data)[1]
-
-    with profiling("generate sample indexes"):
-        idxs = np.random.random_integers(0, m - 1, (R, m))
-
-    logging.info("Running bootstrap with {0} samples from {1}".format(
-            R, sample_from))
-
+    if indexes is None:
+        if sample_layout is None:
+            sample_layout = [ np.arange(np.shape(data)[1]) ]
+        indexes = sample_indexes(sample_layout, R)
+        
     # We'll return an R x n array, where n is the number of
     # features. Each row is the array of statistics for all the
     # features, using a different random sampling.
     
-    reduced = None
-    samples = None
     with profiling("build samples, do stats, reduce"):
-        samples = (build_sample(p) for p in idxs)
+        samples = (build_sample(p) for p in indexes)
         stats   = (stat_fn(s)      for s in samples)
         reduced = reduce(accumulator.reduce_fn, stats, accumulator.initializer)
 
