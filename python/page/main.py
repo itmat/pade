@@ -305,10 +305,6 @@ def do_fdr(job):
     raw_stats = stat(data)
     bins = bins_uniform(job.num_bins, raw_stats)
 
-    initializer   = np.zeros(cumulative_hist_shape(bins))
-    reduce_fn     = lambda res, val: res + cumulative_hist(val, bins)
-    finalize_fn   = lambda res : res / job.num_samples
-
     with profiling('do_fdr.build fdr'):
         fdr = FdrResults()
         fdr.raw_stats  = raw_stats
@@ -318,9 +314,7 @@ def do_fdr(job):
                                         R=job.num_samples,
                                         prediction=predicted_values(job),
                                         sample_from=job.sample_from,
-                                        initializer=initializer,
-                                        reduce_fn=reduce_fn,
-                                        finalize_fn=finalize_fn)
+                                        accumulator=binning_accumulator(fdr.bins, job.num_samples))
 
         fdr.bin_to_score     = confidence_scores(
             fdr.raw_counts, fdr.baseline_counts, np.shape(raw_stats)[-1])
@@ -388,6 +382,7 @@ class ResultTable:
                 stats=self.stats[start : end],
                 feature_ids=self.feature_ids[start : end],
                 scores=self.scores[start : end])
+
 
             
 @profiled
@@ -1274,6 +1269,24 @@ def sample_indexes(layout, R):
     return res
 
 
+Accumulator = collections.namedtuple(
+    'Accumulator',
+    ['initializer', 'reduce_fn', 'finalize_fn'])
+
+
+DEFAULT_ACCUMULATOR = Accumulator(
+    [],
+    lambda res, val: res + [ val ],
+    lambda x: np.array(x))
+
+
+def binning_accumulator(bins, num_samples):
+
+    return Accumulator(
+        initializer=np.zeros(cumulative_hist_shape(bins)),
+        reduce_fn=lambda res, val: res + cumulative_hist(val, bins),
+        finalize_fn=lambda res : res / num_samples)
+
 @profiled
 def bootstrap(data,
               stat_fn,
@@ -1281,7 +1294,7 @@ def bootstrap(data,
               prediction=None,
               sample_indexes=None,
               sample_from='residuals',
-              reduce_fn=None, initializer=None, finalize_fn=lambda x: x):
+              accumulator=DEFAULT_ACCUMULATOR):
 
     logging.info("Data shape is " + str(np.shape(data)))
     logging.info("Prediction shape is " + str(np.shape(prediction)))
@@ -1308,11 +1321,6 @@ def bootstrap(data,
     logging.info("Running bootstrap with {0} samples from {1}".format(
             R, sample_from))
 
-    if reduce_fn is None:
-        reduce_fn = lambda res, val: res + [val]
-        initializer = []
-        finalize_fn = lambda x: np.array(x)
-
     # We'll return an R x n array, where n is the number of
     # features. Each row is the array of statistics for all the
     # features, using a different random sampling.
@@ -1322,10 +1330,10 @@ def bootstrap(data,
     with profiling("build samples, do stats, reduce"):
         samples = (build_sample(p) for p in idxs)
         stats   = (stat_fn(s)      for s in samples)
-        reduced = reduce(reduce_fn, stats, initializer)
+        reduced = reduce(accumulator.reduce_fn, stats, accumulator.initializer)
 
     with profiling("finalize"):
-        return finalize_fn(reduced)
+        return accumulator.finalize_fn(reduced)
 
 
 def init_schema(infile=None):
