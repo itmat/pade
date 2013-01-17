@@ -28,7 +28,7 @@ def apply_layout(layout, data):
     return res
 
 def mean_and_rss(data):
-    y   = np.mean(data, axis=-1)
+    y   = np.mean(data, axis=-1).reshape(np.shape(data)[:-1] + (1,))
     rss = double_sum((data  - y)  ** 2)
     return (y, rss)
 
@@ -55,20 +55,15 @@ class Ftest:
         data_full = apply_layout(self.layout_full, data)
         data_red  = apply_layout(self.layout_reduced,  data)
 
-        # Means for the full and reduced model
-        y_full = np.mean(data_full, axis=-1)
-        y_red  = np.mean(data_red,  axis=-1)
-        y_full = y_full.reshape(np.shape(data_full)[:-1] + (1,))
-        y_red = y_red.reshape(np.shape(data_red)[:-1] + (1,))
-
         # Degrees of freedom
         p_red  = len(self.layout_reduced)
         p_full = len(self.layout_full)
         n = len(self.layout_reduced) * len(self.layout_reduced[0])
 
-        # Residual sum of squares for the reduced and full model
-        rss_red  = double_sum((data_red  - y_red)  ** 2)
-        rss_full = double_sum((data_full - y_full) ** 2)
+        # Means and residual sum of squares for the reduced and full
+        # model
+        (y_full, rss_full) = mean_and_rss(data_full)
+        (y_red,  rss_red)  = mean_and_rss(data_red)
 
         numer = (rss_red - rss_full) / (p_full - p_red)
         denom = rss_full / (n - p_full)
