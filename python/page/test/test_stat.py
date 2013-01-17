@@ -95,10 +95,10 @@ class StatTest(unittest.TestCase):
         ftest = Ftest(
             layout_full=[range(i, 18, 3) for i in range(3)],
             layout_reduced=[range(18)])
-        self.assertAlmostEqual(expected, ftest(self.ftest_in.swapaxes(0, 1)))
+        self.assertAlmostEqual(expected, ftest(self.ftest_in))
 
         a2 = np.concatenate((self.ftest_in,
-                             self.ftest_in)).reshape((2, 18)).swapaxes(0, 1)
+                             self.ftest_in)).reshape((2, 18))
         print a2
         got = ftest(a2)
         self.assertEqual(np.shape(got), (2,))
@@ -115,8 +115,16 @@ class StatTest(unittest.TestCase):
             layout_reduced=[range(18)],
             alphas=alphas)
 
-        self.assertAlmostEqual(expected, ftest(self.ftest_in.swapaxes(0, 1))[0])
+        self.assertAlmostEqual(expected, ftest(self.ftest_in)[0])
 
+    def test_apply_layout(self):
+        np.testing.assert_almost_equal(
+            np.array([[0, 1], [2, 3], [4,5]]),
+            apply_layout([[0,1], [2,3], [4,5]], np.arange(6)))
+
+        np.testing.assert_almost_equal(
+            np.array([[0, 1, 2, 3, 4, 5]]),
+            apply_layout([[0, 1, 2, 3, 4, 5]], np.arange(6)))
 
 if __name__ == '__main__':
     unittest.main()

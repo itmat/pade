@@ -13,7 +13,7 @@ import textwrap
 
 def double_sum(data):
     """Returns the sum of data over the first two axes."""
-    return np.sum(np.sum(data, axis=0), axis=0)
+    return np.sum(np.sum(data, axis=-1), axis=-1)
 
 
 @contextlib.contextmanager

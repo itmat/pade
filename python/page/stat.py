@@ -19,14 +19,18 @@ def apply_layout(layout, data):
     is the number of samples in each group, and n is the number of features.
 
     """
-    shape = (len(layout), len(layout[0])) + np.shape(data)[1:]
+    shape = np.shape(data)[:-1] + (len(layout), len(layout[0]))
 
     res = np.zeros(shape)
+
     for i, idxs in enumerate(layout):
-        res[i] = data[idxs]
-    return res.swapaxes(0, 1)
+        res[..., i, :] = data[..., idxs]
+    return res
 
-
+def mean_and_rss(data):
+    y   = np.mean(data, axis=-1)
+    rss = double_sum((data  - y)  ** 2)
+    return (y, rss)
 
 class Ftest:
 
@@ -48,13 +52,14 @@ class Ftest:
         TODO: Make sure masked input arrays work.
 
         """
-
         data_full = apply_layout(self.layout_full, data)
         data_red  = apply_layout(self.layout_reduced,  data)
-    
+
         # Means for the full and reduced model
-        y_full = np.mean(data_full, axis=0)
-        y_red  = np.mean(data_red,  axis=0)
+        y_full = np.mean(data_full, axis=-1)
+        y_red  = np.mean(data_red,  axis=-1)
+        y_full = y_full.reshape(np.shape(data_full)[:-1] + (1,))
+        y_red = y_red.reshape(np.shape(data_red)[:-1] + (1,))
 
         # Degrees of freedom
         p_red  = len(self.layout_reduced)

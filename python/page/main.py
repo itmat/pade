@@ -327,7 +327,7 @@ def do_fdr(args):
 
     data = job.table
     stat = job.stat
-    raw_stats = stat(data)
+    raw_stats = stat(data.swapaxes(0, 1))
     bins = bins_uniform(args.num_bins, raw_stats)
 
     initializer   = np.zeros(cumulative_hist_shape(bins))
@@ -1299,7 +1299,7 @@ def bootstrap(data,
     samples = None
     with profiling("build samples, do stats, reduce"):
         samples = (build_sample(p) for p in idxs)
-        stats   = (stat_fn(s) for s in samples)
+        stats   = (stat_fn(s.swapaxes(0, 1)) for s in samples)
         reduced = reduce(reduce_fn, stats, initializer)
     finalized = None
 
