@@ -34,7 +34,7 @@ class CommonTest(unittest.TestCase):
         with sample_job(self.sample_input_4_class,
                         self.factor_map_treated_sex) as job:
 
-            self.assertEquals(np.shape(job.table), (16, 1000))
+            self.assertEquals(np.shape(job.table), (1000, 16))
             print job.schema.sample_groups(['treated'])
             print job.schema.sample_groups(['sex'])
 

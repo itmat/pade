@@ -262,7 +262,7 @@ def predicted_values(job):
     cell containing the mean of all the cells in the same group, as
     defined by the reduced model.
     """
-    data = job.table.swapaxes(0, 1)
+    data = job.table
     prediction = np.zeros_like(data)
 
     for grp in job.reduced_model.layout_map().values():
@@ -331,7 +331,7 @@ def do_fdr(args):
 
     data = job.table
     stat = job.stat
-    raw_stats = stat(data.swapaxes(0, 1))
+    raw_stats = stat(data)
     bins = bins_uniform(args.num_bins, raw_stats)
 
     initializer   = np.zeros(cumulative_hist_shape(bins))
@@ -343,7 +343,7 @@ def do_fdr(args):
         fdr.raw_stats  = raw_stats
         fdr.bins       = bins
         fdr.raw_counts       = cumulative_hist(fdr.raw_stats, fdr.bins)
-        fdr.baseline_counts = bootstrap(data.swapaxes(0, 1), stat, 
+        fdr.baseline_counts = bootstrap(data, stat, 
                                         R=args.num_samples,
                                         prediction=predicted_values(job),
                                         sample_from=args.sample_from,
@@ -428,11 +428,11 @@ def do_run(args):
 
         var_shape = job.full_model.factor_value_shape()
         num_groups = int(np.prod(var_shape))
-        num_features = np.shape(job.table)[1]
+        num_features = len(job.table)
 
         # Get the means and coefficients, which will come back as an
         # ndarray. We will need to flatten them for display purposes.
-        (means, coeffs) = find_coefficients(job.full_model, job.table)
+        (means, coeffs) = find_coefficients(job.full_model, job.table.swapaxes(0, 1))
 
         # The means and coefficients returned by find_coefficients are
         # n-dimensional, with one dimension for each factor, plus a
@@ -876,7 +876,7 @@ class Job:
                 mode='r',
                 shape=shape,
                 dtype=RAW_VALUE_DTYPE)
-        return self._table.swapaxes(0, 1)
+        return self._table
 
     @property
     def swapped_table(self):
