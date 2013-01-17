@@ -262,11 +262,15 @@ def predicted_values(job):
     cell containing the mean of all the cells in the same group, as
     defined by the reduced model.
     """
-    prediction = np.zeros_like(job.table)
+    data = job.table.swapaxes(0, 1)
+    prediction = np.zeros_like(data)
+
     for grp in job.reduced_model.layout_map().values():
-        data = job.table[grp]
-        means = np.mean(data, axis=0)
-        prediction[grp] = means
+        means = np.mean(data[..., grp], axis=1)
+        means = means.reshape(np.shape(means) + (1,))
+        print "Shape of means is", np.shape(means)
+        print "Shape of prediction is", np.shape(prediction[..., grp])
+        prediction[..., grp] = means
     return prediction
 
 @profiled
@@ -339,7 +343,7 @@ def do_fdr(args):
         fdr.raw_stats  = raw_stats
         fdr.bins       = bins
         fdr.raw_counts       = cumulative_hist(fdr.raw_stats, fdr.bins)
-        fdr.baseline_counts = bootstrap(data, stat, 
+        fdr.baseline_counts = bootstrap(data.swapaxes(0, 1), stat, 
                                         R=args.num_samples,
                                         prediction=predicted_values(job),
                                         sample_from=args.sample_from,
@@ -439,8 +443,6 @@ def do_run(args):
         for i, idx in enumerate(np.ndindex(var_shape)):
             flat_coeffs[:, i] = coeffs[idx]
             flat_means[:, i]  = means[idx]
-
-        prediction = predicted_values(job)
 
     results = None
 
@@ -1266,9 +1268,6 @@ def bootstrap(data,
 
     logging.info("Data shape is " + str(np.shape(data)))
     logging.info("Prediction shape is " + str(np.shape(prediction)))
-
-    data       = data.swapaxes(0, 1)
-    prediction = prediction.swapaxes(0, 1)
 
     build_sample = None
     if sample_from == 'raw':
