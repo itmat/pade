@@ -44,8 +44,6 @@ class CommonTest(unittest.TestCase):
         with sample_job(self.sample_input_4_class,
                         self.factor_map_treated_sex) as job:
 
-
-
             # One class
             model = Model(job.schema, 'treated')
             layout_map = model.layout_map()

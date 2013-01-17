@@ -1304,14 +1304,11 @@ def bootstrap(data,
     samples = None
     with profiling("build samples, do stats, reduce"):
         samples = (build_sample(p) for p in idxs)
-        stats   = (stat_fn(s) for s in samples)
+        stats   = (stat_fn(s)      for s in samples)
         reduced = reduce(reduce_fn, stats, initializer)
-    finalized = None
 
     with profiling("finalize"):
-        finalized = finalize_fn(reduced)
-
-    return finalized
+        return finalize_fn(reduced)
 
 
 def init_schema(infile=None):
