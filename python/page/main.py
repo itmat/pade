@@ -228,33 +228,6 @@ def setup_css(env):
         out.write(template.render())
 
 @profiled
-def args_to_job(args):
-    """Construct a job based on the command-line arguments."""
-
-    logging.debug("Constructing job based on command-line arguments")
-
-    job = Job(
-        directory=args.directory,
-        stat=args.stat)
-
-    full_model = args.full_model
-
-    if full_model is None:
-        if len(job.schema.factors) == 1:
-            full_model = job.schema.factors.keys()[0]
-        else:
-            msg = """You need to specify a model with --full-model, since you 
-            have more than one factor ({0})."""
-            raise UsageException(msg.format(job.schema.factors.keys()))
-
-    schema = job.schema
-
-    job.full_model = Model(schema, full_model)
-    job.reduced_model = Model(schema, args.reduced_model)
-
-    return job
-
-@profiled
 def predicted_values(job):
     """Return the values predicted by the reduced model.
     
@@ -325,18 +298,16 @@ def summarize_scores(feature_to_score, summary_bins):
     return res
 
 @profiled
-def do_fdr(args):
-
-    job = args_to_job(args)
+def do_fdr(job):
 
     data = job.table
     stat = job.stat
     raw_stats = stat(data)
-    bins = bins_uniform(args.num_bins, raw_stats)
+    bins = bins_uniform(job.num_bins, raw_stats)
 
     initializer   = np.zeros(cumulative_hist_shape(bins))
     reduce_fn     = lambda res, val: res + cumulative_hist(val, bins)
-    finalize_fn   = lambda res : res / args.num_samples
+    finalize_fn   = lambda res : res / job.num_samples
 
     with profiling('do_fdr.build fdr'):
         fdr = FdrResults()
@@ -344,9 +315,9 @@ def do_fdr(args):
         fdr.bins       = bins
         fdr.raw_counts       = cumulative_hist(fdr.raw_stats, fdr.bins)
         fdr.baseline_counts = bootstrap(data, stat, 
-                                        R=args.num_samples,
+                                        R=job.num_samples,
                                         prediction=predicted_values(job),
-                                        sample_from=args.sample_from,
+                                        sample_from=job.sample_from,
                                         initializer=initializer,
                                         reduce_fn=reduce_fn,
                                         finalize_fn=finalize_fn)
@@ -424,7 +395,14 @@ def do_run(args):
 
     with profiling("do_run: prologue"):
 
-        job = args_to_job(args)
+        job = Job(
+            directory=args.directory,
+            stat=args.stat,
+            num_bins=args.num_bins,
+            num_samples=args.num_samples,
+            full_model=args.full_model,
+            reduced_model=args.reduced_model,
+            sample_from=args.sample_from)
 
         var_shape = job.full_model.factor_value_shape()
         num_groups = int(np.prod(var_shape))
@@ -446,7 +424,7 @@ def do_run(args):
 
     results = None
 
-    fdr = do_fdr(args)
+    fdr = do_fdr(job)
 
     with profiling("do_report: build results table"):
 
@@ -461,7 +439,7 @@ def do_run(args):
     with profiling('do_report: build report'):
 
         with chdir(job.directory):
-            extra = "\nstat " + job.stat_name + ", sampling " + args.sample_from
+            extra = "\nstat " + job.stat_name + ", sampling " + job.sample_from
 #           plot_counts_by_stat(fdr, extra=extra)
 #           plot_conf_by_stat(fdr, extra=extra)
             env = jinja2.Environment(loader=jinja2.PackageLoader('page'))
@@ -800,7 +778,6 @@ class Model:
         factors = self.expr.variables
         return tuple([len(schema.factor_values(f)) for f in factors])
 
-
 class Job:
 
     DEFAULT_DIRECTORY = "pageseq_out"
@@ -809,16 +786,36 @@ class Job:
                  directory, 
                  stat=None,
                  full_model=None,
-                 reduced_model=None):
+                 reduced_model=None,
+                 num_bins=None,
+                 num_samples=None,
+                 sample_from=None,
+                 schema=None
+                 ):
         self.directory = directory
         self.stat_name = stat
-        self.full_model = full_model
-        self.reduced_model = reduced_model
         self._table = None
         self._feature_ids = None
 
+        # FDR configuration
+        self.num_bins = num_bins
+        self.num_samples = num_samples
+        self.sample_from = sample_from
+
+        if schema is None:
+            self.schema = Schema.load(open(self.schema_path))
+        else:
+            self.schema = schema
+
+        self.full_model    = Model(self.schema, full_model)
+        self.reduced_model = Model(self.schema, reduced_model)
+
         if not os.path.isdir(self.data_directory):
             os.makedirs(self.data_directory)
+
+    def save_schema(self, mode):
+        out = open(self.schema_path, mode)
+        self.schema.save(out)
 
     @property
     def num_features(self):
@@ -851,10 +848,6 @@ class Job:
         """Path to the input file."""
         return os.path.join(self.directory, 'input.txt')
     
-    @property
-    def schema(self):
-        return Schema.load(open(self.schema_path))
-
     @property
     def stat(self):
         """The statistic used for this job."""
@@ -1280,6 +1273,7 @@ def sample_indexes(layout, R):
 
     return res
 
+
 @profiled
 def bootstrap(data,
               stat_fn,
@@ -1364,12 +1358,13 @@ def init_job(infile, factors, directory, force=False):
 
     if not os.path.isdir(directory):
         os.makedirs(directory)
-    job = Job(directory)
+
+    job = Job(directory,
+              schema=schema)
 
     mode = 'w' if force else 'wx'
     try:
-        out = open(job.schema_path, mode)
-        schema.save(out)
+        job.save_schema(mode)
     except IOError as e:
         if e.errno == errno.EEXIST:
             raise UsageException(
