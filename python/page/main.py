@@ -898,6 +898,10 @@ class Job:
         return self._table.swapaxes(0, 1)
 
     @property
+    def swapped_table(self):
+        return self._table.swapaxes(0, )
+
+    @property
     def feature_ids(self):
         """Array of the ids of features from my input file."""
         if self._feature_ids is None:
@@ -1364,16 +1368,14 @@ def init_job(infile, factors, directory, force=False):
         schema.save(out)
     except IOError as e:
         if e.errno == errno.EEXIST:
-            raise UsageException("The schema file \"{}\" already exists. If you want to overwrite it, use the --force or -f argument.".format(filename))
+            raise UsageException(
+                """The schema file \"{}\" already exists. If you want to
+                   overwrite it, use the --force or -f argument.""".format(
+                    filename))
         raise e
-
-    logging.info("Copying {0} to {1}".format(
-        infile.name,
-        job.input_path))
 
     job.copy_table(infile.name)
 
-    shutil.copyfile(infile.name, job.input_path)
     return job
 
 @profiled
