@@ -1264,21 +1264,27 @@ def bootstrap(data,
               sample_from='residuals',
               reduce_fn=None, initializer=None, finalize_fn=lambda x: x):
 
+    logging.info("Data shape is " + str(np.shape(data)))
+    logging.info("Prediction shape is " + str(np.shape(prediction)))
+
+    data       = data.swapaxes(0, 1)
+    prediction = prediction.swapaxes(0, 1)
+
     build_sample = None
     if sample_from == 'raw':
-        build_sample = lambda idxs: data[idxs]
+        build_sample = lambda idxs: data[..., idxs]
     elif sample_from == 'residuals':
         if prediction is None:
             raise Exception("I need predicted values in order to sample from residuals")
         residuals = data - prediction
-        build_sample = lambda idxs: prediction + residuals[idxs]
+        build_sample = lambda idxs: prediction + residuals[..., idxs]
     else:
         raise Exception(
             "sample_from most be either 'raw' or 'residuals'" +
             " not '" + sample_from + "'")
 
     # Number of samples
-    m = np.shape(data)[0]
+    m = np.shape(data)[1]
 
     with profiling("generate sample indexes"):
         idxs = np.random.random_integers(0, m - 1, (R, m))
@@ -1299,7 +1305,7 @@ def bootstrap(data,
     samples = None
     with profiling("build samples, do stats, reduce"):
         samples = (build_sample(p) for p in idxs)
-        stats   = (stat_fn(s.swapaxes(0, 1)) for s in samples)
+        stats   = (stat_fn(s) for s in samples)
         reduced = reduce(reduce_fn, stats, initializer)
     finalized = None
 
