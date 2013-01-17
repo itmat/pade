@@ -265,7 +265,7 @@ def predicted_values(job):
     data = job.table
     prediction = np.zeros_like(data)
 
-    for grp in job.reduced_model.layout_map().values():
+    for grp in job.reduced_model.layout:
         means = np.mean(data[..., grp], axis=1)
         means = means.reshape(np.shape(means) + (1,))
         print "Shape of means is", np.shape(means)
@@ -781,6 +781,11 @@ class Model:
     def layout_map(self):
         return self.schema.sample_groups(self.expr.variables)
 
+    @property
+    def layout(self):
+        return self.schema.sample_groups(self.expr.variables).values()
+    
+
     def index_num_to_sym(self, idx):
         schema = self.schema
         expr  = self.expr
@@ -855,13 +860,13 @@ class Job:
         """The statistic used for this job."""
         if self.stat_name == 'f':
             return Ftest(
-                layout_full=self.full_model.layout_map().values(),
-                layout_reduced=self.reduced_model.layout_map().values(),
+                layout_full=self.full_model.layout,
+                layout_reduced=self.reduced_model.layout,
                 alphas=np.array([0.0, 0.01, 0.1, 1, 3]))
         elif self.stat_name == 'f_sqrt':
             return FtestSqrt(
-                layout_full=self.full_model.layout_map().values(),
-                layout_reduced=self.reduced_model.layout_map().values())
+                layout_full=self.full_model.layout,
+                layout_reduced=self.reduced_model.layout)
         elif self.stat_name == 't':
             return Ttest(alpha=1.0)
 
