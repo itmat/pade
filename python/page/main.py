@@ -1257,6 +1257,24 @@ def write_yaml_block_comment(fh, comment):
         result += "\n"
     fh.write(unicode(result))
 
+
+def sample_indexes(layout, R):
+
+    layout = [ np.array(grp, int) for grp in layout ]
+    n = sum([ len(grp) for grp in layout ])
+    res = np.zeros((R, n), int)
+    
+    for i in range(R):
+        p = 0
+        q = 0
+        for j, grp in enumerate(layout):
+            nj = len(grp)
+            q  = p + nj
+            res[i, p : q] = grp[np.random.random_integers(0, nj - 1, nj)]
+            p = q
+
+    return res
+
 @profiled
 def bootstrap(data,
               stat_fn,
