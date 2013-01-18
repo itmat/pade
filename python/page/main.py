@@ -269,12 +269,6 @@ def do_fdr(job):
         fdr.raw_counts   = cumulative_hist(fdr.raw_stats, fdr.bins)
         fdr.bin_to_score = confidence_scores(
             fdr.raw_counts, fdr.baseline_counts, np.shape(raw_stats)[-1])
-
-        with chdir(job.directory):
-            np.savetxt("raw_counts", fdr.raw_counts)
-            np.savetxt("baseline_counts", fdr.baseline_counts)
-            np.savetxt('bin_to_score', fdr.bin_to_score)
-
         fdr.feature_to_score = assign_scores_to_features(
             fdr.raw_stats, fdr.bins, fdr.bin_to_score)
         fdr.summary_bins = np.linspace(0.5, 1.0, 11)
