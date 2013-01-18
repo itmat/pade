@@ -56,7 +56,7 @@ def apply_layout(layout, data):
 def mean_and_rss(data):
     """Return a tuple of the mean and residual sum of squares.
 
-    Returns them means and residual sum of squares over the last axis.
+    Returns the means and residual sum of squares over the last axis.
 
     """
     y   = np.mean(data, axis=-1).reshape(np.shape(data)[:-1] + (1,))

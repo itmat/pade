@@ -334,7 +334,6 @@ class ResultTable:
                 feature_ids=self.feature_ids[start : end],
                 scores=self.scores[start : end])
 
-
             
 @profiled
 def do_run(args):
@@ -383,8 +382,9 @@ def do_run(args):
             scores=fdr.feature_to_score)
 
     with profiling('do_report: build report'):
-
-        with chdir(job.directory):
+        html_dir = os.path.join(job.directory, "html")
+        os.makedirs(html_dir)
+        with chdir(html_dir):
             extra = "\nstat " + job.stat_name + ", sampling " + job.sample_from
 #           plot_counts_by_stat(fdr, extra=extra)
 #           plot_conf_by_stat(fdr, extra=extra)
@@ -420,6 +420,9 @@ def do_run(args):
                         results=results,
                         summary_bins=fdr.summary_bins,
                         summary_counts=summary_counts))
+
+        print_profile()
+
 
     print """
 Summary of features by confidence level:
@@ -930,9 +933,6 @@ def main():
     except UsageException as e:
         print fix_newlines("ERROR: " + e.message)
     
-    with chdir(args.directory):
-        print_profile()
-
     logging.info('Page finishing')    
 
 

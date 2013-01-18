@@ -64,12 +64,6 @@ def fix_newlines(msg):
     return output
 
 
-def maxrss():
-    """Return the current maximum RSS allocation in GB."""
-    bytes = float(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
-    return bytes / 1000000000.0
-    
-
 if __name__ == '__main__':
     import doctest
     doctest.testmod()
