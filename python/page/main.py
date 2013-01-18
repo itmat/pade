@@ -309,6 +309,8 @@ def do_run(args):
         num_groups = int(np.prod(var_shape))
         num_features = len(job.table)
 
+        foo = find_coefficients_no_interaction(job.full_model, job.table.swapaxes(0, 1))
+
         # Get the means and coefficients, which will come back as an
         # ndarray. We will need to flatten them for display purposes.
         (means, coeffs) = find_coefficients_with_interaction(job.full_model, job.table.swapaxes(0, 1))
@@ -459,6 +461,24 @@ def confidence_scores(raw_counts, perm_counts, num_features):
 
     return res
 
+
+def find_coefficients_no_interaction(model, data):
+    factors = model.expr.variables
+
+    layout_map = model.layout_map()    
+    values = [model.schema.sample_groups([f]).keys() for f in factors]
+
+    for row in data:
+        dummies = [1]
+        for key, idxs in layout_map.items():
+            dummies.extend(schema.dummy_vars(k, v))
+        print dummies
+
+        raise Exception("badness")
+
+
+    shape = tuple([len(v) for v in values])
+    print "Shape is", shape
 
 @profiled
 def find_coefficients_with_interaction(model, data):
@@ -635,7 +655,6 @@ class Model:
         for factor in self.expr.variables:
             if factor not in self.schema.factors:
                 raise UsageException("Factor '" + factor + "' is not defined in the schema. Valid factors are " + str(self.schema.factors.keys()))
-
 
     def layout_map(self):
         return self.schema.sample_groups(self.expr.variables)
@@ -947,10 +966,24 @@ is_sample are false will simply be ignored.
 
         return self.column_names[self.is_sample]
 
+    def dummy_vars_and_indexes(self, factors):
+        var_table = []
+        indexes   = []
+
+        for i, row in enumerate(self.table):
+            vars = [True]
+            for f in factors:
+                vars.extend(self.dummy_vars(f, self.table[f][i]))
+            var_table.append(vars)
+            indexes.append(i)
+
+        return (var_table, indexes)
+
     def dummy_vars(self, key, value):
-        return np.array(
+        res = np.array(
             [ v == value for v in self.factor_values(key) ],
             bool)
+        return res[1:]
 
     def add_factor(self, name, dtype):
         """Add an factor with the given name and data type, which
