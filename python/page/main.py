@@ -189,8 +189,6 @@ def do_fdr(job):
 
     fdr.bins = page.stat.bins_uniform(job.num_bins, raw_stats)
 
-
-
     with profiling('do_fdr.build fdr'):
 
         acc = page.stat.binning_accumulator(fdr.bins, job.num_samples)
@@ -212,13 +210,18 @@ def do_fdr(job):
             raise UsageException(
                 "--sample-from must be either raw or residuals")
 
-        sample_indexes = page.stat.random_indexes(
-            sample_layout, job.num_samples)
-#        job.save_sample_indexes(sample_indexes)
+        logging.info("Setting up bootstrap sample indexes")
+        if job.sample_indexes is None:
+            logging.info("  Creating a new set of indexes")
+            sample_indexes = page.stat.random_indexes(
+                sample_layout, job.num_samples)
+            job.save_sample_indexes(sample_indexes)
+        else:
+            logging.info("  Using existing indexes")
 
         fdr.baseline_counts = page.stat.bootstrap(
                 data, stat, 
-                indexes=sample_indexes,
+                indexes=job.sample_indexes,
                 residuals=residuals,
                 accumulator=acc)
 
@@ -285,6 +288,7 @@ class ResultTable:
                 stats=self.stats[start : end],
                 feature_ids=self.feature_ids[start : end],
                 scores=self.scores[start : end])
+
 
             
 @profiled
@@ -686,6 +690,26 @@ class Job:
         self.full_model    = Model(self.schema, full_model)
         self.reduced_model = Model(self.schema, reduced_model)
 
+        self._sample_indexes = None
+
+    def save_sample_indexes(self, indexes):
+        self._sample_indexes = indexes
+        np.save(self.sample_indexes_path, indexes)
+
+    @property
+    def sample_indexes(self):
+        logging.debug("In Job.sample_indexes")
+        if self._sample_indexes is None:
+            path = self.sample_indexes_path
+
+            logging.debug("_sample_indexes is none; initializing. Looking at " + 
+                          path)
+            if os.path.exists(path):
+                logging.debug("Found sample indexes to load")
+                self._sample_indexes = np.load(path)
+            else:
+                logging.info("Sample indexes aren't created yet")
+        return self._sample_indexes
 
     def save_schema(self, mode):
         out = open(self.schema_path, mode)
@@ -710,7 +734,7 @@ class Job:
     @property
     def sample_indexes_path(self):
         """Path to table of sample indexes"""
-        return os.path.join(self.data_directory, 'sample_indexes')
+        return os.path.join(self.data_directory, 'sample_indexes.npy')
 
     @property
     def schema_path(self):
