@@ -157,6 +157,20 @@ class SchemaTest(unittest.TestCase):
              'sex=female, age=20',
              'sex=female, age=55'])
 
+    def test_dummy_vars(self):
+        np.testing.assert_equal(
+            self.schema.dummy_vars("sex", "male"),
+            np.array([1, 0], bool))
+        np.testing.assert_equal(
+            self.schema.dummy_vars("sex", "female"),
+            np.array([0, 1], bool))
+        np.testing.assert_equal(
+            self.schema.dummy_vars("treated", False),
+            np.array([1, 0], bool))
+        np.testing.assert_equal(
+            self.schema.dummy_vars("treated", True),
+            np.array([0, 1], bool))
+        
 
 if __name__ == '__main__':
     unittest.main()

@@ -947,6 +947,11 @@ is_sample are false will simply be ignored.
 
         return self.column_names[self.is_sample]
 
+    def dummy_vars(self, key, value):
+        return np.array(
+            [ v == value for v in self.factor_values(key) ],
+            bool)
+
     def add_factor(self, name, dtype):
         """Add an factor with the given name and data type, which
         must be a valid numpy dtype."""
