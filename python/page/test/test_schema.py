@@ -174,9 +174,27 @@ class SchemaTest(unittest.TestCase):
     def test_model_dummy_vars(self):
         model = Model(self.schema, 'age + treated')
 
+        expected_vars = np.array([
+                [ 1, 0, 0, 1],
+                [ 1, 0, 0, 0],
+                [ 1, 1, 0, 1],
+                [ 1, 1, 0, 0],
+                [ 1, 0, 1, 1],
+                [ 1, 0, 1, 0],
+                [ 1, 0, 0, 1],
+                [ 1, 0, 0, 0],
+                [ 1, 1, 0, 1],
+                [ 1, 1, 0, 0],
+                [ 1, 0, 1, 1],
+                [ 1, 0, 1, 0],
+                ], bool)
+
         (vars, indexes) = self.schema.dummy_vars_and_indexes(
             ['age', 'treated'])
 
+        np.testing.assert_equal(vars, expected_vars)
+        np.testing.assert_equal(indexes,
+                                np.arange(12, int))
 
 if __name__ == '__main__':
     unittest.main()
