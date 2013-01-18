@@ -5,9 +5,13 @@ on the data model used in PaGE or the workflow. The idea is that we
 may use these functions outside of the standard PaGE workflow.
 
 """
+
 import numbers
 import numpy as np
 import numpy.ma as ma
+import collections
+from page.performance import profiling, profiled
+
 from page.common import *
 
 
@@ -220,6 +224,155 @@ class Ttest:
 
         return numer / denom
 
+def random_indexes(layout, R):
+    """Generates R samplings of indexes based on the given layout.
+
+    >>> indexes = random_indexes([[0, 1], [2, 3]], 10)
+    >>> np.shape(indexes)
+    (10, 4)
+
+    """
+    layout = [ np.array(grp, int) for grp in layout ]
+    n = sum([ len(grp) for grp in layout ])
+    res = np.zeros((R, n), int)
+    
+    for i in range(R):
+        p = 0
+        q = 0
+        for j, grp in enumerate(layout):
+            nj = len(grp)
+            q  = p + nj
+            res[i, p : q] = grp[np.random.random_integers(0, nj - 1, nj)]
+            p = q
+
+    return res
+
+Accumulator = collections.namedtuple(
+    'Accumulator',
+    ['initializer', 'reduce_fn', 'finalize_fn'])
+
+
+DEFAULT_ACCUMULATOR = Accumulator(
+    [],
+    lambda res, val: res + [ val ],
+    lambda x: np.array(x))
+
+
+def binning_accumulator(bins, num_samples):
+    initializer = np.zeros(cumulative_hist_shape(bins))
+
+    def reduce_fn(res, val):
+        return res + cumulative_hist(val, bins)
+    
+    def finalize_fn(res):
+        return res / num_samples
+
+    return Accumulator(initializer, reduce_fn, finalize_fn)
+
+
+@profiled
+def bootstrap(data,
+              stat_fn,
+              R=1000,
+              sample_layout=None,
+              indexes=None,
+              residuals=None,
+              accumulator=DEFAULT_ACCUMULATOR):
+
+    build_sample = None
+    if residuals is None:
+        build_sample = lambda idxs: data[..., idxs]
+    else:
+        build_sample = lambda idxs: data + residuals[..., idxs]
+
+    if indexes is None:
+        if sample_layout is None:
+            sample_layout = [ np.arange(np.shape(data)[1]) ]
+        indexes = random_indexes(sample_layout, R)
+        
+    # We'll return an R x n array, where n is the number of
+    # features. Each row is the array of statistics for all the
+    # features, using a different random sampling.
+    
+    with profiling("build samples, do stats, reduce"):
+        samples = (build_sample(p) for p in indexes)
+        stats   = (stat_fn(s)      for s in samples)
+        reduced = reduce(accumulator.reduce_fn, stats, accumulator.initializer)
+
+    with profiling("finalize"):
+        return accumulator.finalize_fn(reduced)
+
+def cumulative_hist_shape(bins):
+    """Returns the shape of the histogram with the given bins.
+
+    The shape is similar to that of bins, except the last dimension
+    has one less element.
+
+    """
+    shape = np.shape(bins)
+    shape = shape[:-1] + (shape[-1] - 1,)
+    return shape
+
+def cumulative_hist(values, bins):
+    """Create a cumulative histogram for values using the given bins.
+
+    The shape of values and bins must be the same except for the last
+    dimension.  So np.shape(values)[:-1] must equal
+    np.shape(bins[:-1]). The last dimension of values is simply a
+    listing of values. The last dimension of bins is the list of bin
+    edges for the histogram.
+
+    """
+    shape = cumulative_hist_shape(bins) 
+    res = np.zeros(shape)
+    for idx in np.ndindex(shape[:-1]): 
+        (hist, ignore) = np.histogram(values[idx], bins[idx]) 
+        res[idx] = np.array(np.cumsum(hist[::-1])[::-1], float)
+    return res
+
+@profiled
+def bins_uniform(num_bins, stats):
+    """Returns a set of evenly sized bins for the given stats.
+
+    Stats should be an array of statistic values, and num_bins should
+    be an integer. Returns an array of bin edges, of size num_bins +
+    1. The bins are evenly spaced between the smallest and largest
+    value in stats.
+
+    Note that this may not be the best method for binning the
+    statistics, especially if the distribution is heavily skewed
+    towards one end.
+
+    """
+    base_shape = np.shape(stats)[:-1]
+    bins = np.zeros(base_shape + (num_bins + 1,))
+    for idx in np.ndindex(base_shape):
+        maxval = np.max(stats[idx])
+        edges = np.concatenate((np.linspace(0, maxval, num_bins), [np.inf]))
+        edges[0] = - np.inf
+        bins[idx] = edges
+
+    return bins
+
+
+def bins_custom(num_bins, stats):
+    """Get an array of bin edges based on the actual computed
+    statistic values. stats is an array of length n. Returns an array
+    of length num_bins + 1, where bins[m, n] and bins[m + 1, n] define
+    a bin in which to count features for condition n. There is a bin
+    edge for negative and positive infinity, and one for each
+    statistic value.
+
+    """
+    base_shape = np.shape(stats)[:-1]
+    bins = np.zeros(base_shape + (num_bins + 1,))
+    bins[ : -1] = sorted(stats)
+    bins[-1] = np.inf
+    return bins
+
+
+
 if __name__ == '__main__':
     import doctest
     doctest.testmod()
+

@@ -63,6 +63,20 @@ def fix_newlines(msg):
         output += textwrap.fill(line) + "\n"
     return output
 
+def makedirs(path):
+    """Attempt to make the directory.
+
+    Attempt to make each director, and raise an exception if it cannot
+    be created. Returns normally if the directory was successfully
+    created or if it already existed.
+
+    """
+    try:
+        os.makedirs(path)
+    except OSError as e:
+        if not os.path.isdir(path):
+            raise e
+
 
 if __name__ == '__main__':
     import doctest
