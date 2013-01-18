@@ -51,13 +51,6 @@ class ProfileStackException(Exception):
 
 ##############################################################################
 ###
-### Bare functions
-###
-
-
-
-##############################################################################
-###
 ### Plotting and reporting
 ### 
 
@@ -196,18 +189,17 @@ def do_fdr(job):
 
     fdr.bins = page.stat.bins_uniform(job.num_bins, raw_stats)
 
+
+
     with profiling('do_fdr.build fdr'):
 
         acc = page.stat.binning_accumulator(fdr.bins, job.num_samples)
+        residuals = None
+
         if job.sample_from == 'raw':
             sample_layout = job.reduced_model.layout
             logging.info("Sampling from raw values, within groups defined by '" + 
                          str(job.reduced_model.expr) + "'")
-            fdr.baseline_counts = page.stat.bootstrap(
-                data, stat, 
-                R=job.num_samples,
-                sample_layout=sample_layout,
-                accumulator=acc)
 
         elif job.sample_from == 'residuals':
             logging.info("Sampling from residuals, not using groups")
@@ -215,15 +207,21 @@ def do_fdr(job):
             sample_layout = [ sorted(job.schema.sample_name_index.values()) ]
             prediction = predicted_values(job)
             residuals = data - prediction
-            fdr.baseline_counts = page.stat.bootstrap(
-                data, stat, 
-                R=job.num_samples,
-                sample_layout=sample_layout,
-                residuals=residuals,
-                accumulator=acc)
+
         else:
             raise UsageException(
                 "--sample-from must be either raw or residuals")
+
+        sample_indexes = page.stat.random_indexes(
+            sample_layout, job.num_samples)
+#        job.save_sample_indexes(sample_indexes)
+
+        fdr.baseline_counts = page.stat.bootstrap(
+                data, stat, 
+                indexes=sample_indexes,
+                residuals=residuals,
+                accumulator=acc)
+
 
         fdr.raw_stats    = raw_stats
         fdr.raw_counts   = page.stat.cumulative_hist(fdr.raw_stats, fdr.bins)
