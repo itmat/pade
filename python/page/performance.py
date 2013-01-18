@@ -78,5 +78,7 @@ def walk_profile(profile_log=EVENTS):
     table.sort(order=['order'])
     return table
 
-    
+if __name__ == '__main__':
+    import doctest
+    doctest.testmod()
 

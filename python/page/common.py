@@ -21,10 +21,6 @@ def chdir(path):
     """Context manager for changing working directory.
 
     cds to the given path, yeilds, then changes back.
-
-    >>> with chdir("/tmp"):
-    >>>   # Do something in the tmp dir
-    >>>   pass
     
     """
     cwd = os.getcwd()
@@ -74,3 +70,6 @@ def maxrss():
     return bytes / 1000000000.0
     
 
+if __name__ == '__main__':
+    import doctest
+    doctest.testmod()

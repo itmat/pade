@@ -4,7 +4,7 @@ cover :
 	 nosetests --with-coverage --cover-html --cover-package page
 
 test :
-	nosetests
+	nosetests --with-doctest
 
 clean :
 	rm -f *~ **/*~ **/*.pyc *.pyc *.log tests/*~ tests/*.pyc

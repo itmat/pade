@@ -1,3 +1,10 @@
+"""Low-level statistical methods.
+
+This module should be general-purpose, and not have any dependencies
+on the data model used in PaGE or the workflow. The idea is that we
+may use these functions outside of the standard PaGE workflow.
+
+"""
 import numbers
 import numpy as np
 import numpy.ma as ma
@@ -12,28 +19,77 @@ def apply_layout(layout, data):
     factor values. All of the inner lists must currently have the same
     length.
 
-    data - An m x n array, where m is the number of samples and n is
+    data - An n x m array, where m is the number of samples and n is
     the number of features.
 
-    Returns an m1 x m2 x n array, where m1 is the number of groups, m2
+    Returns an n x m1 x m2 n array, where m1 is the number of groups, m2
     is the number of samples in each group, and n is the number of features.
 
+    A trivial layout where all columns are grouped together:
+    >>> data = np.array([[0, 1, 2, 3], [4, 5, 6, 7,]], int)
+    >>> apply_layout([[0, 1, 2, 3]], data) # doctest: +NORMALIZE_WHITESPACE
+    array([[[0, 1, 2, 3]], 
+           [[4, 5, 6, 7]]])
+
+    First two columns in one group, second two in another:
+    >>> apply_layout([[0, 1], [2, 3]], data) # doctest: +NORMALIZE_WHITESPACE
+    array([[[0, 1], 
+            [2, 3]],
+           [[4, 5],
+            [6, 7]]])
+
+    # Odd and even columns, with the order changed:
+    >>> apply_layout([[2, 0], [3, 1]], data) # doctest: +NORMALIZE_WHITESPACE
+    array([[[2, 0], 
+            [3, 1]],
+           [[6, 4],
+            [7, 5]]])
     """
     shape = np.shape(data)[:-1] + (len(layout), len(layout[0]))
 
-    res = np.zeros(shape)
+    res = np.zeros(shape, dtype=data.dtype)
 
     for i, idxs in enumerate(layout):
         res[..., i, :] = data[..., idxs]
     return res
 
 def mean_and_rss(data):
+    """Return a tuple of the mean and residual sum of squares.
+
+    Returns them means and residual sum of squares over the last axis.
+
+    """
     y   = np.mean(data, axis=-1).reshape(np.shape(data)[:-1] + (1,))
     rss = double_sum((data  - y)  ** 2)
     return (y, rss)
 
 class Ftest:
 
+    """Computes the F-test.
+
+    Some sample data
+    >>> a = np.array([1, 2, 3, 6])
+    >>> b = np.array([2, 1, 1, 1])
+    >>> c = np.array([3, 1, 10, 4])
+
+    The full layout has the first two columns in one group and the
+    second two in another. The reduced layout has all columns in one
+    group.
+    >>> full_layout = [[0, 1], [2, 3]]
+    >>> reduced_layout = [[0, 1, 2, 3]]
+    
+    Construct one ftest based on our layouts
+    >>> ftest = Ftest(full_layout, reduced_layout)
+    
+    Test one row
+    >>> round(ftest(a), 1)
+    3.6
+
+    Test multiple rows at once
+    >>> data = np.array([a, b, c])
+    >>> ftest(data)
+    array([ 3.6,  1. ,  2.5])
+    """
     def __init__(self, layout_full, layout_reduced, alphas=None):
         self.layout_full = layout_full
         self.layout_reduced = layout_reduced
@@ -164,6 +220,6 @@ class Ttest:
 
         return numer / denom
 
-
-
-
+if __name__ == '__main__':
+    import doctest
+    doctest.testmod()
