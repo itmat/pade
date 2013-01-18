@@ -7,7 +7,7 @@ test :
 	nosetests
 
 clean :
-	rm -f *~ *.pyc *.log tests/*~ tests/*.pyc
+	rm -f *~ **/*~ **/*.pyc *.pyc *.log tests/*~ tests/*.pyc
 
 perf_setup :
 	mkdir -p perf_report
