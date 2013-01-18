@@ -1,3 +1,7 @@
+"""Utilities for measuring performance of PaGE.
+
+"""
+
 import contextlib
 import resource
 import numpy as np
@@ -6,6 +10,9 @@ EVENTS = []
 
 @contextlib.contextmanager
 def profiling(label):
+    """Context manager for capturing performance metrics of a block.
+
+    """
     pre_maxrss = maxrss()
     EVENTS.append(('enter', label, maxrss()))
     yield
@@ -13,7 +20,7 @@ def profiling(label):
     EVENTS.append(('exit', label, maxrss()))
 
 def profiled(method):
-
+    """Decorator for profiling a function."""
     def wrapped(*args, **kw):
         with profiling(method.__name__):
             return method(*args, **kw)
@@ -25,8 +32,8 @@ def maxrss():
     bytes = float(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
     return bytes / 1000000000.0
 
-
 def walk_profile(profile_log=EVENTS):
+    """Analyze the given list of events and return a table."""
     stack = []
     events = []
     order = 0

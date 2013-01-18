@@ -25,7 +25,7 @@ import numpy.lib.recfunctions
 from bisect import bisect
 
 from page.common import *
-from page.stat import *
+import page.stat
 from page.performance import *
 
 REAL_PATH = os.path.realpath(__file__)
@@ -182,7 +182,7 @@ def summarize_scores(feature_to_score, summary_bins):
     shape = np.shape(feature_to_score)[:-1] + (len(summary_bins) - 1,)
     res = np.zeros(shape, int)
     for idx in np.ndindex(shape[:-1]):
-        res[idx] = cumulative_hist(feature_to_score[idx], summary_bins)
+        res[idx] = page.stat.cumulative_hist(feature_to_score[idx], summary_bins)
     return res
 
 @profiled
@@ -194,16 +194,16 @@ def do_fdr(job):
     stat = job.stat
     raw_stats = stat(data)
 
-    fdr.bins = bins_uniform(job.num_bins, raw_stats)
+    fdr.bins = page.stat.bins_uniform(job.num_bins, raw_stats)
 
     with profiling('do_fdr.build fdr'):
 
-        acc = binning_accumulator(fdr.bins, job.num_samples)
+        acc = page.stat.binning_accumulator(fdr.bins, job.num_samples)
         if job.sample_from == 'raw':
             sample_layout = job.reduced_model.layout
             logging.info("Sampling from raw values, within groups defined by '" + 
                          str(job.reduced_model.expr) + "'")
-            fdr.baseline_counts = bootstrap(
+            fdr.baseline_counts = page.stat.bootstrap(
                 data, stat, 
                 R=job.num_samples,
                 sample_layout=sample_layout,
@@ -215,7 +215,7 @@ def do_fdr(job):
             sample_layout = [ sorted(job.schema.sample_name_index.values()) ]
             prediction = predicted_values(job)
             residuals = data - prediction
-            fdr.baseline_counts = bootstrap(
+            fdr.baseline_counts = page.stat.bootstrap(
                 data, stat, 
                 R=job.num_samples,
                 sample_layout=sample_layout,
@@ -226,14 +226,14 @@ def do_fdr(job):
                 "--sample-from must be either raw or residuals")
 
         fdr.raw_stats    = raw_stats
-        fdr.raw_counts   = cumulative_hist(fdr.raw_stats, fdr.bins)
+        fdr.raw_counts   = page.stat.cumulative_hist(fdr.raw_stats, fdr.bins)
         fdr.bin_to_score = confidence_scores(
             fdr.raw_counts, fdr.baseline_counts, np.shape(raw_stats)[-1])
         fdr.feature_to_score = assign_scores_to_features(
             fdr.raw_stats, fdr.bins, fdr.bin_to_score)
         fdr.summary_bins = np.linspace(0.5, 1.0, 11)
         summarize_scores(fdr.feature_to_score, fdr.summary_bins)
-        fdr.summary_counts = cumulative_hist(
+        fdr.summary_counts = page.stat.cumulative_hist(
             fdr.feature_to_score, fdr.summary_bins)
 
     return fdr
@@ -728,12 +728,12 @@ class Job:
     def stat(self):
         """The statistic used for this job."""
         if self.stat_name == 'f':
-            return Ftest(
+            return page.stat.Ftest(
                 layout_full=self.full_model.layout,
                 layout_reduced=self.reduced_model.layout,
                 alphas=np.array([0.0, 0.01, 0.1, 1, 3]))
         elif self.stat_name == 'f_sqrt':
-            return FtestSqrt(
+            return page.stat.FtestSqrt(
                 layout_full=self.full_model.layout,
                 layout_reduced=self.reduced_model.layout)
         elif self.stat_name == 't':
@@ -1152,9 +1152,8 @@ def init_job(infile, factors, directory, force=False):
     for a in factors:
         schema.add_factor(a, object)
 
+    job = Job(directory, schema=schema)
     makedirs(job.data_directory)
-    job = Job(directory,
-              schema=schema)
 
     mode = 'w' if force else 'wx'
     try:

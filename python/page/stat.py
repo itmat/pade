@@ -30,24 +30,28 @@ def apply_layout(layout, data):
     is the number of samples in each group, and n is the number of features.
 
     A trivial layout where all columns are grouped together:
+
     >>> data = np.array([[0, 1, 2, 3], [4, 5, 6, 7,]], int)
     >>> apply_layout([[0, 1, 2, 3]], data) # doctest: +NORMALIZE_WHITESPACE
     array([[[0, 1, 2, 3]], 
            [[4, 5, 6, 7]]])
 
     First two columns in one group, second two in another:
+
     >>> apply_layout([[0, 1], [2, 3]], data) # doctest: +NORMALIZE_WHITESPACE
     array([[[0, 1], 
             [2, 3]],
            [[4, 5],
             [6, 7]]])
 
-    # Odd and even columns, with the order changed:
+    Odd and even columns, with the order changed:
+    
     >>> apply_layout([[2, 0], [3, 1]], data) # doctest: +NORMALIZE_WHITESPACE
     array([[[2, 0], 
             [3, 1]],
            [[6, 4],
             [7, 5]]])
+
     """
     shape = np.shape(data)[:-1] + (len(layout), len(layout[0]))
 
@@ -72,6 +76,7 @@ class Ftest:
     """Computes the F-test.
 
     Some sample data
+
     >>> a = np.array([1, 2, 3, 6])
     >>> b = np.array([2, 1, 1, 1])
     >>> c = np.array([3, 1, 10, 4])
@@ -79,20 +84,25 @@ class Ftest:
     The full layout has the first two columns in one group and the
     second two in another. The reduced layout has all columns in one
     group.
+
     >>> full_layout = [[0, 1], [2, 3]]
     >>> reduced_layout = [[0, 1, 2, 3]]
     
     Construct one ftest based on our layouts
+
     >>> ftest = Ftest(full_layout, reduced_layout)
     
     Test one row
+
     >>> round(ftest(a), 1)
     3.6
 
     Test multiple rows at once
+
     >>> data = np.array([a, b, c])
     >>> ftest(data)
     array([ 3.6,  1. ,  2.5])
+
     """
     def __init__(self, layout_full, layout_reduced, alphas=None):
         self.layout_full = layout_full
