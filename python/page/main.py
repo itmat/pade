@@ -311,9 +311,9 @@ def do_run(args):
 
         # Get the means and coefficients, which will come back as an
         # ndarray. We will need to flatten them for display purposes.
-        (means, coeffs) = find_coefficients(job.full_model, job.table.swapaxes(0, 1))
+        (means, coeffs) = find_coefficients_with_interaction(job.full_model, job.table.swapaxes(0, 1))
 
-        # The means and coefficients returned by find_coefficients are
+        # The means and coefficients returned by find_coefficients_with_interaction are
         # n-dimensional, with one dimension for each factor, plus a
         # dimension for feature. Flatten them into a 2d array (condition x
         # feature).
@@ -459,8 +459,9 @@ def confidence_scores(raw_counts, perm_counts, num_features):
 
     return res
 
+
 @profiled
-def find_coefficients(model, data):
+def find_coefficients_with_interaction(model, data):
     """Returns the means and coefficients of the data based on the model.
 
     model must be a Model object.
