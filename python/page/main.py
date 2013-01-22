@@ -122,8 +122,6 @@ def predicted_values(job):
     for grp in job.reduced_model.layout:
         means = np.mean(data[..., grp], axis=1)
         means = means.reshape(np.shape(means) + (1,))
-        print "Shape of means is", np.shape(means)
-        print "Shape of prediction is", np.shape(prediction[..., grp])
         prediction[..., grp] = means
     return prediction
 
@@ -309,7 +307,7 @@ def do_run(args):
         num_groups = int(np.prod(var_shape))
         num_features = len(job.table)
 
-        foo = find_coefficients_no_interaction(job.full_model, job.table.swapaxes(0, 1))
+        foo = find_coefficients_no_interaction(job.full_model, job.table)
 
         # Get the means and coefficients, which will come back as an
         # ndarray. We will need to flatten them for display purposes.
@@ -471,10 +469,13 @@ def find_coefficients_no_interaction(model, data):
         model.expr.variables)
 
     num_vars = np.size(x, axis=1)
-
     shape = np.array((len(data), num_vars))
-    print "Shape is", shape
-    result = np.array(shape)
+
+    logging.debug("  Dummy vars are " + str(x))
+    logging.debug("  Indexes are " + str(indexes))
+    logging.debug("  Shape of result is " + str(shape))
+
+    result = np.zeros(shape)
 
     for i, row in enumerate(data):
         y = row[indexes]
