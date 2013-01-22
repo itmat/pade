@@ -571,17 +571,23 @@ def find_coefficients_with_interaction(model, data):
 
 class ModelExpression:
     
-    PROB_MARGINAL    = "marginal"
-    PROB_JOINT       = "joint"
+    def __init__(self, 
+                 operator=None,
+                 variables=None):
 
-    OP_TO_NAME = { '+' : PROB_MARGINAL, '*' : PROB_JOINT }
-    NAME_TO_OP = { PROB_MARGINAL : '+', PROB_JOINT : '*' }
+        if variables is None:
+            variables = []
 
-    def __init__(self, prob=None, variables=[]):
-        if prob is not None and prob not in self.NAME_TO_OP:
-            raise Exception("Unknown probability " + str(prob))
-        self.prob      = prob
+        # If we have two or mor vars, make sure we have a valid operator
+        if len(variables) > 1:
+            if operator is None:
+                raise Exception("Operator must be supplied for two or more variables")
+            if operator not in "+*":
+                raise Exception("Operator must be '+' or '*'")
+
+        self.operator = operator
         self.variables = variables
+
         
     @classmethod
     def parse(cls, string):
@@ -615,8 +621,7 @@ class ModelExpression:
         if tok_type == tokenize.ENDMARKER:
             return ModelExpression(variables=variables)
         elif tok_type == tokenize.OP:
-            operator = ModelExpression.OP_TO_NAME[tok]
-            # raise ModelExpressionException("Unexpected operator " + tok)
+            operator = tok
         else:
             raise ModelExpressionException("Unexpected token " + tok)
 
@@ -631,16 +636,20 @@ class ModelExpression:
         if tok_type != tokenize.ENDMARKER:
             raise ModelExpressionException("Expected end of expression, got " + tok)
 
-        return ModelExpression(prob=operator, variables=variables)
+        if len(variables) > 0:
+            return ModelExpression(operator=operator, variables=variables)
+
+
 
     def __str__(self):
-        if len(self.variables) == 1:
+        if self.variables is None:
+            return ""
+        elif len(self.variables) == 1:
             return self.variables[0]
-        elif len(self.variables) > 1:
-            op = ' ' + self.NAME_TO_OP[self.prob] + ' '
-            return op.join(self.variables)
         else:
-            return ''
+            op = " " + self.operator + " "
+            return op.join(self.variables)
+
 
 class Model:
     def __init__(self, schema, expr):
@@ -983,7 +992,7 @@ is_sample are false will simply be ignored.
             var_table.append(vars)
             indexes.append(i)
 
-        return (var_table, indexes)
+        return (var_table, np.array(indexes))
 
     def dummy_vars(self, key, value):
         res = np.array(

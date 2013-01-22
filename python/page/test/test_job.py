@@ -38,7 +38,6 @@ class CommonTest(unittest.TestCase):
             print job.schema.sample_groups(['treated'])
             print job.schema.sample_groups(['sex'])
 
-
     def test_model_to_layout(self):
 
         with sample_job(self.sample_input_4_class,

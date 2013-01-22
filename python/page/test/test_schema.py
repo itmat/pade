@@ -193,8 +193,9 @@ class SchemaTest(unittest.TestCase):
             ['age', 'treated'])
 
         np.testing.assert_equal(vars, expected_vars)
+        print "Indexes is ", indexes
         np.testing.assert_equal(indexes,
-                                np.arange(12, int))
+                                np.arange(12, dtype=int))
 
 if __name__ == '__main__':
     unittest.main()
