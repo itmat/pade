@@ -302,25 +302,14 @@ def do_run(args):
             reduced_model=args.reduced_model,
             sample_from=args.sample_from)
 
-        var_shape = job.full_model.factor_value_shape()
-        num_groups = int(np.prod(var_shape))
+
         num_features = len(job.table)
 
-        foo = find_coefficients_no_interaction(job.full_model, job.table)
-
-        # Get the means and coefficients, which will come back as an
-        # ndarray. We will need to flatten them for display purposes.
-        coeffs = find_coefficients_with_interaction(job.full_model, job.table.swapaxes(0, 1))
+        coeffs1 = find_coefficients_no_interaction(job.full_model, job.table)
+        coeffs  = find_coefficients_with_interaction(job.full_model, job.table)
 
         means = get_group_means(job.schema, job.table)
 
-        # The means and coefficients returned by find_coefficients_with_interaction are
-        # n-dimensional, with one dimension for each factor, plus a
-        # dimension for feature. Flatten them into a 2d array (condition x
-        # feature).
-        flat_coeffs = np.zeros((num_features, num_groups))
-        for i, idx in enumerate(np.ndindex(var_shape)):
-            flat_coeffs[:, i] = coeffs[idx]
 
     results = None
 
@@ -330,7 +319,7 @@ def do_run(args):
 
         results = ResultTable(
             means=means,
-            coeffs=flat_coeffs,
+            coeffs=coeffs,
             condition_names=model_col_names(job.full_model),
             feature_ids=np.array(job.feature_ids),
             stats=fdr.raw_stats,
@@ -494,14 +483,25 @@ def get_group_means(schema, data):
 
     for i, key in enumerate(groups):
         idxs = groups[key]
-        print "I is", i, " idxs are", idxs
         result[:, i] = np.mean(data[:, idxs], axis=1)
-    print "Means is\n", result
     return result
+
+def find_coefficients_with_interaction(model, data):
+    coeffs = find_coefficients_with_interaction_impl(model, data.swapaxes(0, 1))
+    var_shape = model.factor_value_shape()
+    num_groups = int(np.prod(var_shape))
+    # The means and coefficients returned by find_coefficients_with_interaction are
+    # n-dimensional, with one dimension for each factor, plus a
+    # dimension for feature. Flatten them into a 2d array (condition x
+    # feature).
+    flat_coeffs = np.zeros((len(data), num_groups))
+    for i, idx in enumerate(np.ndindex(var_shape)):
+        flat_coeffs[:, i] = coeffs[idx]
+    return flat_coeffs
 
 
 @profiled
-def find_coefficients_with_interaction(model, data):
+def find_coefficients_with_interaction_impl(model, data):
     """Returns the means and coefficients of the data based on the model.
 
     model must be a Model object.
