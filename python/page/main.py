@@ -287,7 +287,6 @@ class ResultTable:
                 feature_ids=self.feature_ids[start : end],
                 scores=self.scores[start : end])
 
-
             
 @profiled
 def do_run(args):
@@ -311,17 +310,17 @@ def do_run(args):
 
         # Get the means and coefficients, which will come back as an
         # ndarray. We will need to flatten them for display purposes.
-        (means, coeffs) = find_coefficients_with_interaction(job.full_model, job.table.swapaxes(0, 1))
+        coeffs = find_coefficients_with_interaction(job.full_model, job.table.swapaxes(0, 1))
+
+        means = get_group_means(job.schema, job.table)
 
         # The means and coefficients returned by find_coefficients_with_interaction are
         # n-dimensional, with one dimension for each factor, plus a
         # dimension for feature. Flatten them into a 2d array (condition x
         # feature).
         flat_coeffs = np.zeros((num_features, num_groups))
-        flat_means  = np.zeros_like(flat_coeffs)
         for i, idx in enumerate(np.ndindex(var_shape)):
             flat_coeffs[:, i] = coeffs[idx]
-            flat_means[:, i]  = means[idx]
 
     results = None
 
@@ -330,7 +329,7 @@ def do_run(args):
     with profiling("do_report: build results table"):
 
         results = ResultTable(
-            means=flat_means,
+            means=means,
             coeffs=flat_coeffs,
             condition_names=model_col_names(job.full_model),
             feature_ids=np.array(job.feature_ids),
@@ -484,6 +483,23 @@ def find_coefficients_no_interaction(model, data):
 
     return result
 
+def get_group_means(schema, data):
+
+    groups = schema.sample_groups(schema.factors)
+
+    num_features = len(data)
+    num_groups = len(groups)
+
+    result = np.zeros((num_features, num_groups))
+
+    for i, key in enumerate(groups):
+        idxs = groups[key]
+        print "I is", i, " idxs are", idxs
+        result[:, i] = np.mean(data[:, idxs], axis=1)
+    print "Means is\n", result
+    return result
+
+
 @profiled
 def find_coefficients_with_interaction(model, data):
     """Returns the means and coefficients of the data based on the model.
@@ -515,14 +531,10 @@ def find_coefficients_with_interaction(model, data):
     (num_samples, num_features) = np.shape(data)
     shape += (num_features,)
     coeffs = np.zeros(shape)
-    means  = np.zeros(shape)
 
     sym_idx    = lambda(idx): model.index_num_to_sym(idx)
     col_nums   = lambda(idx): layout_map[sym_idx(idx)]
     group_mean = lambda(idx): np.mean(data[col_nums(idx)], axis=0)
-
-    for idx in np.ndindex(shape[:-1]):
-        means[idx] = group_mean(idx)
 
     # Find the bias term
     bias_idx = tuple([0 for dim in shape[:-1]])
@@ -560,7 +572,7 @@ def find_coefficients_with_interaction(model, data):
                     idx = tuple(idx)
                     coeffs[idx] = group_mean(idx) - coeffs[bias_idx] - coeffs[idx1] - coeffs[idx2]
 
-    return (means, coeffs)
+    return coeffs
 
 
 ##############################################################################
@@ -642,7 +654,7 @@ class ModelExpression:
 
 
     def __str__(self):
-        if self.variables is None:
+        if len(self.variables) == 0:
             return ""
         elif len(self.variables) == 1:
             return self.variables[0]
@@ -1167,7 +1179,7 @@ sample_factor_mapping:
         """Returns a dictionary mapping each value of factor to the
         list of sample numbers that have that value set."""
 
-        grouping = {}
+        grouping = collections.OrderedDict({})
 
         for i, row in enumerate(self.table):
             key = []
