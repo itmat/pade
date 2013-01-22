@@ -463,22 +463,25 @@ def confidence_scores(raw_counts, perm_counts, num_features):
 
 
 def find_coefficients_no_interaction(model, data):
-    factors = model.expr.variables
 
-    layout_map = model.layout_map()    
-    values = [model.schema.sample_groups([f]).keys() for f in factors]
+    logging.info("Computing coefficients using least squares for " +
+             str(len(data)) + " rows")
 
-    for row in data:
-        dummies = [1]
-        for key, idxs in layout_map.items():
-            dummies.extend(schema.dummy_vars(k, v))
-        print dummies
+    (x, indexes) = model.schema.dummy_vars_and_indexes(
+        model.expr.variables)
 
-        raise Exception("badness")
+    num_vars = np.size(x, axis=1)
 
-
-    shape = tuple([len(v) for v in values])
+    shape = np.array((len(data), num_vars))
     print "Shape is", shape
+    result = np.array(shape)
+
+    for i, row in enumerate(data):
+        y = row[indexes]
+        (coeffs, residuals, rank, s) = np.linalg.lstsq(x, y)
+        result[i] = coeffs
+
+    return result
 
 @profiled
 def find_coefficients_with_interaction(model, data):
