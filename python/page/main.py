@@ -21,6 +21,7 @@ import textwrap
 import tokenize
 import yaml
 import numpy.lib.recfunctions
+import itertools
 
 from bisect import bisect
 
@@ -993,24 +994,46 @@ is_sample are false will simply be ignored.
 
         return self.column_names[self.is_sample]
 
-    def dummy_vars_and_indexes(self, factors):
+    def dummy_vars_and_indexes(self, factors, interactions=0):
         var_table = []
         indexes   = []
 
-        for i, row in enumerate(self.table):
+        for sample in self.sample_column_names:
+            print "Doing", sample
+            print sample
             vars = [True]
-            for f in factors:
-                vars.extend(self.dummy_vars(f, self.table[f][i]))
+            for factor in factors:
+                vars.extend(self.dummy_vars({factor: self.get_factor(sample, factor)}))
+
+            for level in range(1, interactions + 1):
+                interacting = list(itertools.combinations(factors, level + 1))
+
+                for i in range(len(interacting)):
+                    assignments = {}
+                    for factor in interacting[i]:
+                        assignments[factor] = self.get_factor(sample, factor)
+                    print "  assignments", assignments
+                    vars.extend(self.dummy_vars(assignments))
+
             var_table.append(vars)
-            indexes.append(i)
+            indexes.append(self.sample_name_index[sample])
 
         return (var_table, np.array(indexes))
 
-    def dummy_vars(self, key, value):
-        res = np.array(
-            [ v == value for v in self.factor_values(key) ],
-            bool)
+    def dummy_vars(self, assignments):
+
+        factors = assignments.keys()
+        all_vals = list(itertools.product(*[self.factor_values(f) for f in factors]))
+
+        res = np.ones(len(all_vals), bool)
+
+        for i, vals in enumerate(all_vals):
+            for j, factor in enumerate(factors):
+                if vals[j] != assignments[factor]:
+                    res[i] = False
+
         return res[1:]
+
 
     def add_factor(self, name, dtype):
         """Add an factor with the given name and data type, which
@@ -1163,7 +1186,12 @@ sample_factor_mapping:
         name."""
 
         sample_num = self.sample_num(sample_name)
-        value = self.table[sample_num][factor]
+
+        try:
+            value = self.table[sample_num][factor]
+        except IndexError as e:
+            raise Exception("Can't find " + str(factor) + " for sample number " + str(sample_num) + " in table with dtype " + str(self.table.dtype))
+
 #        if self.factors[factor].startswith("S"):
 #            value = str(value)
         return value

@@ -159,16 +159,16 @@ class SchemaTest(unittest.TestCase):
 
     def test_dummy_vars(self):
         np.testing.assert_equal(
-            self.schema.dummy_vars("sex", "male"),
+            self.schema.dummy_vars({"sex" : "male"}),
             np.array([0], bool))
         np.testing.assert_equal(
-            self.schema.dummy_vars("sex", "female"),
+            self.schema.dummy_vars({"sex" : "female"}),
             np.array([1], bool))
         np.testing.assert_equal(
-            self.schema.dummy_vars("treated", False),
+            self.schema.dummy_vars({"treated" : False}),
             np.array([0], bool))
         np.testing.assert_equal(
-            self.schema.dummy_vars("treated", True),
+            self.schema.dummy_vars({"treated" : True}),
             np.array([1], bool))
         
     def test_model_dummy_vars(self):
@@ -191,6 +191,34 @@ class SchemaTest(unittest.TestCase):
 
         (vars, indexes) = self.schema.dummy_vars_and_indexes(
             ['age', 'treated'])
+
+        np.testing.assert_equal(vars, expected_vars)
+        print "Indexes is ", indexes
+        np.testing.assert_equal(indexes,
+                                np.arange(12, dtype=int))
+
+
+    def test_model_dummy_vars_1(self):
+        model = Model(self.schema, 'age + treated')
+
+        expected_vars = np.array([
+                [ 1, 0, 0, 1, 0, 0],
+                [ 1, 0, 0, 0, 0, 0],
+                [ 1, 1, 0, 1, 1, 0],
+                [ 1, 1, 0, 0, 0, 0],
+                [ 1, 0, 1, 1, 0, 1],
+                [ 1, 0, 1, 0, 0, 0],
+                [ 1, 0, 0, 1, 0, 0],
+                [ 1, 0, 0, 0, 0, 0],
+                [ 1, 1, 0, 1, 1, 0],
+                [ 1, 1, 0, 0, 0, 0],
+                [ 1, 0, 1, 1, 0, 1],
+                [ 1, 0, 1, 0, 0, 0],
+                ], bool)
+
+        (vars, indexes) = self.schema.dummy_vars_and_indexes(
+            ['age', 'treated'],
+            interactions=1)
 
         np.testing.assert_equal(vars, expected_vars)
         print "Indexes is ", indexes
