@@ -900,7 +900,9 @@ def main():
     try:
         args.func(args)
     except UsageException as e:
-        print fix_newlines("ERROR: " + e.message)
+        logging.fatal("Page exiting because of usage error")
+        print fix_newlines(e.message)
+        exit(1)
     
     logging.info('Page finishing')    
 
@@ -1224,10 +1226,10 @@ def init_job(infile, factors, directory, force=False):
         job.save_schema(mode)
     except IOError as e:
         if e.errno == errno.EEXIST:
-            raise UsageException(
-                """The schema file \"{}\" already exists. If you want to
+            raise UsageException("""\
+                   The schema file \"{}\" already exists. If you want to
                    overwrite it, use the --force or -f argument.""".format(
-                    filename))
+                    job.schema_path))
         raise e
 
     job.copy_table(infile.name)

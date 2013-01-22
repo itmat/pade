@@ -59,8 +59,8 @@ def fix_newlines(msg):
 
     """
     output = ""
-    for line in msg.splitlines():
-        output += textwrap.fill(line) + "\n"
+    for par in msg.split("\n\n"):
+        output += textwrap.fill(textwrap.dedent(par)) + "\n"
     return output
 
 def makedirs(path):
