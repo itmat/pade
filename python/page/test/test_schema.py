@@ -18,9 +18,9 @@ class SchemaTest(unittest.TestCase):
             is_feature_id=is_feature_id,
             is_sample=is_sample)
 
-        schema.add_factor('age', object)
-        schema.add_factor('sex', object)
-        schema.add_factor('treated', object)
+        schema.add_factor('age', [2, 20, 55])
+        schema.add_factor('sex', ['male', 'female'])
+        schema.add_factor('treated', [False, True])
 
         counter = 0
 

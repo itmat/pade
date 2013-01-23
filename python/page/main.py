@@ -929,11 +929,12 @@ def main():
     
     logging.info('Page finishing')    
 
+# Factor = collections.namedtuple("Factor", ["name", "dtype", "values"])
+# Sample = collections.namedtuple("Sample", ["column", "factor_values"])
 
 class Schema(object):
 
     def __init__(self, 
-                 factors=[],
                  is_feature_id=None,
                  is_sample=None,
                  column_names=None):
@@ -965,27 +966,26 @@ is_sample are false will simply be ignored.
             column_names = np.array(column_names)
 
         self.factors = collections.OrderedDict()
+
+
+        self.sample_to_factor_values = collections.OrderedDict()
         self.is_feature_id = np.array(is_feature_id, dtype=bool)
         self.is_sample     = np.array(is_sample,     dtype=bool)
         self.column_names  = column_names
-        self.table = None
         self.sample_to_column  = []
         self.sample_name_index = {}
 
-        for i in range(len(self.is_sample)):
+        for i, name in enumerate(column_names):
             if self.is_sample[i]:
-                n = len(self.sample_to_column)
-                self.sample_name_index[column_names[i]] = n
-                self.sample_to_column.append(i)
+                self.sample_name_index[name] = len(self.sample_name_index)
+                self.sample_to_factor_values[name] = {}
 
-        for (name, dtype) in factors:
-            self.add_factor(name, dtype)
 
     @property
     def factor_names(self):
         """Return a list of the factor names for this schema."""
 
-        return [x for x in self.factors]
+        return self.factors.keys()
 
     @property
     def sample_column_names(self):
@@ -999,8 +999,6 @@ is_sample are false will simply be ignored.
         indexes   = []
 
         for sample in self.sample_column_names:
-            print "Doing", sample
-            print sample
             vars = [True]
             for factor in factors:
                 vars.extend(self.dummy_vars({factor: self.get_factor(sample, factor)}))
@@ -1035,35 +1033,14 @@ is_sample are false will simply be ignored.
         return res[1:]
 
 
-    def add_factor(self, name, dtype):
+    def add_factor(self, name, values=[]):
         """Add an factor with the given name and data type, which
         must be a valid numpy dtype."""
         
-        default = None
-        if dtype == "int":
-            default = 0
-        else:
-            default = None
+        self.factors[name] = values
+        for sample in self.sample_to_factor_values:
+            self.sample_to_factor_values[sample][name] = None
 
-        new_table = []
-
-        self.factors[name] = dtype
-
-        if self.table is None:
-            new_table = [(default,) for s in self.sample_column_names]
-
-        else:
-            for row in self.table:
-                row = tuple(row) + (default,)
-                new_table.append(row)
-            
-        self.table = np.array(new_table, dtype=[(k, v) for k, v in self.factors.iteritems()])
-        
-    def drop_factor(self, name):
-        """Remove the factor with the given name."""
-
-        self.table = drop_fields(name)
-        del self.factors[name]
 
     @classmethod
     def load(cls, stream):
@@ -1091,9 +1068,7 @@ is_sample are false will simply be ignored.
         # Now add all the factors and their types
         factors = doc['factors']
         for factor in factors:
-            dtype = factor['dtype'] if 'dtype' in factor else object
-            schema.add_factor(factor['name'], 
-                                 dtype)
+            schema.add_factor(factor['name'], factor['values'])
 
         for sample, attrs in doc['sample_factor_mapping'].iteritems():
             for name, value in attrs.iteritems():
@@ -1120,15 +1095,9 @@ is_sample are false will simply be ignored.
                 
                 sample_cols[name] = {}
                 for factor in self.factors:
-                    value = self.get_factor(name, factor)
-                    if type(value) == str:
-                        pass
-                    elif type(value) == np.int32:
-                        value = int(value)
-                    elif type(value) == np.bool_:
-                        value = bool(value)
-                    
-                    sample_cols[name][factor] = value
+                    if factor in self.sample_to_factor_values[name]:
+                        value = self.get_factor(name, factor)
+                        sample_cols[name][factor] = value
 
         factors = []
         for name, type_ in self.factors.iteritems():
@@ -1178,23 +1147,18 @@ sample_factor_mapping:
         """Set an factor for a sample, identified by sample
         name."""
 
-        sample_num = self.sample_num(sample_name)
-        self.table[sample_num][factor] = value
+        if value not in self.factor_values(factor):
+            raise Exception(
+                "Value " + value + " is not allowed for factor " + factor)
+
+        self.sample_to_factor_values[sample_name][factor] = value
 
     def get_factor(self, sample_name, factor):
         """Get an factor for a sample, identified by sample
         name."""
 
-        sample_num = self.sample_num(sample_name)
+        return self.sample_to_factor_values[sample_name][factor]
 
-        try:
-            value = self.table[sample_num][factor]
-        except IndexError as e:
-            raise Exception("Can't find " + str(factor) + " for sample number " + str(sample_num) + " in table with dtype " + str(self.table.dtype))
-
-#        if self.factors[factor].startswith("S"):
-#            value = str(value)
-        return value
 
     def sample_num(self, sample_name):
         """Return the sample number for sample with the given
@@ -1226,10 +1190,9 @@ sample_factor_mapping:
         pass
 
     def factor_values(self, factor):
-        values = set()
-        for sample in self.sample_column_names:
-            values.add(self.get_factor(sample, factor))
-        return values
+
+        """Return the list of valid values for the given factor."""
+        return self.factors[factor]
 
 
 def write_yaml_block_comment(fh, comment):
