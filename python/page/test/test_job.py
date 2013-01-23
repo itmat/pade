@@ -48,8 +48,8 @@ class CommonTest(unittest.TestCase):
             layout_map = model.layout_map()
             self.assertEquals(
                 layout_map.keys(),
-                [('treated', False),
-                 ('treated', True)])
+                [(False,),
+                 (True,)])
             self.assertEquals(
                 layout_map.values(),
                 [[0, 1, 2, 3, 4, 5, 6, 7],

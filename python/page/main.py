@@ -1000,7 +1000,13 @@ is_sample are false will simply be ignored.
         # Default to all factors if a filter list wasn't supplied
         if factors is None:
             factors = self.factor_names
-            
+        
+        correct_order = [f for f in self.factors if f in factors]
+        
+        if factors != correct_order:
+            raise Exception("Please request factors in correct order: "
+                            + str(correct_order))
+
         values = [self.factor_values(f) for f in factors]
         return list(itertools.product(*values))
 
@@ -1237,7 +1243,7 @@ def init_job(infile, factors, directory, force=False):
     schema = init_schema(infile=infile)    
 
     for a in factors:
-        schema.add_factor(a, object)
+        schema.add_factor(a, factors[a])
 
     job = Job(directory, schema=schema)
     makedirs(job.data_directory)
