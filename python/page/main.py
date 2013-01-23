@@ -21,7 +21,7 @@ import textwrap
 import tokenize
 import yaml
 import numpy.lib.recfunctions
-import itertools
+from itertools import combinations, product
 
 from bisect import bisect
 
@@ -933,6 +933,16 @@ def main():
 # Factor = collections.namedtuple("Factor", ["name", "dtype", "values"])
 # Sample = collections.namedtuple("Sample", ["column", "factor_values"])
 
+DummyVarTable = collections.namedtuple(
+    "DummyVarTable",
+    ["names", "rows"])
+
+DummyVarAssignment = collections.namedtuple(
+    "DummyVarAssignment",
+    ["factor_values",
+     "bits"])
+     
+
 class Schema(object):
 
     def __init__(self, 
@@ -995,23 +1005,101 @@ is_sample are false will simply be ignored.
 
         return self.column_names[self.is_sample]
 
-    def factor_combinations(self, factors=None):
+    def _check_factors(self, factors):
 
-        # Default to all factors if a filter list wasn't supplied
         if factors is None:
             factors = self.factor_names
-        
+
+        factors = list(factors)
         correct_order = [f for f in self.factors if f in factors]
         
         if factors != correct_order:
             raise Exception("Please request factors in correct order: "
                             + str(correct_order))
 
+        return factors
+
+    def factor_combinations(self, factors=None, level=None):
+        factors = self._check_factors(factors)
         values = [self.factor_values(f) for f in factors]
-        return list(itertools.product(*values))
+        return list(product(*values))
 
     def baseline_value(self, factor):
         return self.factors[factor][0]
+
+    def baseline_values(self, factors):
+        return [self.baseline_value(f) for f in factors]
+
+    def has_baseline(self, factors, values):
+        return any(map(lambda f, v: v == self.baseline_value(f),
+                factors, values))
+
+    def new_dummy_vars(self, factors=None, level=0):
+        """
+        level=0 is intercept only
+        level=1 is intercept plus main effects
+        level=2 is intercept, main effects, interactions between two variables
+        ...
+        level=n is intercept, main effects, interactions between n variables
+
+        """ 
+        factors = self._check_factors(factors)
+
+        if level == 0:
+            combs = self.factor_combinations(factors)
+
+            return DummyVarTable(
+                ({},),
+                [DummyVarAssignment(c, (True,)) for c in combs])
+
+        res = self.new_dummy_vars(factors, level - 1)
+
+        col_names = tuple(res.names)
+        rows      = list(res.rows)
+
+        print "level", level
+
+        print "Factors", factors
+        # Get col names
+        for interacting in combinations(factors, level):
+            print "Interacting is", interacting
+            for a in self.factor_combinations(interacting):
+                if self.has_baseline(interacting, a):
+                    continue
+                col_names += ({ interacting[i] : a[i] for i in range(len(interacting)) },)
+
+        for i, dummy in enumerate(rows):
+            print "Dummy is", dummy
+            (factor_values, bits) = dummy
+
+            print "  row", i
+            
+            # For each subset of factors of size level
+            for interacting in combinations(factors, level):
+                print "    interacting", interacting
+
+                my_vals = ()
+                for j in range(len(factors)):
+                    if factors[j] in interacting:
+                        my_vals += (factor_values[j],)
+
+                print "    my vals", my_vals
+
+                # For each possible assignment of values to these factors
+                for a in self.factor_combinations(interacting):
+                    if self.has_baseline(interacting, a):
+                        continue               
+                    print "      assignments", a
+ 
+                    # Test if this row of the result table has all the
+                    # values in this assignment
+                    matches = my_vals == a
+                    bits = bits + (matches,)
+
+            rows[i] = DummyVarAssignment(factor_values, bits)
+        
+        return DummyVarTable(col_names, rows)
+
 
     def dummy_vars_and_indexes(self, factors, interactions=0):
         var_table = []
@@ -1023,7 +1111,7 @@ is_sample are false will simply be ignored.
                 vars.extend(self.dummy_vars({factor: self.get_factor(sample, factor)}))
 
             for level in range(1, interactions + 1):
-                interacting = list(itertools.combinations(factors, level + 1))
+                interacting = list(combinations(factors, level + 1))
 
                 for i in range(len(interacting)):
                     assignments = {}
@@ -1040,7 +1128,7 @@ is_sample are false will simply be ignored.
     def dummy_vars(self, assignments):
 
         factors = assignments.keys()
-        all_vals = list(itertools.product(*[self.factor_values(f) for f in factors]))
+        all_vals = list(product(*[self.factor_values(f) for f in factors]))
 
         res = np.ones(len(all_vals), bool)
 
