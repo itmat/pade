@@ -1100,11 +1100,8 @@ is_sample are false will simply be ignored.
                         sample_cols[name][factor] = value
 
         factors = []
-        for name, type_ in self.factors.iteritems():
-            a = { "name" : name }
-            if type_ != object:
-                a['dtype'] = type_
-            factors.append(a)
+        for name, values in self.factors.items():
+            factors.append({ "name" : name, "values" : values })
 
         doc = {
             'headers'               : names,
@@ -1173,11 +1170,11 @@ sample_factor_mapping:
 
         grouping = collections.OrderedDict({})
 
-        for i, row in enumerate(self.table):
+        for i, sample_name in enumerate(self.sample_to_factor_values):
             key = []
             for f in factors:
                 key.append(f)
-                key.append(self.table[f][i])
+                key.append(self.sample_to_factor_values[sample_name][f])
             key = tuple(key)
             if key not in grouping:
                 grouping[key] = []

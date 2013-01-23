@@ -37,6 +37,22 @@ class SchemaTest(unittest.TestCase):
                     schema.set_factor(name, 'treated', treated)
         self.schema = schema
 
+    def test_possible_assignments(self):
+        expected = [
+            (2,  'male',   False), # 0 
+            (2,  'male',   True),  # 1 (treated)
+            (2,  'female', False), # 1 (sex)
+            (2,  'female', True),  # 2 (sex, treated)
+            (20, 'male',   False), # 1 (age)
+            (20, 'male',   True),  # 2 (age, treated)
+            (20, 'female', False), # 2 (age, sex)
+            (20, 'female', True),  # 3 (age, sex, treated)
+            (55, 'male',   False), # 1 (age)
+            (55, 'male',   True),  # 2 (age, treated)
+            (55, 'female', False), # 2 (age, sex)
+            (55, 'female', True)   # 3 (age, sex, treated)
+            ]
+
     def test_factors(self):
         schema = self.schema
 
