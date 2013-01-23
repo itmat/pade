@@ -111,23 +111,24 @@ class SchemaTest(unittest.TestCase):
                           { (False,) : [1, 3, 5, 7, 9, 11],
                             (True,)  : [0, 2, 4, 6, 8, 10] })
 
-        groups = self.schema.sample_groups(["sex", "age", "treated"])
-        self.assertEquals(groups,
-                          { 
-                ("male",    2, True)  : [  0 ],
-                ("male",    2, False) : [  1 ],
-                ("male",   20, True)  : [  2 ],
-                ("male",   20, False) : [  3 ],
-                ("male",   55, True)  : [  4 ],
-                ("male",   55, False) : [  5 ],
-                ("female",  2, True)  : [  6 ],
-                ("female",  2, False) : [  7 ],
-                ("female", 20, True)  : [  8 ],
-                ("female", 20, False) : [  9 ],
-                ("female", 55, True)  : [ 10 ],
-                ("female", 55, False) : [ 11 ]
-                })
-                
+        groups = self.schema.sample_groups(["age", "sex", "treated"])
+        self.assertEquals(
+            groups,
+            OrderedDict( 
+                [
+                    ((2,  "male",    False) ,  [  1 ]),
+                    ((2,  "male",    True)  ,  [  0 ]),
+                    ((2,  "female",  False) ,  [  7 ]),
+                    ((2,  "female",  True)  ,  [  6 ]),
+                    ((20, "male",    False) ,  [  3 ]),
+                    ((20, "male",    True)  ,  [  2 ]),
+                    ((20, "female",  False) ,  [  9 ]),
+                    ((20, "female",  True)  ,  [  8 ]),
+                    ((55, "male",    False) ,  [  5 ]),
+                    ((55, "male",    True)  ,  [  4 ]),
+                    ((55, "female",  False) ,  [ 11 ]),
+                    ((55, "female",  True)  ,  [ 10 ]),
+]))
 
     def test_factor_value_shape(self):
         model = lambda(expr): Model(self.schema, expr)
