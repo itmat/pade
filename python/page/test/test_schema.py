@@ -208,29 +208,6 @@ class SchemaTest(unittest.TestCase):
         self.assertTrue(self.schema.has_baseline(('sex', 'treated'), ('female', False)))
         self.assertFalse(self.schema.has_baseline(('sex', 'treated'), ('female', True)))
 
-#     def test_model_dummy_vars_1(self):
-#         model = Model(self.schema, 'age + treated')
-#         expected_vars = np.array([
-#                 [ 1, 0, 0, 1, 0, 0],
-#                 [ 1, 0, 0, 0, 0, 0],
-#                 [ 1, 1, 0, 1, 1, 0],
-#                 [ 1, 1, 0, 0, 0, 0],
-#                 [ 1, 0, 1, 1, 0, 1],
-#                 [ 1, 0, 1, 0, 0, 0],
-#                 [ 1, 0, 0, 1, 0, 0],
-#                 [ 1, 0, 0, 0, 0, 0],
-#                 [ 1, 1, 0, 1, 1, 0],
-#                 [ 1, 1, 0, 0, 0, 0],
-#                 [ 1, 0, 1, 1, 0, 1],
-#                 [ 1, 0, 1, 0, 0, 0],
-#                 ], bool)
-#         (vars, indexes) = self.schema.dummy_vars_and_indexes(
-#             ['age', 'treated'],
-#             interactions=1)
-#         np.testing.assert_equal(vars, expected_vars)
-#         print "Indexes is ", indexes
-#         np.testing.assert_equal(indexes,
-#                                 np.arange(12, dtype=int))
 
     def test_model_dummy_vars_1(self):
         dummy_vars = self.schema.new_dummy_vars(['age', 'treated'], level=2)
@@ -246,8 +223,6 @@ class SchemaTest(unittest.TestCase):
                 DummyVarAssignment(factor_values=(55, True), bits=(True, False, True, True, False, True))])
 
         self.assertEquals(dummy_vars, expected)
-
-
 
 
 if __name__ == '__main__':
