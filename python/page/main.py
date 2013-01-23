@@ -477,7 +477,7 @@ def find_coefficients_no_interaction(model, data):
 
 def get_group_means(schema, data):
 
-    groups = schema.sample_groups(schema.factors)
+    groups = schema.sample_groups()
 
     num_features = len(data)
     num_groups = len(groups)
@@ -1183,9 +1183,12 @@ sample_factor_mapping:
 
         return self.sample_name_index[sample_name]
 
-    def sample_groups(self, factors):
+    def sample_groups(self, factors=None):
         """Returns a dictionary mapping each value of factor to the
         list of sample numbers that have that value set."""
+
+        if factors is None:
+            factors = self.factor_names
 
         grouping = collections.OrderedDict({})
 
