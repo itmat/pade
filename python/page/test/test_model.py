@@ -18,8 +18,8 @@ class ModelTest(unittest.TestCase):
             is_feature_id=is_feature_id,
             is_sample=is_sample)
 
-        schema.add_factor('sex', object)
-        schema.add_factor('treated', object)
+        schema.add_factor('treated', [False, True])
+        schema.add_factor('sex', ['male', 'female'])
         
         factor_table = [
                 ('sample1', 'male',   False),
@@ -63,9 +63,7 @@ class ModelTest(unittest.TestCase):
             [ 1, 2, 3, 0],
             [ 1, 2, 3, 4]])
 
-        new_find_coefficients(model, data)
-
-        (means, coeffs) = find_coefficients_with_interaction(model, data)
+        coeffs = find_coefficients_with_interaction(model, data)
 
         np.testing.assert_almost_equal(expected_coeffs, coeffs)
 

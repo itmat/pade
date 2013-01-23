@@ -29,6 +29,8 @@ from page.common import *
 import page.stat
 from page.performance import *
 
+from collections import OrderedDict
+
 REAL_PATH = os.path.realpath(__file__)
 RAW_VALUE_DTYPE = float
 FEATURE_ID_DTYPE = 'S10'
@@ -134,19 +136,19 @@ def model_col_names(model):
     the given model.
 
     """
-    var_shape = model.factor_value_shape()
-    names = []
-    for i, idx in enumerate(np.ndindex(var_shape)):
 
-        key = model.index_num_to_sym(idx)
-        parts = []
-        for j in range(len(idx)):
-            if idx[j] > 0:
-                parts.append("{0}={1}".format(key[j * 2], key[j * 2 + 1]))
-        name = ", ".join(parts)
-        if name == "":
-            name = "intercept"
-        names.append(name)
+    factors = model.expr.variables
+    names = []
+    baseline = [model.schema.baseline_value(f) for f in factors]
+    for assignment in model.schema.factor_combinations(factors):
+        parts = ["{0}={1}".format(factors[i], assignment[i])
+                 for i in range(len(factors))
+                 if assignment[i] != baseline[i]]
+        if len(parts) == 0:
+            names.append('intercept')
+        else:
+            names.append(", ".join(parts))
+
     return names
 
 
@@ -689,14 +691,13 @@ class Model:
     def layout(self):
         return self.schema.sample_groups(self.expr.variables).values()
     
-
     def index_num_to_sym(self, idx):
         schema = self.schema
         expr  = self.expr
         res = tuple()
         for i, factor in enumerate(expr.variables):
             values = list(schema.factor_values(factor))
-            res += (factor, values[idx[i]])
+            res += (values[idx[i]],)
         return res
 
     def factor_value_shape(self):
@@ -994,6 +995,18 @@ is_sample are false will simply be ignored.
 
         return self.column_names[self.is_sample]
 
+    def factor_combinations(self, factors=None):
+
+        # Default to all factors if a filter list wasn't supplied
+        if factors is None:
+            factors = self.factor_names
+            
+        values = [self.factor_values(f) for f in factors]
+        return list(itertools.product(*values))
+
+    def baseline_value(self, factor):
+        return self.factors[factor][0]
+
     def dummy_vars_and_indexes(self, factors, interactions=0):
         var_table = []
         indexes   = []
@@ -1170,17 +1183,15 @@ sample_factor_mapping:
 
         grouping = collections.OrderedDict({})
 
-        for i, sample_name in enumerate(self.sample_to_factor_values):
-            key = []
-            for f in factors:
-                key.append(f)
-                key.append(self.sample_to_factor_values[sample_name][f])
-            key = tuple(key)
-            if key not in grouping:
-                grouping[key] = []
-            grouping[key].append(i)
+        res = OrderedDict({})
+        for assignment in self.factor_combinations(factors):
+            res[assignment] = []
 
-        return grouping
+        for name, factor_vals in self.sample_to_factor_values.items():
+            key = tuple([factor_vals[f] for f in factors])
+            res[key].append(self.sample_name_index[name])
+
+        return res
 
     def condition_name(self, c):
         """Return a name for condition c, based on the factor values for that condition"""

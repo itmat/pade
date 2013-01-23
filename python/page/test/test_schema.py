@@ -37,7 +37,7 @@ class SchemaTest(unittest.TestCase):
                     schema.set_factor(name, 'treated', treated)
         self.schema = schema
 
-    def test_possible_assignments(self):
+    def test_factor_combinations(self):
         expected = [
             (2,  'male',   False), # 0 
             (2,  'male',   True),  # 1 (treated)
@@ -52,6 +52,17 @@ class SchemaTest(unittest.TestCase):
             (55, 'female', False), # 2 (age, sex)
             (55, 'female', True)   # 3 (age, sex, treated)
             ]
+        schema = self.schema
+        self.assertEquals([('male', False),
+                           ('male', True),
+                           ('female', False),
+                           ('female', True)], 
+                          schema.factor_combinations(['sex', 'treated']))
+        self.assertEquals([('male',),
+                           ('female',)], schema.factor_combinations(['sex']))
+
+        self.assertEquals(expected, schema.factor_combinations())
+            
 
     def test_factors(self):
         schema = self.schema
@@ -86,65 +97,35 @@ class SchemaTest(unittest.TestCase):
     def test_sample_groups(self):
         groups = self.schema.sample_groups(["sex"])
         self.assertEquals(groups,
-                          { ("sex", "female") : range(6, 12),
-                            ("sex", "male")   : range(0, 6) })
+                          OrderedDict({ ("female",) : range(6, 12),
+                                        ("male",)   : range(0, 6) }))
 
         groups = self.schema.sample_groups(["age"])
         self.assertEquals(groups,
-                          { ("age", 2)  : [0, 1, 6, 7],
-                            ("age", 20) : [2, 3, 8, 9],
-                            ("age", 55) : [4, 5, 10, 11] })
+                          { (2,)  : [0, 1, 6, 7],
+                            (20,) : [2, 3, 8, 9],
+                            (55,) : [4, 5, 10, 11] })
 
         groups = self.schema.sample_groups(["treated"])
         self.assertEquals(groups,
-                          { ("treated", False) : [1, 3, 5, 7, 9, 11],
-                            ("treated", True)  : [0, 2, 4, 6, 8, 10] })
+                          { (False,) : [1, 3, 5, 7, 9, 11],
+                            (True,)  : [0, 2, 4, 6, 8, 10] })
 
         groups = self.schema.sample_groups(["sex", "age", "treated"])
         self.assertEquals(groups,
                           { 
-                ("sex", "male", 
-                 "age", 2, 
-                 "treated", True) : [ 0 ],
-                ("sex", "male",
-                 "age", 2,
-                 "treated", False) : [ 1 ],
-
-                ("sex", "male", 
-                 "age", 20, 
-                 "treated", True) : [ 2 ],
-                ("sex", "male",
-                 "age", 20,
-                 "treated", False) : [ 3 ],
-
-                ("sex", "male", 
-                 "age", 55, 
-                 "treated", True) : [ 4 ],
-                ("sex", "male",
-                 "age", 55,
-                 "treated", False) : [ 5 ],
-
-                ("sex", "female", 
-                 "age", 2, 
-                 "treated", True) : [ 6 ],
-                ("sex", "female",
-                 "age", 2,
-                 "treated", False) : [ 7 ],
-
-                ("sex", "female", 
-                 "age", 20, 
-                 "treated", True) : [ 8 ],
-                ("sex", "female",
-                 "age", 20,
-                 "treated", False) : [ 9 ],
-
-                ("sex", "female", 
-                 "age", 55, 
-                 "treated", True) : [ 10 ],
-                ("sex", "female",
-                 "age", 55,
-                 "treated", False) : [ 11 ]
-
+                ("male",    2, True)  : [  0 ],
+                ("male",    2, False) : [  1 ],
+                ("male",   20, True)  : [  2 ],
+                ("male",   20, False) : [  3 ],
+                ("male",   55, True)  : [  4 ],
+                ("male",   55, False) : [  5 ],
+                ("female",  2, True)  : [  6 ],
+                ("female",  2, False) : [  7 ],
+                ("female", 20, True)  : [  8 ],
+                ("female", 20, False) : [  9 ],
+                ("female", 55, True)  : [ 10 ],
+                ("female", 55, False) : [ 11 ]
                 })
                 
 
@@ -213,33 +194,38 @@ class SchemaTest(unittest.TestCase):
         np.testing.assert_equal(indexes,
                                 np.arange(12, dtype=int))
 
+    def test_baseline_value(self):
+        baseline = lambda factor: self.schema.baseline_value(factor)
+        self.assertEquals(baseline('sex'), 'male')
+        self.assertEquals(baseline('treated'), False)
+        self.assertEquals(baseline('age'), 2)
 
-    def test_model_dummy_vars_1(self):
-        model = Model(self.schema, 'age + treated')
+#     def test_model_dummy_vars_1(self):
+#         model = Model(self.schema, 'age + treated')
 
-        expected_vars = np.array([
-                [ 1, 0, 0, 1, 0, 0],
-                [ 1, 0, 0, 0, 0, 0],
-                [ 1, 1, 0, 1, 1, 0],
-                [ 1, 1, 0, 0, 0, 0],
-                [ 1, 0, 1, 1, 0, 1],
-                [ 1, 0, 1, 0, 0, 0],
-                [ 1, 0, 0, 1, 0, 0],
-                [ 1, 0, 0, 0, 0, 0],
-                [ 1, 1, 0, 1, 1, 0],
-                [ 1, 1, 0, 0, 0, 0],
-                [ 1, 0, 1, 1, 0, 1],
-                [ 1, 0, 1, 0, 0, 0],
-                ], bool)
+#         expected_vars = np.array([
+#                 [ 1, 0, 0, 1, 0, 0],
+#                 [ 1, 0, 0, 0, 0, 0],
+#                 [ 1, 1, 0, 1, 1, 0],
+#                 [ 1, 1, 0, 0, 0, 0],
+#                 [ 1, 0, 1, 1, 0, 1],
+#                 [ 1, 0, 1, 0, 0, 0],
+#                 [ 1, 0, 0, 1, 0, 0],
+#                 [ 1, 0, 0, 0, 0, 0],
+#                 [ 1, 1, 0, 1, 1, 0],
+#                 [ 1, 1, 0, 0, 0, 0],
+#                 [ 1, 0, 1, 1, 0, 1],
+#                 [ 1, 0, 1, 0, 0, 0],
+#                 ], bool)
 
-        (vars, indexes) = self.schema.dummy_vars_and_indexes(
-            ['age', 'treated'],
-            interactions=1)
+#         (vars, indexes) = self.schema.dummy_vars_and_indexes(
+#             ['age', 'treated'],
+#             interactions=1)
 
-        np.testing.assert_equal(vars, expected_vars)
-        print "Indexes is ", indexes
-        np.testing.assert_equal(indexes,
-                                np.arange(12, dtype=int))
+#         np.testing.assert_equal(vars, expected_vars)
+#         print "Indexes is ", indexes
+#         np.testing.assert_equal(indexes,
+#                                 np.arange(12, dtype=int))
 
 if __name__ == '__main__':
     unittest.main()
