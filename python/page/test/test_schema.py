@@ -147,13 +147,13 @@ class SchemaTest(unittest.TestCase):
             ['intercept', 'sex=female'])
 
         self.assertEquals(
-            model_col_names(model('sex * age')),
+            model_col_names(model('age * sex')),
             ['intercept',
-             'age=20',
-             'age=55',
              'sex=female',
-             'sex=female, age=20',
-             'sex=female, age=55'])
+             'age=20',
+             'age=20, sex=female',
+             'age=55',
+             'age=55, sex=female'])
 
     def test_dummy_vars(self):
         np.testing.assert_equal(
