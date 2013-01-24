@@ -37,6 +37,17 @@ class SchemaTest(unittest.TestCase):
                     schema.set_factor(name, 'treated', treated)
         self.schema = schema
 
+    def test_sample_matches_assignments(self):
+        s = self.schema
+        self.assertTrue(s.sample_matches_assignments("sample1", { }))
+        self.assertTrue(s.sample_matches_assignments("sample1", { 'sex' : 'male' }))
+        self.assertFalse(s.sample_matches_assignments("sample1", { 'sex' : 'female' }))
+
+    def test_samples_with_assignments(self):
+        self.assertEquals(['sample5', 'sample6'],
+                          self.schema.samples_with_assignments({'sex' : 'male',
+                                                                'age' : 55}))
+
     def test_factor_combinations(self):
         expected = [
             (2,  'male',   False), # 0 

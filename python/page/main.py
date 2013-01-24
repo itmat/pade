@@ -141,6 +141,7 @@ def model_col_names(model):
     names = []
     baseline = [model.schema.baseline_value(f) for f in factors]
     for assignment in model.schema.factor_combinations(factors):
+
         parts = ["{0}={1}".format(factors[i], assignment[i])
                  for i in range(len(factors))
                  if assignment[i] != baseline[i]]
@@ -458,6 +459,9 @@ def find_coefficients_no_interaction(model, data):
 
     (x, indexes) = model.schema.dummy_vars_and_indexes(
         model.expr.variables)
+
+    newvars = model.schema.new_dummy_vars(level=1)
+    print "New vars are\n", newvars
 
     num_vars = np.size(x, axis=1)
     shape = np.array((len(data), num_vars))
@@ -942,7 +946,8 @@ DummyVarTable = collections.namedtuple(
 DummyVarAssignment = collections.namedtuple(
     "DummyVarAssignment",
     ["factor_values",
-     "bits"])
+     "bits",
+     "indexes"])
      
 
 class Schema(object):
@@ -1036,6 +1041,16 @@ is_sample are false will simply be ignored.
         return any(map(lambda f, v: v == self.baseline_value(f),
                 factors, values))
 
+    def sample_matches_assignments(self, sample_name, assignments):
+        for f, v in assignments.items():
+            if self.get_factor(sample_name, f) != v:
+                return False
+        return True
+
+    def samples_with_assignments(self, assignments):
+        matches = lambda name: self.sample_matches_assignments(name, assignments)
+        return filter(matches, self.sample_column_names)
+
     def new_dummy_vars(self, factors=None, level=None):
         """
         level=0 is intercept only
@@ -1046,6 +1061,9 @@ is_sample are false will simply be ignored.
 
         """ 
         factors = self._check_factors(factors)
+
+        if level is None:
+            return self.new_dummy_vars(factors, len(factors))
 
         if level == 0:
             combs = self.factor_combinations(factors)
@@ -1072,7 +1090,7 @@ is_sample are false will simply be ignored.
 
         for i, dummy in enumerate(rows):
             print "Dummy is", dummy
-            (factor_values, bits) = dummy
+            (factor_values, bits, indexes) = dummy
 
             print "  row", i
             
@@ -1098,7 +1116,7 @@ is_sample are false will simply be ignored.
                     matches = my_vals == a
                     bits = bits + (matches,)
 
-            rows[i] = DummyVarAssignment(factor_values, bits)
+            rows[i] = DummyVarAssignment(factor_values, bits, indexes)
         
         return DummyVarTable(col_names, rows)
 
@@ -1363,7 +1381,7 @@ def do_setup(args):
     job = init_job(
         infile=args.infile,
         directory=args.directory,
-        factors=args.factor,
+        factors={f : None for f in args.factor},
         force=args.force)
 
     print fix_newlines("""
