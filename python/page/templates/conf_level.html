@@ -8,8 +8,8 @@
     <th></th>
     <th></th>
     <th></th>
-    <th colspan="{{results.condition_names|length}}">Means</th>
-    <th colspan="{{results.condition_names|length}}">Coefficients</th>
+    <th colspan="{{results.group_names|length}}">Means</th>
+    <th colspan="{{results.param_names|length}}">Coefficients</th>
   </tr>
 
   <tr>
@@ -18,11 +18,11 @@
     <th>Score</th>
     <th>{{ job.stat_name }} stat</th>
 
-    {% for name in results.condition_names %}
+    {% for name in results.group_names %}
     <th>{{ name }}</th>
     {% endfor %}
 
-    {% for name in results.condition_names %}
+    {% for name in results.param_names %}
     <th>{{ name }}</th>
     {% endfor %}
   </tr>

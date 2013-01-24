@@ -128,30 +128,6 @@ def predicted_values(job):
         prediction[..., grp] = means
     return prediction
 
-@profiled
-def model_col_names(model):
-    """Return a flat list of names for the columns of the given model.
-
-    Returns a string for each of the combinations of factor values for
-    the given model.
-
-    """
-
-    factors = model.expr.variables
-    names = []
-    baseline = [model.schema.baseline_value(f) for f in factors]
-    for assignment in model.schema.factor_combinations(factors):
-
-        parts = ["{0}={1}".format(factors[i], assignment[i])
-                 for i in range(len(factors))
-                 if assignment[i] != baseline[i]]
-        if len(parts) == 0:
-            names.append('intercept')
-        else:
-            names.append(", ".join(parts))
-
-    return names
-
 
 def ensure_scores_increase(scores):
     res = np.copy(scores)
@@ -244,7 +220,8 @@ def do_fdr(job):
 class ResultTable:
 
     def __init__(self,
-                 condition_names=None,
+                 group_names=None,
+                 param_names=None,
                  means=None,
                  coeffs=None,
                  stats=None,
@@ -253,7 +230,8 @@ class ResultTable:
                  min_score=None):
         self.means = means
         self.coeffs = coeffs
-        self.condition_names = condition_names
+        self.group_names = group_names
+        self.param_names = param_names
         self.stats = stats
         self.feature_ids = feature_ids
         self.scores = scores
@@ -267,7 +245,8 @@ class ResultTable:
         stats = self.stats[best]
         scores = self.scores[best]
         return ResultTable(
-            condition_names=self.condition_names,
+            group_names=self.group_names,
+            param_names=self.param_names,
             means=self.means[idxs],
             coeffs=self.coeffs[idxs],
             stats=stats[idxs],
@@ -284,12 +263,24 @@ class ResultTable:
             end = start + size
 
             yield ResultTable(
-                condition_names=self.condition_names,
+                group_names=self.group_names,
+                param_names=self.param_names,
                 means=self.means[start : end],
                 coeffs=self.coeffs[start : end],
                 stats=self.stats[start : end],
                 feature_ids=self.feature_ids[start : end],
                 scores=self.scores[start : end])
+
+
+
+def assignment_name(a):
+
+    if len(a) == 0:
+        return "intercept"
+    
+    parts = ["{0}={1}".format(k, v) for k, v in a.items()]
+
+    return ", ".join(parts)
 
             
 @profiled
@@ -309,8 +300,7 @@ def do_run(args):
 
         num_features = len(job.table)
 
-        coeffs1 = find_coefficients_no_interaction(job.full_model, job.table)
-        coeffs  = find_coefficients_with_interaction(job.full_model, job.table)
+        fitted = find_coefficients_no_interaction(job.full_model, job.table)
 
         means = get_group_means(job.schema, job.table)
 
@@ -323,8 +313,9 @@ def do_run(args):
 
         results = ResultTable(
             means=means,
-            coeffs=coeffs,
-            condition_names=model_col_names(job.full_model),
+            coeffs=fitted.params,
+            group_names=[assignment_name(a) for a in job.schema.possible_assignments()],
+            param_names=[assignment_name(a) for a in fitted.labels],
             feature_ids=np.array(job.feature_ids),
             stats=fdr.raw_stats,
             scores=fdr.feature_to_score)
@@ -497,94 +488,6 @@ def get_group_means(schema, data):
         idxs = groups[key]
         result[:, i] = np.mean(data[:, idxs], axis=1)
     return result
-
-def find_coefficients_with_interaction(model, data):
-    coeffs = find_coefficients_with_interaction_impl(model, data.swapaxes(0, 1))
-    var_shape = model.factor_value_shape()
-    num_groups = int(np.prod(var_shape))
-    # The means and coefficients returned by find_coefficients_with_interaction are
-    # n-dimensional, with one dimension for each factor, plus a
-    # dimension for feature. Flatten them into a 2d array (condition x
-    # feature).
-    flat_coeffs = np.zeros((len(data), num_groups))
-    for i, idx in enumerate(np.ndindex(var_shape)):
-        flat_coeffs[:, i] = coeffs[idx]
-    return flat_coeffs
-
-
-@profiled
-def find_coefficients_with_interaction_impl(model, data):
-    """Returns the means and coefficients of the data based on the model.
-
-    model must be a Model object.
-
-    data must be a (samples x features) 2d array.
-
-    Returns two ndarrays: means and coeffs. Both have one dimension
-    for each variable in the model, plus a final dimension for the
-    features.
-
-    For example, suppose the model has a factor called 'sex' with
-    values 'male' and 'female', and a factor called 'treatment' with
-    values 'low', 'medium', and 'high'. Suppose the data has 1000
-    features. Then means would be a (2 x 3 x 1000) array where
-    means[i, j, k] is the mean for the 1000th feature, for the ith sex
-    and jth treatment level.
-
-    """
-    logging.info("Finding means and coefficients for model " + 
-                 str(model.expr))
-
-    factors = model.expr.variables
-
-    layout_map = model.layout_map()    
-    values = [model.schema.sample_groups([f]).keys() for f in factors]
-    shape = tuple([len(v) for v in values])
-    (num_samples, num_features) = np.shape(data)
-    shape += (num_features,)
-    coeffs = np.zeros(shape)
-
-    sym_idx    = lambda(idx): model.index_num_to_sym(idx)
-    col_nums   = lambda(idx): layout_map[sym_idx(idx)]
-    group_mean = lambda(idx): np.mean(data[col_nums(idx)], axis=0)
-
-    # Find the bias term
-    bias_idx = tuple([0 for dim in shape[:-1]])
-    coeffs[bias_idx] = group_mean(bias_idx)
-
-    # Estimate the main effects
-    for i, f in enumerate(factors):
-        values = list(model.schema.factor_values(f))
-        for j in range(1, len(values)):
-            idx = np.zeros(len(shape) - 1, int)
-            idx[i]= j
-            idx = tuple(idx)
-            coeffs[idx] = group_mean(idx) - coeffs[bias_idx]
-
-    # Estimate the interactions between each pair of factors
-    for i1 in range(len(factors)):
-        f1 = factors[i1]
-        vals1 = list(model.schema.factor_values(f1))
-
-        for i2 in range(i1 + 1, len(factors)):
-            f2 = factors[i2]
-            vals2 = list(model.schema.factor_values(f2))
-            for j1 in range(1, len(vals1)):
-
-                idx1 = np.copy(bias_idx)
-                idx1[i1] = j1
-                idx1 = tuple(idx1)
-                for j2 in range(1, len(vals2)):
-                    idx2 = np.copy(bias_idx)
-                    idx2[i2] = j2
-                    idx2 = tuple(idx2)
-                    idx = np.copy(bias_idx)
-                    idx[i1] = j1
-                    idx[i2] = j2
-                    idx = tuple(idx)
-                    coeffs[idx] = group_mean(idx) - coeffs[bias_idx] - coeffs[idx1] - coeffs[idx2]
-
-    return coeffs
 
 
 ##############################################################################
@@ -1060,7 +963,8 @@ is_sample are false will simply be ignored.
         matches = lambda name: self.sample_matches_assignments(name, assignments)
         return filter(matches, self.sample_column_names)
 
-    def possible_assignments(self, factors):
+    def possible_assignments(self, factors=None):
+        factors = self._check_factors(factors)
         return [
             OrderedDict(zip(factors, values))
             for values in self.factor_combinations(factors)]
