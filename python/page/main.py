@@ -388,6 +388,7 @@ The full report is available at {0}""".format(
         os.path.join(job.directory, "index.html"))
 
 
+
 @profiled
 def assign_scores_to_features(stats, bins, scores):
     """Return an array that gives the confidence score for each feature.
@@ -461,7 +462,10 @@ def find_coefficients_no_interaction(model, data):
         model.expr.variables)
 
     newvars = model.schema.new_dummy_vars(level=1)
-    print "New vars are\n", newvars
+
+    new_x = [row.bits for row in newvars.rows]
+
+
 
     num_vars = np.size(x, axis=1)
     shape = np.array((len(data), num_vars))
@@ -471,6 +475,9 @@ def find_coefficients_no_interaction(model, data):
     logging.debug("  Shape of result is " + str(shape))
 
     result = np.zeros(shape)
+
+    print "X is\n", x
+    print "New x is\n", new_x
 
     for i, row in enumerate(data):
         y = row[indexes]
@@ -1051,6 +1058,12 @@ is_sample are false will simply be ignored.
         matches = lambda name: self.sample_matches_assignments(name, assignments)
         return filter(matches, self.sample_column_names)
 
+    def possible_assignments(self, factors):
+        return [
+            OrderedDict(zip(factors, values))
+            for values in self.factor_combinations(factors)]
+
+
     def new_dummy_vars(self, factors=None, level=None):
         """
         level=0 is intercept only
@@ -1066,11 +1079,12 @@ is_sample are false will simply be ignored.
             return self.new_dummy_vars(factors, len(factors))
 
         if level == 0:
-            combs = self.factor_combinations(factors)
-
-            return DummyVarTable(
-                ({},),
-                [DummyVarAssignment(c, (True,)) for c in combs])
+            names = ({},)
+            rows = []
+            for a in self.possible_assignments(factors):
+                rows.append(
+                    DummyVarAssignment(a.values(), (True,), self.samples_with_assignments(a)))
+            return DummyVarTable(names, rows)
 
         res = self.new_dummy_vars(factors, level - 1)
 
@@ -1116,7 +1130,7 @@ is_sample are false will simply be ignored.
                     matches = my_vals == a
                     bits = bits + (matches,)
 
-            rows[i] = DummyVarAssignment(factor_values, bits, indexes)
+            rows[i] = DummyVarAssignment(tuple(factor_values), bits, indexes)
         
         return DummyVarTable(col_names, rows)
 
