@@ -76,40 +76,12 @@ class ModelTest(unittest.TestCase):
                 [ 1, 1, 3, 3, 4, 4, 10, 10 ]])
                                        
         expected_coeffs = np.array([
-                [ 1.0,  2.0, 3.0],
-                [ 0.0,  4.0, 5.0 ]])
+                [ 1.0,  3, 2],
+                [ 0.0,  5, 4]])
             
-        coeffs = find_coefficients_no_interaction(model, data)
 
-        np.testing.assert_almost_equal(expected_coeffs, coeffs)
+        expected_labels = [{}, {'sex' : 'female'}, {'treated' : True}]
+        fitted = find_coefficients_no_interaction(model, data)
 
+        np.testing.assert_almost_equal(expected_coeffs, fitted.params)
 
-#    def  test_factor_vars(self):
-#         vars = [True, True, True]
-
-#         self.assertEquals([(True, False)],
-#                           factor_vars((True, True)))
-
-#         self.assertEquals([(True, False, False)],
-#                           factor_vars((True, False, True)))
-
-#         self.assertEquals([(True, False, False),
-#                            (True, False, True),
-#                            (True, True,  False)],
-#                            factor_vars((True, True, True)))
-
-#         self.assertEquals([(True, False, False, False),
-#                            (True, False, False, True),
-#                            (True, True,  False, False)],
-#                           factor_vars((True, True, False, True)))
-
-#         self.assertEquals([(True, False, False, False),
-#                            (True, False, False, True),
-#                            (True, False, True,  False),
-#                            (True, False, True,  True),
-#                            (True, True,  False, False),
-#                            (True, True,  False, True),
-#                            (True, True,  True, False)],
-#                           factor_vars((True, True, True, True)))
-                         
-                           

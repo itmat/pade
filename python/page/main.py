@@ -458,35 +458,31 @@ def find_coefficients_no_interaction(model, data):
     logging.info("Computing coefficients using least squares for " +
              str(len(data)) + " rows")
 
-    (x, indexes) = model.schema.dummy_vars_and_indexes(
-        model.expr.variables)
-
     newvars = model.schema.new_dummy_vars(level=1)
 
-    new_x = [row.bits for row in newvars.rows]
+    x = []
+    indexes = []
 
+    for row in newvars.rows:
+        for index in row.indexes:
+            x.append(row.bits)
+            indexes.append(model.schema.sample_name_index[index])
 
+    x = np.array(x, bool)
 
     num_vars = np.size(x, axis=1)
     shape = np.array((len(data), num_vars))
 
-    logging.debug("  Dummy vars are " + str(x))
-    logging.debug("  Indexes are " + str(indexes))
-    logging.debug("  Shape of result is " + str(shape))
-
     result = np.zeros(shape)
 
-    print "X is\n", x
-    print "New x is\n", new_x
-
+    print newvars
     for i, row in enumerate(data):
         y = row[indexes]
         (coeffs, residuals, rank, s) = np.linalg.lstsq(x, y)
         result[i] = coeffs
 
-    print "Result is\n", result
+    return FittedModel(newvars.names, x, indexes, result)
 
-    return result
 
 def get_group_means(schema, data):
 
@@ -955,7 +951,13 @@ DummyVarAssignment = collections.namedtuple(
     ["factor_values",
      "bits",
      "indexes"])
-     
+
+FittedModel = collections.namedtuple(
+    "FittedModel",
+    ["labels",
+     "x",
+     "y_indexes",
+     "params"])
 
 class Schema(object):
 
@@ -1091,40 +1093,29 @@ is_sample are false will simply be ignored.
         col_names = tuple(res.names)
         rows      = list(res.rows)
 
-        print "level", level
-
-        print "Factors", factors
         # Get col names
         for interacting in combinations(factors, level):
-            print "Interacting is", interacting
             for a in self.factor_combinations(interacting):
                 if self.has_baseline(interacting, a):
                     continue
                 col_names += ({ interacting[i] : a[i] for i in range(len(interacting)) },)
 
         for i, dummy in enumerate(rows):
-            print "Dummy is", dummy
             (factor_values, bits, indexes) = dummy
 
-            print "  row", i
-            
             # For each subset of factors of size level
             for interacting in combinations(factors, level):
-                print "    interacting", interacting
 
                 my_vals = ()
                 for j in range(len(factors)):
                     if factors[j] in interacting:
                         my_vals += (factor_values[j],)
 
-                print "    my vals", my_vals
-
                 # For each possible assignment of values to these factors
                 for a in self.factor_combinations(interacting):
                     if self.has_baseline(interacting, a):
                         continue               
-                    print "      assignments", a
- 
+
                     # Test if this row of the result table has all the
                     # values in this assignment
                     matches = my_vals == a
@@ -1311,8 +1302,7 @@ sample_factor_mapping:
         """Returns a dictionary mapping each value of factor to the
         list of sample numbers that have that value set."""
 
-        if factors is None:
-            factors = self.factor_names
+        factors = self._check_factors(factors)
 
         grouping = collections.OrderedDict({})
 
