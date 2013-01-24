@@ -1,7 +1,7 @@
 import unittest
 import io
 
-from page.main import *
+from page.schema import *
 
 class SchemaTest(unittest.TestCase):
 
@@ -141,31 +141,6 @@ class SchemaTest(unittest.TestCase):
                     ((55, "female",  True)  ,  [ 10 ]),
 ]))
 
-    def test_factor_value_shape(self):
-        model = lambda(expr): Model(self.schema, expr)
-
-        shape = lambda(expr): model(expr).factor_value_shape()
-
-        self.assertEquals(shape('sex'), (2,))
-        self.assertEquals(shape('treated'), (2,))
-        self.assertEquals(shape('age'), (3,))
-        self.assertEquals(shape('sex * age'), (2, 3))
-
-    def test_col_names(self):
-        model = lambda(expr): Model(self.schema, expr)
-        self.assertEquals(
-            model_col_names(model('sex')),
-            ['intercept', 'sex=female'])
-
-        self.assertEquals(
-            model_col_names(model('age * sex')),
-            ['intercept',
-             'sex=female',
-             'age=20',
-             'age=20, sex=female',
-             'age=55',
-             'age=55, sex=female'])
-
     def test_baseline_value(self):
         baseline = lambda factor: self.schema.baseline_value(factor)
         self.assertEquals(baseline('sex'), 'male')
@@ -187,21 +162,6 @@ class SchemaTest(unittest.TestCase):
                 OrderedDict([('sex', 'female'), ('treated', False)]),
                 OrderedDict([('sex', 'female'), ('treated', True)]),
                 ])
-
-    def test_model_dummy_vars_1(self):
-        dummy_vars = self.schema.new_dummy_vars(['age', 'treated'], level=2)
-
-        expected = DummyVarTable(
-            ({}, {'age': 20}, {'age': 55}, {'treated': True}, {'age': 20, 'treated': True}, {'age': 55, 'treated': True}),
-            [
-                DummyVarAssignment(factor_values=(2, False),  bits=(True, False, False, False, False, False), indexes=['sample2', 'sample8']),
-                DummyVarAssignment(factor_values=(2, True),   bits=(True, False, False, True, False, False), indexes=['sample1', 'sample7']),
-                DummyVarAssignment(factor_values=(20, False), bits=(True, True, False, False, False, False), indexes=['sample4', 'sample10']),
-                DummyVarAssignment(factor_values=(20, True),  bits=(True, True, False, True, True, False), indexes=['sample3', 'sample9']),
-                DummyVarAssignment(factor_values=(55, False), bits=(True, False, True, False, False, False), indexes=['sample6', 'sample12']),
-                DummyVarAssignment(factor_values=(55, True), bits=(True, False, True, True, False, True), indexes=['sample5', 'sample11'])])
-
-        self.assertEquals(dummy_vars, expected)
 
 
 if __name__ == '__main__':
