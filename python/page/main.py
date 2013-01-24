@@ -473,6 +473,8 @@ def find_coefficients_no_interaction(model, data):
         (coeffs, residuals, rank, s) = np.linalg.lstsq(x, y)
         result[i] = coeffs
 
+    print "Result is\n", result
+
     return result
 
 def get_group_means(schema, data):
@@ -1034,7 +1036,7 @@ is_sample are false will simply be ignored.
         return any(map(lambda f, v: v == self.baseline_value(f),
                 factors, values))
 
-    def new_dummy_vars(self, factors=None, level=0):
+    def new_dummy_vars(self, factors=None, level=None):
         """
         level=0 is intercept only
         level=1 is intercept plus main effects
@@ -1250,10 +1252,12 @@ sample_factor_mapping:
     def set_factor(self, sample_name, factor, value):
         """Set an factor for a sample, identified by sample
         name."""
-
-        if value not in self.factor_values(factor):
-            raise Exception(
-                "Value " + value + " is not allowed for factor " + factor)
+        allowed = self.factor_values(factor)
+        if value not in allowed:
+            raise Exception("""\
+                Value {value} is not allowed for factor {factor};
+                allowable values are {allowed}.
+                """.format(value=value, factor=factor, allowed=allowed))
 
         self.sample_to_factor_values[sample_name][factor] = value
 
@@ -1333,8 +1337,8 @@ def init_job(infile, factors, directory, force=False):
         infile = open(infile)
     schema = init_schema(infile=infile)    
 
-    for a in factors:
-        schema.add_factor(a, factors[a])
+    for name, values in factors.items():
+        schema.add_factor(name, values)
 
     job = Job(directory, schema=schema)
     makedirs(job.data_directory)
