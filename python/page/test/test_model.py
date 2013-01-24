@@ -60,12 +60,15 @@ class ModelTest(unittest.TestCase):
              [ 1, 1, 3, 3, 4, 4, 10, 10 ]])
 
         expected_coeffs = np.array([
-            [ 1, 2, 3, 0],
-            [ 1, 2, 3, 4]])
+            [ 1, 3, 2, 0],
+            [ 1, 3, 2, 4]])
 
-        coeffs = find_coefficients_with_interaction(model, data)
+        expected_labels = ({}, {'treated' : True}, {'sex' : 'female'}, { 'sex': 'female', 'treated' : True})
 
-        np.testing.assert_almost_equal(expected_coeffs, coeffs)
+        fitted = find_coefficients_no_interaction(model, data)
+
+        self.assertEquals(expected_labels, fitted.labels)
+        np.testing.assert_almost_equal(expected_coeffs, fitted.params)
 
     def test_coeffs_no_interaction(self):
         
@@ -80,8 +83,8 @@ class ModelTest(unittest.TestCase):
                 [ 0.0,  5, 4]])
             
 
-        expected_labels = [{}, {'sex' : 'female'}, {'treated' : True}]
-        fitted = find_coefficients_no_interaction(model, data)
-
+        expected_labels = ({}, {'treated' : True}, {'sex' : 'female'})
+        fitted = find_coefficients_no_interaction(model, data, effect_level=1)
+        self.assertEquals(expected_labels, fitted.labels)
         np.testing.assert_almost_equal(expected_coeffs, fitted.params)
 

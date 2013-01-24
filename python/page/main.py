@@ -453,12 +453,12 @@ def confidence_scores(raw_counts, perm_counts, num_features):
     return res
 
 
-def find_coefficients_no_interaction(model, data):
+def find_coefficients_no_interaction(model, data, effect_level=None):
 
     logging.info("Computing coefficients using least squares for " +
              str(len(data)) + " rows")
 
-    newvars = model.schema.new_dummy_vars(level=1)
+    newvars = model.schema.new_dummy_vars(level=effect_level)
 
     x = []
     indexes = []
