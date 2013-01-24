@@ -166,46 +166,6 @@ class SchemaTest(unittest.TestCase):
              'age=55',
              'age=55, sex=female'])
 
-    def test_dummy_vars(self):
-        np.testing.assert_equal(
-            self.schema.dummy_vars({"sex" : "male"}),
-            np.array([0], bool))
-        np.testing.assert_equal(
-            self.schema.dummy_vars({"sex" : "female"}),
-            np.array([1], bool))
-        np.testing.assert_equal(
-            self.schema.dummy_vars({"treated" : False}),
-            np.array([0], bool))
-        np.testing.assert_equal(
-            self.schema.dummy_vars({"treated" : True}),
-            np.array([1], bool))
-        
-    def test_model_dummy_vars(self):
-        model = Model(self.schema, 'age + treated')
-
-        expected_vars = np.array([
-                [ 1, 0, 0, 1],
-                [ 1, 0, 0, 0],
-                [ 1, 1, 0, 1],
-                [ 1, 1, 0, 0],
-                [ 1, 0, 1, 1],
-                [ 1, 0, 1, 0],
-                [ 1, 0, 0, 1],
-                [ 1, 0, 0, 0],
-                [ 1, 1, 0, 1],
-                [ 1, 1, 0, 0],
-                [ 1, 0, 1, 1],
-                [ 1, 0, 1, 0],
-                ], bool)
-
-        (vars, indexes) = self.schema.dummy_vars_and_indexes(
-            ['age', 'treated'])
-
-        np.testing.assert_equal(vars, expected_vars)
-        print "Indexes is ", indexes
-        np.testing.assert_equal(indexes,
-                                np.arange(12, dtype=int))
-
     def test_baseline_value(self):
         baseline = lambda factor: self.schema.baseline_value(factor)
         self.assertEquals(baseline('sex'), 'male')

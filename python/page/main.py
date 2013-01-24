@@ -1126,45 +1126,6 @@ is_sample are false will simply be ignored.
         return DummyVarTable(col_names, rows)
 
 
-    def dummy_vars_and_indexes(self, factors, interactions=0):
-        var_table = []
-        indexes   = []
-
-        for sample in self.sample_column_names:
-            vars = [True]
-            for factor in factors:
-                vars.extend(self.dummy_vars({factor: self.get_factor(sample, factor)}))
-
-            for level in range(1, interactions + 1):
-                interacting = list(combinations(factors, level + 1))
-
-                for i in range(len(interacting)):
-                    assignments = {}
-                    for factor in interacting[i]:
-                        assignments[factor] = self.get_factor(sample, factor)
-                    print "  assignments", assignments
-                    vars.extend(self.dummy_vars(assignments))
-
-            var_table.append(vars)
-            indexes.append(self.sample_name_index[sample])
-
-        return (var_table, np.array(indexes))
-
-    def dummy_vars(self, assignments):
-
-        factors = assignments.keys()
-        all_vals = list(product(*[self.factor_values(f) for f in factors]))
-
-        res = np.ones(len(all_vals), bool)
-
-        for i, vals in enumerate(all_vals):
-            for j, factor in enumerate(factors):
-                if vals[j] != assignments[factor]:
-                    res[i] = False
-
-        return res[1:]
-
-
     def add_factor(self, name, values=[]):
         """Add an factor with the given name and data type, which
         must be a valid numpy dtype."""
