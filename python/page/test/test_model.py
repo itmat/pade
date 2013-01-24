@@ -65,7 +65,7 @@ class ModelTest(unittest.TestCase):
 
         expected_labels = ({}, {'treated' : True}, {'sex' : 'female'}, { 'sex': 'female', 'treated' : True})
 
-        fitted = find_coefficients_no_interaction(model, data)
+        fitted = fit_model(model, data)
 
         self.assertEquals(expected_labels, fitted.labels)
         np.testing.assert_almost_equal(expected_coeffs, fitted.params)
@@ -84,7 +84,7 @@ class ModelTest(unittest.TestCase):
             
 
         expected_labels = ({}, {'treated' : True}, {'sex' : 'female'})
-        fitted = find_coefficients_no_interaction(model, data, effect_level=1)
+        fitted = fit_model(model, data)
         self.assertEquals(expected_labels, fitted.labels)
         np.testing.assert_almost_equal(expected_coeffs, fitted.params)
 

@@ -299,9 +299,7 @@ def do_run(args):
 
 
         num_features = len(job.table)
-
-        fitted = find_coefficients_no_interaction(job.full_model, job.table)
-
+        fitted = fit_model(job.full_model, job.table)
         means = get_group_means(job.schema, job.table)
 
 
@@ -444,10 +442,12 @@ def confidence_scores(raw_counts, perm_counts, num_features):
     return res
 
 
-def find_coefficients_no_interaction(model, data, effect_level=None):
+def fit_model(model, data):
 
     logging.info("Computing coefficients using least squares for " +
              str(len(data)) + " rows")
+
+    effect_level = 1 if model.expr.operator == '+' else len(model.expr.variables)
 
     newvars = model.schema.new_dummy_vars(level=effect_level)
 
