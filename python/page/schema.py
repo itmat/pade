@@ -18,13 +18,15 @@ def write_yaml_block_comment(fh, comment):
 
 class Schema(object):
 
+    """Describes a PaGE input file.
+
+    """
+
     def __init__(self, 
                  is_feature_id=None,
                  is_sample=None,
                  column_names=None):
         """Construct a Schema. 
-
-  factors    - a list of allowable factors for the sample.
 
   column_names  - a list of strings, giving names for the columns.
 
@@ -105,57 +107,97 @@ is_sample are false will simply be ignored.
 
         return factors
 
-    def factor_combinations(self, factors=None, level=None):
+    def factor_combinations(self, factors=None):
+        """Return list of possible combinations of values for given factors.
+
+        Each item of the returned list is a tuple of values, where
+        value i is one of the values defined in the schema for factor i.
+        """
+
         factors = self._check_factors(factors)
         values = [self.factor_values(f) for f in factors]
         return list(product(*values))
 
     def baseline_value(self, factor):
+        """Return the first value listed in the schema for given factor."""
         return self.factors[factor][0]
 
     def baseline_values(self, factors):
+        """Return first value defined for each of the factors given."""        
         return [self.baseline_value(f) for f in factors]
 
-    def has_baseline(self, factors, values):
-        return any(map(lambda f, v: v == self.baseline_value(f),
-                factors, values))
+
+    def has_baseline(self, assignment):
+        """Return true if any of the variables is assigned to their baseline.
+
+        assignment must be a dictionary mapping factors in this schema to
+        a valid value for that factor. Returns true if any of those mappings
+        is to the 'baseline' value for that factor.
+
+        """
+        for factor, value in assignment.items():
+            if value == self.baseline_value(factor):
+                return True
+        return False
 
     def sample_matches_assignments(self, sample_name, assignments):
+        """Return true if the sample with the given has the given assignments.
+
+        sample_name - must be the name of one of the samples in this schema.
+        assignments - must be a mapping from factor name to value
+
+        """
         for f, v in assignments.items():
             if self.get_factor(sample_name, f) != v:
                 return False
         return True
 
     def samples_with_assignments(self, assignments):
+        """Return list of sample names that have the given assignments.
+
+        assignments - must be a mapping from factor name to value
+
+        """
         matches = lambda name: self.sample_matches_assignments(name, assignments)
         return filter(matches, self.sample_column_names)
 
     def indexes_with_assignments(self, assignments):
+        """Return list of indexes that have the given assignments.
+        
+        assignments - must be a mapping from factor name to value
+
+        """
         samples = self.samples_with_assignments(assignments)
         indexes = [self.sample_num(s) for s in samples]
         return indexes
 
     def possible_assignments(self, factors=None):
+        """Return a list of all possible mappings from factor name to value.
+
+        Optionally provide the factors argument to limit combinations
+        to those factors.
+
+        """
         factors = self._check_factors(factors)
         return [
             OrderedDict(zip(factors, values))
             for values in self.factor_combinations(factors)]
 
-
     def add_factor(self, name, values=[]):
-        """Add an factor with the given name and values."""
+        """Add a factor with the given name and values."""
         self.factors[name] = values
         for sample in self.sample_to_factor_values:
             self.sample_to_factor_values[sample][name] = None
 
-
     @classmethod
     def load(cls, stream):
-        """Load a schema from the specified stream, which must
-        represent a YAML document in the format produced by
-        Schema.dump. The type of stream can be any type accepted by
-        yaml.load."""
+        """Load a schema from the specified stream.
 
+        The stream can be any type accepted by yaml.load, and must
+        represent a YAML document in the format produced by
+        Schema.dump.
+
+        """
         doc = yaml.load(stream)
 
         col_names = doc['headers']
@@ -248,8 +290,7 @@ sample_factor_mapping:
 
 
     def set_factor(self, sample_name, factor, value):
-        """Set an factor for a sample, identified by sample
-        name."""
+        """Set a factor for a sample, identified by sample name."""
         allowed = self.factor_values(factor)
         if value not in allowed:
             raise Exception("""\

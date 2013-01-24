@@ -114,10 +114,11 @@ class SchemaTest(unittest.TestCase):
 
     def test_has_baseline(self):
         baseline = lambda factor: self.schema.baseline_value(factor)
-        self.assertTrue(self.schema.has_baseline(('sex', 'treated'), ('male', False)))
-        self.assertTrue(self.schema.has_baseline(('sex', 'treated'), ('male', True)))
-        self.assertTrue(self.schema.has_baseline(('sex', 'treated'), ('female', False)))
-        self.assertFalse(self.schema.has_baseline(('sex', 'treated'), ('female', True)))
+        self.assertTrue(self.schema.has_baseline({'sex' : 'male', 'treated': False}))
+        self.assertTrue(self.schema.has_baseline({'sex' : 'male', 'treated': True}))
+        self.assertTrue(self.schema.has_baseline({'sex' : 'female', 'treated': False}))
+        self.assertFalse(self.schema.has_baseline({'sex' : 'female', 'treated': True}))
+
 
     def test_possible_assignments(self):
         self.assertEquals(self.schema.possible_assignments(('sex', 'treated')),

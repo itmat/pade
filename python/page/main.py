@@ -472,7 +472,7 @@ def new_dummy_vars(schema, factors=None, level=None):
     # Get col names
     for interacting in combinations(factors, level):
         for a in schema.factor_combinations(interacting):
-            if schema.has_baseline(interacting, a):
+            if schema.has_baseline(dict(zip(interacting, a))):
                 continue
             col_names += ({ interacting[i] : a[i] for i in range(len(interacting)) },)
 
@@ -487,10 +487,18 @@ def new_dummy_vars(schema, factors=None, level=None):
                 if factors[j] in interacting:
                     my_vals += (factor_values[j],)
 
+
+            print "Look here\n"
+            for a in schema.factor_combinations(interacting):
+                print a
+
+            for a in schema.possible_assignments(interacting):
+                print a
+
             # For each possible assignment of values to these factors
             for a in schema.factor_combinations(interacting):
-                if schema.has_baseline(interacting, a):
-                    continue               
+                if schema.has_baseline(dict(zip(interacting, a))):
+                    continue
 
                 # Test if this row of the result table has all the
                 # values in this assignment
