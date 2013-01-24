@@ -105,41 +105,6 @@ class SchemaTest(unittest.TestCase):
         self.assertEquals(out.getvalue(),
                           out2.getvalue())
 
-    def test_sample_groups(self):
-        groups = self.schema.sample_groups(["sex"])
-        self.assertEquals(groups,
-                          OrderedDict({ ("female",) : range(6, 12),
-                                        ("male",)   : range(0, 6) }))
-
-        groups = self.schema.sample_groups(["age"])
-        self.assertEquals(groups,
-                          { (2,)  : [0, 1, 6, 7],
-                            (20,) : [2, 3, 8, 9],
-                            (55,) : [4, 5, 10, 11] })
-
-        groups = self.schema.sample_groups(["treated"])
-        self.assertEquals(groups,
-                          { (False,) : [1, 3, 5, 7, 9, 11],
-                            (True,)  : [0, 2, 4, 6, 8, 10] })
-
-        groups = self.schema.sample_groups(["age", "sex", "treated"])
-        self.assertEquals(
-            groups,
-            OrderedDict( 
-                [
-                    ((2,  "male",    False) ,  [  1 ]),
-                    ((2,  "male",    True)  ,  [  0 ]),
-                    ((2,  "female",  False) ,  [  7 ]),
-                    ((2,  "female",  True)  ,  [  6 ]),
-                    ((20, "male",    False) ,  [  3 ]),
-                    ((20, "male",    True)  ,  [  2 ]),
-                    ((20, "female",  False) ,  [  9 ]),
-                    ((20, "female",  True)  ,  [  8 ]),
-                    ((55, "male",    False) ,  [  5 ]),
-                    ((55, "male",    True)  ,  [  4 ]),
-                    ((55, "female",  False) ,  [ 11 ]),
-                    ((55, "female",  True)  ,  [ 10 ]),
-]))
 
     def test_baseline_value(self):
         baseline = lambda factor: self.schema.baseline_value(factor)

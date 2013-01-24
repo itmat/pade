@@ -35,8 +35,7 @@ class CommonTest(unittest.TestCase):
                         self.factor_map_treated_sex) as job:
 
             self.assertEquals(np.shape(job.table), (1000, 16))
-            print job.schema.sample_groups(['treated'])
-            print job.schema.sample_groups(['sex'])
+
 
     def test_model_to_layout(self):
 
@@ -45,24 +44,15 @@ class CommonTest(unittest.TestCase):
 
             # One class
             model = Model(job.schema, 'treated')
-            layout_map = model.layout_map()
             self.assertEquals(
-                layout_map.keys(),
-                [(False,),
-                 (True,)])
-            self.assertEquals(
-                layout_map.values(),
+                model.layout,
                 [[0, 1, 2, 3, 4, 5, 6, 7],
                  [8, 9, 10, 11, 12, 13, 14, 15]])
 
             # No classes
             model = Model(job.schema, '')
-            layout_map = model.layout_map()
             self.assertEquals(
-                layout_map.keys(),
-                [tuple()])
-            self.assertEquals(
-                layout_map.values(),
+                model.layout,
                 [[0, 1, 2, 3, 4, 5, 6, 7,
                   8, 9, 10, 11, 12, 13, 14, 15]])
 

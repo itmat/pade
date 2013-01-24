@@ -539,16 +539,17 @@ def fit_model(model, data):
 
 def get_group_means(schema, data):
 
-    groups = schema.sample_groups()
+    assignments = schema.possible_assignments()
 
     num_features = len(data)
-    num_groups = len(groups)
+    num_groups = len(assignments)
 
     result = np.zeros((num_features, num_groups))
 
-    for i, key in enumerate(groups):
-        idxs = groups[key]
-        result[:, i] = np.mean(data[:, idxs], axis=1)
+    for i, assignment in enumerate(assignments):
+        indexes = schema.indexes_with_assignments(assignment)
+        result[:, i] = np.mean(data[:, indexes], axis=1)
+
     return result
 
 
@@ -658,12 +659,11 @@ class Model:
             if factor not in self.schema.factors:
                 raise UsageException("Factor '" + factor + "' is not defined in the schema. Valid factors are " + str(self.schema.factors.keys()))
 
-    def layout_map(self):
-        return self.schema.sample_groups(self.expr.variables)
-
     @property
     def layout(self):
-        return self.schema.sample_groups(self.expr.variables).values()
+        s = self.schema
+        return [s.indexes_with_assignments(a)
+                for a in s.possible_assignments(self.expr.variables)]
     
     def index_num_to_sym(self, idx):
         schema = self.schema

@@ -1,3 +1,5 @@
+"""Describes a PaGE input file."""
+
 import numpy as np
 import textwrap
 import yaml
@@ -65,14 +67,27 @@ is_sample are false will simply be ignored.
 
     @property
     def factor_names(self):
-        """Return a list of the factor names for this schema."""
+        """List of the factor names for this schema.
 
+        The factors are given in the same order they appear in the
+        schema file.
+
+        """
         return self.factors.keys()
+
+    def factor_values(self, factor):
+
+        """Return the list of valid values for the given factor.
+
+        The result is sorted according to the order the values are
+        given in the schema file.
+
+        """
+        return self.factors[factor]
 
     @property
     def sample_column_names(self):
-        """Return a list of the names of columns that contain
-        intensities."""
+        """List of the names of columns that contain intensities."""
 
         return self.column_names[self.is_sample]
 
@@ -115,6 +130,11 @@ is_sample are false will simply be ignored.
         matches = lambda name: self.sample_matches_assignments(name, assignments)
         return filter(matches, self.sample_column_names)
 
+    def indexes_with_assignments(self, assignments):
+        samples = self.samples_with_assignments(assignments)
+        indexes = [self.sample_num(s) for s in samples]
+        return indexes
+
     def possible_assignments(self, factors=None):
         factors = self._check_factors(factors)
         return [
@@ -123,9 +143,7 @@ is_sample are false will simply be ignored.
 
 
     def add_factor(self, name, values=[]):
-        """Add an factor with the given name and data type, which
-        must be a valid numpy dtype."""
-        
+        """Add an factor with the given name and values."""
         self.factors[name] = values
         for sample in self.sample_to_factor_values:
             self.sample_to_factor_values[sample][name] = None
@@ -254,31 +272,4 @@ sample_factor_mapping:
         sample."""
 
         return self.sample_name_index[sample_name]
-
-    def sample_groups(self, factors=None):
-        """Returns a dictionary mapping each value of factor to the
-        list of sample numbers that have that value set."""
-
-        factors = self._check_factors(factors)
-
-        grouping = OrderedDict({})
-
-        res = OrderedDict({})
-        for assignment in self.factor_combinations(factors):
-            res[assignment] = []
-
-        for name, factor_vals in self.sample_to_factor_values.items():
-            key = tuple([factor_vals[f] for f in factors])
-            res[key].append(self.sample_name_index[name])
-
-        return res
-
-    def condition_name(self, c):
-        """Return a name for condition c, based on the factor values for that condition"""
-        pass
-
-    def factor_values(self, factor):
-
-        """Return the list of valid values for the given factor."""
-        return self.factors[factor]
 
