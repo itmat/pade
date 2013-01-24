@@ -1,9 +1,20 @@
 API Documentation
 =================
 
+page.common
+-----------
+
+.. automodule:: page.common
+   :members:
+
 page.schema
 -----------
 
 .. automodule:: page.schema
-  :members:
+   :members:
 
+page.stat
+---------
+
+.. automodule:: page.stat
+   :members:
