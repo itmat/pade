@@ -18,16 +18,19 @@ from page.common import *
 def apply_layout(layout, data):
     """Reshape the given data so based on the layout.
 
-    layout - A list of lists. Each inner list is a sequence of indexes
-    into data, representing a group of samples that share the same
-    factor values. All of the inner lists must currently have the same
-    length.
+    :param layout:
+      A list of lists. Each inner list is a sequence of indexes into
+      data, representing a group of samples that share the same factor
+      values. All of the inner lists must currently have the same
+      length.
 
-    data - An n x m array, where m is the number of samples and n is
-    the number of features.
+    :param data: 
+      An n x m array, where m is the number of samples and n is the
+      number of features.
 
-    Returns an n x m1 x m2 n array, where m1 is the number of groups, m2
-    is the number of samples in each group, and n is the number of features.
+    :return: 
+      An n x m1 x m2 n array, where m1 is the number of groups, m2
+      is the number of samples in each group, and n is the number of features.
 
     A trivial layout where all columns are grouped together:
 
@@ -64,7 +67,11 @@ def apply_layout(layout, data):
 def mean_and_rss(data):
     """Return a tuple of the mean and residual sum of squares.
 
-    Returns the means and residual sum of squares over the last axis.
+    :param data:
+      An n-dimensional array.
+
+    :return:
+      The means and residual sum of squares over the last axis.
 
     """
     y   = np.mean(data, axis=-1).reshape(np.shape(data)[:-1] + (1,))
@@ -72,7 +79,6 @@ def mean_and_rss(data):
     return (y, rss)
 
 class Ftest:
-
     """Computes the F-test.
 
     Some sample data
@@ -143,6 +149,12 @@ class Ftest:
         return numer / denom
 
 class FtestSqrt:
+    """Statistic that gives the square root of the f-test.
+
+    This is a simple wrapper around the Ftest that returns its square
+    root. You can use this to simulate a t-test between two groups.
+
+    """
     def __init__(self, layout_full, layout_reduced):
         self.test = Ftest(layout_full, layout_reduced)
         
@@ -150,7 +162,14 @@ class FtestSqrt:
         return np.sqrt(self.test(data))
 
 class Ttest:
+    """.. deprecated:: 1.0
 
+    This is the original Ttest implementation, but it probably doesn't
+    actually work with the current PaGE, since it expects a statistic
+    that takes *all* the groups and returns *one* statistic per
+    feature. We may restore this in the future.
+
+    """
     TUNING_PARAM_RANGE_VALUES = np.array([
             0.0001,
             0.01,
@@ -174,10 +193,6 @@ class Ttest:
 
     @classmethod
     def compute_s(cls, data):
-        """
-        v1 and v2 should have the same number of rows.
-        """
-                
         var = np.var(data, ddof=1, axis=1)
         size = ma.count(data, axis=1)
         return np.sqrt(np.sum(var * size, axis=0) / np.sum(size, axis=0))
@@ -269,6 +284,26 @@ DEFAULT_ACCUMULATOR = Accumulator(
 
 
 def binning_accumulator(bins, num_samples):
+    """Returns an accumulator that produces a histogram of the statistics.
+
+    bins
+      A monotonically increasing list of numbers which represent the
+      edges of bins into which we will accumulate counts.
+
+    num_samples
+      The number of samples we will be generating for bootstrap
+      purposes.
+
+    >>> bins = np.array([0, 1, 2, 3])
+    >>> R = 10
+    >>> acc = binning_accumulator(bins, R)
+    >>> data = np.array([[1, 2, 3, 6], [2, 1, 1, 1], [3, 1, 10, 4]])
+    >>> full_layout = [[0, 1], [2, 3]]
+    >>> reduced_layout = [[0, 1, 2, 3]]
+    >>> ftest = Ftest(full_layout, reduced_layout)
+    >>> counts = bootstrap(data, ftest, R, accumulator=acc)
+
+    """
     initializer = np.zeros(cumulative_hist_shape(bins))
 
     def reduce_fn(res, val):
@@ -280,14 +315,69 @@ def binning_accumulator(bins, num_samples):
     return Accumulator(initializer, reduce_fn, finalize_fn)
 
 
-@profiled
 def bootstrap(data,
               stat_fn,
               R=1000,
               sample_layout=None,
               indexes=None,
               residuals=None,
-              accumulator=DEFAULT_ACCUMULATOR):
+              bins=None):
+    """Run bootstrapping.
+
+    This function should most likely accept data of varying
+    dimensionality, but this documentation uses two dimensional data
+    as an example.
+
+    :param data:
+      An (M x N) array.
+
+    :param stat_fn:
+      A callable that accepts an array of shape (M x N) and returns statistics of shape (M).
+
+    :param R:
+      The number of bootstrapping samples to generate, if *indexes* is
+      not supplied.
+
+    :param sample_layout:
+      If *indexes* is not supplied, sample_layout can be used to
+      specify a :layout: to restrict the randomized sampling. If
+      supplied, it must be a list of lists which divides the N indexes
+      of the columns of *data* up into groups.
+
+    :param indexes:
+      If supplied, it must be an (M x N) table of indexes into the
+      data, which we will use to extract data points for
+      bootstrapping. If not supplied, *R* indexes will be generated
+      randomly, optionally restricted by the :layout: given in
+      *sample_layout*.
+
+    :param residuals:
+      You can use this in conjunction with the *data* parameter to
+      construct artificial samples. If this is supplied, it must be
+      the same shape as *data*. Then *data* should be the values
+      predicted by the model, and *residuals* should be the residuals
+      representing the predicted values subtracted from the original
+      data. The samples will be constructed by selecting random
+      samples of the residuals and adding them back onto *data*. So if
+      residuals are provided, then *data + residuals* should be equal
+      to the original, raw data.
+
+    :param bins:
+      An optional list of numbers representing the edges of bins into
+      which we will accumulate mean counts of statistics.
+
+
+    :return:
+      If *bins* is not provided, I will return an :math:`(R x M)` array giving
+      the value of the statistic for each row of *data* for sample.
+
+      If *bins* is not provided, I will return a list of length
+      :math:`len(bins) - 1` where each item is the average number of
+      rows of *data* across all samples that have statistic value
+      falling in the range associated with the corresponding bin.
+
+      """
+    accumulator = DEFAULT_ACCUMULATOR
 
     build_sample = None
     if residuals is None:
@@ -299,6 +389,9 @@ def bootstrap(data,
         if sample_layout is None:
             sample_layout = [ np.arange(np.shape(data)[1]) ]
         indexes = random_indexes(sample_layout, R)
+
+    if bins is not None:
+        accumulator = binning_accumulator(bins, len(indexes))
         
     # We'll return an R x n array, where n is the number of
     # features. Each row is the array of statistics for all the
@@ -340,7 +433,7 @@ def cumulative_hist(values, bins):
         res[idx] = np.array(np.cumsum(hist[::-1])[::-1], float)
     return res
 
-@profiled
+
 def bins_uniform(num_bins, stats):
     """Returns a set of evenly sized bins for the given stats.
 
@@ -379,7 +472,6 @@ def bins_custom(num_bins, stats):
     bins[ : -1] = sorted(stats)
     bins[-1] = np.inf
     return bins
-
 
 
 if __name__ == '__main__':

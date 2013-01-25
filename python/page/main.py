@@ -170,7 +170,6 @@ def do_fdr(job):
 
     with profiling('do_fdr.build fdr'):
 
-        acc = page.stat.binning_accumulator(fdr.bins, job.num_samples)
         residuals = None
 
         if job.sample_from == 'raw':
@@ -202,8 +201,7 @@ def do_fdr(job):
                 data, stat, 
                 indexes=job.sample_indexes,
                 residuals=residuals,
-                accumulator=acc)
-
+                bins=fdr.bins)
 
         fdr.raw_stats    = raw_stats
         fdr.raw_counts   = page.stat.cumulative_hist(fdr.raw_stats, fdr.bins)

@@ -18,7 +18,6 @@ Glossary
 ========
 
 layout
-
     A list of lists that specifies groups of indexes into the data
     table. For example::
 
