@@ -6,5 +6,5 @@ setup(name='PaGE',
       author_email='delaurentis@gmail.com',
       url='https://github.com/itmat/PaGE',
       scripts=['bin/page'],
-      py_modules=['page'],
-      packages=['page'])
+      packages=['page'],
+      requires=['jinja2', 'matplotlib', 'scipy', 'numpy', 'yaml'])
