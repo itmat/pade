@@ -297,7 +297,6 @@ def do_run(args):
         fitted = job.full_model.fit(job.table)
         means = get_group_means(job.schema, job.table)
 
-
     results = None
 
     fdr = do_fdr(job)
@@ -379,23 +378,21 @@ def save_text_output(job, results):
     with chdir(job.directory):
         (num_rows, num_cols) = job.table.shape
         num_cols += 2
-        
         table = np.zeros((num_rows, num_cols))
-
         idxs = np.argmax(results.scores, axis=0)
-
-
-        print "Indexes\n", idxs
         stats = [results.stats[idxs[i], i] for i in range(len(idxs))]
         scores = [results.scores[idxs[i], i] for i in range(len(idxs))]
-
         table = []
 
+        # For each row in the data, add feature id, stat, score, group
+        # means, and raw values.
         for i in range(len(job.table)):
             row = []
             row.append(job.feature_ids[i])
             row.append(results.stats[idxs[i], i])
             row.append(results.scores[idxs[i], i])
+            row.extend(results.means[i])
+            row.extend(results.coeffs[i])
             row.extend(job.table[i])
             table.append(tuple(row))
         schema = job.schema
@@ -408,6 +405,13 @@ def save_text_output(job, results):
         add_col(schema.feature_id_column_names[0], object, "%s")
         add_col('stat', float, "%f")
         add_col('score', float, "%f")
+
+        for name in results.group_names:
+            add_col("mean: " + name, float, "%f")
+
+        for name in results.param_names:
+            add_col("param: " + name, float, "%f")
+
         for i, name in enumerate(schema.sample_column_names):
             add_col(name, float, "%f")
         
