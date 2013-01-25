@@ -356,21 +356,69 @@ def do_run(args):
         print_profile()
 
 
-    print """
+        print """
 Summary of features by confidence level:
 
 Confidence |   Num.
    Level   | Features
 -----------+---------"""
-    for i in range(len(summary_counts) - 1):
-        print "{bin:10.0%} | {count:8d}".format(
-            bin=summary_bins[i],
-            count=int(summary_counts[i]))
+        for i in range(len(summary_counts) - 1):
+            print "{bin:10.0%} | {count:8d}".format(
+                bin=summary_bins[i],
+                count=int(summary_counts[i]))
 
-    print """
+        print """
 The full report is available at {0}""".format(
-        os.path.join(job.directory, "index.html"))
+            os.path.join(job.directory, "index.html"))
 
+
+    save_text_output(job, results)
+
+
+def save_text_output(job, results):
+    with chdir(job.directory):
+        (num_rows, num_cols) = job.table.shape
+        num_cols += 2
+        
+        table = np.zeros((num_rows, num_cols))
+
+        idxs = np.argmax(results.scores, axis=0)
+
+
+        print "Indexes\n", idxs
+        stats = [results.stats[idxs[i], i] for i in range(len(idxs))]
+        scores = [results.scores[idxs[i], i] for i in range(len(idxs))]
+
+        table = []
+
+        for i in range(len(job.table)):
+            row = []
+            row.append(job.feature_ids[i])
+            row.append(results.stats[idxs[i], i])
+            row.append(results.scores[idxs[i], i])
+            row.extend(job.table[i])
+            table.append(tuple(row))
+        schema = job.schema
+
+        cols = []
+        Col = namedtuple("Col", ['name', 'dtype', 'format'])
+        def add_col(name, dtype, format):
+            cols.append(Col(name, dtype, format))
+
+        add_col(schema.feature_id_column_names[0], object, "%s")
+        add_col('stat', float, "%f")
+        add_col('score', float, "%f")
+        for i, name in enumerate(schema.sample_column_names):
+            add_col(name, float, "%f")
+        
+        dtype = [(c.name, c.dtype) for c in cols]
+
+        table = np.array(table, dtype)
+        with open("results.txt", "w") as out:
+            out.write("\t".join(c.name for c in cols) + "\n")
+            np.savetxt(out, table, 
+                       fmt=[c.format for c in cols],
+                       delimiter="\t")
 
 
 @profiled

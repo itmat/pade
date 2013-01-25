@@ -93,6 +93,11 @@ is_sample are false will simply be ignored.
 
         return self.column_names[self.is_sample]
 
+    @property
+    def feature_id_column_names(self):
+        """Name of column that contains feature ids."""
+        return self.column_names[self.is_feature_id]
+
     def _check_factors(self, factors):
 
         if factors is None:
@@ -242,6 +247,7 @@ is_sample are false will simply be ignored.
 
             elif self.is_sample[i]:
                 
+
                 sample_cols[name] = {}
                 for factor in self.factors:
                     if factor in self.sample_to_factor_values[name]:
