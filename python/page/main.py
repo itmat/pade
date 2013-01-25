@@ -482,6 +482,9 @@ def confidence_scores(raw_counts, perm_counts, num_features):
 
     res = (raw_counts - adjusted) / raw_counts
 
+    for idx in np.ndindex(res.shape[:-1]):
+        res[idx] = ensure_scores_increase(res[idx])
+
     return res
 
 
