@@ -4,7 +4,6 @@
 
 # External imports
 
-import StringIO
 import argparse
 import collections
 import errno
@@ -18,7 +17,6 @@ import os
 import scipy.stats.mstats
 import shutil
 import textwrap
-import tokenize
 import numpy.lib.recfunctions
 from itertools import combinations, product
 
@@ -27,6 +25,7 @@ from bisect import bisect
 from page.common import *
 from page.performance import *
 from page.schema import *
+from page.model import *
 import page.stat
 
 
@@ -44,10 +43,6 @@ FEATURE_ID_DTYPE = 'S10'
 
 class UsageException(Exception):
     """Thrown when the user gave invalid parameters."""
-    pass
-
-class ModelExpressionException(Exception):
-    """Thrown when a model expression is invalid."""
     pass
 
 class ProfileStackException(Exception):
@@ -440,108 +435,6 @@ def confidence_scores(raw_counts, perm_counts, num_features):
 
     return res
 
-def new_dummy_vars(schema, factors=None, level=None):
-    """
-    level=0 is intercept only
-    level=1 is intercept plus main effects
-    level=2 is intercept, main effects, interactions between two variables
-    ...
-    level=n is intercept, main effects, interactions between n variables
-
-    """ 
-    factors = schema._check_factors(factors)
-
-    if level is None:
-        return new_dummy_vars(schema, factors, len(factors))
-
-    if level == 0:
-        names = ({},)
-        rows = []
-        for a in schema.possible_assignments(factors):
-            rows.append(
-                DummyVarAssignment(a.values(), (True,), schema.samples_with_assignments(a)))
-        return DummyVarTable(names, rows)
-
-    res = new_dummy_vars(schema, factors, level - 1)
-
-    col_names = tuple(res.names)
-    rows      = list(res.rows)
-
-    # Get col names
-    for interacting in combinations(factors, level):
-        for a in schema.factor_combinations(interacting):
-            if schema.has_baseline(dict(zip(interacting, a))):
-                continue
-            col_names += ({ interacting[i] : a[i] for i in range(len(interacting)) },)
-
-    for i, dummy in enumerate(rows):
-        (factor_values, bits, indexes) = dummy
-
-        # For each subset of factors of size level
-        for interacting in combinations(factors, level):
-
-            my_vals = ()
-            for j in range(len(factors)):
-                if factors[j] in interacting:
-                    my_vals += (factor_values[j],)
-
-
-            print "Look here\n"
-            for a in schema.factor_combinations(interacting):
-                print a
-
-            for a in schema.possible_assignments(interacting):
-                print a
-
-            # For each possible assignment of values to these factors
-            for a in schema.factor_combinations(interacting):
-                if schema.has_baseline(dict(zip(interacting, a))):
-                    continue
-
-                # Test if this row of the result table has all the
-                # values in this assignment
-                matches = my_vals == a
-                bits = bits + (matches,)
-
-        rows[i] = DummyVarAssignment(tuple(factor_values), bits, indexes)
-
-    return DummyVarTable(col_names, rows)
-
-
-
-
-def fit_model(model, data):
-
-    logging.info("Computing coefficients using least squares for " +
-             str(len(data)) + " rows")
-
-    effect_level = 1 if model.expr.operator == '+' else len(model.expr.variables)
-
-    newvars = new_dummy_vars(model.schema, level=effect_level)
-
-    x = []
-    indexes = []
-
-    for row in newvars.rows:
-        for index in row.indexes:
-            x.append(row.bits)
-            indexes.append(model.schema.sample_name_index[index])
-
-    x = np.array(x, bool)
-
-    num_vars = np.size(x, axis=1)
-    shape = np.array((len(data), num_vars))
-
-    result = np.zeros(shape)
-
-    print newvars
-    for i, row in enumerate(data):
-        y = row[indexes]
-        (coeffs, residuals, rank, s) = np.linalg.lstsq(x, y)
-        result[i] = coeffs
-
-    return FittedModel(newvars.names, x, indexes, result)
-
 
 def get_group_means(schema, data):
 
@@ -564,121 +457,6 @@ def get_group_means(schema, data):
 ### Classes
 ###
 
-
-class ModelExpression:
-    
-    def __init__(self, 
-                 operator=None,
-                 variables=None):
-
-        if variables is None:
-            variables = []
-
-        # If we have two or mor vars, make sure we have a valid operator
-        if len(variables) > 1:
-            if operator is None:
-                raise Exception("Operator must be supplied for two or more variables")
-            if operator not in "+*":
-                raise Exception("Operator must be '+' or '*'")
-
-        self.operator = operator
-        self.variables = variables
-
-        
-    @classmethod
-    def parse(cls, string):
-        """Parse a model from a string.
-
-        string can either be "VARIABLE", "VARIABLE * VARIABLE", or
-        "VARIABLE + VARIABLE". We may support more complex models
-        later on.
-
-        """
-
-        if string is None or string.strip() == '':
-            return ModelExpression()
-
-        operator = None
-        variables = []
-
-        io = StringIO.StringIO(string)
-        toks = tokenize.generate_tokens(lambda : io.readline())
-
-        # First token should always be a variable
-        t = toks.next()
-        (tok_type, tok, start, end, line) = t
-        if tok_type != tokenize.NAME:
-            raise ModelExpressionException("Unexpected token " + tok)
-        variables.append(tok)
-
-        # Second token should be either the end marker or + or *
-        t = toks.next()
-        (tok_type, tok, start, end, line) = t
-        if tok_type == tokenize.ENDMARKER:
-            return ModelExpression(variables=variables)
-        elif tok_type == tokenize.OP:
-            operator = tok
-        else:
-            raise ModelExpressionException("Unexpected token " + tok)
-
-        t = toks.next()
-        (tok_type, tok, start, end, line) = t
-        if tok_type != tokenize.NAME:
-            raise ModelExpressionException("Unexpected token " + tok)
-        variables.append(tok)
-
-        t = toks.next()
-        (tok_type, tok, start, end, line) = t
-        if tok_type != tokenize.ENDMARKER:
-            raise ModelExpressionException("Expected end of expression, got " + tok)
-
-        if len(variables) > 0:
-            return ModelExpression(operator=operator, variables=variables)
-
-
-
-    def __str__(self):
-        if len(self.variables) == 0:
-            return ""
-        elif len(self.variables) == 1:
-            return self.variables[0]
-        else:
-            op = " " + self.operator + " "
-            return op.join(self.variables)
-
-
-class Model:
-    def __init__(self, schema, expr):
-        self.schema = schema
-        self.expr = ModelExpression.parse(expr)
-        self.validate_model()
-
-    def validate_model(self):
-        """Validate the model against the given schema.
-
-        Raises an exception if the model refers to any variables that are
-        not defined in schema.
-        
-        """
-        
-        for factor in self.expr.variables:
-            if factor not in self.schema.factors:
-                raise UsageException("Factor '" + factor + "' is not defined in the schema. Valid factors are " + str(self.schema.factors.keys()))
-
-    @property
-    def layout(self):
-        s = self.schema
-        return [s.indexes_with_assignments(a)
-                for a in s.possible_assignments(self.expr.variables)]
-    
-    def index_num_to_sym(self, idx):
-        schema = self.schema
-        expr  = self.expr
-        res = tuple()
-        for i, factor in enumerate(expr.variables):
-            values = list(schema.factor_values(factor))
-            res += (values[idx[i]],)
-        return res
 
 
 class Job:
@@ -908,24 +686,6 @@ def main():
 
 # Factor = collections.namedtuple("Factor", ["name", "dtype", "values"])
 # Sample = collections.namedtuple("Sample", ["column", "factor_values"])
-
-DummyVarTable = collections.namedtuple(
-    "DummyVarTable",
-    ["names", "rows"])
-
-DummyVarAssignment = collections.namedtuple(
-    "DummyVarAssignment",
-    ["factor_values",
-     "bits",
-     "indexes"])
-
-FittedModel = collections.namedtuple(
-    "FittedModel",
-    ["labels",
-     "x",
-     "y_indexes",
-     "params"])
-
 
 
 def init_schema(infile=None):
