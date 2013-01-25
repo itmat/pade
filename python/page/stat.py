@@ -283,27 +283,7 @@ DEFAULT_ACCUMULATOR = Accumulator(
     lambda x: np.array(x))
 
 
-def binning_accumulator(bins, num_samples):
-    """Returns an accumulator that produces a histogram of the statistics.
-
-    bins
-      A monotonically increasing list of numbers which represent the
-      edges of bins into which we will accumulate counts.
-
-    num_samples
-      The number of samples we will be generating for bootstrap
-      purposes.
-
-    >>> bins = np.array([0, 1, 2, 3])
-    >>> R = 10
-    >>> acc = binning_accumulator(bins, R)
-    >>> data = np.array([[1, 2, 3, 6], [2, 1, 1, 1], [3, 1, 10, 4]])
-    >>> full_layout = [[0, 1], [2, 3]]
-    >>> reduced_layout = [[0, 1, 2, 3]]
-    >>> ftest = Ftest(full_layout, reduced_layout)
-    >>> counts = bootstrap(data, ftest, R, accumulator=acc)
-
-    """
+def _binning_accumulator(bins, num_samples):
     initializer = np.zeros(cumulative_hist_shape(bins))
 
     def reduce_fn(res, val):
@@ -391,7 +371,7 @@ def bootstrap(data,
         indexes = random_indexes(sample_layout, R)
 
     if bins is not None:
-        accumulator = binning_accumulator(bins, len(indexes))
+        accumulator = _binning_accumulator(bins, len(indexes))
         
     # We'll return an R x n array, where n is the number of
     # features. Each row is the array of statistics for all the
