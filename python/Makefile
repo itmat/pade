@@ -10,7 +10,7 @@ clean :
 	rm -f *~ **/*~ **/*.pyc *.pyc *.log tests/*~ tests/*.pyc 
 	cd doc; make clean
 	rm -rf doc/html/generated
-
+	rm -rf cover
 
 perf_setup :
 	mkdir -p perf_report

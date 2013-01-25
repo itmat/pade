@@ -77,7 +77,3 @@ def makedirs(path):
         if not os.path.isdir(path):
             raise e
 
-
-if __name__ == '__main__':
-    import doctest
-    doctest.testmod()

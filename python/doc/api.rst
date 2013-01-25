@@ -20,7 +20,7 @@ page.stat
    :members:
 
 page.performance
----------
+----------------
 
 .. automodule:: page.performance
    :members:

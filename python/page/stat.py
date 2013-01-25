@@ -453,8 +453,3 @@ def bins_custom(num_bins, stats):
     bins[-1] = np.inf
     return bins
 
-
-if __name__ == '__main__':
-    import doctest
-    doctest.testmod()
-

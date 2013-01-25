@@ -8,6 +8,9 @@ import numpy as np
 
 EVENTS = []
 
+class ProfileStackException(Exception):
+    """Thrown when the profile stack is corrupt."""
+
 @contextlib.contextmanager
 def profiling(label):
     """Context manager for capturing performance metrics of a block.
@@ -84,8 +87,4 @@ def walk_profile(profile_log=EVENTS):
         table['maxrss_diff_percent'] /= max(table['maxrss_post'])
     table.sort(order=['order'])
     return table
-
-if __name__ == '__main__':
-    import doctest
-    doctest.testmod()
 

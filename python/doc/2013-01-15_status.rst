@@ -37,12 +37,6 @@ Performance metrics
 * Capture running time and memory usage
 * Older version does 70 permutations, newer does 1,000 randomized samples.
 
-.. image:: ../perf_report/runningtime.png
-
-.. image:: ../perf_report/rss.png
-
-.. image:: ../perf_report/improvement.png
-
 ---------
 Takeaways
 ---------

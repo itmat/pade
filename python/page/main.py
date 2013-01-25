@@ -10,14 +10,10 @@ import errno
 import jinja2
 import logging
 import matplotlib.pyplot as plt
-import numbers
 import numpy.ma as ma
 import numpy as np
 import os
-import scipy.stats.mstats
 import shutil
-import textwrap
-import numpy.lib.recfunctions
 from itertools import combinations, product
 
 from bisect import bisect
@@ -27,9 +23,6 @@ from page.performance import *
 from page.schema import *
 from page.model import *
 import page.stat
-
-
-from collections import OrderedDict
 
 REAL_PATH = os.path.realpath(__file__)
 RAW_VALUE_DTYPE = float
@@ -44,9 +37,6 @@ FEATURE_ID_DTYPE = 'S10'
 class UsageException(Exception):
     """Thrown when the user gave invalid parameters."""
     pass
-
-class ProfileStackException(Exception):
-    """Thrown when the profile stack is corrupt."""
 
 ##############################################################################
 ###
@@ -740,8 +730,6 @@ def main():
     
     logging.info('Page finishing')    
 
-# Factor = collections.namedtuple("Factor", ["name", "dtype", "values"])
-# Sample = collections.namedtuple("Sample", ["column", "factor_values"])
 
 
 def init_schema(infile=None):
