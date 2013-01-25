@@ -120,7 +120,7 @@ class ModelTest(unittest.TestCase):
                     schema.set_factor(name, 'age',     age)
                     schema.set_factor(name, 'treated', treated)
 
-        dummy_vars = new_dummy_vars(schema, ['age', 'treated'], level=2)
+        dummies = dummy_vars(schema, ['age', 'treated'], level=2)
 
         expected = DummyVarTable(
             ({}, {'age': 20}, {'age': 55}, {'treated': True}, {'age': 20, 'treated': True}, {'age': 55, 'treated': True}),
@@ -132,5 +132,5 @@ class ModelTest(unittest.TestCase):
                 DummyVarAssignment(factor_values=(55, False), bits=(True, False, True, False, False, False), indexes=['sample6', 'sample12']),
                 DummyVarAssignment(factor_values=(55, True), bits=(True, False, True, True, False, True), indexes=['sample5', 'sample11'])])
 
-        self.assertEquals(dummy_vars, expected)
+        self.assertEquals(dummies, expected)
 

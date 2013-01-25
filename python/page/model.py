@@ -141,12 +141,12 @@ class Model:
 
         effect_level = 1 if self.expr.operator == '+' else len(self.expr.variables)
 
-        newvars = new_dummy_vars(self.schema, level=effect_level)
+        dummies = dummy_vars(self.schema, level=effect_level)
 
         x = []
         indexes = []
 
-        for row in newvars.rows:
+        for row in dummies.rows:
             for index in row.indexes:
                 x.append(row.bits)
                 indexes.append(self.schema.sample_name_index[index])
@@ -158,16 +158,15 @@ class Model:
 
         result = np.zeros(shape)
 
-        print newvars
         for i, row in enumerate(data):
             y = row[indexes]
             (coeffs, residuals, rank, s) = np.linalg.lstsq(x, y)
             result[i] = coeffs
 
-        return FittedModel(newvars.names, x, indexes, result)
+        return FittedModel(dummies.names, x, indexes, result)
 
 
-def new_dummy_vars(schema, factors=None, level=None):
+def dummy_vars(schema, factors=None, level=None):
     """
     level=0 is intercept only
     level=1 is intercept plus main effects
@@ -179,7 +178,7 @@ def new_dummy_vars(schema, factors=None, level=None):
     factors = schema._check_factors(factors)
 
     if level is None:
-        return new_dummy_vars(schema, factors, len(factors))
+        return dummy_vars(schema, factors, len(factors))
 
     if level == 0:
         names = ({},)
@@ -189,7 +188,7 @@ def new_dummy_vars(schema, factors=None, level=None):
                 DummyVarAssignment(a.values(), (True,), schema.samples_with_assignments(a)))
         return DummyVarTable(names, rows)
 
-    res = new_dummy_vars(schema, factors, level - 1)
+    res = dummy_vars(schema, factors, level - 1)
 
     col_names = tuple(res.names)
     rows      = list(res.rows)
@@ -211,14 +210,6 @@ def new_dummy_vars(schema, factors=None, level=None):
             for j in range(len(factors)):
                 if factors[j] in interacting:
                     my_vals += (factor_values[j],)
-
-
-            print "Look here\n"
-            for a in schema.factor_combinations(interacting):
-                print a
-
-            for a in schema.possible_assignments(interacting):
-                print a
 
             # For each possible assignment of values to these factors
             for a in schema.factor_combinations(interacting):

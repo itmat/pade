@@ -107,6 +107,7 @@ def setup_css(env):
         template = env.get_template('custom.css')
         out.write(template.render())
 
+
 @profiled
 def predicted_values(job):
     """Return the values predicted by the reduced model.
@@ -114,6 +115,7 @@ def predicted_values(job):
     The return value has the same shape as the input table, with each
     cell containing the mean of all the cells in the same group, as
     defined by the reduced model.
+
     """
     data = job.table
     prediction = np.zeros_like(data)
@@ -264,7 +266,6 @@ class ResultTable:
                 stats=self.stats[start : end],
                 feature_ids=self.feature_ids[start : end],
                 scores=self.scores[start : end])
-
 
 
 def assignment_name(a):
