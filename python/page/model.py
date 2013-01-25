@@ -133,15 +133,38 @@ class Model:
         s = self.schema
         return [s.indexes_with_assignments(a)
                 for a in s.possible_assignments(self.expr.variables)]
-    
-    def index_num_to_sym(self, idx):
-        schema = self.schema
-        expr  = self.expr
-        res = tuple()
-        for i, factor in enumerate(expr.variables):
-            values = list(schema.factor_values(factor))
-            res += (values[idx[i]],)
-        return res
+
+    def fit(self, data):
+
+        logging.info("Computing coefficients using least squares for " +
+                 str(len(data)) + " rows")
+
+        effect_level = 1 if self.expr.operator == '+' else len(self.expr.variables)
+
+        newvars = new_dummy_vars(self.schema, level=effect_level)
+
+        x = []
+        indexes = []
+
+        for row in newvars.rows:
+            for index in row.indexes:
+                x.append(row.bits)
+                indexes.append(self.schema.sample_name_index[index])
+
+        x = np.array(x, bool)
+
+        num_vars = np.size(x, axis=1)
+        shape = np.array((len(data), num_vars))
+
+        result = np.zeros(shape)
+
+        print newvars
+        for i, row in enumerate(data):
+            y = row[indexes]
+            (coeffs, residuals, rank, s) = np.linalg.lstsq(x, y)
+            result[i] = coeffs
+
+        return FittedModel(newvars.names, x, indexes, result)
 
 
 def new_dummy_vars(schema, factors=None, level=None):
@@ -211,38 +234,4 @@ def new_dummy_vars(schema, factors=None, level=None):
 
     return DummyVarTable(col_names, rows)
 
-
-
-
-def fit_model(model, data):
-
-    logging.info("Computing coefficients using least squares for " +
-             str(len(data)) + " rows")
-
-    effect_level = 1 if model.expr.operator == '+' else len(model.expr.variables)
-
-    newvars = new_dummy_vars(model.schema, level=effect_level)
-
-    x = []
-    indexes = []
-
-    for row in newvars.rows:
-        for index in row.indexes:
-            x.append(row.bits)
-            indexes.append(model.schema.sample_name_index[index])
-
-    x = np.array(x, bool)
-
-    num_vars = np.size(x, axis=1)
-    shape = np.array((len(data), num_vars))
-
-    result = np.zeros(shape)
-
-    print newvars
-    for i, row in enumerate(data):
-        y = row[indexes]
-        (coeffs, residuals, rank, s) = np.linalg.lstsq(x, y)
-        result[i] = coeffs
-
-    return FittedModel(newvars.names, x, indexes, result)
 

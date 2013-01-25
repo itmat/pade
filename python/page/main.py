@@ -293,7 +293,7 @@ def do_run(args):
 
 
         num_features = len(job.table)
-        fitted = fit_model(job.full_model, job.table)
+        fitted = job.full_model.fit(job.table)
         means = get_group_means(job.schema, job.table)
 
 
