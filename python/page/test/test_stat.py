@@ -143,30 +143,26 @@ class StatTest(unittest.TestCase):
                            [[0, 1,   2, 3], [4, 5,   6, 7]],
                            36)
 
+    def test_arrangements(self):
+        def assertArrangements(items, sizes, expected):
+            got = all_arrangements_within_group(set(items), sizes)
+            self.assertEquals(got, expected)
 
-#     def test_permutations(self):
-        
-#         def assertPerms(full_layout, reduced_layout, perms):
+        assertArrangements([0], [1], [[0]])
+        assertArrangements([0, 1], [2], [[0, 1]])
 
-#             pass
+        assertArrangements([0, 1], [1, 1], [[0, 1], [1, 0]])
 
-#         assertPerms([[0]], 
-#                     [[0]], 
-#                     [[0]])
+        assertArrangements([0, 1, 2, 3], [2, 2], 
+                           [[0, 1, 2, 3], 
+                            [0, 2, 1, 3],
+                            [0, 3, 1, 2],
+                            [1, 2, 0, 3],
+                            [1, 3, 0, 2],
+                            [2, 3, 0, 1]])
+                            
 
-#         assertPerms([[0], [1]],
-#                     [[0, 1]],
-#                     [[0, 1]
-#                      [1, 0]])
 
-#         assertPerms([[0, 1], [2, 3]],
-#                     [[0, 1,   2, 3]],
-#                     [[0, 1, 2, 3],
-#                      [0, 2, 1, 3],
-#                      [0, 3, 1, 2],
-#                      [1, 2, 0, 3],
-#                      [1, 3, 0, 2],
-#                      [2, 3, 1, 2]])
         
 #         assertPerms(
 #             [[0, 1], [2, 3], [4, 5], [6, 7]],
