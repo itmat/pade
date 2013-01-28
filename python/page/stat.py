@@ -13,7 +13,7 @@ import collections
 from page.performance import profiling, profiled
 
 from page.common import *
-
+from scipy.misc import comb
 
 def apply_layout(layout, data):
     """Reshape the given data so based on the layout.
@@ -453,3 +453,45 @@ def bins_custom(num_bins, stats):
     bins[-1] = np.inf
     return bins
 
+
+def num_arrangements(full, reduced=None):
+
+    print "num_arrangements", full, reduced
+
+    # If there is no reduced layout, just find the number of
+    # arrangements of indexes in the full layout.
+    if reduced is None or len(reduced) == 0:
+
+        # If we only have one group in the full layout, there's only
+        # one arrangement of the indexes in that group.
+        if len(full) <= 1:
+            return 1
+
+        # Otherwise say N is the total number of items in the full
+        # layout and k is the number in the 0th group of the full
+        # layout. The number of arrangements is (N choose k) times the
+        # number of arrangements for the rest of the groups.
+        N = sum(map(len, full))
+        k   = len(full[0])
+        return comb(N, k) * num_arrangements(full[1:])
+
+    # Since we got a reduced layout, we need to find the number of
+    # arrangements *within* the first group in the reduced layout,
+    # then multiply that by the arrangements in the rest of the
+    # reduced layout. First find the number of groups in the full
+    # layout that correspond to the first group in the reduced layout.
+
+    # First find the number of groups in the full layout that fit in
+    # the first group of the reduced layout.
+    r = 0
+    size = 0
+    while size < len(reduced[0]):
+        size += len(full[r])
+        r += 1
+
+    if size > len(reduced[0]):
+        raise Exception("The layout is invalid")
+
+    num_arr_first = num_arrangements(full[ : r])
+    num_arr_rest  = num_arrangements(full[r : ], reduced[1 : ])
+    return num_arr_first * num_arr_rest
