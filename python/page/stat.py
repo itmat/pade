@@ -10,7 +10,7 @@ import numbers
 import numpy as np
 import numpy.ma as ma
 import collections
-from itertools import combinations
+from itertools import combinations, product
 from page.performance import profiling, profiled
 
 from page.common import *
@@ -521,4 +521,33 @@ def all_arrangements_within_group(items, sizes, indent = ""):
     return res
 
 
+def all_arrangements(full, reduced):
+    
+    sizes = map(len, full)
 
+    p = 0
+    q = 0
+
+    grouped = []
+    for i, grp in enumerate(reduced):
+
+        while sum(sizes[p : q]) < len(grp):
+            q += 1
+
+        if sum(sizes[p : q]) > len(grp):
+            raise Exception("Bad layout")
+
+        grouped.append(all_arrangements_within_group(set(grp), sizes[p : q]))
+        p = q
+
+    res = []
+    for prod in product(*grouped):
+        row = []
+        for grp in prod:
+            row.extend(grp)
+        res.append(row)
+
+    print res
+    return res
+
+    
