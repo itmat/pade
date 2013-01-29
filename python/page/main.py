@@ -853,45 +853,7 @@ def add_fdr_args(p):
         default='perm',
         choices=['perm', 'boot'],
         help="""Whether to use a permutation test or bootstrapping to estimate confidence levels."""),
-    
 
-def add_general_args(p):
-    p.add_argument(
-        '--verbose', '-v',
-        action='store_true',
-        help="Be verbose (print INFO level log messages)")
-    
-    p.add_argument(
-        '--debug', '-d', 
-        action='store_true',
-        help="Print debugging information")
-
-    p.add_argument(
-        '--directory', '-D',
-        default=Job.DEFAULT_DIRECTORY,
-        help="The directory to store the output data")
-
-
-def add_setup_args(p):    
-
-    p.add_argument(
-        'infile',
-        help="""Name of input file""",
-        default=argparse.SUPPRESS,
-        type=file)
-
-    p.add_argument(
-        '--factor',
-        action='append',
-        required=True,
-        help="""A class that can be set for each sample. You can
-        specify this option more than once, to use more than one
-        class.""")
-
-    p.add_argument(
-        '--force', '-f',
-        action='store_true',
-        help="""Overwrite any existing files""")
 
 
 def get_arguments():
@@ -906,25 +868,54 @@ def get_arguments():
         description="""Normal usage is to run 'page.py setup ...', then manually edit the
 schema.yaml file, then run 'page.py run ...'.""")
 
-    # Setup
+    # Set up "parent" parser, which contains some arguments used by all other parsers
+    parents = argparse.ArgumentParser(add_help=False)
+    parents.add_argument(
+        '--verbose', '-v',
+        action='store_true',
+        help="Be verbose (print INFO level log messages)")
+    parents.add_argument(
+        '--debug', '-d', 
+        action='store_true',
+        help="Print debugging information")
+    parents.add_argument(
+        '--directory', '-D',
+        default=Job.DEFAULT_DIRECTORY,
+        help="The directory to store the output data")
+
+    # Create setup parser
     setup_parser = subparsers.add_parser(
         'setup',
         help="""Set up the job configuration. This reads the input file and
                 outputs a YAML file that you then need to fill out in order to
                 properly configure the job.""",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-
-    add_general_args(setup_parser)
-    add_setup_args(setup_parser)
-
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[parents])
+    setup_parser.add_argument(
+        'infile',
+        help="""Name of input file""",
+        default=argparse.SUPPRESS,
+        type=file)
+    setup_parser.add_argument(
+        '--factor',
+        action='append',
+        required=True,
+        help="""A class that can be set for each sample. You can
+        specify this option more than once, to use more than one
+        class.""")
+    setup_parser.add_argument(
+        '--force', '-f',
+        action='store_true',
+        help="""Overwrite any existing files""")
     setup_parser.set_defaults(func=do_setup)
 
-    # Run
+    # Create "run" parser
     run_parser = subparsers.add_parser(
         'run',
         help="""Run the job.""",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    add_general_args(run_parser)
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[parents])
+
     add_model_args(run_parser)
     add_fdr_args(run_parser)
     add_reporting_args(run_parser)
