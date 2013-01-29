@@ -497,28 +497,19 @@ def num_arrangements(full, reduced=None):
     num_arr_rest  = num_arrangements(full[r : ], reduced[1 : ])
     return num_arr_first * num_arr_rest
 
-def all_arrangements_within_group(items, sizes, indent = ""):
+def all_arrangements_within_group(items, sizes):
 
     if len(items) != sum(sizes):
         raise Exception("Layout is bad")
 
-    print indent, items, sizes
+    for c in map(list, combinations(items, sizes[0])):
+        if len(sizes) == 1:
+            yield c
+        else:
+            for arr in all_arrangements_within_group(
+                items.difference(c), sizes[1:]):
+                yield c + arr
 
-    for_first_group = map(list, combinations(items, sizes[0]))
-
-    if len(sizes) == 1:
-        return for_first_group
-    
-    res = []
-
-    for c in for_first_group:
-        print "looking at", c
-        leftover = items.difference(c)
-        for arr in all_arrangements_within_group(items.difference(c),
-                                                 sizes[1:], indent + "  "):
-            res.append(c + arr)
-
-    return res
 
 
 def all_arrangements(full, reduced):
@@ -551,3 +542,4 @@ def all_arrangements(full, reduced):
     return res
 
     
+

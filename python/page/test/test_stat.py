@@ -145,7 +145,7 @@ class StatTest(unittest.TestCase):
 
     def test_arrangements_within_group(self):
         def assertArrangements(items, sizes, expected):
-            got = all_arrangements_within_group(set(items), sizes)
+            got = list(all_arrangements_within_group(set(items), sizes))
             self.assertEquals(got, expected)
 
         assertArrangements([0], [1], [[0]])
