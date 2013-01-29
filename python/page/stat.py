@@ -81,6 +81,14 @@ def group_means(data, layout):
     return res
 
 def group_rss(data, layout):
+
+    """Return the residual sum of squares for the data with the layout.
+
+    >>> group_rss(np.array([1, 2, 3, 6], float), [[0, 1], [2, 3]])
+    5.0
+
+    """
+    
     means = group_means(data, layout)
 
     diffs = np.zeros_like(data)
@@ -92,7 +100,8 @@ def group_rss(data, layout):
 
         diffs[..., idxs] = these_data - these_means
 
-    return np.sum(diffs ** 2, axis=-1)
+    res = np.sum(diffs ** 2, axis=-1)
+    return res
 
 def rss(data):
     """Return a tuple of the mean and residual sum of squares.
@@ -112,9 +121,9 @@ class Ftest:
 
     Some sample data
 
-    >>> a = np.array([1, 2, 3, 6])
-    >>> b = np.array([2, 1, 1, 1])
-    >>> c = np.array([3, 1, 10, 4])
+    >>> a = np.array([1., 2.,  3., 6.])
+    >>> b = np.array([2., 1.,  1., 1.])
+    >>> c = np.array([3., 1., 10., 4.])
 
     The full layout has the first two columns in one group and the
     second two in another. The reduced layout has all columns in one
@@ -157,18 +166,16 @@ class Ftest:
         TODO: Make sure masked input arrays work.
 
         """
-        data_full = apply_layout(self.layout_full, data)
-        data_red  = apply_layout(self.layout_reduced,  data)
 
         # Degrees of freedom
         p_red  = len(self.layout_reduced)
         p_full = len(self.layout_full)
-        n = len(self.layout_reduced) * len(self.layout_reduced[0])
+        n      = sum(map(len, self.layout_reduced))
 
         # Means and residual sum of squares for the reduced and full
         # model
-        rss_full = rss(data_full)
-        rss_red  = rss(data_red)
+        rss_full = group_rss(data, self.layout_full)
+        rss_red  = group_rss(data, self.layout_reduced)
 
         numer = (rss_red - rss_full) / (p_full - p_red)
         denom = rss_full / (n - p_full)
