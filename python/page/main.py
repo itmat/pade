@@ -23,6 +23,7 @@ from page.performance import *
 from page.schema import *
 from page.model import *
 import page.stat
+from page.stat import random_indexes, random_arrangements
 
 REAL_PATH = os.path.realpath(__file__)
 RAW_VALUE_DTYPE = float
@@ -136,87 +137,43 @@ class FdrResults:
         self.summary_bins = None
         self.summary_counts = None
 
-def summarize_scores(feature_to_score, summary_bins):
 
-    shape = np.shape(feature_to_score)[:-1] + (len(summary_bins) - 1,)
-    res = np.zeros(shape, int)
-    for idx in np.ndindex(shape[:-1]):
-        res[idx] = page.stat.cumulative_hist(feature_to_score[idx], summary_bins)
-    return res
 
 @profiled
 def do_fdr(job):
-
-    fdr = FdrResults()
 
     data = job.table
     stat = job.stat
     raw_stats = stat(data)
 
+    fdr = FdrResults()
     fdr.bins = page.stat.bins_uniform(job.num_bins, raw_stats)
 
-    with profiling('do_fdr.build fdr'):
+    if job.sample_indexes is None:
+        job.save_sample_indexes(job.new_sample_indexes())
+    else:
+        logging.info("Using existing sampling indexes")
 
-        residuals = None
+    residuals = None
+    if job.sample_from == 'residuals':
+        prediction = predicted_values(job)
+        residuals = data - prediction
 
-        logging.info("Setting up sample indexes")
-        if job.sample_indexes is None:
-            logging.info("  Creating a new set of indexes")
-            
-            if job.sample_method == 'perm':
+    fdr.baseline_counts = page.stat.bootstrap(
+            data, stat, 
+            indexes=job.sample_indexes,
+            residuals=residuals,
+            bins=fdr.bins)
 
-                if job.sample_from == 'residuals':
-                    raise Exception(
-                        "I can't do a permutation test based on residuals")
-
-
-                logging.info("    Creating random permutations")
-                sample_indexes = list(page.stat.random_arrangements(
-                    job.full_model.layout, 
-                    job.reduced_model.layout, 
-                    job.num_samples))
-                logging.info("    Got " + str(len(sample_indexes)) + " permutations")
-
-            elif job.sample_method == 'boot':
-                sample_layout = None
-                if job.sample_from == 'raw':
-                    sample_layout = job.reduced_model.layout
-                    logging.info("Bootstrapping raw values, within groups defined by '" + 
-                                 str(job.reduced_model.expr) + "'")
-
-
-                elif job.sample_from == 'residuals':
-                    logging.info("Bootstrapping using samples constructed from residuals, not using groups")
-                    sample_layout = [ sorted(job.schema.sample_name_index.values()) ]                    
-                    prediction = predicted_values(job)
-                    residuals = data - prediction
-
-                else:
-                    raise UsageException(
-                        "--sample-from must be either raw or residuals")
-
-                job.save_sample_indexes(
-                    page.stat.random_indexes(sample_layout, job.num_samples))
-
-        else:
-            logging.info("  Using existing indexes")
-
-        fdr.baseline_counts = page.stat.bootstrap(
-                data, stat, 
-                indexes=job.sample_indexes,
-                residuals=residuals,
-                bins=fdr.bins)
-
-        fdr.raw_stats    = raw_stats
-        fdr.raw_counts   = page.stat.cumulative_hist(fdr.raw_stats, fdr.bins)
-        fdr.bin_to_score = confidence_scores(
-            fdr.raw_counts, fdr.baseline_counts, np.shape(raw_stats)[-1])
-        fdr.feature_to_score = assign_scores_to_features(
-            fdr.raw_stats, fdr.bins, fdr.bin_to_score)
-        fdr.summary_bins = np.linspace(0.5, 1.0, 11)
-        summarize_scores(fdr.feature_to_score, fdr.summary_bins)
-        fdr.summary_counts = page.stat.cumulative_hist(
-            fdr.feature_to_score, fdr.summary_bins)
+    fdr.raw_stats    = raw_stats
+    fdr.raw_counts   = page.stat.cumulative_hist(fdr.raw_stats, fdr.bins)
+    fdr.bin_to_score = confidence_scores(
+        fdr.raw_counts, fdr.baseline_counts, np.shape(raw_stats)[-1])
+    fdr.feature_to_score = assign_scores_to_features(
+        fdr.raw_stats, fdr.bins, fdr.bin_to_score)
+    fdr.summary_bins = np.linspace(0.5, 1.0, 11)
+    fdr.summary_counts = page.stat.cumulative_hist(
+        fdr.feature_to_score, fdr.summary_bins)
 
     return fdr
 
@@ -562,6 +519,32 @@ class Job:
         self._sample_indexes = indexes
         np.save(self.sample_indexes_path, indexes)
 
+    def new_sample_indexes(self):
+
+        method = (self.sample_method, self.sample_from)
+        
+        full = self.full_model
+        reduced = self.reduced_model
+        R = self.num_samples
+
+        if method == ('perm', 'raw'):
+
+            logging.info("Creating max of {0} random permutations".format(R))
+            return list(random_arrangements(full.layout, reduced.layout, R))
+
+        elif method == ('boot', 'raw'):
+            logging.info("Bootstrapping raw values, within groups defined by '" + 
+                         str(reduced.expr) + "'")
+            return random_indexes(reduced.layout, R)
+        
+        elif method == ('boot', 'residuals'):
+            logging.info("Bootstrapping using samples constructed from residuals, not using groups")
+            return random_indexes(
+                [ sorted(self.schema.sample_name_index.values()) ], R)
+
+        else:
+            raise UsageException("Invalid sampling method")
+
     @property
     def sample_indexes(self):
         logging.debug("In Job.sample_indexes")
@@ -574,7 +557,7 @@ class Job:
                 logging.debug("Found sample indexes to load")
                 self._sample_indexes = np.load(path)
             else:
-                logging.info("Sample indexes aren't created yet")
+                logging.debug("Sample indexes aren't created yet")
         return self._sample_indexes
 
     def save_schema(self, mode):

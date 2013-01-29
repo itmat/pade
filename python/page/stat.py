@@ -457,8 +457,6 @@ def bins_custom(num_bins, stats):
 
 def num_arrangements(full, reduced=None):
 
-    print "num_arrangements", full, reduced
-
     # If there is no reduced layout, just find the number of
     # arrangements of indexes in the full layout.
     if reduced is None or len(reduced) == 0:
