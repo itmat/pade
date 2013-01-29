@@ -274,6 +274,16 @@ class StatTest(unittest.TestCase):
             np.array([[ 1.5,   4.0],
                       [15.0,  40.0]]))
 
+
+        data = np.array([6, 8, 4, 5, 3, 4,
+                         8, 12, 9, 11, 6, 8,
+                         13, 9, 11, 8, 7, 12])
+        
+        np.testing.assert_almost_equal(
+            group_means(data, [ np.arange(0, 6),
+                                np.arange(6, 12),
+                                np.arange(12, 18) ]),
+            np.array([5, 9, 10]))
     
 if __name__ == '__main__':
     unittest.main()

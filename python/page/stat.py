@@ -68,8 +68,9 @@ def apply_layout(layout, data):
 def group_means(data, layout):
     """Get the means for each group defined by layout."""
     
-    # We'll take the mean of the last axis, so get rid of that axis in
-    # the result.
+    # We'll take the mean of the last axis of each group, so change
+    # the shape of the array to collapse the last axis down to one
+    # item per group.
     shape = np.shape(data)[:-1] + (len(layout),)
     res = np.zeros(shape)
 
