@@ -231,6 +231,32 @@ class StatTest(unittest.TestCase):
                  [2, 3,   0, 1,   5, 7,   4, 6],
                  [2, 3,   0, 1,   6, 7,   4, 5]])
         
+    def test_random_arrangements(self):
+        arrs = random_arrangements([[0]], [[0]], 10)
+        self.assertEquals(list(arrs), [ [ 0 ] ])
 
+        arrs = random_arrangements([[0], [1]], [[0, 1]], 10)
+        self.assertEquals(list(arrs), [[0, 1], [1, 0]])
+
+        arrs = random_arrangements([[0, 1], [2, 3]], [[0, 1, 2, 3]], 10)
+        self.assertEquals(list(arrs),
+                           [[0, 1, 2, 3], 
+                            [0, 2, 1, 3],
+                            [0, 3, 1, 2],
+                            [1, 2, 0, 3],
+                            [1, 3, 0, 2],
+                            [2, 3, 0, 1]])
+
+        arrs = random_arrangements([[0, 1], [2, 3]], [[0, 1, 2, 3]], 3)
+        arrs = list(arrs)
+
+        # Make sure we got three arrangements
+        self.assertEquals(len(arrs), 3)
+
+        # And make sure they're all unique
+        arrs = set(map(tuple, arrs))
+        self.assertEquals(len(arrs), 3)
+
+        
 if __name__ == '__main__':
     unittest.main()

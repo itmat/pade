@@ -537,4 +537,37 @@ def all_arrangements(full, reduced):
         yield row
 
     
+def random_arrangements(full, reduced, R):
 
+    # The total number of arrangements of indexes for this combination
+    # of full and reduced layouts.
+    N = num_arrangements(full, reduced)
+
+
+    # Get a randomized set of indexes into the arrangements. We'll
+    # yield only those arrangements. If the number of arrangements is
+    # not greater than R, then add the indexes for all the
+    # arrangements to idxs.
+    idxs = set()
+    if R >= N:
+        idxs.update(np.arange(N))
+    else:
+        while len(idxs) < R:
+            idxs.add(np.random.randint(0, N))
+
+    # Sort the list of indexes into the arrangements, and then go
+    # through all of the arrangements, yielding only the ones that we
+    # have marked.
+    idxs = sorted(idxs)
+
+    yielded = 0
+
+    for i, arr in enumerate(all_arrangements(full, reduced)):
+        
+        # If we've yielded all we need to, quit.
+        if yielded == len(idxs):
+            break
+        
+        if i == idxs[yielded]:
+            yielded += 1
+            yield arr
