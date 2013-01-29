@@ -65,6 +65,20 @@ def apply_layout(layout, data):
         res[..., i, :] = data[..., idxs]
     return res
 
+def group_means(data, layout):
+    """Get the means for each group defined by layout."""
+    
+    # We'll take the mean of the last axis, so get rid of that axis in
+    # the result.
+    shape = np.shape(data)[:-1] + (len(layout),)
+    res = np.zeros(shape)
+
+    for i, idxs in enumerate(layout):
+        group = data[..., idxs]
+        res[..., i] = np.mean(group, axis=-1)
+
+    return res
+
 def rss(data):
     """Return a tuple of the mean and residual sum of squares.
 

@@ -257,6 +257,23 @@ class StatTest(unittest.TestCase):
         arrs = set(map(tuple, arrs))
         self.assertEquals(len(arrs), 3)
 
-        
+
+    def test_group_means(self):
+
+        np.testing.assert_almost_equal(
+            group_means(
+                np.array([1, 2, 3, 4, 5]),
+                [ [0, 1], [2, 3, 4] ]),
+            np.array([1.5, 4.0]))
+
+        np.testing.assert_almost_equal(
+            group_means(
+                np.array([[ 1,  2,  3,  4,  5],
+                          [10, 20, 30, 40, 50]]),
+                [ [0, 1], [2, 3, 4] ]),
+            np.array([[ 1.5,   4.0],
+                      [15.0,  40.0]]))
+
+    
 if __name__ == '__main__':
     unittest.main()
