@@ -65,7 +65,7 @@ def apply_layout(layout, data):
         res[..., i, :] = data[..., idxs]
     return res
 
-def mean_and_rss(data):
+def rss(data):
     """Return a tuple of the mean and residual sum of squares.
 
     :param data:
@@ -76,8 +76,7 @@ def mean_and_rss(data):
 
     """
     y   = np.mean(data, axis=-1).reshape(np.shape(data)[:-1] + (1,))
-    rss = double_sum((data  - y)  ** 2)
-    return (y, rss)
+    return double_sum((data  - y)  ** 2)
 
 class Ftest:
     """Computes the F-test.
@@ -139,8 +138,8 @@ class Ftest:
 
         # Means and residual sum of squares for the reduced and full
         # model
-        (y_full, rss_full) = mean_and_rss(data_full)
-        (y_red,  rss_red)  = mean_and_rss(data_red)
+        rss_full = rss(data_full)
+        rss_red  = rss(data_red)
 
         numer = (rss_red - rss_full) / (p_full - p_red)
         denom = rss_full / (n - p_full)

@@ -137,8 +137,6 @@ class FdrResults:
         self.summary_bins = None
         self.summary_counts = None
 
-
-
 @profiled
 def do_fdr(job):
 
@@ -155,8 +153,9 @@ def do_fdr(job):
         logging.info("Using existing sampling indexes")
 
     residuals = None
+    prediction = predicted_values(job)
+
     if job.sample_from == 'residuals':
-        prediction = predicted_values(job)
         residuals = data - prediction
 
     fdr.baseline_counts = page.stat.bootstrap(
