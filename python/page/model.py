@@ -126,7 +126,7 @@ class Model:
         
         for factor in self.expr.variables:
             if factor not in self.schema.factors:
-                raise UsageException("Factor '" + factor + "' is not defined in the schema. Valid factors are " + str(self.schema.factors.keys()))
+                raise Exception("Factor '" + factor + "' is not defined in the schema. Valid factors are " + str(self.schema.factors.keys()))
 
     @property
     def layout(self):

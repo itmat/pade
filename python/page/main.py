@@ -159,28 +159,45 @@ def do_fdr(job):
 
         residuals = None
 
-        if job.sample_from == 'raw':
-            sample_layout = job.reduced_model.layout
-            logging.info("Sampling from raw values, within groups defined by '" + 
-                         str(job.reduced_model.expr) + "'")
-
-        elif job.sample_from == 'residuals':
-            logging.info("Sampling from residuals, not using groups")
-
-            sample_layout = [ sorted(job.schema.sample_name_index.values()) ]
-            prediction = predicted_values(job)
-            residuals = data - prediction
-
-        else:
-            raise UsageException(
-                "--sample-from must be either raw or residuals")
-
-        logging.info("Setting up bootstrap sample indexes")
+        logging.info("Setting up sample indexes")
         if job.sample_indexes is None:
             logging.info("  Creating a new set of indexes")
-            sample_indexes = page.stat.random_indexes(
-                sample_layout, job.num_samples)
-            job.save_sample_indexes(sample_indexes)
+            
+            if job.sample_method == 'perm':
+
+                if job.sample_from == 'residuals':
+                    raise Exception(
+                        "I can't do a permutation test based on residuals")
+
+
+                logging.info("    Creating random permutations")
+                sample_indexes = list(page.stat.random_arrangements(
+                    job.full_model.layout, 
+                    job.reduced_model.layout, 
+                    job.num_samples))
+                logging.info("    Got " + str(len(sample_indexes)) + " permutations")
+
+            elif job.sample_method == 'boot':
+                sample_layout = None
+                if job.sample_from == 'raw':
+                    sample_layout = job.reduced_model.layout
+                    logging.info("Bootstrapping raw values, within groups defined by '" + 
+                                 str(job.reduced_model.expr) + "'")
+
+
+                elif job.sample_from == 'residuals':
+                    logging.info("Bootstrapping using samples constructed from residuals, not using groups")
+                    sample_layout = [ sorted(job.schema.sample_name_index.values()) ]                    
+                    prediction = predicted_values(job)
+                    residuals = data - prediction
+
+                else:
+                    raise UsageException(
+                        "--sample-from must be either raw or residuals")
+
+                job.save_sample_indexes(
+                    page.stat.random_indexes(sample_layout, job.num_samples))
+
         else:
             logging.info("  Using existing indexes")
 
@@ -280,8 +297,8 @@ def do_run(args):
             num_samples=args.num_samples,
             full_model=args.full_model,
             reduced_model=args.reduced_model,
-            sample_from=args.sample_from)
-
+            sample_from=args.sample_from,
+            sample_method=args.sample_method)
 
         num_features = len(job.table)
         fitted = job.full_model.fit(job.table)
@@ -517,6 +534,7 @@ class Job:
                  num_bins=None,
                  num_samples=None,
                  sample_from=None,
+                 sample_method=None,
                  schema=None
                  ):
         self.directory = directory
@@ -528,6 +546,7 @@ class Job:
         self.num_bins = num_bins
         self.num_samples = num_samples
         self.sample_from = sample_from
+        self.sample_method = sample_method
 
         if schema is None:
             self.schema = Schema.load(open(self.schema_path))
