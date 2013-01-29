@@ -166,7 +166,7 @@ class StatTest(unittest.TestCase):
     def test_all_arrangements(self):
         def assertArrangements(full, reduced, expected):
             got = all_arrangements(full, reduced)
-            self.assertEquals(got, expected)        
+            self.assertEquals(list(got), expected)        
         
         assertArrangements([[0]], 
                            [[0]],

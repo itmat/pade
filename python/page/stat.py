@@ -511,7 +511,6 @@ def all_arrangements_within_group(items, sizes):
                 yield c + arr
 
 
-
 def all_arrangements(full, reduced):
     
     sizes = map(len, full)
@@ -531,15 +530,11 @@ def all_arrangements(full, reduced):
         grouped.append(all_arrangements_within_group(set(grp), sizes[p : q]))
         p = q
 
-    res = []
     for prod in product(*grouped):
         row = []
         for grp in prod:
             row.extend(grp)
-        res.append(row)
-
-    print res
-    return res
+        yield row
 
     
 
