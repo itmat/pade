@@ -809,7 +809,7 @@ def add_model_args(p):
     grp.add_argument(
         '--full-model', '-M',
 
-        help="""Specify the 'full' model. Required if there is more than one 
+        help="""Specify the 'full' model. Required if there is more than one
 class. For example, if you have factors 'batch' and 'treated', you could use
  'treated' or 'batch * treated'."""),
 
@@ -871,38 +871,27 @@ def add_general_args(p):
         default=Job.DEFAULT_DIRECTORY,
         help="The directory to store the output data")
 
-    
 
-ARGUMENTS = {
-    'infile' : lambda p: p.add_argument(
+def add_setup_args(p):    
+
+    p.add_argument(
         'infile',
         help="""Name of input file""",
         default=argparse.SUPPRESS,
-        type=file),
+        type=file)
 
-    'factor' : lambda p: p.add_argument(
+    p.add_argument(
         '--factor',
         action='append',
         required=True,
         help="""A class that can be set for each sample. You can
         specify this option more than once, to use more than one
-p        class."""),
+        class.""")
 
-    'force' : lambda p: p.add_argument(
+    p.add_argument(
         '--force', '-f',
         action='store_true',
-        help="""Overwrite any existing files"""),
-    
-    'general'   : add_general_args,
-    'fdr'       : add_fdr_args,
-    'model'     : add_model_args,
-    'reporting' : add_reporting_args
-
-}
-
-def add_args(parser, args):
-    for a in args:
-        ARGUMENTS[a](parser)
+        help="""Overwrite any existing files""")
 
 
 def get_arguments():
@@ -925,7 +914,8 @@ schema.yaml file, then run 'page.py run ...'.""")
                 properly configure the job.""",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    add_args(setup_parser, ['general', 'infile', 'factor', 'force'])
+    add_general_args(setup_parser)
+    add_setup_args(setup_parser)
 
     setup_parser.set_defaults(func=do_setup)
 
@@ -934,9 +924,10 @@ schema.yaml file, then run 'page.py run ...'.""")
         'run',
         help="""Run the job.""",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-
-    add_args(run_parser, ['general', 'model', 'fdr', 'reporting'])
-
+    add_general_args(run_parser)
+    add_model_args(run_parser)
+    add_fdr_args(run_parser)
+    add_reporting_args(run_parser)
     run_parser.set_defaults(func=do_run)
 
     return uberparser.parse_args()
