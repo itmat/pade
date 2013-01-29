@@ -791,6 +791,88 @@ I have generated a schema for your input file, with factors {factors}, and saved
 """).format(factors=job.schema.factors.keys(),
             filename=job.schema_path)
 
+def add_reporting_args(p):
+    grp = p.add_argument_group(
+        title="reporting arguments")
+    grp.add_argument(
+        '--rows-per-page',
+        type=int,
+        default=100,
+        help="Number of rows to display on each page of the report"),
+
+
+def add_model_args(p):
+    grp = p.add_argument_group(
+        title="data model arguments",
+        description="Use these options to specify the variables to use in the model.")
+    
+    grp.add_argument(
+        '--full-model', '-M',
+
+        help="""Specify the 'full' model. Required if there is more than one 
+class. For example, if you have factors 'batch' and 'treated', you could use
+ 'treated' or 'batch * treated'."""),
+
+    grp.add_argument(
+        '--reduced-model', '-m',
+        help="""Specify the 'reduced' model. The format for the argument is the
+ same as for --full-model."""),
+    
+    
+
+def add_fdr_args(p):
+    grp = p.add_argument_group(
+        title="confidence estimation arguments",
+        description="""These options control how we estimate the confidence levels. You can probably leave them unchanged, in which case I'll compute it using a permutation test with an f-test as the statistic, using a maximum of 1000 permutations.""")
+    grp.add_argument(
+        '--stat', '-s',
+        choices=['f', 't', 'f_sqrt'],
+        default='f',
+        help="The statistic to use")
+
+    grp.add_argument(
+        '--num-samples', '-R',
+        type=int,
+        default=1000,
+        help="The number of samples to use if bootstrapping, or the maximum number of permutations to use if doing permutation test.")
+
+    grp.add_argument(
+        '--sample-from',
+        choices=['raw', 'residuals'],
+        default='raw',
+        help='Indicate whether to do bootstrapping based on samples from the raw data or sampled residuals')
+
+    grp.add_argument(
+        '--num-bins',
+        type=int,
+        default=1000,
+        help="Number of bins to divide the statistic space into.")
+
+    grp.add_argument(
+        '--sample-method',
+        default='perm',
+        choices=['perm', 'boot'],
+        help="""Whether to use a permutation test or bootstrapping to estimate confidence levels."""),
+    
+
+def add_general_args(p):
+    p.add_argument(
+        '--verbose', '-v',
+        action='store_true',
+        help="Be verbose (print INFO level log messages)")
+    
+    p.add_argument(
+        '--debug', '-d', 
+        action='store_true',
+        help="Print debugging information")
+
+    p.add_argument(
+        '--directory', '-D',
+        default=Job.DEFAULT_DIRECTORY,
+        help="The directory to store the output data")
+
+    
+
 ARGUMENTS = {
     'infile' : lambda p: p.add_argument(
         'infile',
@@ -806,67 +888,15 @@ ARGUMENTS = {
         specify this option more than once, to use more than one
 p        class."""),
 
-    'verbose' : lambda p: p.add_argument(
-        '--verbose', '-v',
-        action='store_true',
-        help="Be verbose (print INFO level log messages)"),
-    
-    'debug' : lambda p: p.add_argument(
-        '--debug', '-d', 
-        action='store_true',
-        help="Print debugging information"),
-
-    'directory' : lambda p: p.add_argument(
-        '--directory', '-D',
-        default=Job.DEFAULT_DIRECTORY,
-        help="The directory to store the output data"),
-
     'force' : lambda p: p.add_argument(
         '--force', '-f',
         action='store_true',
         help="""Overwrite any existing files"""),
     
-    'full_model' : lambda p: p.add_argument(
-        '--full-model', '-M',
-
-        help="""Specify the 'full' model. Required if there is more than one 
-class. For example, if you have factors 'batch' and 'treated', you could use
- 'treated' or 'batch * treated'."""),
-
-    'reduced_model' : lambda p: p.add_argument(
-        '--reduced-model', '-m',
-        help="""Specify the 'reduced' model. The format for the argument is the
- same as for --full-model."""),
-    
-    'stat' : lambda p: p.add_argument(
-        '--stat', '-s',
-        choices=['f', 't', 'f_sqrt'],
-        default='f',
-        help="The statistic to use"),
-    
-    'num_samples' : lambda p: p.add_argument(
-        '--num-samples', '-R',
-        type=int,
-        default=1000,
-        help="The number of samples to use for bootstrapping"),
-
-    'sample_from' : lambda p: p.add_argument(
-        '--sample-from',
-        choices=['raw', 'residuals'],
-        default='residuals',
-        help='Indicate whether to do bootstrapping based on samples from the raw data or sampled residuals'),
-
-    'num_bins' : lambda p: p.add_argument(
-        '--num-bins',
-        type=int,
-        default=1000,
-        help="Number of bins to divide the statistic space into."),
-
-    'rows_per_page' : lambda p: p.add_argument(
-        '--rows-per-page',
-        type=int,
-        default=100,
-        help="Number of rows to display on each page of the report")
+    'general'   : add_general_args,
+    'fdr'       : add_fdr_args,
+    'model'     : add_model_args,
+    'reporting' : add_reporting_args
 
 }
 
@@ -895,20 +925,9 @@ schema.yaml file, then run 'page.py run ...'.""")
                 properly configure the job.""",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    add_args(setup_parser, ['infile', 'factor', 'directory', 'verbose', 'debug', 'force'])
+    add_args(setup_parser, ['general', 'infile', 'factor', 'force'])
 
     setup_parser.set_defaults(func=do_setup)
-
-    # Prepare
-    prep_parser = subparsers.add_parser(
-        'prep',
-        help="""Prepare the input file for analysis, generating the samples 
-                for bootstrapping and splitting the input file (if --chunks
-                is supplied).""")
-
-    add_args(prep_parser, [
-            'directory', 'full_model', 'reduced_model', 'num_samples',
-            'verbose', 'debug'])
 
     # Run
     run_parser = subparsers.add_parser(
@@ -916,10 +935,7 @@ schema.yaml file, then run 'page.py run ...'.""")
         help="""Run the job.""",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    add_args(run_parser, [
-            'directory', 'full_model', 'reduced_model', 'num_samples', 
-            'num_bins', 'rows_per_page', 'stat', 'verbose', 'debug', 
-            'sample_from'])
+    add_args(run_parser, ['general', 'model', 'fdr', 'reporting'])
 
     run_parser.set_defaults(func=do_run)
 
