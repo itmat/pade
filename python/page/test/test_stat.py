@@ -117,15 +117,6 @@ class StatTest(unittest.TestCase):
 
         self.assertAlmostEqual(expected, ftest(self.ftest_in)[0])
 
-    def test_apply_layout(self):
-        np.testing.assert_almost_equal(
-            np.array([[0, 1], [2, 3], [4,5]]),
-            apply_layout([[0,1], [2,3], [4,5]], np.arange(6)))
-
-        np.testing.assert_almost_equal(
-            np.array([[0, 1, 2, 3, 4, 5]]),
-            apply_layout([[0, 1, 2, 3, 4, 5]], np.arange(6)))
-
     def test_num_arrangements(self):
 
         def assertArrangements(full, reduced, expected):

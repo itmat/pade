@@ -16,55 +16,6 @@ from page.performance import profiling, profiled
 from page.common import *
 from scipy.misc import comb
 
-def apply_layout(layout, data):
-    """Reshape the given data so based on the layout.
-
-    :param layout:
-      A list of lists. Each inner list is a sequence of indexes into
-      data, representing a group of samples that share the same factor
-      values. All of the inner lists must currently have the same
-      length.
-
-    :param data: 
-      An n x m array, where m is the number of samples and n is the
-      number of features.
-
-    :return: 
-      An n x m1 x m2 n array, where m1 is the number of groups, m2
-      is the number of samples in each group, and n is the number of features.
-
-    A trivial layout where all columns are grouped together:
-
-    >>> data = np.array([[0, 1, 2, 3], [4, 5, 6, 7,]], int)
-    >>> apply_layout([[0, 1, 2, 3]], data) # doctest: +NORMALIZE_WHITESPACE
-    array([[[0, 1, 2, 3]], 
-           [[4, 5, 6, 7]]])
-
-    First two columns in one group, second two in another:
-
-    >>> apply_layout([[0, 1], [2, 3]], data) # doctest: +NORMALIZE_WHITESPACE
-    array([[[0, 1], 
-            [2, 3]],
-           [[4, 5],
-            [6, 7]]])
-
-    Odd and even columns, with the order changed:
-    
-    >>> apply_layout([[2, 0], [3, 1]], data) # doctest: +NORMALIZE_WHITESPACE
-    array([[[2, 0], 
-            [3, 1]],
-           [[6, 4],
-            [7, 5]]])
-
-    """
-    shape = np.shape(data)[:-1] + (len(layout), len(layout[0]))
-
-    res = np.zeros(shape, dtype=data.dtype)
-
-    for i, idxs in enumerate(layout):
-        res[..., i, :] = data[..., idxs]
-    return res
-
 def group_means(data, layout):
     """Get the means for each group defined by layout."""
     
