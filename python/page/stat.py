@@ -80,6 +80,20 @@ def group_means(data, layout):
 
     return res
 
+def group_rss(data, layout):
+    means = group_means(data, layout)
+
+    diffs = np.zeros_like(data)
+
+    for i, idxs in enumerate(layout):
+        
+        these_data = data[..., idxs]
+        these_means = means[..., i].reshape(np.shape(these_data)[:-1] + (1,))
+
+        diffs[..., idxs] = these_data - these_means
+
+    return np.sum(diffs ** 2, axis=-1)
+
 def rss(data):
     """Return a tuple of the mean and residual sum of squares.
 
