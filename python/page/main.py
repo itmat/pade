@@ -23,7 +23,7 @@ from page.performance import *
 from page.schema import *
 from page.model import *
 import page.stat
-from page.stat import random_indexes, random_arrangements
+from page.stat import random_indexes, random_orderings
 
 REAL_PATH = os.path.realpath(__file__)
 RAW_VALUE_DTYPE = float
@@ -529,7 +529,7 @@ class Job:
         if method == ('perm', 'raw'):
 
             logging.info("Creating max of {0} random permutations".format(R))
-            return list(random_arrangements(full.layout, reduced.layout, R))
+            return list(random_orderings(full.layout, reduced.layout, R))
 
         elif method == ('boot', 'raw'):
             logging.info("Bootstrapping raw values, within groups defined by '" + 
