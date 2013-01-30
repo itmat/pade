@@ -23,7 +23,7 @@ from page.performance import *
 from page.schema import *
 from page.model import *
 import page.stat
-from page.stat import random_indexes, random_orderings
+from page.stat import random_indexes, random_orderings, residuals
 
 REAL_PATH = os.path.realpath(__file__)
 RAW_VALUE_DTYPE = float
@@ -152,16 +152,20 @@ def do_fdr(job):
     else:
         logging.info("Using existing sampling indexes")
 
-    residuals = None
-    prediction = predicted_values(job)
-
     if job.sample_from == 'residuals':
-        residuals = data - prediction
-
-    fdr.baseline_counts = page.stat.bootstrap(
-            data, stat, 
+        prediction = predicted_values(job)
+        diffs  = data - prediction
+        fdr.baseline_counts = page.stat.bootstrap(
+            prediction,
+            stat, 
             indexes=job.sample_indexes,
-            residuals=residuals,
+            residuals=diffs,
+            bins=fdr.bins)
+    else:
+        fdr.baseline_counts = page.stat.bootstrap(
+            residuals(data, job.full_model.layout),
+            stat, 
+            indexes=job.sample_indexes,
             bins=fdr.bins)
 
     fdr.raw_stats    = raw_stats
