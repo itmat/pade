@@ -31,6 +31,21 @@ def group_means(data, layout):
 
     return res
 
+def residuals(data, layout):
+    """Return the residuals for the given data and layout.
+
+    >>> residuals(np.array([1, 2, 3, 6], float), [[0, 1], [2, 3]])
+    array([-0.5,  0.5, -1.5,  1.5])
+
+    """
+    means = group_means(data, layout)
+    diffs = np.zeros_like(data)
+    for i, idxs in enumerate(layout):
+        these_data  = data[..., idxs]
+        these_means = means[..., i].reshape(np.shape(these_data)[:-1] + (1,))
+        diffs[..., idxs] = these_data - these_means
+    return diffs
+
 def group_rss(data, layout):
 
     """Return the residual sum of squares for the data with the layout.
@@ -39,20 +54,8 @@ def group_rss(data, layout):
     5.0
 
     """
-    
-    means = group_means(data, layout)
+    return np.sum(residuals(data, layout) ** 2, axis=-1)
 
-    diffs = np.zeros_like(data)
-
-    for i, idxs in enumerate(layout):
-        
-        these_data = data[..., idxs]
-        these_means = means[..., i].reshape(np.shape(these_data)[:-1] + (1,))
-
-        diffs[..., idxs] = these_data - these_means
-
-    res = np.sum(diffs ** 2, axis=-1)
-    return res
 
 def rss(data):
     """Return a tuple of the mean and residual sum of squares.

@@ -12,6 +12,7 @@ Contents:
    :maxdepth: 2
 
    installing
+   algorithm
    2013-01-15_status
    api
 
