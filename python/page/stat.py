@@ -441,28 +441,28 @@ def bins_custom(num_bins, stats):
     return bins
 
 
-def num_arrangements(full, reduced=None):
+def num_orderings(full, reduced=None):
 
     # If there is no reduced layout, just find the number of
-    # arrangements of indexes in the full layout.
+    # orderings of indexes in the full layout.
     if reduced is None or len(reduced) == 0:
 
         # If we only have one group in the full layout, there's only
-        # one arrangement of the indexes in that group.
+        # one ordering of the indexes in that group.
         if len(full) <= 1:
             return 1
 
         # Otherwise say N is the total number of items in the full
         # layout and k is the number in the 0th group of the full
-        # layout. The number of arrangements is (N choose k) times the
-        # number of arrangements for the rest of the groups.
+        # layout. The number of orderings is (N choose k) times the
+        # number of orderings for the rest of the groups.
         N = sum(map(len, full))
         k   = len(full[0])
-        return comb(N, k) * num_arrangements(full[1:])
+        return comb(N, k) * num_orderings(full[1:])
 
     # Since we got a reduced layout, we need to find the number of
-    # arrangements *within* the first group in the reduced layout,
-    # then multiply that by the arrangements in the rest of the
+    # orderings *within* the first group in the reduced layout,
+    # then multiply that by the orderings in the rest of the
     # reduced layout. First find the number of groups in the full
     # layout that correspond to the first group in the reduced layout.
 
@@ -477,11 +477,11 @@ def num_arrangements(full, reduced=None):
     if size > len(reduced[0]):
         raise Exception("The layout is invalid")
 
-    num_arr_first = num_arrangements(full[ : r])
-    num_arr_rest  = num_arrangements(full[r : ], reduced[1 : ])
+    num_arr_first = num_orderings(full[ : r])
+    num_arr_rest  = num_orderings(full[r : ], reduced[1 : ])
     return num_arr_first * num_arr_rest
 
-def all_arrangements_within_group(items, sizes):
+def all_orderings_within_group(items, sizes):
 
     if len(items) != sum(sizes):
         raise Exception("Layout is bad")
@@ -490,12 +490,12 @@ def all_arrangements_within_group(items, sizes):
         if len(sizes) == 1:
             yield c
         else:
-            for arr in all_arrangements_within_group(
+            for arr in all_orderings_within_group(
                 items.difference(c), sizes[1:]):
                 yield c + arr
 
 
-def all_arrangements(full, reduced):
+def all_orderings(full, reduced):
     
     sizes = map(len, full)
 
@@ -511,7 +511,7 @@ def all_arrangements(full, reduced):
         if sum(sizes[p : q]) > len(grp):
             raise Exception("Bad layout")
 
-        grouped.append(all_arrangements_within_group(set(grp), sizes[p : q]))
+        grouped.append(all_orderings_within_group(set(grp), sizes[p : q]))
         p = q
 
     for prod in product(*grouped):
@@ -520,38 +520,95 @@ def all_arrangements(full, reduced):
             row.extend(grp)
         yield row
 
+def random_ordering(full, reduced):
+    row = []
+    for grp in reduced:
+        grp = np.copy(grp)
+        np.random.shuffle(grp)
+        row.extend(grp)
+    return row
+
+def random_orderings(full, reduced, R):
+    """Get an iterator over at most R random index shuffles.
+
+    :param full: the :term:`layout`
+    :param reduced: the reduced :term:`layout`
+    :param R: the maximum number of orderings to return
+
+    :return: iterator over random orderings of indexes
+
+    Each item in the resulting iterator will be an ndarray of the
+    indexes in the given layouts. The indexes within each group of the
+    reduced layout will be shuffled.
     
-def random_arrangements(full, reduced, R):
+    """
+    # Set of random orderings we've returned so far
+    orderings = set()
+    
+    # The total number of orderings of indexes within the groups of
+    # the reduced layout that result in a distinct assignment of
+    # indexes into the groups defined by the full layout.
+    N = num_orderings(full, reduced)
+    
+    # If the number of orderings requested is greater than the number
+    # of distinct orderings that actually exist, just return all of
+    # them.
+    if R >= N:
+        for arr in all_orderings(full, reduced):
+            yield arr
 
-    # The total number of arrangements of indexes for this combination
+    # Otherwise repeatedly find a random ordering, and if it's not one
+    # we've already yielded, yield it.
+    else:
+        while len(orderings) < R:
+
+            arr = random_ordering(full, reduced)
+            key = tuple(arr)
+
+            if key not in orderings:
+                orderings.add(key)
+                yield arr
+
+
+def old_random_orderings(full, reduced, R):
+
+    print "In here\n"
+    # The total number of orderings of indexes for this combination
     # of full and reduced layouts.
-    N = num_arrangements(full, reduced)
+    N = num_orderings(full, reduced)
 
 
-    # Get a randomized set of indexes into the arrangements. We'll
-    # yield only those arrangements. If the number of arrangements is
+    # Get a randomized set of indexes into the orderings. We'll
+    # yield only those orderings. If the number of orderings is
     # not greater than R, then add the indexes for all the
-    # arrangements to idxs.
+    # orderings to idxs.
     idxs = set()
     if R >= N:
         idxs.update(np.arange(N))
     else:
         while len(idxs) < R:
+            print "Length of indexes is", len(idxs), " N is ", N, ", R is", R
             idxs.add(np.random.randint(0, N))
 
-    # Sort the list of indexes into the arrangements, and then go
-    # through all of the arrangements, yielding only the ones that we
+    print "Got here\n"
+
+    # Sort the list of indexes into the orderings, and then go
+    # through all of the orderings, yielding only the ones that we
     # have marked.
     idxs = sorted(idxs)
 
     yielded = 0
 
-    for i, arr in enumerate(all_arrangements(full, reduced)):
-        
+    print "Getting all orderings for", full, reduced
+    for i, arr in enumerate(all_orderings(full, reduced)):
+        print "Got one"
         # If we've yielded all we need to, quit.
         if yielded == len(idxs):
             break
         
         if i == idxs[yielded]:
             yielded += 1
+            print "Yielded " + str(yielded)
             yield arr
+
+    print "Returning"

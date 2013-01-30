@@ -117,34 +117,34 @@ class StatTest(unittest.TestCase):
 
         self.assertAlmostEqual(expected, ftest(self.ftest_in)[0])
 
-    def test_num_arrangements(self):
+    def test_num_orderings(self):
 
-        def assertArrangements(full, reduced, expected):
-            got = num_arrangements(full, reduced)
+        def assertOrderings(full, reduced, expected):
+            got = num_orderings(full, reduced)
             self.assertEquals(got, expected)
 
-        assertArrangements([[0]], None, 1)
-        assertArrangements([[0, 1]],   None, 1)
-        assertArrangements([[0], [1]], None, 2)
-        assertArrangements([[0, 1], [2, 3]], None, 6)
+        assertOrderings([[0]], None, 1)
+        assertOrderings([[0, 1]],   None, 1)
+        assertOrderings([[0], [1]], None, 2)
+        assertOrderings([[0, 1], [2, 3]], None, 6)
 
-        assertArrangements([[0, 1], [2, 3], [4, 5]], None, 90)
+        assertOrderings([[0, 1], [2, 3], [4, 5]], None, 90)
 
-        assertArrangements([[0, 1], [2, 3], [4, 5], [6, 7]],
+        assertOrderings([[0, 1], [2, 3], [4, 5], [6, 7]],
                            [[0, 1,   2, 3], [4, 5,   6, 7]],
                            36)
 
-    def test_arrangements_within_group(self):
-        def assertArrangements(items, sizes, expected):
-            got = list(all_arrangements_within_group(set(items), sizes))
+    def test_orderings_within_group(self):
+        def assertOrderings(items, sizes, expected):
+            got = list(all_orderings_within_group(set(items), sizes))
             self.assertEquals(got, expected)
 
-        assertArrangements([0], [1], [[0]])
-        assertArrangements([0, 1], [2], [[0, 1]])
+        assertOrderings([0], [1], [[0]])
+        assertOrderings([0, 1], [2], [[0, 1]])
 
-        assertArrangements([0, 1], [1, 1], [[0, 1], [1, 0]])
+        assertOrderings([0, 1], [1, 1], [[0, 1], [1, 0]])
 
-        assertArrangements([0, 1, 2, 3], [2, 2], 
+        assertOrderings([0, 1, 2, 3], [2, 2], 
                            [[0, 1, 2, 3], 
                             [0, 2, 1, 3],
                             [0, 3, 1, 2],
@@ -154,20 +154,20 @@ class StatTest(unittest.TestCase):
                             
 
 
-    def test_all_arrangements(self):
-        def assertArrangements(full, reduced, expected):
-            got = all_arrangements(full, reduced)
+    def test_all_orderings(self):
+        def assertOrderings(full, reduced, expected):
+            got = all_orderings(full, reduced)
             self.assertEquals(list(got), expected)        
         
-        assertArrangements([[0]], 
+        assertOrderings([[0]], 
                            [[0]],
                            [[0]])
         
-        assertArrangements([[0], [1]], 
+        assertOrderings([[0], [1]], 
                            [[0, 1]],
                            [[0, 1], [1, 0]])
         
-        assertArrangements([[0, 1], [2, 3]],
+        assertOrderings([[0, 1], [2, 3]],
                            [[0, 1,   2, 3]],
                            [[0, 1,   2, 3],
                             [0, 2,   1, 3],
@@ -176,7 +176,7 @@ class StatTest(unittest.TestCase):
                             [1, 3,   0, 2],
                             [2, 3,   0, 1]])
 
-        assertArrangements(
+        assertOrderings(
              [[0, 1], [2, 3], [4, 5], [6, 7]],
              [[0, 1,   2, 3], [4, 5,   6, 7]],
              [
@@ -222,14 +222,14 @@ class StatTest(unittest.TestCase):
                  [2, 3,   0, 1,   5, 7,   4, 6],
                  [2, 3,   0, 1,   6, 7,   4, 5]])
         
-    def test_random_arrangements(self):
-        arrs = random_arrangements([[0]], [[0]], 10)
+    def test_random_orderings(self):
+        arrs = random_orderings([[0]], [[0]], 10)
         self.assertEquals(list(arrs), [ [ 0 ] ])
 
-        arrs = random_arrangements([[0], [1]], [[0, 1]], 10)
+        arrs = random_orderings([[0], [1]], [[0, 1]], 10)
         self.assertEquals(list(arrs), [[0, 1], [1, 0]])
 
-        arrs = random_arrangements([[0, 1], [2, 3]], [[0, 1, 2, 3]], 10)
+        arrs = random_orderings([[0, 1], [2, 3]], [[0, 1, 2, 3]], 10)
         self.assertEquals(list(arrs),
                            [[0, 1, 2, 3], 
                             [0, 2, 1, 3],
@@ -238,10 +238,10 @@ class StatTest(unittest.TestCase):
                             [1, 3, 0, 2],
                             [2, 3, 0, 1]])
 
-        arrs = random_arrangements([[0, 1], [2, 3]], [[0, 1, 2, 3]], 3)
+        arrs = random_orderings([[0, 1], [2, 3]], [[0, 1, 2, 3]], 3)
         arrs = list(arrs)
 
-        # Make sure we got three arrangements
+        # Make sure we got three orderings
         self.assertEquals(len(arrs), 3)
 
         # And make sure they're all unique
