@@ -98,6 +98,149 @@ you&#8217;ve downloaded PaGE to ~/projects/PaGE, you might want to add</p>
 <p>You can install it simply by running <tt class="docutils literal"><span class="pre">python</span> <span class="pre">setup.py</span> <span class="pre">install</span></tt>.  Note
 that you may need to run this as root or under sudo.</p>
 </div>
+<div class="section" id="running-a-sample-job">
+<h2>Running a sample job<a class="headerlink" href="#running-a-sample-job" title="Permalink to this headline">¶</a></h2>
+<p>We recommend running a small job using the sample data provided in the
+PaGE distribution in order to familiarize yourself with the program
+before attempting to run it on your own data.</p>
+<p>The PaGE distribution includes a couple very small sample data files,
+in the <tt class="docutils literal"><span class="pre">sample_data</span></tt> directory.</p>
+<div class="section" id="input-files">
+<h3>Input files<a class="headerlink" href="#input-files" title="Permalink to this headline">¶</a></h3>
+<p>The input to any PaGE job (at this time) is a tab-delimited file. The
+file must contain a header row, plus one row for each feature. There
+should be one column that contains a unique identifier for the
+features (for example a gene id). Then each of the samples should have
+their expression values for each feature in its own column. So for
+example if you 2 conditions, each with 4 replicates, and 1000
+features, you would have a tab file with a header row plus 1000 data
+rows, with 9 columns (1 for the feature id and 8 for the expression
+data).</p>
+<p>The names of the columns do not matter, except that each column&#8217;s name
+must be unique.</p>
+</div>
+<div class="section" id="output-files">
+<h3>Output files<a class="headerlink" href="#output-files" title="Permalink to this headline">¶</a></h3>
+<p>When PaGE is done it will place all of its output data and HTML
+reports in a directory. The default location is <tt class="docutils literal"><span class="pre">pageseq_out</span></tt>, but
+this can be changed with the <tt class="docutils literal"><span class="pre">--directory</span></tt> option.</p>
+</div>
+<div class="section" id="creating-the-schema">
+<h3>Creating the schema<a class="headerlink" href="#creating-the-schema" title="Permalink to this headline">¶</a></h3>
+<p>The first step of any PaGE job is to run <tt class="docutils literal"><span class="pre">page</span> <span class="pre">setup</span></tt> on the input
+file, which will create a &#8220;schema&#8221; file that you will then edit to
+describe the grouping of columns in the input file. You run <tt class="docutils literal"><span class="pre">page</span>
+<span class="pre">setup</span></tt> and provide the input file on the command line, plus a
+<tt class="docutils literal"><span class="pre">--factor</span></tt> argument for each factor that you want to use to group
+the columns. For example, suppose say we are trying to find genes that
+are differentially expressed due to some treatment, and we want to
+treat gender as a &#8220;nuisance&#8221; variables. So we have two factors:
+&#8220;treated&#8221; and &#8220;gender&#8221;. We would setup the job as follows:</p>
+<div class="highlight-python"><pre>page setup --factor gender --factor treated sample_data/sample_data_4_class.txt</pre>
+</div>
+<p>This will read in the input file and create a skeleton &#8220;schema&#8221; file
+based on it, in pageseq_out/schema.yaml. We then need to edit this
+file to list the values available for each of the two factors, and to
+assign those factor values to each of the sample column names.</p>
+<p>First, in the very top section of the pageseq_out/schema.yaml file,
+list the valid values for the factors. Change it to look like this:</p>
+<div class="highlight-python"><pre>factors:
+- name: treated
+  values: [no, yes]
+- name: gender
+  values: [male, female]</pre>
+</div>
+<p>Next, look for the section called <tt class="docutils literal"><span class="pre">sample_factor_mapping</span></tt>. This
+lists each sample column in the input file, like this:</p>
+<div class="highlight-python"><pre>sample_factor_mapping:
+  c0r1:
+    gender: null
+    treated: null
+  c0r2:
+    gender: null
+    treated: null
+...</pre>
+</div>
+<p>You will need to edit the settings for each column to indicate the
+gender and whether or not it was treated:</p>
+<div class="highlight-python"><pre>sample_factor_mapping:
+  c0r1:
+    gender: male
+    treated: no
+  c0r2:
+    gender: male
+    treated: no
+...
+  c3r4:
+    gender: female
+    treated: yes</pre>
+</div>
+</div>
+<div class="section" id="running-the-analysis">
+<h3>Running the analysis<a class="headerlink" href="#running-the-analysis" title="Permalink to this headline">¶</a></h3>
+<p>Once you have created the schema file, you are ready to run the
+analysis, using <tt class="docutils literal"><span class="pre">page</span> <span class="pre">run</span></tt>. You&#8217;ll need to specify a couple options,
+most importantly <tt class="docutils literal"><span class="pre">--full-model</span></tt> and optionally <tt class="docutils literal"><span class="pre">--reduced-model</span></tt>.</p>
+<div class="section" id="full-model">
+<h4>Full model<a class="headerlink" href="#full-model" title="Permalink to this headline">¶</a></h4>
+<p><tt class="docutils literal"><span class="pre">--full-model</span></tt> allows you to specify a formula that indicates which
+variables should be considered, and whether or not you want to compute
+coefficients for interactions between those variables. If you just
+have one factor, or if you want to ignore all but one factor, you
+would just provide something like <tt class="docutils literal"><span class="pre">--full-model</span> <span class="pre">treated</span></tt>. If you
+want to consider two variables, say &#8220;treated&#8221; and &#8220;gender&#8221;, and you
+want to look for interaction effects, you would use:</p>
+<div class="highlight-python"><pre>--full-model "treated * gender"</pre>
+</div>
+<p>If you only want to consider main effects (not interactions), you would use:</p>
+<blockquote>
+<div>&#8211;full-model &#8220;treated + gender&#8221;</div></blockquote>
+</div>
+<div class="section" id="reduced-model">
+<h4>Reduced model<a class="headerlink" href="#reduced-model" title="Permalink to this headline">¶</a></h4>
+<p>If you have more than one variable in the full model, you may specify
+a reduced model, which must be a subset of the variables in the full
+model. The null hypothesis tested by PaGE is that the variables in the
+reduced model describe the data as well as the variables in the full model.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">That&#8217;s a terrible description...</p>
+</div>
+<p>For example, if your full model is &#8220;treated * gender&#8221; and you want to
+consider the effects of treatment only, then your reduced model would
+simply be &#8220;gender&#8221;. If your full model is &#8220;treated&#8221; (without
+considering gender at all), you would not provide a reduced model.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">This could use work.</p>
+</div>
+</div>
+<div class="section" id="default-settings">
+<h4>Default settings<a class="headerlink" href="#default-settings" title="Permalink to this headline">¶</a></h4>
+<p>The simplest PaGE job for our 4-class sample input would be something like:</p>
+<div class="highlight-python"><pre>page run --full-model "treated * gender" --reduced-model gender</pre>
+</div>
+<p>This should take less than a minute, and should print a message
+telling you the location of the HTML reports.</p>
+</div>
+<div class="section" id="interesting-options">
+<h4>Interesting options<a class="headerlink" href="#interesting-options" title="Permalink to this headline">¶</a></h4>
+<p>By default, PaGE computes the false discovery rate by using a
+permutation test with the f-statistic. You can change the method used
+for computing the false discovery rate with the &#8220;&#8211;sample-method&#8221; and
+&#8220;&#8211;sample-from&#8221; options. This allows you to do bootstrapping instead
+of permutation, and to sample from either the raw data values or from
+the residuals of the data values (from the means predicted by the
+reduced model). Please see <tt class="docutils literal"><span class="pre">page</span> <span class="pre">run</span> <span class="pre">-h</span></tt> for more details.</p>
+<p>You can change the number of samples used for bootstrapping (or the
+permutation test) with <tt class="docutils literal"><span class="pre">--num-samples</span></tt> or <tt class="docutils literal"><span class="pre">-R</span></tt>.</p>
+<p>By default PaGE prints very little output; just a report at the end
+showing the distribution of the confidence levels. You can make it be
+more verbose with the <tt class="docutils literal"><span class="pre">--verbose</span></tt> or <tt class="docutils literal"><span class="pre">-v</span></tt> option. It will print
+even more debugging-level output if you give it <tt class="docutils literal"><span class="pre">--debug</span></tt> or <tt class="docutils literal"><span class="pre">-d</span></tt>.</p>
+</div>
+</div>
+</div>
 </div>
 
 
@@ -112,6 +255,19 @@ that you may need to run this as root or under sudo.</p>
 <li><a class="reference internal" href="#prerequisites">Prerequisites</a></li>
 <li><a class="reference internal" href="#obtaining">Obtaining</a></li>
 <li><a class="reference internal" href="#installing">Installing</a></li>
+<li><a class="reference internal" href="#running-a-sample-job">Running a sample job</a><ul>
+<li><a class="reference internal" href="#input-files">Input files</a></li>
+<li><a class="reference internal" href="#output-files">Output files</a></li>
+<li><a class="reference internal" href="#creating-the-schema">Creating the schema</a></li>
+<li><a class="reference internal" href="#running-the-analysis">Running the analysis</a><ul>
+<li><a class="reference internal" href="#full-model">Full model</a></li>
+<li><a class="reference internal" href="#reduced-model">Reduced model</a></li>
+<li><a class="reference internal" href="#default-settings">Default settings</a></li>
+<li><a class="reference internal" href="#interesting-options">Interesting options</a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
