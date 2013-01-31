@@ -6,6 +6,8 @@ setup(name='PaGE',
       author_email='delaurentis@gmail.com',
       url='https://github.com/itmat/PaGE',
       scripts=['bin/page'],
-      packages=['page'],
+      packages=['page', 'page.css'],
       requires=['jinja2', 'matplotlib', 'scipy', 'numpy', 'yaml'],
-      data_files=['page/thirdparty/996grid/code/css/*.css'])
+      package_data={
+        'page.css' : ['*.css']}
+      )
