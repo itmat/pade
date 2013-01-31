@@ -38,3 +38,7 @@ deploy_site:
 	cd ../; git checkout gh-pages
 	cd ../; tar xf site.tar
 	cd ../; git add `tar tf site.tar`
+	cd ../; git commit -m 'Updating site'
+	cd ../; git push origin gh-pages
+	git checkout master
+
