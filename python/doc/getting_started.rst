@@ -47,4 +47,76 @@ to your ~/.profile or ~/.bashrc file.
 You can install it simply by running ``python setup.py install``.  Note
 that you may need to run this as root or under sudo.
    
+Running a sample job
+--------------------
 
+We recommend running a small job using the sample data provided in the
+PaGE distribution in order to familiarize yourself with the program
+before attempting to run it on your own data.
+
+The PaGE distribution includes a couple very small sample data files,
+in the ``sample_data`` directory.
+
+Input files
+^^^^^^^^^^^
+
+The input to any PaGE job (at this time) is a tab-delimited file. The
+file must contain a header row, plus one row for each feature. There
+should be one column that contains a unique identifier for the
+features (for example a gene id). Then each of the samples should have
+their expression values for each feature in its own column. So for
+example if you 2 conditions, each with 4 replicates, and 1000
+features, you would have a tab file with a header row plus 1000 data
+rows, with 9 columns (1 for the feature id and 8 for the expression
+data).
+
+The names of the columns do not matter, except that each column's name
+must be unique. 
+
+Output files
+^^^^^^^^^^^^
+
+When PaGE is done it will place all of its output data and HTML
+reports in a directory. The default location is ``pageseq_out``, but
+this can be changed with the ``--directory`` option.
+
+Process
+^^^^^^^
+
+There are two main steps for running a PaGE job. The first step is to
+run ``page setup`` on the input file, which will create a "schema" file
+that you will then edit to describe the grouping of columns in the
+input file. You run ``page setup`` and provide the input file on the
+command line, plus a ``--factor`` argument for each factor that you want
+to use to group the columns. For example, suppose say we are trying to
+find genes that are differentially expressed due to some treatment,
+and we want to treat gender as a "nuisance" variables. So we have two
+factors: "treated" and "gender". We would setup the job as follows::
+
+  page setup --factor gender --factor treated sample_data/sample_data_4_class.txt
+
+This will read in the input file and create a skeleton "schema" file
+based on it, in pageseq_out/schema.yaml. We then need to edit this
+file to list the values available for each of the two factors, and to
+assign those factor values to each of the sample column names.
+
+First, in the very top section of the pageseq_out/schema.yaml file,
+list the valid values for the factors. Change it to look like this::
+
+  factors:
+  - name: treated
+    values: [no, yes]
+  - name: gender
+    values: [male, female]
+
+Next, look for the section called ``sample_factor_mapping``. This
+lists each sample column in the input file, like this::
+
+  sample_factor_mapping:
+    c0r1:
+      gender: null
+      treated: null
+    c0r2:
+      gender: null
+      treated: null
+  ...
