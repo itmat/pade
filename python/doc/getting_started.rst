@@ -80,18 +80,18 @@ When PaGE is done it will place all of its output data and HTML
 reports in a directory. The default location is ``pageseq_out``, but
 this can be changed with the ``--directory`` option.
 
-Process
-^^^^^^^
+Creating the schema
+^^^^^^^^^^^^^^^^^^^
 
-There are two main steps for running a PaGE job. The first step is to
-run ``page setup`` on the input file, which will create a "schema" file
-that you will then edit to describe the grouping of columns in the
-input file. You run ``page setup`` and provide the input file on the
-command line, plus a ``--factor`` argument for each factor that you want
-to use to group the columns. For example, suppose say we are trying to
-find genes that are differentially expressed due to some treatment,
-and we want to treat gender as a "nuisance" variables. So we have two
-factors: "treated" and "gender". We would setup the job as follows::
+The first step of any PaGE job is to run ``page setup`` on the input
+file, which will create a "schema" file that you will then edit to
+describe the grouping of columns in the input file. You run ``page
+setup`` and provide the input file on the command line, plus a
+``--factor`` argument for each factor that you want to use to group
+the columns. For example, suppose say we are trying to find genes that
+are differentially expressed due to some treatment, and we want to
+treat gender as a "nuisance" variables. So we have two factors:
+"treated" and "gender". We would setup the job as follows::
 
   page setup --factor gender --factor treated sample_data/sample_data_4_class.txt
 
@@ -120,3 +120,86 @@ lists each sample column in the input file, like this::
       gender: null
       treated: null
   ...
+
+You will need to edit the settings for each column to indicate the
+gender and whether or not it was treated::
+
+  sample_factor_mapping:
+    c0r1:
+      gender: male
+      treated: no
+    c0r2:
+      gender: male
+      treated: no
+  ...
+    c3r4:
+      gender: female
+      treated: yes
+
+Running the analysis
+^^^^^^^^^^^^^^^^^^^^
+
+Once you have created the schema file, you are ready to run the
+analysis, using ``page run``. You'll need to specify a couple options,
+most importantly ``--full-model`` and optionally ``--reduced-model``.
+
+Full model
+""""""""""
+
+``--full-model`` allows you to specify a formula that indicates which
+variables should be considered, and whether or not you want to compute
+coefficients for interactions between those variables. If you just
+have one factor, or if you want to ignore all but one factor, you
+would just provide something like ``--full-model treated``. If you
+want to consider two variables, say "treated" and "gender", and you
+want to look for interaction effects, you would use::
+
+  --full-model "treated * gender"
+
+If you only want to consider main effects (not interactions), you would use:
+
+  --full-model "treated + gender"
+
+Reduced model
+"""""""""""""
+
+If you have more than one variable in the full model, you may specify
+a reduced model, which must be a subset of the variables in the full
+model. The null hypothesis tested by PaGE is that the variables in the
+reduced model describe the data as well as the variables in the full model.
+
+.. NOTE::
+   That's a terrible description...
+
+For example, if your full model is "treated * gender" and you want to
+consider the effects of treatment only, then your reduced model would
+simply be "gender". If your full model is "treated" (without
+considering gender at all), you would not provide a reduced model.
+
+.. NOTE::
+   This could use work.
+
+Default settings
+""""""""""""""""
+
+The simplest PaGE job for our 4-class sample input would be something like::
+
+  page run --full-model "treated * gender" --reduced-model gender
+
+This should take less than a minute, and should print a message
+telling you the location of the HTML reports.
+
+Interesting options
+"""""""""""""""""""
+
+By default, PaGE computes the false discovery rate by using a
+permutation test with the f-statistic. You can change the method used
+for computing the false discovery rate with the "--sample-method" and
+"--sample-from" options. This allows you to do bootstrapping instead
+of permutation, and to sample from either the raw data values or from
+the residuals of the data values (from the means predicted by the
+reduced model). Please see ``page run -h`` for more details.
+
+You can change the number of samples used for bootstrapping (or the
+permutation test) with ``--num-samples`` or ``-R``.
+
