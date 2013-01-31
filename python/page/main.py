@@ -154,6 +154,7 @@ def do_fdr(job):
         prediction = predicted_values(job)
         diffs      = data - prediction
         fdr.baseline_counts = page.stat.bootstrap(
+            # data,
             prediction,
             stat, 
             indexes=job.sample_indexes,
@@ -171,7 +172,7 @@ def do_fdr(job):
         shifted = residuals(data, job.full_model.layout)
 
         fdr.baseline_counts = page.stat.bootstrap(
-            data,
+            shifted,
             stat, 
             indexes=job.sample_indexes,
             bins=fdr.bins)
