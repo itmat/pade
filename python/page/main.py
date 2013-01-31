@@ -23,7 +23,7 @@ from page.performance import *
 from page.schema import *
 from page.model import *
 import page.stat
-from page.stat import random_indexes, random_orderings, residuals
+from page.stat import random_indexes, random_orderings, residuals, group_means
 
 REAL_PATH = os.path.realpath(__file__)
 RAW_VALUE_DTYPE = float
@@ -99,25 +99,6 @@ def setup_css(env):
         out.write(template.render())
 
 
-@profiled
-def predicted_values(job):
-    """Return the values predicted by the reduced model.
-    
-    The return value has the same shape as the input table, with each
-    cell containing the mean of all the cells in the same group, as
-    defined by the reduced model.
-
-    """
-    data = job.table
-    prediction = np.zeros_like(data)
-
-    for grp in job.reduced_model.layout:
-        means = np.mean(data[..., grp], axis=1)
-        means = means.reshape(np.shape(means) + (1,))
-        prediction[..., grp] = means
-    return prediction
-
-
 def ensure_scores_increase(scores):
     res = np.copy(scores)
     for i in range(1, len(res)):
@@ -138,6 +119,25 @@ class FdrResults:
         self.summary_counts = None
 
 @profiled
+def predicted_values(job):
+    """Return the values predicted by the reduced model.
+    
+    The return value has the same shape as the input table, with each
+    cell containing the mean of all the cells in the same group, as
+    defined by the reduced model.
+
+    """
+    data = job.table
+    prediction = np.zeros_like(data)
+
+    for grp in job.reduced_model.layout:
+        means = np.mean(data[..., grp], axis=1)
+        means = means.reshape(np.shape(means) + (1,))
+        prediction[..., grp] = means
+    return prediction
+
+
+@profiled
 def do_fdr(job):
 
     data = job.table
@@ -147,14 +147,12 @@ def do_fdr(job):
     fdr = FdrResults()
     fdr.bins = page.stat.bins_uniform(job.num_bins, raw_stats)
 
-    if job.sample_indexes is None:
-        job.save_sample_indexes(job.new_sample_indexes())
-    else:
-        logging.info("Using existing sampling indexes")
+    job.save_sample_indexes(job.new_sample_indexes())
 
     if job.sample_from == 'residuals':
+        logging.info("Bootstrapping based on residuals")
         prediction = predicted_values(job)
-        diffs  = data - prediction
+        diffs      = data - prediction
         fdr.baseline_counts = page.stat.bootstrap(
             prediction,
             stat, 
@@ -162,8 +160,18 @@ def do_fdr(job):
             residuals=diffs,
             bins=fdr.bins)
     else:
+        logging.info("Using raw data")
+        # Shift all values in the data by the means of the groups from
+        # the full model, so that the mean of each group is 0.
+        # perm, raw, shifted: 113, 29
+        # boot, raw, shifted: 103, 24
+        # boot, residuals: 113, 32
+        # perm, raw, unshifted: 113, 29
+        # boot, raw, unshifted: 103, 24
+        shifted = residuals(data, job.full_model.layout)
+
         fdr.baseline_counts = page.stat.bootstrap(
-            residuals(data, job.full_model.layout),
+            data,
             stat, 
             indexes=job.sample_indexes,
             bins=fdr.bins)
@@ -531,7 +539,6 @@ class Job:
         R = self.num_samples
 
         if method == ('perm', 'raw'):
-
             logging.info("Creating max of {0} random permutations".format(R))
             return list(random_orderings(full.layout, reduced.layout, R))
 
@@ -605,7 +612,7 @@ class Job:
             return page.stat.Ftest(
                 layout_full=self.full_model.layout,
                 layout_reduced=self.reduced_model.layout,
-                alphas=np.array([0.0, 0.01, 0.1, 1, 3]))
+                alphas=np.array([0.001, 0.01, 0.1, 1, 3]))
         elif self.stat_name == 'f_sqrt':
             return page.stat.FtestSqrt(
                 layout_full=self.full_model.layout,
