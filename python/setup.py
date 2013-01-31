@@ -7,4 +7,5 @@ setup(name='PaGE',
       url='https://github.com/itmat/PaGE',
       scripts=['bin/page'],
       packages=['page'],
-      requires=['jinja2', 'matplotlib', 'scipy', 'numpy', 'yaml'])
+      requires=['jinja2', 'matplotlib', 'scipy', 'numpy', 'yaml'],
+      data_files=['page/thirdparty/996grid/code/css/*.css'])
