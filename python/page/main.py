@@ -343,7 +343,7 @@ Confidence |   Num.
 
         print """
 The full report is available at {0}""".format(
-            os.path.join(job.directory, "index.html"))
+            os.path.join(job.directory, "html/index.html"))
 
 
     save_text_output(job, results)
