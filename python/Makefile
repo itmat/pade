@@ -34,6 +34,7 @@ site :
 deploy_site:
 
 	cd doc; make html
-	cd doc/_build/html; tar cvf ../../../site.tar *
+	cd doc/_build/html; tar cvf ../../../../site.tar *
 	cd ../; git checkout gh-pages
-
+	cd ../; tar xvf site.tar
+	cd ../; git add `tar tvf site.tar`
