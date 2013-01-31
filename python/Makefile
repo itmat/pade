@@ -30,3 +30,10 @@ perf : perf_report/stats.*
 
 site :
 	cd doc; make html
+
+deploy_site:
+
+	cd doc; make html
+	cd doc/_build/html; tar cvf ../../../site.tar *
+	cd ../; git checkout gh-pages
+
