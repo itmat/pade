@@ -11,10 +11,10 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
-   installing
+   getting_started
    algorithm
-   2013-01-15_status
    api
+   status_updates
 
 Glossary
 ========
