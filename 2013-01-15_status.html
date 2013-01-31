@@ -1,0 +1,175 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>2013-01-15 Status &mdash; PaGE 6.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '6.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="PaGE 6.0 documentation" href="index.html" />
+    <link rel="up" title="Status Updates" href="status_updates.html" />
+    <link rel="prev" title="Status Updates" href="status_updates.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="status_updates.html" title="Status Updates"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">PaGE 6.0 documentation</a> &raquo;</li>
+          <li><a href="status_updates.html" accesskey="U">Status Updates</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="status">
+<h1>2013-01-15 Status<a class="headerlink" href="#status" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="completed">
+<h2>Completed<a class="headerlink" href="#completed" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>Initialize &#8220;schema&#8221; to describe columns in input file</li>
+<li>Group columns according to &#8220;full&#8221; and &#8220;reduced&#8221; models</li>
+<li>Compute means and coefficients using full model</li>
+<li>Bootstrap using artificial data sets constructed by adding sampled residuals to predicted values</li>
+<li>Compute distribution of f-test values over sampled data</li>
+<li>Use that to compute confidence score associated with each value of f-test</li>
+<li>Framework for searching over range of constant &#8220;tuning parameters&#8221;
+for optimal value for each confidence level</li>
+<li>Print paginated HTML report for each confidence level</li>
+</ul>
+</div>
+<div class="section" id="outstanding">
+<h2>Outstanding<a class="headerlink" href="#outstanding" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>Support &#8220;marginal&#8221; model (e.g. {tt sex + treatment}, no interaction term)</li>
+<li>Add t-test back in?</li>
+<li>Support logged input data?</li>
+<li>Support missing values in input data?</li>
+<li>Come up with formula for tuning parameters to search over?</li>
+<li>Distribute work?</li>
+<li>Save output and intermediate files as raw text</li>
+</ul>
+</div>
+<div class="section" id="performance-metrics">
+<h2>Performance metrics<a class="headerlink" href="#performance-metrics" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>Ran Perl version and latest Python version on input file with 2 classes, 4 replicates per class, so 8 samples total.</li>
+<li>Tried exponentially increasing number of features in input file</li>
+<li>Capture running time and memory usage</li>
+<li>Older version does 70 permutations, newer does 1,000 randomized samples.</li>
+</ul>
+</div>
+<div class="section" id="takeaways">
+<h2>Takeaways<a class="headerlink" href="#takeaways" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>Allow user to specify number of rows to skip</li>
+<li>Skip commented lines in input file?</li>
+<li>Allow each sample&#8217;s data to be in a separate file?</li>
+<li>Maybe directly support SAM / BAM file input.</li>
+<li>Make sure that leaving a column out of the schema results in it being ignored.</li>
+<li>Instead of creating a separate report for each confidence level,
+show each feature&#8217;s q value: the highest-confidence bin that the
+feature appears in</li>
+<li>Need to support 100 million features, 1 billion would be really nice.</li>
+<li>Do an FDR for the interaction coefficient.</li>
+<li>Emit a copy of the input file, with a column indicating if there is
+a significant interaction for each feature.</li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">2013-01-15 Status</a><ul>
+<li><a class="reference internal" href="#completed">Completed</a></li>
+<li><a class="reference internal" href="#outstanding">Outstanding</a></li>
+<li><a class="reference internal" href="#performance-metrics">Performance metrics</a></li>
+<li><a class="reference internal" href="#takeaways">Takeaways</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="status_updates.html"
+                        title="previous chapter">Status Updates</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/2013-01-15_status.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="status_updates.html" title="Status Updates"
+             >previous</a> |</li>
+        <li><a href="index.html">PaGE 6.0 documentation</a> &raquo;</li>
+          <li><a href="status_updates.html" >Status Updates</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, University of Pennsylvania.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.2.
+    </div>
+  </body>
+</html>

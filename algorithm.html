@@ -1,0 +1,655 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Algorithm &mdash; PaGE 6.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '6.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="PaGE 6.0 documentation" href="index.html" />
+    <link rel="next" title="API Documentation" href="api.html" />
+    <link rel="prev" title="Installing PaGE" href="getting_started.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="api.html" title="API Documentation"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="getting_started.html" title="Installing PaGE"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">PaGE 6.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="algorithm">
+<h1>Algorithm<a class="headerlink" href="#algorithm" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="confidence-estimation">
+<h2>Confidence estimation<a class="headerlink" href="#confidence-estimation" title="Permalink to this headline">¶</a></h2>
+<p>There are three methods available for sampling the data in order to
+estimate the background distribution of the statistic.</p>
+<div class="section" id="permutation-test">
+<h3>Permutation test<a class="headerlink" href="#permutation-test" title="Permalink to this headline">¶</a></h3>
+<p>With the <em>permutation test</em> method, we simply create R different
+<em>legal</em>, <em>distinct</em> permutations of the columns of the raw data, and
+then apply the f-test to those permutations.</p>
+<p>A permutation is <em>legal</em> if for every column, the values of the
+nuisance variables (defined by the reduced model) remain the same. Two
+orderings are <em>distinct</em> if there exists some column such that the
+value of one of the variables defined in the full model is different
+in the two orderings.</p>
+<p>For example, suppose we have the following data, where the full model
+consists of &#8220;sex&#8221; and &#8220;treatment&#8221;, and the reduced model is &#8220;sex&#8221;
+only. The raw ordering of the columns is:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="27%" />
+<col width="9%" />
+<col width="9%" />
+<col width="9%" />
+<col width="9%" />
+<col width="9%" />
+<col width="9%" />
+<col width="9%" />
+<col width="9%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Sex</th>
+<th class="head" colspan="4">Male</th>
+<th class="head" colspan="4">Female</th>
+</tr>
+<tr class="row-even"><th class="head">Treated</th>
+<th class="head" colspan="2">Yes</th>
+<th class="head" colspan="2">No</th>
+<th class="head" colspan="2">Yes</th>
+<th class="head" colspan="2">No</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-odd"><td>&nbsp;</td>
+<td>0</td>
+<td>1</td>
+<td>2</td>
+<td>3</td>
+<td>4</td>
+<td>5</td>
+<td>6</td>
+<td>7</td>
+</tr>
+</tbody>
+</table>
+<p>This indicates that columns 0 and 1 are untreated male, 2 and 3 are
+treated male, 4 and 5 are untreated female, and 6 and 7 are treated
+female.</p>
+<p>The arrangement [4, 1, 2, 3, 0, 5, 6, 7] is not legal, because samples
+0 and 4 had their &#8220;sex&#8221; label changed. The arrangements [0, 1, 2, 3,
+4, 5, 6, 7] and [1, 0, 2, 3, 4, 5, 6, 7] are not distinct because even
+though samples 0 and 1 were swapped, their &#8220;treated&#8221; label was not
+changed, so it results in the same grouping of samples.</p>
+<p>In this case, we have 36 legal, distinct permutations of the samples
+that conform to the full and reduced layouts:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="25%" />
+<col width="9%" />
+<col width="9%" />
+<col width="9%" />
+<col width="9%" />
+<col width="9%" />
+<col width="9%" />
+<col width="9%" />
+<col width="9%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Sex</th>
+<th class="head" colspan="4">Male</th>
+<th class="head" colspan="4">Female</th>
+</tr>
+<tr class="row-even"><th class="head">Treated</th>
+<th class="head" colspan="2">No</th>
+<th class="head" colspan="2">Yes</th>
+<th class="head" colspan="2">No</th>
+<th class="head" colspan="2">Yes</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-odd"><td>&nbsp;</td>
+<td>0</td>
+<td>1</td>
+<td>2</td>
+<td>3</td>
+<td>4</td>
+<td>5</td>
+<td>6</td>
+<td>7</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>0</td>
+<td>1</td>
+<td>2</td>
+<td>3</td>
+<td>4</td>
+<td>6</td>
+<td>5</td>
+<td>7</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>0</td>
+<td>1</td>
+<td>2</td>
+<td>3</td>
+<td>4</td>
+<td>7</td>
+<td>5</td>
+<td>6</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>0</td>
+<td>1</td>
+<td>2</td>
+<td>3</td>
+<td>5</td>
+<td>6</td>
+<td>4</td>
+<td>7</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>0</td>
+<td>1</td>
+<td>2</td>
+<td>3</td>
+<td>5</td>
+<td>7</td>
+<td>4</td>
+<td>6</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>0</td>
+<td>1</td>
+<td>2</td>
+<td>3</td>
+<td>6</td>
+<td>7</td>
+<td>4</td>
+<td>5</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>0</td>
+<td>2</td>
+<td>1</td>
+<td>3</td>
+<td>4</td>
+<td>5</td>
+<td>6</td>
+<td>7</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>0</td>
+<td>2</td>
+<td>1</td>
+<td>3</td>
+<td>4</td>
+<td>6</td>
+<td>5</td>
+<td>7</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>0</td>
+<td>2</td>
+<td>1</td>
+<td>3</td>
+<td>4</td>
+<td>7</td>
+<td>5</td>
+<td>6</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>0</td>
+<td>2</td>
+<td>1</td>
+<td>3</td>
+<td>5</td>
+<td>6</td>
+<td>4</td>
+<td>7</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>0</td>
+<td>2</td>
+<td>1</td>
+<td>3</td>
+<td>5</td>
+<td>7</td>
+<td>4</td>
+<td>6</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>0</td>
+<td>2</td>
+<td>1</td>
+<td>3</td>
+<td>6</td>
+<td>7</td>
+<td>4</td>
+<td>5</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>0</td>
+<td>3</td>
+<td>1</td>
+<td>2</td>
+<td>4</td>
+<td>5</td>
+<td>6</td>
+<td>7</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>0</td>
+<td>3</td>
+<td>1</td>
+<td>2</td>
+<td>4</td>
+<td>6</td>
+<td>5</td>
+<td>7</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>0</td>
+<td>3</td>
+<td>1</td>
+<td>2</td>
+<td>4</td>
+<td>7</td>
+<td>5</td>
+<td>6</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>0</td>
+<td>3</td>
+<td>1</td>
+<td>2</td>
+<td>5</td>
+<td>6</td>
+<td>4</td>
+<td>7</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>0</td>
+<td>3</td>
+<td>1</td>
+<td>2</td>
+<td>5</td>
+<td>7</td>
+<td>4</td>
+<td>6</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>0</td>
+<td>3</td>
+<td>1</td>
+<td>2</td>
+<td>6</td>
+<td>7</td>
+<td>4</td>
+<td>5</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>1</td>
+<td>2</td>
+<td>0</td>
+<td>3</td>
+<td>4</td>
+<td>5</td>
+<td>6</td>
+<td>7</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>1</td>
+<td>2</td>
+<td>0</td>
+<td>3</td>
+<td>4</td>
+<td>6</td>
+<td>5</td>
+<td>7</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>1</td>
+<td>2</td>
+<td>0</td>
+<td>3</td>
+<td>4</td>
+<td>7</td>
+<td>5</td>
+<td>6</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>1</td>
+<td>2</td>
+<td>0</td>
+<td>3</td>
+<td>5</td>
+<td>6</td>
+<td>4</td>
+<td>7</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>1</td>
+<td>2</td>
+<td>0</td>
+<td>3</td>
+<td>5</td>
+<td>7</td>
+<td>4</td>
+<td>6</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>1</td>
+<td>2</td>
+<td>0</td>
+<td>3</td>
+<td>6</td>
+<td>7</td>
+<td>4</td>
+<td>5</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>1</td>
+<td>3</td>
+<td>0</td>
+<td>2</td>
+<td>4</td>
+<td>5</td>
+<td>6</td>
+<td>7</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>1</td>
+<td>3</td>
+<td>0</td>
+<td>2</td>
+<td>4</td>
+<td>6</td>
+<td>5</td>
+<td>7</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>1</td>
+<td>3</td>
+<td>0</td>
+<td>2</td>
+<td>4</td>
+<td>7</td>
+<td>5</td>
+<td>6</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>1</td>
+<td>3</td>
+<td>0</td>
+<td>2</td>
+<td>5</td>
+<td>6</td>
+<td>4</td>
+<td>7</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>1</td>
+<td>3</td>
+<td>0</td>
+<td>2</td>
+<td>5</td>
+<td>7</td>
+<td>4</td>
+<td>6</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>1</td>
+<td>3</td>
+<td>0</td>
+<td>2</td>
+<td>6</td>
+<td>7</td>
+<td>4</td>
+<td>5</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>2</td>
+<td>3</td>
+<td>0</td>
+<td>1</td>
+<td>4</td>
+<td>5</td>
+<td>6</td>
+<td>7</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>2</td>
+<td>3</td>
+<td>0</td>
+<td>1</td>
+<td>4</td>
+<td>6</td>
+<td>5</td>
+<td>7</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>2</td>
+<td>3</td>
+<td>0</td>
+<td>1</td>
+<td>4</td>
+<td>7</td>
+<td>5</td>
+<td>6</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>2</td>
+<td>3</td>
+<td>0</td>
+<td>1</td>
+<td>5</td>
+<td>6</td>
+<td>4</td>
+<td>7</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>2</td>
+<td>3</td>
+<td>0</td>
+<td>1</td>
+<td>5</td>
+<td>7</td>
+<td>4</td>
+<td>6</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>2</td>
+<td>3</td>
+<td>0</td>
+<td>1</td>
+<td>6</td>
+<td>7</td>
+<td>4</td>
+<td>5</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="bootstrapping-raw-values">
+<h3>Bootstrapping raw values<a class="headerlink" href="#bootstrapping-raw-values" title="Permalink to this headline">¶</a></h3>
+<p>This method is similar to the permutation test, but rather than create
+R permutations, we create R <em>legal</em> lists of indexes by sampling the
+indexes from each group defined by the reduced model (nuisance
+variables) with replacement. So in this case the same column may
+appear more than once in a sample, and there may be redundant samples.</p>
+<p>For example, we might have:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="25%" />
+<col width="9%" />
+<col width="9%" />
+<col width="9%" />
+<col width="9%" />
+<col width="9%" />
+<col width="9%" />
+<col width="9%" />
+<col width="9%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Sex</th>
+<th class="head" colspan="4">Male</th>
+<th class="head" colspan="4">Female</th>
+</tr>
+<tr class="row-even"><th class="head">Treated</th>
+<th class="head" colspan="2">No</th>
+<th class="head" colspan="2">Yes</th>
+<th class="head" colspan="2">No</th>
+<th class="head" colspan="2">Yes</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-odd"><td>&nbsp;</td>
+<td>0</td>
+<td>1</td>
+<td>2</td>
+<td>3</td>
+<td>4</td>
+<td>5</td>
+<td>6</td>
+<td>7</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>1</td>
+<td>0</td>
+<td>2</td>
+<td>3</td>
+<td>4</td>
+<td>5</td>
+<td>6</td>
+<td>7</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>4</td>
+<td>4</td>
+<td>4</td>
+<td>4</td>
+</tr>
+</tbody>
+</table>
+<p>Note that we still restrict the columns by the reduced layout.</p>
+</div>
+<div class="section" id="bootstrapping-residuals">
+<h3>Bootstrapping residuals<a class="headerlink" href="#bootstrapping-residuals" title="Permalink to this headline">¶</a></h3>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Algorithm</a><ul>
+<li><a class="reference internal" href="#confidence-estimation">Confidence estimation</a><ul>
+<li><a class="reference internal" href="#permutation-test">Permutation test</a></li>
+<li><a class="reference internal" href="#bootstrapping-raw-values">Bootstrapping raw values</a></li>
+<li><a class="reference internal" href="#bootstrapping-residuals">Bootstrapping residuals</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="getting_started.html"
+                        title="previous chapter">Installing PaGE</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="api.html"
+                        title="next chapter">API Documentation</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/algorithm.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="api.html" title="API Documentation"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="getting_started.html" title="Installing PaGE"
+             >previous</a> |</li>
+        <li><a href="index.html">PaGE 6.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, University of Pennsylvania.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.2.
+    </div>
+  </body>
+</html>

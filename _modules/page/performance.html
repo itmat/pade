@@ -1,0 +1,184 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>page.performance &mdash; PaGE 6.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '6.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="PaGE 6.0 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">PaGE 6.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for page.performance</h1><div class="highlight"><pre>
+<span class="sd">&quot;&quot;&quot;Utilities for measuring performance of PaGE.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">contextlib</span>
+<span class="kn">import</span> <span class="nn">resource</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+
+<span class="n">EVENTS</span> <span class="o">=</span> <span class="p">[]</span>
+
+<div class="viewcode-block" id="ProfileStackException"><a class="viewcode-back" href="../../api.html#page.performance.ProfileStackException">[docs]</a><span class="k">class</span> <span class="nc">ProfileStackException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Thrown when the profile stack is corrupt.&quot;&quot;&quot;</span>
+</div>
+<span class="nd">@contextlib.contextmanager</span>
+<div class="viewcode-block" id="profiling"><a class="viewcode-back" href="../../api.html#page.performance.profiling">[docs]</a><span class="k">def</span> <span class="nf">profiling</span><span class="p">(</span><span class="n">label</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Context manager for capturing performance metrics of a block.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">pre_maxrss</span> <span class="o">=</span> <span class="n">maxrss</span><span class="p">()</span>
+    <span class="n">EVENTS</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;enter&#39;</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">maxrss</span><span class="p">()))</span>
+    <span class="k">yield</span>
+    <span class="n">post_maxrss</span> <span class="o">=</span> <span class="n">maxrss</span><span class="p">()</span>
+    <span class="n">EVENTS</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;exit&#39;</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">maxrss</span><span class="p">()))</span>
+</div>
+<div class="viewcode-block" id="profiled"><a class="viewcode-back" href="../../api.html#page.performance.profiled">[docs]</a><span class="k">def</span> <span class="nf">profiled</span><span class="p">(</span><span class="n">method</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Decorator for profiling a function.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">wrapped</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">profiling</span><span class="p">(</span><span class="n">method</span><span class="o">.</span><span class="n">__name__</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">method</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">wrapped</span>
+</div>
+<div class="viewcode-block" id="maxrss"><a class="viewcode-back" href="../../api.html#page.performance.maxrss">[docs]</a><span class="k">def</span> <span class="nf">maxrss</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Return the current maximum RSS allocation in GB.&quot;&quot;&quot;</span>
+    <span class="nb">bytes</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">resource</span><span class="o">.</span><span class="n">getrusage</span><span class="p">(</span><span class="n">resource</span><span class="o">.</span><span class="n">RUSAGE_SELF</span><span class="p">)</span><span class="o">.</span><span class="n">ru_maxrss</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">bytes</span> <span class="o">/</span> <span class="mf">1000000000.0</span>
+</div>
+<div class="viewcode-block" id="walk_profile"><a class="viewcode-back" href="../../api.html#page.performance.walk_profile">[docs]</a><span class="k">def</span> <span class="nf">walk_profile</span><span class="p">(</span><span class="n">profile_log</span><span class="o">=</span><span class="n">EVENTS</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Analyze the given list of events and return a table.&quot;&quot;&quot;</span>
+    <span class="n">stack</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">events</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">order</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">profile_log</span><span class="p">:</span>
+        <span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">maxrss</span><span class="p">)</span> <span class="o">=</span> <span class="n">entry</span>
+        <span class="k">if</span> <span class="n">event</span> <span class="o">==</span> <span class="s">&#39;enter&#39;</span><span class="p">:</span>
+            <span class="n">stack</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                    <span class="s">&#39;order&#39;</span>      <span class="p">:</span> <span class="n">order</span><span class="p">,</span>
+                    <span class="s">&#39;depth&#39;</span>      <span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">stack</span><span class="p">),</span>
+                    <span class="s">&#39;label&#39;</span>      <span class="p">:</span> <span class="n">label</span><span class="p">,</span>
+                    <span class="s">&#39;maxrss_pre&#39;</span> <span class="p">:</span> <span class="n">maxrss</span> <span class="p">})</span>
+            <span class="n">order</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">elif</span> <span class="n">event</span> <span class="o">==</span> <span class="s">&#39;exit&#39;</span><span class="p">:</span>
+            <span class="n">entry</span> <span class="o">=</span> <span class="n">stack</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">entry</span><span class="p">[</span><span class="s">&#39;label&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="n">label</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ProfileStackException</span><span class="p">(</span>
+                    <span class="s">&quot;Expected to pop {0}, got {1} instead&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">label</span><span class="p">,</span> <span class="n">entry</span><span class="p">[</span><span class="s">&#39;label&#39;</span><span class="p">]))</span>
+            <span class="n">entry</span><span class="p">[</span><span class="s">&#39;maxrss_post&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">maxrss</span>
+            <span class="n">events</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ProfileStackException</span><span class="p">(</span>
+                <span class="s">&quot;Unknown event &quot;</span> <span class="o">+</span> <span class="n">event</span><span class="p">)</span>
+
+    <span class="n">recs</span> <span class="o">=</span> <span class="p">[(</span><span class="n">e</span><span class="p">[</span><span class="s">&#39;depth&#39;</span><span class="p">],</span> 
+             <span class="n">e</span><span class="p">[</span><span class="s">&#39;order&#39;</span><span class="p">],</span>
+             <span class="n">e</span><span class="p">[</span><span class="s">&#39;label&#39;</span><span class="p">],</span>
+             <span class="n">e</span><span class="p">[</span><span class="s">&#39;maxrss_pre&#39;</span><span class="p">],</span> 
+             <span class="n">e</span><span class="p">[</span><span class="s">&#39;maxrss_post&#39;</span><span class="p">],</span>
+             <span class="mf">0.0</span><span class="p">,</span>
+             <span class="mf">0.0</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">events</span><span class="p">]</span>
+
+    <span class="n">dtype</span><span class="o">=</span><span class="p">[(</span><span class="s">&#39;depth&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+           <span class="p">(</span><span class="s">&#39;order&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+           <span class="p">(</span><span class="s">&#39;label&#39;</span><span class="p">,</span> <span class="s">&#39;S100&#39;</span><span class="p">),</span>
+           <span class="p">(</span><span class="s">&#39;maxrss_pre&#39;</span><span class="p">,</span> <span class="nb">float</span><span class="p">),</span>
+           <span class="p">(</span><span class="s">&#39;maxrss_post&#39;</span><span class="p">,</span> <span class="nb">float</span><span class="p">),</span>
+           <span class="p">(</span><span class="s">&#39;maxrss_diff&#39;</span><span class="p">,</span> <span class="nb">float</span><span class="p">),</span>
+           <span class="p">(</span><span class="s">&#39;maxrss_diff_percent&#39;</span><span class="p">,</span> <span class="nb">float</span><span class="p">)]</span>
+
+    <span class="n">table</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">recs</span><span class="p">,</span> <span class="n">dtype</span><span class="p">)</span>
+
+    <span class="n">table</span><span class="p">[</span><span class="s">&#39;maxrss_diff&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">table</span><span class="p">[</span><span class="s">&#39;maxrss_post&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">table</span><span class="p">[</span><span class="s">&#39;maxrss_pre&#39;</span><span class="p">]</span>
+    
+    <span class="n">table</span><span class="p">[</span><span class="s">&#39;maxrss_diff_percent&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">table</span><span class="p">[</span><span class="s">&#39;maxrss_diff&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">table</span><span class="p">[</span><span class="s">&#39;maxrss_post&#39;</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">table</span><span class="p">[</span><span class="s">&#39;maxrss_diff_percent&#39;</span><span class="p">]</span> <span class="o">/=</span> <span class="nb">max</span><span class="p">(</span><span class="n">table</span><span class="p">[</span><span class="s">&#39;maxrss_post&#39;</span><span class="p">])</span>
+    <span class="n">table</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">order</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;order&#39;</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">table</span>
+</pre></div></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">PaGE 6.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, University of Pennsylvania.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.2.
+    </div>
+  </body>
+</html>
