@@ -8,7 +8,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Installing PaGE &mdash; PaGE 6.0 documentation</title>
+    <title>Getting Started &mdash; PaGE 6.0 documentation</title>
     
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -55,24 +55,8 @@
         <div class="bodywrapper">
           <div class="body">
             
-  <div class="section" id="installing-page">
-<h1>Installing PaGE<a class="headerlink" href="#installing-page" title="Permalink to this headline">¶</a></h1>
-<p>You can obtain PaGE by cloning or forking it from github here:
-<a class="reference external" href="https://github.com/itmat/PaGE">https://github.com/itmat/PaGE</a>.</p>
-<div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">We need to create a tarball and put it somewhere to be downloaded.</p>
-</div>
-<p>Once you&#8217;ve obtained PaGE, you can either run it from the directory
-where you&#8217;ve unpacked it, or install it globally. If you run it from a
-local directory, you&#8217;ll need to update your PYTHONPATH environment
-variable to point to the root of the PaGE directory. For example, if
-you&#8217;ve downloaded PaGE to ~/projects/PaGE, you might want to add</p>
-<div class="highlight-python"><pre>export PYTHONPATH=$PYTHONPATH:$HOME/projects/PaGE</pre>
-</div>
-<p>to your ~/.profile or ~/.bashrc file.</p>
-<p>You can install it simply by running <tt class="docutils literal"><span class="pre">python</span> <span class="pre">setup.py</span> <span class="pre">install</span></tt>.  Note
-that you may need to run this as root or under sudo.</p>
+  <div class="section" id="getting-started">
+<h1>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="prerequisites">
 <h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this headline">¶</a></h2>
 <p>PaGE requires a number of libraries that aren&#8217;t built in to Python:</p>
@@ -84,8 +68,35 @@ that you may need to run this as root or under sudo.</p>
 <li>yaml</li>
 </ul>
 <p>If you are using Linux, you may be able to install these packages
-quite easily using <cite>pip &lt;http://pypi.python.org/pypi/pip&gt;</cite> or another
+quite easily using pip (<a class="reference external" href="http://pypi.python.org/pypi/pip">http://pypi.python.org/pypi/pip</a>) or another
 package management tool.</p>
+<p>If you are using a Mac, installing scipy can be tricky. The easiest
+way to get up and running may be to use a Python distribution that has
+scientific computing libraries pre-packaged with it. You should be
+able to use the <em>Enthought Python Distribution</em>, available here:
+<a class="reference external" href="http://www.enthought.com/products/epd.php">http://www.enthought.com/products/epd.php</a>.</p>
+</div>
+<div class="section" id="obtaining">
+<h2>Obtaining<a class="headerlink" href="#obtaining" title="Permalink to this headline">¶</a></h2>
+<p>You can obtain PaGE by cloning or forking it from github here:
+<a class="reference external" href="https://github.com/itmat/PaGE">https://github.com/itmat/PaGE</a>.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">We need to create a tarball and put it somewhere to be downloaded.</p>
+</div>
+</div>
+<div class="section" id="installing">
+<h2>Installing<a class="headerlink" href="#installing" title="Permalink to this headline">¶</a></h2>
+<p>Once you&#8217;ve obtained PaGE, you can either run it from the directory
+where you&#8217;ve unpacked it, or install it globally. If you run it from a
+local directory, you&#8217;ll need to update your PYTHONPATH environment
+variable to point to the root of the PaGE directory. For example, if
+you&#8217;ve downloaded PaGE to ~/projects/PaGE, you might want to add</p>
+<div class="highlight-python"><pre>export PYTHONPATH=$PYTHONPATH:$HOME/projects/PaGE</pre>
+</div>
+<p>to your ~/.profile or ~/.bashrc file.</p>
+<p>You can install it simply by running <tt class="docutils literal"><span class="pre">python</span> <span class="pre">setup.py</span> <span class="pre">install</span></tt>.  Note
+that you may need to run this as root or under sudo.</p>
 </div>
 </div>
 
@@ -97,8 +108,10 @@ package management tool.</p>
         <div class="sphinxsidebarwrapper">
   <h3><a href="index.html">Table Of Contents</a></h3>
   <ul>
-<li><a class="reference internal" href="#">Installing PaGE</a><ul>
+<li><a class="reference internal" href="#">Getting Started</a><ul>
 <li><a class="reference internal" href="#prerequisites">Prerequisites</a></li>
+<li><a class="reference internal" href="#obtaining">Obtaining</a></li>
+<li><a class="reference internal" href="#installing">Installing</a></li>
 </ul>
 </li>
 </ul>
