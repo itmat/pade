@@ -88,9 +88,7 @@ def plot_raw_stat_hist(stats):
 def setup_css(env):
     """Copy the css from 996grid/code/css into its output location."""
 
-    print "My file is", __file__
-    src = os.path.join(os.path.dirname(REAL_PATH),
-                       '../page/thirdparty/996grid/code/css')
+    src = os.path.join(os.path.dirname(REAL_PATH), 'css')
 
     shutil.rmtree('css', True)
     shutil.copytree(src, 'css')
