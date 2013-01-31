@@ -6,8 +6,9 @@ setup(name='PaGE',
       author_email='delaurentis@gmail.com',
       url='https://github.com/itmat/PaGE',
       scripts=['bin/page'],
-      packages=['page', 'page.css'],
+      packages=['page', 'page.css', 'page.templates'],
       requires=['jinja2', 'matplotlib', 'scipy', 'numpy', 'yaml'],
       package_data={
-        'page.css' : ['*.css']}
+        'page.css' : ['*.css'],
+        'page.templates' : ['*']}
       )
