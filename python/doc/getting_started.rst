@@ -203,3 +203,7 @@ reduced model). Please see ``page run -h`` for more details.
 You can change the number of samples used for bootstrapping (or the
 permutation test) with ``--num-samples`` or ``-R``.
 
+By default PaGE prints very little output; just a report at the end
+showing the distribution of the confidence levels. You can make it be
+more verbose with the ``--verbose`` or ``-v`` option. It will print
+even more debugging-level output if you give it ``--debug`` or ``-d``.
