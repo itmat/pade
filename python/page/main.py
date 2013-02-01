@@ -12,6 +12,7 @@ import logging
 import matplotlib.pyplot as plt
 import numpy.ma as ma
 import numpy as np
+from numpy.lib.recfunctions import append_fields
 import os
 import shutil
 from itertools import combinations, product
@@ -327,7 +328,7 @@ def do_run(args):
                         summary_bins=fdr.summary_bins,
                         summary_counts=summary_counts))
 
-        print_profile()
+            print_profile(job)
 
 
         print """
@@ -698,14 +699,32 @@ class Job:
         del table
         del ids
 
-def print_profile():
+def print_profile(job):
 
     walked = walk_profile()
     env = jinja2.Environment(loader=jinja2.PackageLoader('page'))
     setup_css(env)
     template = env.get_template('profile.html')
     with open('profile.html', 'w') as out:
+        logging.info("Saving profile")
         out.write(template.render(profile=walked))
+
+    fmt = []
+    fmt += ["%d", "%d", "%s", "%f", "%f", "%f", "%f", "%f", "%f"]
+    fmt += ["%d", "%d"]
+
+    features = [ len(job.table) for row in walked ]
+    samples  = [ len(job.table[0]) for row in walked ]
+
+    print "row is", len(walked[0]), ", fmt is", len(fmt)
+    walked = append_fields(walked, names='features', data=features)
+    walked = append_fields(walked, names='samples', data=samples)
+
+
+    with open('../profile.txt', 'w') as out:
+        out.write("\t".join(walked.dtype.names) + "\n")
+        np.savetxt(out, walked, fmt=fmt)
+
 
 def main():
     """Run pageseq."""

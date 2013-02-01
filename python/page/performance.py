@@ -5,6 +5,7 @@
 import contextlib
 import resource
 import numpy as np
+import time
 
 EVENTS = []
 
@@ -17,10 +18,10 @@ def profiling(label):
 
     """
     pre_maxrss = maxrss()
-    EVENTS.append(('enter', label, maxrss()))
+    EVENTS.append(('enter', label, maxrss(), time.time()))
     yield
     post_maxrss = maxrss()
-    EVENTS.append(('exit', label, maxrss()))
+    EVENTS.append(('exit', label, maxrss(), time.time()))
 
 def profiled(method):
     """Decorator for profiling a function."""
@@ -41,13 +42,14 @@ def walk_profile(profile_log=EVENTS):
     events = []
     order = 0
     for entry in profile_log:
-        (event, label, maxrss) = entry
+        (event, label, maxrss, t) = entry
         if event == 'enter':
             stack.append({
                     'order'      : order,
                     'depth'      : len(stack),
                     'label'      : label,
-                    'maxrss_pre' : maxrss })
+                    'maxrss_pre' : maxrss,
+                    'time_pre'   : t})
             order += 1
         elif event == 'exit':
             entry = stack.pop()
@@ -56,6 +58,7 @@ def walk_profile(profile_log=EVENTS):
                     "Expected to pop {0}, got {1} instead".format(
                         label, entry['label']))
             entry['maxrss_post'] = maxrss
+            entry['time_post']   = t
             events.append(entry)
         else:
             raise ProfileStackException(
@@ -67,7 +70,10 @@ def walk_profile(profile_log=EVENTS):
              e['maxrss_pre'], 
              e['maxrss_post'],
              0.0,
-             0.0)
+             0.0,
+             e['time_pre'],
+             e['time_post']
+             )
             for e in events]
 
     dtype=[('depth', int),
@@ -76,7 +82,9 @@ def walk_profile(profile_log=EVENTS):
            ('maxrss_pre', float),
            ('maxrss_post', float),
            ('maxrss_diff', float),
-           ('maxrss_diff_percent', float)]
+           ('maxrss_diff_percent', float),
+           ('time_pre', float),
+           ('time_post', float)]
 
     table = np.array(recs, dtype)
 

@@ -153,8 +153,6 @@ def make_report(args):
     plt.title('Memory usage ' + suffix)
     plt.savefig(os.path.join(args.directory, 'rss'))
 
-
-
     # Plot improvement of running time and memory usage
 
     rss_improvement = rss[:, perl] / rss[:,python]

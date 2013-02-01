@@ -284,7 +284,7 @@ def _binning_accumulator(bins, num_samples):
 
     return Accumulator(initializer, reduce_fn, finalize_fn)
 
-
+@profiled
 def bootstrap(data,
               stat_fn,
               R=1000,
