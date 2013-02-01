@@ -252,10 +252,16 @@ def assignment_name(a):
     parts = ["{0}={1}".format(k, v) for k, v in a.items()]
 
     return ", ".join(parts)
-
-            
-@profiled
+           
 def do_run(args):
+    (job, results) = run_job(args)
+    html_dir = os.path.join(job.directory, "html")
+
+    with chdir(html_dir):
+        print_profile(job)
+ 
+@profiled
+def run_job(args):
 
     with profiling("do_run: prologue"):
 
@@ -328,9 +334,6 @@ def do_run(args):
                         summary_bins=fdr.summary_bins,
                         summary_counts=summary_counts))
 
-            print_profile(job)
-
-
         print """
 Summary of features by confidence level:
 
@@ -346,9 +349,8 @@ Confidence |   Num.
 The full report is available at {0}""".format(
             os.path.join(job.directory, "html/index.html"))
 
-
     save_text_output(job, results)
-
+    return (job, results)
 
 def save_text_output(job, results):
     with chdir(job.directory):
@@ -726,6 +728,7 @@ def print_profile(job):
         np.savetxt(out, walked, fmt=fmt)
 
 
+@profiled
 def main():
     """Run pageseq."""
 
