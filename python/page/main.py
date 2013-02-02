@@ -769,13 +769,13 @@ def print_profile(job):
 def main():
     """Run pageseq."""
 
+    args = get_arguments()
+
     logging.basicConfig(level=logging.DEBUG,
                         format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
                         datefmt='%Y-%m-%d %H:%M:%S',
-                        filename='page.log',
+                        filename=args.log,
                         filemode='w')
-
-    args = get_arguments()
 
     console = logging.StreamHandler()
     formatter = logging.Formatter('%(levelname)-8s %(message)s')
@@ -967,6 +967,10 @@ schema.yaml file, then run 'page.py run ...'.""")
         '--debug', '-d', 
         action='store_true',
         help="Print debugging information")
+    parents.add_argument(
+        '--log',
+        default="page.log",
+        help="Location of log file")
     parents.add_argument(
         '--directory', '-D',
         default=Job.DEFAULT_DIRECTORY,
