@@ -385,7 +385,11 @@ def save_text_output(job, results):
             row = []
             row.append(job.feature_ids[i])
             row.append(results.stats[idxs[i], i])
+            for j in range(len(DEFAULT_TUNING_PARAMS)):
+                row.append(results.stats[j, i])
             row.append(results.scores[idxs[i], i])
+            for j in range(len(DEFAULT_TUNING_PARAMS)):
+                row.append(results.scores[j, i])
             row.extend(results.means[i])
             row.extend(results.coeffs[i])
             row.extend(job.table[i])
@@ -398,8 +402,13 @@ def save_text_output(job, results):
             cols.append(Col(name, dtype, format))
 
         add_col(schema.feature_id_column_names[0], object, "%s")
-        add_col('stat', float, "%f")
-        add_col('score', float, "%f")
+        add_col('best_stat', float, "%f")
+        for i, alpha in enumerate(DEFAULT_TUNING_PARAMS):
+            add_col('stat_' + str(alpha), float, "%f")
+
+        add_col('best_score', float, "%f")
+        for i, alpha in enumerate(DEFAULT_TUNING_PARAMS):
+            add_col('score_' + str(alpha), float, "%f")
 
         for name in results.group_names:
             add_col("mean: " + name, float, "%f")
