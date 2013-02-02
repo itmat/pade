@@ -193,7 +193,7 @@ def do_fdr(job):
         fdr.raw_counts, fdr.baseline_counts, np.shape(raw_stats)[-1])
     fdr.feature_to_score = assign_scores_to_features(
         fdr.raw_stats, fdr.bins, fdr.bin_to_score)
-    fdr.summary_bins = np.linspace(0.5, 1.0, 11)
+    fdr.summary_bins = np.linspace(job.min_conf, 1.0, job.conf_levels)
     fdr.summary_counts = page.stat.cumulative_hist(
         fdr.feature_to_score, fdr.summary_bins)
 
@@ -282,7 +282,9 @@ def run_job(args):
             full_model=args.full_model,
             reduced_model=args.reduced_model,
             sample_from=args.sample_from,
-            sample_method=args.sample_method)
+            sample_method=args.sample_method,
+            min_conf=args.min_conf,
+            conf_levels=args.conf_levels)
 
         num_features = len(job.table)
         fitted = job.full_model.fit(job.table)
@@ -519,12 +521,17 @@ class Job:
                  num_samples=None,
                  sample_from=None,
                  sample_method=None,
-                 schema=None
+                 schema=None,
+                 min_conf=None,
+                 conf_levels=None
                  ):
         self.directory = directory
         self.stat_name = stat
         self._table = None
         self._feature_ids = None
+
+        self.min_conf = min_conf
+        self.conf_levels = conf_levels
 
         # FDR configuration
         self.num_bins = num_bins
@@ -916,6 +923,17 @@ def add_fdr_args(p):
         choices=['perm', 'boot'],
         help="""Whether to use a permutation test or bootstrapping to estimate confidence levels."""),
 
+    grp.add_argument(
+        '--min-conf',
+        default=0.5,
+        type=float,
+        help="Smallest confidence level to report")
+
+    grp.add_argument(
+        '--conf-levels',
+        default=11,
+        type=int,
+        help="Number of confidence levels to show")
 
 
 def get_arguments():
