@@ -144,6 +144,8 @@ def do_fdr(job):
     stat = job.stat
     raw_stats = stat(data)
 
+    logging.debug("Shape of raw stats is " + str(np.shape(raw_stats)))
+
     fdr = FdrResults()
     fdr.bins = page.stat.bins_uniform(job.num_bins, raw_stats)
 
@@ -255,9 +257,7 @@ def assignment_name(a):
            
 def do_run(args):
     (job, results) = run_job(args)
-    html_dir = os.path.join(job.directory, "html")
-
-    with chdir(html_dir):
+    with chdir(job.html_directory):
         print_profile(job)
  
 @profiled
@@ -283,6 +283,9 @@ def run_job(args):
 
     fdr = do_fdr(job)
 
+    logging.info("Saving histograms of f-test values")
+    
+
     with profiling("do_report: build results table"):
 
         results = ResultTable(
@@ -295,9 +298,8 @@ def run_job(args):
             scores=fdr.feature_to_score)
 
     with profiling('do_report: build report'):
-        html_dir = os.path.join(job.directory, "html")
-        makedirs(html_dir)
-        with chdir(html_dir):
+        makedirs(job.html_directory)
+        with chdir(job.html_directory):
             extra = "\nstat " + job.stat_name + ", sampling " + job.sample_from
 #           plot_counts_by_stat(fdr, extra=extra)
 #           plot_conf_by_stat(fdr, extra=extra)
@@ -580,6 +582,14 @@ class Job:
     @property
     def num_features(self):
         return len(self.feature_ids)
+
+    @property
+    def html_directory(self):
+        return os.path.join(self.directory, 'html')
+
+    @property
+    def images_directory(self):
+        return os.path.join(self.directory, 'images')
 
     @property
     def data_directory(self):
