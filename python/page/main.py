@@ -45,6 +45,15 @@ class UsageException(Exception):
 ### Plotting and reporting
 ### 
 
+def plot_stat_dist(job, fdr):
+    logging.info("Saving histograms of " + job.stat.name + " values")
+    with chdir(job.images_directory):
+        for i, alpha in enumerate(DEFAULT_TUNING_PARAMS):
+            with figure("raw_stats_" + str(i)):
+                plt.hist(fdr.raw_stats[i], log=False, bins=250)
+                plt.title(job.stat.name + " distribution over features")
+                plt.xlabel(job.stat.name + " value")
+                plt.ylabel("Features")
 
 def plot_conf_by_stat(fdr, filename='conf_by_stat',
                       extra=None):
@@ -253,13 +262,6 @@ def do_run(args):
     (job, results) = run_job(args)
     with chdir(job.html_directory):
         print_profile(job)
-
-def plot_stat_dist(job, fdr):
-    logging.info("Saving histograms of f-test values")
-    with chdir(job.images_directory):
-        for i, alpha in enumerate(DEFAULT_TUNING_PARAMS):
-            with figure("raw_stats_" + str(i)):
-                plt.hist(fdr.raw_stats[i], log=True, bins=250)
 
  
 @profiled

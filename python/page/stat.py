@@ -71,6 +71,9 @@ def rss(data):
     return double_sum((data  - y)  ** 2)
 
 class Ftest:
+
+    name = "F-test"
+
     """Computes the F-test.
 
     Some sample data
