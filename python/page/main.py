@@ -45,15 +45,18 @@ class UsageException(Exception):
 ### Plotting and reporting
 ### 
 
+StatDistPlot=namedtuple('StatDistPlot', ['tuning_param', 'filename'])
+
 def plot_stat_dist(job, fdr):
     logging.info("Saving histograms of " + job.stat.name + " values")
-    with chdir(job.images_directory):
-        for i, alpha in enumerate(DEFAULT_TUNING_PARAMS):
-            with figure("raw_stats_" + str(i)):
-                plt.hist(fdr.raw_stats[i], log=False, bins=250)
-                plt.title(job.stat.name + " distribution over features")
-                plt.xlabel(job.stat.name + " value")
-                plt.ylabel("Features")
+    for i, alpha in enumerate(DEFAULT_TUNING_PARAMS):
+        filename = "images/raw_stats_" + str(i) + ".png"
+        with figure(filename):
+            plt.hist(fdr.raw_stats[i], log=False, bins=250)
+            plt.title(job.stat.name + " distribution over features, $\\alpha = " + str(alpha) + "$")
+            plt.xlabel(job.stat.name + " value")
+            plt.ylabel("Features")
+            yield StatDistPlot(alpha, filename)
 
 def plot_conf_by_stat(fdr, filename='conf_by_stat',
                       extra=None):
@@ -288,7 +291,6 @@ def run_job(args):
     fdr = do_fdr(job)
 
     make_job_dirs(job)
-    plot_stat_dist(job, fdr)
 
     with profiling("do_report: build results table"):
 
@@ -338,6 +340,12 @@ def run_job(args):
                         results=results,
                         summary_bins=fdr.summary_bins,
                         summary_counts=summary_counts))
+
+        with chdir(job.directory):
+            stat_dist_template = env.get_template('stat_dist.html')
+            with open('html/stat_dist.html', 'w') as out:
+                out.write(stat_dist_template.render(
+                        plots=plot_stat_dist(job, fdr)))
 
         print """
 Summary of features by confidence level:
@@ -495,8 +503,6 @@ def get_group_means(schema, data):
 ###
 ### Classes
 ###
-
-
 
 class Job:
 
