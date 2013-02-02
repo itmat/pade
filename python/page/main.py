@@ -29,7 +29,7 @@ from page.stat import random_indexes, random_orderings, residuals, group_means
 REAL_PATH = os.path.realpath(__file__)
 RAW_VALUE_DTYPE = float
 FEATURE_ID_DTYPE = 'S10'
-
+DEFAULT_TUNING_PARAMS=np.array([0.001, 0.01, 0.1, 1, 3])
 
 ##############################################################################
 ###
@@ -78,12 +78,6 @@ def plot_counts_by_stat(fdr, filename='counts_by_stat', extra=None):
         plt.xlabel('Statistic value')
         plt.ylabel('Features with statistic >= value')
         plt.legend()
-
-
-def plot_raw_stat_hist(stats):
-    """Plot the distribution of the given statistic values."""
-    with figure("raw_stats"):
-        plt.hist(stats, log=True, bins=250)
 
 
 def setup_css(env):
@@ -259,6 +253,14 @@ def do_run(args):
     (job, results) = run_job(args)
     with chdir(job.html_directory):
         print_profile(job)
+
+def plot_stat_dist(job, fdr):
+    logging.info("Saving histograms of f-test values")
+    with chdir(job.images_directory):
+        for i, alpha in enumerate(DEFAULT_TUNING_PARAMS):
+            with figure("raw_stats_" + str(i)):
+                plt.hist(fdr.raw_stats[i], log=True, bins=250)
+
  
 @profiled
 def run_job(args):
@@ -283,8 +285,8 @@ def run_job(args):
 
     fdr = do_fdr(job)
 
-    logging.info("Saving histograms of f-test values")
-    
+    make_job_dirs(job)
+    plot_stat_dist(job, fdr)
 
     with profiling("do_report: build results table"):
 
@@ -298,7 +300,6 @@ def run_job(args):
             scores=fdr.feature_to_score)
 
     with profiling('do_report: build report'):
-        makedirs(job.html_directory)
         with chdir(job.html_directory):
             extra = "\nstat " + job.stat_name + ", sampling " + job.sample_from
 #           plot_counts_by_stat(fdr, extra=extra)
@@ -625,7 +626,7 @@ class Job:
             return page.stat.Ftest(
                 layout_full=self.full_model.layout,
                 layout_reduced=self.reduced_model.layout,
-                alphas=np.array([0.001, 0.01, 0.1, 1, 3]))
+                alphas=DEFAULT_TUNING_PARAMS)
         elif self.stat_name == 'f_sqrt':
             return page.stat.FtestSqrt(
                 layout_full=self.full_model.layout,
@@ -795,6 +796,13 @@ def init_schema(infile=None):
         is_sample=is_sample,
         column_names=headers)
 
+def make_job_dirs(job):
+    for d in [job.data_directory,
+              job.html_directory,
+              job.images_directory]:
+        makedirs(d)
+    
+
 def init_job(infile, factors, directory, force=False):
 
     if isinstance(infile, str):
@@ -805,7 +813,7 @@ def init_job(infile, factors, directory, force=False):
         schema.add_factor(name, values)
 
     job = Job(directory, schema=schema)
-    makedirs(job.data_directory)
+    make_job_dirs(job)
 
     mode = 'w' if force else 'wx'
     try:
