@@ -49,6 +49,7 @@ StatDistPlot=namedtuple('StatDistPlot', ['tuning_param', 'filename'])
 
 def plot_stat_dist(job, fdr):
     logging.info("Saving histograms of " + job.stat.name + " values")
+    max_stat = np.max(fdr.raw_stats)
     for i, alpha in enumerate(DEFAULT_TUNING_PARAMS):
         filename = "images/raw_stats_" + str(i) + ".png"
         with figure(filename):
@@ -56,6 +57,7 @@ def plot_stat_dist(job, fdr):
             plt.title(job.stat.name + " distribution over features, $\\alpha = " + str(alpha) + "$")
             plt.xlabel(job.stat.name + " value")
             plt.ylabel("Features")
+            plt.xlim(0, max_stat)
             yield StatDistPlot(alpha, filename)
 
 def plot_conf_by_stat(fdr, filename='conf_by_stat',
