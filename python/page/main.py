@@ -28,7 +28,7 @@ from page.stat import random_indexes, random_orderings, residuals, group_means
 
 REAL_PATH = os.path.realpath(__file__)
 RAW_VALUE_DTYPE = float
-FEATURE_ID_DTYPE = 'S10'
+FEATURE_ID_DTYPE = 'S64'
 DEFAULT_TUNING_PARAMS=np.array([0.001, 0.01, 0.1, 1, 3])
 
 ##############################################################################
