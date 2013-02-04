@@ -10,9 +10,7 @@ from page.main import *
 class CommonTest(unittest.TestCase):
 
     def setUp(self):
-
-
-        self.sample_input_4_class = "sample_data/4_class_testdata_header1.txt"
+        self.sample_input_4_class = "sample_data/sample_data_4_class.txt"
 
     @property
     def factor_map_treated_sex(self):
