@@ -12,6 +12,7 @@ import logging
 import matplotlib.pyplot as plt
 import numpy.ma as ma
 import numpy as np
+import h5py
 from numpy.lib.recfunctions import append_fields
 import os
 import shutil
@@ -133,56 +134,6 @@ def predicted_values(job):
     return prediction
 
 
-@profiled
-def do_fdr(job):
-
-    data = job.source.table
-    stat = job.stat
-    raw_stats = stat(data)
-
-    logging.debug("Shape of raw stats is " + str(np.shape(raw_stats)))
-
-    job.bins = page.stat.bins_uniform(job.num_bins, raw_stats)
-
-    job.save_sample_indexes(job.new_sample_indexes())
-
-    if job.sample_from == 'residuals':
-        logging.info("Bootstrapping based on residuals")
-        prediction = predicted_values(job)
-        diffs      = data - prediction
-        job.baseline_counts = page.stat.bootstrap(
-            # data,
-            prediction,
-            stat, 
-            indexes=job.sample_indexes,
-            residuals=diffs,
-            bins=job.bins)
-    else:
-        logging.info("Using raw data")
-        # Shift all values in the data by the means of the groups from
-        # the full model, so that the mean of each group is 0.
-        # perm, raw, shifted: 113, 29
-        # boot, raw, shifted: 103, 24
-        # boot, residuals: 113, 32
-        # perm, raw, unshifted: 113, 29
-        # boot, raw, unshifted: 103, 24
-        shifted = residuals(data, job.full_model.layout)
-
-        job.baseline_counts = page.stat.bootstrap(
-            shifted,
-            stat, 
-            indexes=job.sample_indexes,
-            bins=job.bins)
-
-    job.raw_stats    = raw_stats
-    job.raw_counts   = page.stat.cumulative_hist(job.raw_stats, job.bins)
-    job.bin_to_score = confidence_scores(
-        job.raw_counts, job.baseline_counts, np.shape(raw_stats)[-1])
-    job.feature_to_score = assign_scores_to_features(
-        job.raw_stats, job.bins, job.bin_to_score)
-    job.summary_bins = np.linspace(job.min_conf, 1.0, job.conf_levels)
-    job.summary_counts = page.stat.cumulative_hist(
-        job.feature_to_score, job.summary_bins)
 
 
 class ResultTable:
@@ -251,6 +202,8 @@ def assignment_name(a):
            
 def do_run(args):
     (job, results) = run_job(args)
+    make_report(job, results, args.rows_per_page)
+
     with chdir(job.html_directory):
         print_profile(job)
 
@@ -278,20 +231,20 @@ def run_job(args):
     fitted = job.full_model.fit(job.source.table)
     means = get_group_means(job.source.schema, job.source.table)
 
-    results = None
+    job.run()
 
-    do_fdr(job)
+    results = ResultTable(
+        means=means,
+        coeffs=fitted.params,
+        group_names=[assignment_name(a) for a in job.source.schema.possible_assignments()],
+        param_names=[assignment_name(a) for a in fitted.labels],
+        feature_ids=np.array(job.source.feature_ids),
+        stats=job.raw_stats,
+        scores=job.feature_to_score)
 
-    with profiling("do_report: build results table"):
+    return (job, results)
 
-        results = ResultTable(
-            means=means,
-            coeffs=fitted.params,
-            group_names=[assignment_name(a) for a in job.source.schema.possible_assignments()],
-            param_names=[assignment_name(a) for a in fitted.labels],
-            feature_ids=np.array(job.source.feature_ids),
-            stats=job.raw_stats,
-            scores=job.feature_to_score)
+def make_report(job, results, rows_per_page):
 
     with profiling('do_report: build report'):
         makedirs(job.html_directory)
@@ -308,7 +261,7 @@ def run_job(args):
                 score=job.summary_bins[level]
                 filtered = results.filter_by_score(score)
                 summary_counts[level] = len(filtered)
-                pages = list(filtered.pages(args.rows_per_page))
+                pages = list(filtered.pages(rows_per_page))
                 for page_num, page in enumerate(pages):
                     with open('conf_level_{0}_page_{1}.html'.format(level, page_num), 'w') as out:
                         out.write(template.render(
@@ -649,6 +602,8 @@ class Job:
         self.reduced_model = Model(self.source.schema, reduced_model)
         self._sample_indexes = None
 
+        self.file = h5py.File('job.hdf5')
+
         # Results
         self.bins = None
         self.raw_counts = None
@@ -658,7 +613,6 @@ class Job:
         self.raw_stats = None
         self.summary_bins = None
         self.summary_counts = None
-
 
 
     def save_sample_indexes(self, indexes):
@@ -732,6 +686,58 @@ class Job:
                 layout_reduced=self.reduced_model.layout)
         elif self.stat_name == 't':
             return Ttest(alpha=1.0)
+
+    @profiled
+    def run(self):
+
+        data = self.source.table
+        stat = self.stat
+        raw_stats = stat(data)
+
+        logging.debug("Shape of raw stats is " + str(np.shape(raw_stats)))
+
+        self.bins = page.stat.bins_uniform(self.num_bins, raw_stats)
+
+        self.save_sample_indexes(self.new_sample_indexes())
+
+        if self.sample_from == 'residuals':
+            logging.info("Bootstrapping based on residuals")
+            prediction = predicted_values(self)
+            diffs      = data - prediction
+            self.baseline_counts = page.stat.bootstrap(
+                # data,
+                prediction,
+                stat, 
+                indexes=self.sample_indexes,
+                residuals=diffs,
+                bins=self.bins)
+        else:
+            logging.info("Using raw data")
+            # Shift all values in the data by the means of the groups from
+            # the full model, so that the mean of each group is 0.
+            # perm, raw, shifted: 113, 29
+            # boot, raw, shifted: 103, 24
+            # boot, residuals: 113, 32
+            # perm, raw, unshifted: 113, 29
+            # boot, raw, unshifted: 103, 24
+            shifted = residuals(data, self.full_model.layout)
+
+            self.baseline_counts = page.stat.bootstrap(
+                shifted,
+                stat, 
+                indexes=self.sample_indexes,
+                bins=self.bins)
+
+        self.raw_stats    = raw_stats
+        self.raw_counts   = page.stat.cumulative_hist(self.raw_stats, self.bins)
+        self.bin_to_score = confidence_scores(
+            self.raw_counts, self.baseline_counts, np.shape(raw_stats)[-1])
+        self.feature_to_score = assign_scores_to_features(
+            self.raw_stats, self.bins, self.bin_to_score)
+        self.summary_bins = np.linspace(self.min_conf, 1.0, self.conf_levels)
+        self.summary_counts = page.stat.cumulative_hist(
+            self.feature_to_score, self.summary_bins)
+
 
 class Report:
 
