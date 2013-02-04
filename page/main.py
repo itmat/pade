@@ -135,7 +135,7 @@ def predicted_values(job):
     defined by the reduced model.
 
     """
-    data = job.table
+    data = job.source.table
     prediction = np.zeros_like(data)
 
     for grp in job.reduced_model.layout:
@@ -148,7 +148,7 @@ def predicted_values(job):
 @profiled
 def do_fdr(job):
 
-    data = job.table
+    data = job.source.table
     stat = job.stat
     raw_stats = stat(data)
 
@@ -274,8 +274,11 @@ def run_job(args):
 
     with profiling("do_run: prologue"):
 
+        source = SourceData(args.source_directory)
+
         job = Job(
-            directory=args.directory,
+            directory=args.job_directory,
+            source=source,
             stat=args.stat,
             num_bins=args.num_bins,
             num_samples=args.num_samples,
@@ -286,24 +289,25 @@ def run_job(args):
             min_conf=args.min_conf,
             conf_levels=args.conf_levels)
 
-        num_features = len(job.table)
-        fitted = job.full_model.fit(job.table)
-        means = get_group_means(job.schema, job.table)
+        makedirs(job.directory)
+        makedirs(job.directory + "/html")
+
+        num_features = len(job.source.table)
+        fitted = job.full_model.fit(job.source.table)
+        means = get_group_means(job.source.schema, job.source.table)
 
     results = None
 
     fdr = do_fdr(job)
-
-    make_job_dirs(job)
 
     with profiling("do_report: build results table"):
 
         results = ResultTable(
             means=means,
             coeffs=fitted.params,
-            group_names=[assignment_name(a) for a in job.schema.possible_assignments()],
+            group_names=[assignment_name(a) for a in job.source.schema.possible_assignments()],
             param_names=[assignment_name(a) for a in fitted.labels],
-            feature_ids=np.array(job.feature_ids),
+            feature_ids=np.array(job.source.feature_ids),
             stats=fdr.raw_stats,
             scores=fdr.feature_to_score)
 
@@ -371,7 +375,7 @@ The full report is available at {0}""".format(
 
 def save_text_output(job, results):
     with chdir(job.directory):
-        (num_rows, num_cols) = job.table.shape
+        (num_rows, num_cols) = job.source.table.shape
         num_cols += 2
         table = np.zeros((num_rows, num_cols))
         idxs = np.argmax(results.scores, axis=0)
@@ -381,9 +385,9 @@ def save_text_output(job, results):
 
         # For each row in the data, add feature id, stat, score, group
         # means, and raw values.
-        for i in range(len(job.table)):
+        for i in range(len(job.source.table)):
             row = []
-            row.append(job.feature_ids[i])
+            row.append(job.source.feature_ids[i])
             row.append(results.stats[idxs[i], i])
             for j in range(len(DEFAULT_TUNING_PARAMS)):
                 row.append(results.stats[j, i])
@@ -392,9 +396,9 @@ def save_text_output(job, results):
                 row.append(results.scores[j, i])
             row.extend(results.means[i])
             row.extend(results.coeffs[i])
-            row.extend(job.table[i])
+            row.extend(job.source.table[i])
             table.append(tuple(row))
-        schema = job.schema
+        schema = job.source.schema
 
         cols = []
         Col = namedtuple("Col", ['name', 'dtype', 'format'])
@@ -517,90 +521,27 @@ def get_group_means(schema, data):
 ### Classes
 ###
 
-class Job:
+class SourceData:
 
-    DEFAULT_DIRECTORY = "pageseq_out"
+    DEFAULT_DIRECTORY = "page_source"
 
     def __init__(self, 
-                 directory, 
-                 stat=None,
-                 full_model=None,
-                 reduced_model=None,
-                 num_bins=None,
-                 num_samples=None,
-                 sample_from=None,
-                 sample_method=None,
+                 directory=DEFAULT_DIRECTORY,
                  schema=None,
-                 min_conf=None,
-                 conf_levels=None
+                 
                  ):
         self.directory = directory
-        self.stat_name = stat
+
+        # This will be populated lazily by the table and feature_ids
+        # properties
         self._table = None
         self._feature_ids = None
-
-        self.min_conf = min_conf
-        self.conf_levels = conf_levels
-
-        # FDR configuration
-        self.num_bins = num_bins
-        self.num_samples = num_samples
-        self.sample_from = sample_from
-        self.sample_method = sample_method
 
         if schema is None:
             self.schema = Schema.load(open(self.schema_path))
         else:
             self.schema = schema
 
-        self.full_model    = Model(self.schema, full_model)
-        self.reduced_model = Model(self.schema, reduced_model)
-
-        self._sample_indexes = None
-
-    def save_sample_indexes(self, indexes):
-        self._sample_indexes = indexes
-        np.save(self.sample_indexes_path, indexes)
-
-    def new_sample_indexes(self):
-
-        method = (self.sample_method, self.sample_from)
-        
-        full = self.full_model
-        reduced = self.reduced_model
-        R = self.num_samples
-
-        if method == ('perm', 'raw'):
-            logging.info("Creating max of {0} random permutations".format(R))
-            return list(random_orderings(full.layout, reduced.layout, R))
-
-        elif method == ('boot', 'raw'):
-            logging.info("Bootstrapping raw values, within groups defined by '" + 
-                         str(reduced.expr) + "'")
-            return random_indexes(reduced.layout, R)
-        
-        elif method == ('boot', 'residuals'):
-            logging.info("Bootstrapping using samples constructed from residuals, not using groups")
-            return random_indexes(
-                [ sorted(self.schema.sample_name_index.values()) ], R)
-
-        else:
-            raise UsageException("Invalid sampling method")
-
-    @property
-    def sample_indexes(self):
-        logging.debug("In Job.sample_indexes")
-        if self._sample_indexes is None:
-            path = self.sample_indexes_path
-
-            logging.debug("_sample_indexes is none; initializing. Looking at " + 
-                          path)
-            if os.path.exists(path):
-                logging.debug("Found sample indexes to load")
-                self._sample_indexes = np.load(path)
-            else:
-                logging.debug("Sample indexes aren't created yet")
-        return self._sample_indexes
 
     def save_schema(self, mode):
         out = open(self.schema_path, mode)
@@ -610,55 +551,19 @@ class Job:
     def num_features(self):
         return len(self.feature_ids)
 
-    @property
-    def html_directory(self):
-        return os.path.join(self.directory, 'html')
-
-    @property
-    def images_directory(self):
-        return os.path.join(self.directory, 'images')
-
-    @property
-    def data_directory(self):
-        return os.path.join(self.directory, 'data')
 
     @property
     def table_path(self):
-        return os.path.join(self.data_directory, 'table.npy')
+        return os.path.join(self.directory, 'table.npy')
 
     @property
     def feature_ids_path(self):
-        return os.path.join(self.data_directory, 'feature_ids.npy')
-
-    @property
-    def sample_indexes_path(self):
-        """Path to table of sample indexes"""
-        return os.path.join(self.data_directory, 'sample_indexes.npy')
+        return os.path.join(self.directory, 'feature_ids.npy')
 
     @property
     def schema_path(self):
         """The path to the schema."""
         return os.path.join(self.directory, 'schema.yaml')
-
-    @property
-    def input_path(self):
-        """Path to the input file."""
-        return os.path.join(self.directory, 'input.txt')
-    
-    @property
-    def stat(self):
-        """The statistic used for this job."""
-        if self.stat_name == 'f':
-            return page.stat.Ftest(
-                layout_full=self.full_model.layout,
-                layout_reduced=self.reduced_model.layout,
-                alphas=DEFAULT_TUNING_PARAMS)
-        elif self.stat_name == 'f_sqrt':
-            return page.stat.FtestSqrt(
-                layout_full=self.full_model.layout,
-                layout_reduced=self.reduced_model.layout)
-        elif self.stat_name == 't':
-            return Ttest(alpha=1.0)
 
     @property
     def table(self):
@@ -673,9 +578,6 @@ class Job:
                 dtype=RAW_VALUE_DTYPE)
         return self._table
 
-    @property
-    def swapped_table(self):
-        return self._table.swapaxes(0, )
 
     @property
     def feature_ids(self):
@@ -738,6 +640,121 @@ class Job:
         del table
         del ids
 
+
+class Job:
+
+    DEFAULT_DIRECTORY = "page_job"
+
+    def __init__(self, 
+                 source=None,
+                 directory=None, 
+                 stat=None,
+                 full_model=None,
+                 reduced_model=None,
+                 num_bins=None,
+                 num_samples=None,
+                 sample_from=None,
+                 sample_method=None,
+                 min_conf=None,
+                 conf_levels=None
+                 ):
+
+        self.source = source
+        self.directory = directory
+        self.stat_name = stat
+
+        self.min_conf = min_conf
+        self.conf_levels = conf_levels
+
+        # FDR configuration
+        self.num_bins = num_bins
+        self.num_samples = num_samples
+        self.sample_from = sample_from
+        self.sample_method = sample_method
+
+        self.full_model    = Model(self.source.schema, full_model)
+        self.reduced_model = Model(self.source.schema, reduced_model)
+
+        self._sample_indexes = None
+
+    def save_sample_indexes(self, indexes):
+        self._sample_indexes = indexes
+        np.save(self.sample_indexes_path, indexes)
+
+    def new_sample_indexes(self):
+
+        method = (self.sample_method, self.sample_from)
+        
+        full = self.full_model
+        reduced = self.reduced_model
+        R = self.num_samples
+
+        if method == ('perm', 'raw'):
+            logging.info("Creating max of {0} random permutations".format(R))
+            return list(random_orderings(full.layout, reduced.layout, R))
+
+        elif method == ('boot', 'raw'):
+            logging.info("Bootstrapping raw values, within groups defined by '" + 
+                         str(reduced.expr) + "'")
+            return random_indexes(reduced.layout, R)
+        
+        elif method == ('boot', 'residuals'):
+            logging.info("Bootstrapping using samples constructed from residuals, not using groups")
+            return random_indexes(
+                [ sorted(self.schema.sample_name_index.values()) ], R)
+
+        else:
+            raise UsageException("Invalid sampling method")
+
+    @property
+    def sample_indexes(self):
+        logging.debug("In Job.sample_indexes")
+        if self._sample_indexes is None:
+            path = self.sample_indexes_path
+
+            logging.debug("_sample_indexes is none; initializing. Looking at " + 
+                          path)
+            if os.path.exists(path):
+                logging.debug("Found sample indexes to load")
+                self._sample_indexes = np.load(path)
+            else:
+                logging.debug("Sample indexes aren't created yet")
+        return self._sample_indexes
+
+    @property
+    def html_directory(self):
+        return os.path.join(self.directory, 'html')
+
+    @property
+    def images_directory(self):
+        return os.path.join(self.directory, 'images')
+
+    @property
+    def sample_indexes_path(self):
+        """Path to table of sample indexes"""
+        return os.path.join(self.directory, 'sample_indexes.npy')
+
+    @property
+    def input_path(self):
+        """Path to the input file."""
+        return os.path.join(self.directory, 'input.txt')
+    
+    @property
+    def stat(self):
+        """The statistic used for this job."""
+        if self.stat_name == 'f':
+            return page.stat.Ftest(
+                layout_full=self.full_model.layout,
+                layout_reduced=self.reduced_model.layout,
+                alphas=DEFAULT_TUNING_PARAMS)
+        elif self.stat_name == 'f_sqrt':
+            return page.stat.FtestSqrt(
+                layout_full=self.full_model.layout,
+                layout_reduced=self.reduced_model.layout)
+        elif self.stat_name == 't':
+            return Ttest(alpha=1.0)
+
+
 def print_profile(job):
 
     walked = walk_profile()
@@ -752,8 +769,8 @@ def print_profile(job):
     fmt += ["%d", "%d", "%s", "%f", "%f", "%f", "%f", "%f", "%f"]
     fmt += ["%d", "%d"]
 
-    features = [ len(job.table) for row in walked ]
-    samples  = [ len(job.table[0]) for row in walked ]
+    features = [ len(job.source.table) for row in walked ]
+    samples  = [ len(job.source.table[0]) for row in walked ]
 
     print "row is", len(walked[0]), ", fmt is", len(fmt)
     walked = append_fields(walked, names='features', data=features)
@@ -823,11 +840,11 @@ def init_schema(infile=None):
         column_names=headers)
 
 def make_job_dirs(job):
-    for d in [job.data_directory,
+    for d in [job.directory,
               job.html_directory,
               job.images_directory]:
         makedirs(d)
-    
+
 
 def init_job(infile, factors, directory, force=False):
 
@@ -838,36 +855,36 @@ def init_job(infile, factors, directory, force=False):
     for name, values in factors.items():
         schema.add_factor(name, values)
 
-    job = Job(directory, schema=schema)
-    make_job_dirs(job)
+    source = SourceData(directory, schema=schema)
+    makedirs(source.directory)
 
     mode = 'w' if force else 'wx'
     try:
-        job.save_schema(mode)
+        source.save_schema(mode)
     except IOError as e:
         if e.errno == errno.EEXIST:
             raise UsageException("""\
                    The schema file \"{}\" already exists. If you want to
                    overwrite it, use the --force or -f argument.""".format(
-                    job.schema_path))
+                    source.schema_path))
         raise e
 
-    job.copy_table(infile.name)
+    source.copy_table(infile.name)
 
-    return job
+    return source
 
 @profiled
 def do_setup(args):
-    job = init_job(
+    source = init_job(
         infile=args.infile,
-        directory=args.directory,
+        directory=args.source_directory,
         factors={f : None for f in args.factor},
         force=args.force)
 
     print fix_newlines("""
 I have generated a schema for your input file, with factors {factors}, and saved it to "{filename}". You should now edit that file to set the factors for each sample. The file contains instructions on how to edit it.
-""").format(factors=job.schema.factors.keys(),
-            filename=job.schema_path)
+""").format(factors=source.schema.factors.keys(),
+            filename=source.schema_path)
 
 def add_reporting_args(p):
     grp = p.add_argument_group(
@@ -972,9 +989,13 @@ schema.yaml file, then run 'page.py run ...'.""")
         default="page.log",
         help="Location of log file")
     parents.add_argument(
-        '--directory', '-D',
+        '--source-directory', '-S',
+        default=SourceData.DEFAULT_DIRECTORY,
+        help="The directory that contains the source data and schema"),
+    parents.add_argument(
+        '--job-directory', '-J',
         default=Job.DEFAULT_DIRECTORY,
-        help="The directory to store the output data")
+        help="The directory that contains the intermediate results")
 
     # Create setup parser
     setup_parser = subparsers.add_parser(
