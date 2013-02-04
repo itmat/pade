@@ -12,6 +12,7 @@ import logging
 import matplotlib.pyplot as plt
 import numpy.ma as ma
 import numpy as np
+from numpy.lib.recfunctions import append_fields
 import os
 import shutil
 from itertools import combinations, product
@@ -27,8 +28,8 @@ from page.stat import random_indexes, random_orderings, residuals, group_means
 
 REAL_PATH = os.path.realpath(__file__)
 RAW_VALUE_DTYPE = float
-FEATURE_ID_DTYPE = 'S10'
-
+FEATURE_ID_DTYPE = 'S64'
+DEFAULT_TUNING_PARAMS=np.array([0.001, 0.01, 0.1, 1, 3])
 
 ##############################################################################
 ###
@@ -44,6 +45,20 @@ class UsageException(Exception):
 ### Plotting and reporting
 ### 
 
+StatDistPlot=namedtuple('StatDistPlot', ['tuning_param', 'filename'])
+
+def plot_stat_dist(job, fdr):
+    logging.info("Saving histograms of " + job.stat.name + " values")
+    max_stat = np.max(fdr.raw_stats)
+    for i, alpha in enumerate(DEFAULT_TUNING_PARAMS):
+        filename = "images/raw_stats_" + str(i) + ".png"
+        with figure(filename):
+            plt.hist(fdr.raw_stats[i], log=False, bins=250)
+            plt.title(job.stat.name + " distribution over features, $\\alpha = " + str(alpha) + "$")
+            plt.xlabel(job.stat.name + " value")
+            plt.ylabel("Features")
+            plt.xlim(0, max_stat)
+            yield StatDistPlot(alpha, filename)
 
 def plot_conf_by_stat(fdr, filename='conf_by_stat',
                       extra=None):
@@ -77,12 +92,6 @@ def plot_counts_by_stat(fdr, filename='counts_by_stat', extra=None):
         plt.xlabel('Statistic value')
         plt.ylabel('Features with statistic >= value')
         plt.legend()
-
-
-def plot_raw_stat_hist(stats):
-    """Plot the distribution of the given statistic values."""
-    with figure("raw_stats"):
-        plt.hist(stats, log=True, bins=250)
 
 
 def setup_css(env):
@@ -143,6 +152,8 @@ def do_fdr(job):
     stat = job.stat
     raw_stats = stat(data)
 
+    logging.debug("Shape of raw stats is " + str(np.shape(raw_stats)))
+
     fdr = FdrResults()
     fdr.bins = page.stat.bins_uniform(job.num_bins, raw_stats)
 
@@ -182,7 +193,7 @@ def do_fdr(job):
         fdr.raw_counts, fdr.baseline_counts, np.shape(raw_stats)[-1])
     fdr.feature_to_score = assign_scores_to_features(
         fdr.raw_stats, fdr.bins, fdr.bin_to_score)
-    fdr.summary_bins = np.linspace(0.5, 1.0, 11)
+    fdr.summary_bins = np.linspace(job.min_conf, 1.0, job.conf_levels)
     fdr.summary_counts = page.stat.cumulative_hist(
         fdr.feature_to_score, fdr.summary_bins)
 
@@ -251,10 +262,15 @@ def assignment_name(a):
     parts = ["{0}={1}".format(k, v) for k, v in a.items()]
 
     return ", ".join(parts)
-
-            
-@profiled
+           
 def do_run(args):
+    (job, results) = run_job(args)
+    with chdir(job.html_directory):
+        print_profile(job)
+
+ 
+@profiled
+def run_job(args):
 
     with profiling("do_run: prologue"):
 
@@ -266,7 +282,9 @@ def do_run(args):
             full_model=args.full_model,
             reduced_model=args.reduced_model,
             sample_from=args.sample_from,
-            sample_method=args.sample_method)
+            sample_method=args.sample_method,
+            min_conf=args.min_conf,
+            conf_levels=args.conf_levels)
 
         num_features = len(job.table)
         fitted = job.full_model.fit(job.table)
@@ -275,6 +293,8 @@ def do_run(args):
     results = None
 
     fdr = do_fdr(job)
+
+    make_job_dirs(job)
 
     with profiling("do_report: build results table"):
 
@@ -288,9 +308,7 @@ def do_run(args):
             scores=fdr.feature_to_score)
 
     with profiling('do_report: build report'):
-        html_dir = os.path.join(job.directory, "html")
-        makedirs(html_dir)
-        with chdir(html_dir):
+        with chdir(job.html_directory):
             extra = "\nstat " + job.stat_name + ", sampling " + job.sample_from
 #           plot_counts_by_stat(fdr, extra=extra)
 #           plot_conf_by_stat(fdr, extra=extra)
@@ -327,8 +345,11 @@ def do_run(args):
                         summary_bins=fdr.summary_bins,
                         summary_counts=summary_counts))
 
-        print_profile()
-
+#        with chdir(job.directory):
+#            stat_dist_template = env.get_template('stat_dist.html')
+#            with open('html/stat_dist.html', 'w') as out:
+#                out.write(stat_dist_template.render(
+#                        plots=plot_stat_dist(job, fdr)))
 
         print """
 Summary of features by confidence level:
@@ -345,9 +366,8 @@ Confidence |   Num.
 The full report is available at {0}""".format(
             os.path.join(job.directory, "html/index.html"))
 
-
     save_text_output(job, results)
-
+    return (job, results)
 
 def save_text_output(job, results):
     with chdir(job.directory):
@@ -365,7 +385,11 @@ def save_text_output(job, results):
             row = []
             row.append(job.feature_ids[i])
             row.append(results.stats[idxs[i], i])
+            for j in range(len(DEFAULT_TUNING_PARAMS)):
+                row.append(results.stats[j, i])
             row.append(results.scores[idxs[i], i])
+            for j in range(len(DEFAULT_TUNING_PARAMS)):
+                row.append(results.scores[j, i])
             row.extend(results.means[i])
             row.extend(results.coeffs[i])
             row.extend(job.table[i])
@@ -378,8 +402,13 @@ def save_text_output(job, results):
             cols.append(Col(name, dtype, format))
 
         add_col(schema.feature_id_column_names[0], object, "%s")
-        add_col('stat', float, "%f")
-        add_col('score', float, "%f")
+        add_col('best_stat', float, "%f")
+        for i, alpha in enumerate(DEFAULT_TUNING_PARAMS):
+            add_col('stat_' + str(alpha), float, "%f")
+
+        add_col('best_score', float, "%f")
+        for i, alpha in enumerate(DEFAULT_TUNING_PARAMS):
+            add_col('score_' + str(alpha), float, "%f")
 
         for name in results.group_names:
             add_col("mean: " + name, float, "%f")
@@ -488,8 +517,6 @@ def get_group_means(schema, data):
 ### Classes
 ###
 
-
-
 class Job:
 
     DEFAULT_DIRECTORY = "pageseq_out"
@@ -503,12 +530,17 @@ class Job:
                  num_samples=None,
                  sample_from=None,
                  sample_method=None,
-                 schema=None
+                 schema=None,
+                 min_conf=None,
+                 conf_levels=None
                  ):
         self.directory = directory
         self.stat_name = stat
         self._table = None
         self._feature_ids = None
+
+        self.min_conf = min_conf
+        self.conf_levels = conf_levels
 
         # FDR configuration
         self.num_bins = num_bins
@@ -579,6 +611,14 @@ class Job:
         return len(self.feature_ids)
 
     @property
+    def html_directory(self):
+        return os.path.join(self.directory, 'html')
+
+    @property
+    def images_directory(self):
+        return os.path.join(self.directory, 'images')
+
+    @property
     def data_directory(self):
         return os.path.join(self.directory, 'data')
 
@@ -612,7 +652,7 @@ class Job:
             return page.stat.Ftest(
                 layout_full=self.full_model.layout,
                 layout_reduced=self.reduced_model.layout,
-                alphas=np.array([0.001, 0.01, 0.1, 1, 3]))
+                alphas=DEFAULT_TUNING_PARAMS)
         elif self.stat_name == 'f_sqrt':
             return page.stat.FtestSqrt(
                 layout_full=self.full_model.layout,
@@ -698,25 +738,44 @@ class Job:
         del table
         del ids
 
-def print_profile():
+def print_profile(job):
 
     walked = walk_profile()
     env = jinja2.Environment(loader=jinja2.PackageLoader('page'))
     setup_css(env)
     template = env.get_template('profile.html')
     with open('profile.html', 'w') as out:
+        logging.info("Saving profile")
         out.write(template.render(profile=walked))
 
+    fmt = []
+    fmt += ["%d", "%d", "%s", "%f", "%f", "%f", "%f", "%f", "%f"]
+    fmt += ["%d", "%d"]
+
+    features = [ len(job.table) for row in walked ]
+    samples  = [ len(job.table[0]) for row in walked ]
+
+    print "row is", len(walked[0]), ", fmt is", len(fmt)
+    walked = append_fields(walked, names='features', data=features)
+    walked = append_fields(walked, names='samples', data=samples)
+
+
+    with open('../profile.txt', 'w') as out:
+        out.write("\t".join(walked.dtype.names) + "\n")
+        np.savetxt(out, walked, fmt=fmt)
+
+
+@profiled
 def main():
     """Run pageseq."""
+
+    args = get_arguments()
 
     logging.basicConfig(level=logging.DEBUG,
                         format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
                         datefmt='%Y-%m-%d %H:%M:%S',
-                        filename='page.log',
+                        filename=args.log,
                         filemode='w')
-
-    args = get_arguments()
 
     console = logging.StreamHandler()
     formatter = logging.Formatter('%(levelname)-8s %(message)s')
@@ -763,6 +822,13 @@ def init_schema(infile=None):
         is_sample=is_sample,
         column_names=headers)
 
+def make_job_dirs(job):
+    for d in [job.data_directory,
+              job.html_directory,
+              job.images_directory]:
+        makedirs(d)
+    
+
 def init_job(infile, factors, directory, force=False):
 
     if isinstance(infile, str):
@@ -773,7 +839,7 @@ def init_job(infile, factors, directory, force=False):
         schema.add_factor(name, values)
 
     job = Job(directory, schema=schema)
-    makedirs(job.data_directory)
+    make_job_dirs(job)
 
     mode = 'w' if force else 'wx'
     try:
@@ -866,6 +932,17 @@ def add_fdr_args(p):
         choices=['perm', 'boot'],
         help="""Whether to use a permutation test or bootstrapping to estimate confidence levels."""),
 
+    grp.add_argument(
+        '--min-conf',
+        default=0.5,
+        type=float,
+        help="Smallest confidence level to report")
+
+    grp.add_argument(
+        '--conf-levels',
+        default=11,
+        type=int,
+        help="Number of confidence levels to show")
 
 
 def get_arguments():
@@ -890,6 +967,10 @@ schema.yaml file, then run 'page.py run ...'.""")
         '--debug', '-d', 
         action='store_true',
         help="Print debugging information")
+    parents.add_argument(
+        '--log',
+        default="page.log",
+        help="Location of log file")
     parents.add_argument(
         '--directory', '-D',
         default=Job.DEFAULT_DIRECTORY,

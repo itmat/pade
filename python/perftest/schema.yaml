@@ -1,0 +1,99 @@
+# This lists all the factors defined for this file.
+factors:
+- name: level
+  values: [l, m, h]
+
+# This lists all of the columns that contain feature IDs (for example
+# gene ids).
+feature_id_columns:
+- id
+
+# These are the headers in the input file. YOU MUST NOT CHANGE THESE!
+headers:
+- id
+- sample_00
+- sample_01
+- sample_02
+- sample_03
+- sample_04
+- sample_05
+- sample_06
+- sample_07
+- sample_08
+- sample_09
+- sample_10
+- sample_11
+- sample_12
+- sample_13
+- sample_14
+- sample_15
+- sample_16
+- sample_17
+- sample_18
+- sample_19
+- sample_20
+- sample_21
+- sample_22
+- sample_23
+
+# This sets all of the factors for all columns that represent samples.
+# You should fill out this section to set each factor for each sample.
+# For example, if you had a sample called sample1 that recieved some
+# kind of treatment, and one called sample2 that did not, you might
+# have:
+
+# sample_factor_mapping:
+#   sample1:
+#     treated: yes
+#   sample2:
+#     treated: no
+
+sample_factor_mapping:
+  sample_00:
+    level: l
+  sample_01:
+    level: l
+  sample_02:
+    level: l
+  sample_03:
+    level: l
+  sample_04:
+    level: l
+  sample_05:
+    level: l
+  sample_06:
+    level: l
+  sample_07:
+    level: l
+  sample_08:
+    level: m
+  sample_09:
+    level: m
+  sample_10:
+    level: m
+  sample_11:
+    level: m
+  sample_12:
+    level: m
+  sample_13:
+    level: m
+  sample_14:
+    level: m
+  sample_15:
+    level: m
+  sample_16:
+    level: h
+  sample_17:
+    level: h
+  sample_18:
+    level: h
+  sample_19:
+    level: h
+  sample_20:
+    level: h
+  sample_21:
+    level: h
+  sample_22:
+    level: h
+  sample_23:
+    level: h

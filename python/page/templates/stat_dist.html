@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Stat distribution{% endblock %}
+{% block content %}
+
+{% for plot in plots %}
+
+
+<img src="../{{plot.filename}}"></img>
+
+{% endfor %}
+
+{% endblock %}

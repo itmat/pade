@@ -71,6 +71,9 @@ def rss(data):
     return double_sum((data  - y)  ** 2)
 
 class Ftest:
+
+    name = "F-test"
+
     """Computes the F-test.
 
     Some sample data
@@ -284,7 +287,7 @@ def _binning_accumulator(bins, num_samples):
 
     return Accumulator(initializer, reduce_fn, finalize_fn)
 
-
+@profiled
 def bootstrap(data,
               stat_fn,
               R=1000,
