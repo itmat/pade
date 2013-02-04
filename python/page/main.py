@@ -345,11 +345,11 @@ def run_job(args):
                         summary_bins=fdr.summary_bins,
                         summary_counts=summary_counts))
 
-        with chdir(job.directory):
-            stat_dist_template = env.get_template('stat_dist.html')
-            with open('html/stat_dist.html', 'w') as out:
-                out.write(stat_dist_template.render(
-                        plots=plot_stat_dist(job, fdr)))
+#        with chdir(job.directory):
+#            stat_dist_template = env.get_template('stat_dist.html')
+#            with open('html/stat_dist.html', 'w') as out:
+#                out.write(stat_dist_template.render(
+#                        plots=plot_stat_dist(job, fdr)))
 
         print """
 Summary of features by confidence level:
