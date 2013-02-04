@@ -1,8 +1,7 @@
-*.class
-*~
 *.pyc
-
-# Package Files #
-*.jar
-*.war
-*.ear
+*.aux
+*.log
+*~
+doc/_build
+\#*\#
+.\#*
