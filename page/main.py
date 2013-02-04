@@ -114,18 +114,6 @@ def ensure_scores_increase(scores):
     return res
 
 
-class FdrResults:
-    """Simple data object used to back the HTML reports."""
-    def __init__(self):
-        self.bins = None
-        self.raw_counts = None
-        self.baseline_counts = None
-        self.bin_to_score = None
-        self.feature_to_to_score = None
-        self.raw_stats = None
-        self.summary_bins = None
-        self.summary_counts = None
-
 @profiled
 def predicted_values(job):
     """Return the values predicted by the reduced model.
@@ -154,8 +142,7 @@ def do_fdr(job):
 
     logging.debug("Shape of raw stats is " + str(np.shape(raw_stats)))
 
-    fdr = FdrResults()
-    fdr.bins = page.stat.bins_uniform(job.num_bins, raw_stats)
+    job.bins = page.stat.bins_uniform(job.num_bins, raw_stats)
 
     job.save_sample_indexes(job.new_sample_indexes())
 
@@ -163,13 +150,13 @@ def do_fdr(job):
         logging.info("Bootstrapping based on residuals")
         prediction = predicted_values(job)
         diffs      = data - prediction
-        fdr.baseline_counts = page.stat.bootstrap(
+        job.baseline_counts = page.stat.bootstrap(
             # data,
             prediction,
             stat, 
             indexes=job.sample_indexes,
             residuals=diffs,
-            bins=fdr.bins)
+            bins=job.bins)
     else:
         logging.info("Using raw data")
         # Shift all values in the data by the means of the groups from
@@ -181,23 +168,22 @@ def do_fdr(job):
         # boot, raw, unshifted: 103, 24
         shifted = residuals(data, job.full_model.layout)
 
-        fdr.baseline_counts = page.stat.bootstrap(
+        job.baseline_counts = page.stat.bootstrap(
             shifted,
             stat, 
             indexes=job.sample_indexes,
-            bins=fdr.bins)
+            bins=job.bins)
 
-    fdr.raw_stats    = raw_stats
-    fdr.raw_counts   = page.stat.cumulative_hist(fdr.raw_stats, fdr.bins)
-    fdr.bin_to_score = confidence_scores(
-        fdr.raw_counts, fdr.baseline_counts, np.shape(raw_stats)[-1])
-    fdr.feature_to_score = assign_scores_to_features(
-        fdr.raw_stats, fdr.bins, fdr.bin_to_score)
-    fdr.summary_bins = np.linspace(job.min_conf, 1.0, job.conf_levels)
-    fdr.summary_counts = page.stat.cumulative_hist(
-        fdr.feature_to_score, fdr.summary_bins)
+    job.raw_stats    = raw_stats
+    job.raw_counts   = page.stat.cumulative_hist(job.raw_stats, job.bins)
+    job.bin_to_score = confidence_scores(
+        job.raw_counts, job.baseline_counts, np.shape(raw_stats)[-1])
+    job.feature_to_score = assign_scores_to_features(
+        job.raw_stats, job.bins, job.bin_to_score)
+    job.summary_bins = np.linspace(job.min_conf, 1.0, job.conf_levels)
+    job.summary_counts = page.stat.cumulative_hist(
+        job.feature_to_score, job.summary_bins)
 
-    return fdr
 
 class ResultTable:
 
@@ -272,33 +258,29 @@ def do_run(args):
 @profiled
 def run_job(args):
 
-    with profiling("do_run: prologue"):
+    source = SourceData(args.source_directory)
 
-        source = SourceData(args.source_directory)
+    job = Job(
+        directory=args.job_directory,
+        source=source,
+        stat=args.stat,
+        num_bins=args.num_bins,
+        num_samples=args.num_samples,
+        full_model=args.full_model,
+        reduced_model=args.reduced_model,
+        sample_from=args.sample_from,
+        sample_method=args.sample_method,
+        min_conf=args.min_conf,
+        conf_levels=args.conf_levels)
 
-        job = Job(
-            directory=args.job_directory,
-            source=source,
-            stat=args.stat,
-            num_bins=args.num_bins,
-            num_samples=args.num_samples,
-            full_model=args.full_model,
-            reduced_model=args.reduced_model,
-            sample_from=args.sample_from,
-            sample_method=args.sample_method,
-            min_conf=args.min_conf,
-            conf_levels=args.conf_levels)
+    makedirs(job.directory)
 
-        makedirs(job.directory)
-        makedirs(job.directory + "/html")
-
-        num_features = len(job.source.table)
-        fitted = job.full_model.fit(job.source.table)
-        means = get_group_means(job.source.schema, job.source.table)
+    fitted = job.full_model.fit(job.source.table)
+    means = get_group_means(job.source.schema, job.source.table)
 
     results = None
 
-    fdr = do_fdr(job)
+    do_fdr(job)
 
     with profiling("do_report: build results table"):
 
@@ -308,23 +290,22 @@ def run_job(args):
             group_names=[assignment_name(a) for a in job.source.schema.possible_assignments()],
             param_names=[assignment_name(a) for a in fitted.labels],
             feature_ids=np.array(job.source.feature_ids),
-            stats=fdr.raw_stats,
-            scores=fdr.feature_to_score)
+            stats=job.raw_stats,
+            scores=job.feature_to_score)
 
     with profiling('do_report: build report'):
+        makedirs(job.html_directory)
         with chdir(job.html_directory):
             extra = "\nstat " + job.stat_name + ", sampling " + job.sample_from
-#           plot_counts_by_stat(fdr, extra=extra)
-#           plot_conf_by_stat(fdr, extra=extra)
             env = jinja2.Environment(loader=jinja2.PackageLoader('page'))
             setup_css(env)
 
-            summary_bins = fdr.summary_bins
+            summary_bins = job.summary_bins
             summary_counts = np.zeros(len(summary_bins))
 
             template = env.get_template('conf_level.html')
-            for level in range(len(fdr.summary_bins)):
-                score=fdr.summary_bins[level]
+            for level in range(len(job.summary_bins)):
+                score=job.summary_bins[level]
                 filtered = results.filter_by_score(score)
                 summary_counts[level] = len(filtered)
                 pages = list(filtered.pages(args.rows_per_page))
@@ -334,7 +315,6 @@ def run_job(args):
                                 conf_level=level,
                                 min_score=score,
                                 job=job,
-                                fdr=fdr,
                                 results=page,
                                 page_num=page_num,
                                 num_pages=len(pages)))
@@ -344,9 +324,8 @@ def run_job(args):
             with open('index.html', 'w') as out:
                 out.write(template.render(
                         job=job,
-                        fdr=fdr,
                         results=results,
-                        summary_bins=fdr.summary_bins,
+                        summary_bins=job.summary_bins,
                         summary_counts=summary_counts))
 
 #        with chdir(job.directory):
@@ -656,26 +635,31 @@ class Job:
                  sample_from=None,
                  sample_method=None,
                  min_conf=None,
-                 conf_levels=None
-                 ):
-
+                 conf_levels=None):
         self.source = source
         self.directory = directory
         self.stat_name = stat
-
         self.min_conf = min_conf
         self.conf_levels = conf_levels
-
-        # FDR configuration
         self.num_bins = num_bins
         self.num_samples = num_samples
         self.sample_from = sample_from
         self.sample_method = sample_method
-
         self.full_model    = Model(self.source.schema, full_model)
         self.reduced_model = Model(self.source.schema, reduced_model)
-
         self._sample_indexes = None
+
+        # Results
+        self.bins = None
+        self.raw_counts = None
+        self.baseline_counts = None
+        self.bin_to_score = None
+        self.feature_to_to_score = None
+        self.raw_stats = None
+        self.summary_bins = None
+        self.summary_counts = None
+
+
 
     def save_sample_indexes(self, indexes):
         self._sample_indexes = indexes
@@ -735,11 +719,6 @@ class Job:
         return os.path.join(self.directory, 'sample_indexes.npy')
 
     @property
-    def input_path(self):
-        """Path to the input file."""
-        return os.path.join(self.directory, 'input.txt')
-    
-    @property
     def stat(self):
         """The statistic used for this job."""
         if self.stat_name == 'f':
@@ -754,6 +733,12 @@ class Job:
         elif self.stat_name == 't':
             return Ttest(alpha=1.0)
 
+class Report:
+
+    DEFAULT_DIRECTORY = "page_report"
+
+    def __init__(self, directory):
+        self.directory = directory
 
 def print_profile(job):
 
@@ -819,7 +804,6 @@ def main():
     logging.info('Page finishing')    
 
 
-
 def init_schema(infile=None):
     """Creates a new schema based on the given infile.
 
@@ -838,12 +822,6 @@ def init_schema(infile=None):
         is_feature_id=is_feature_id,
         is_sample=is_sample,
         column_names=headers)
-
-def make_job_dirs(job):
-    for d in [job.directory,
-              job.html_directory,
-              job.images_directory]:
-        makedirs(d)
 
 
 def init_job(infile, factors, directory, force=False):
@@ -996,6 +974,10 @@ schema.yaml file, then run 'page.py run ...'.""")
         '--job-directory', '-J',
         default=Job.DEFAULT_DIRECTORY,
         help="The directory that contains the intermediate results")
+    parents.add_argument(
+        '--report-directory',
+        default=Report.DEFAULT_DIRECTORY,
+        help="The directory to write the report to")
 
     # Create setup parser
     setup_parser = subparsers.add_parser(
