@@ -201,9 +201,31 @@ def assignment_name(a):
     return ", ".join(parts)
            
 def do_run(args):
-    (job, results) = run_job(args)
+    job = run_job(args)
     job.save()
+
+def do_report(args):
+
+    job = Job(directory=args.job_directory,
+              source=SourceData(args.source_directory))
     job.load()
+    job.source.feature_ids
+    job.source.table
+
+    fitted = job.full_model.fit(job.source.table)
+    means = get_group_means(job.source.schema, job.source.table)
+
+    print "Stats are", job.raw_stats
+
+    results = ResultTable(
+        means=means,
+        coeffs=fitted.params,
+        group_names=[assignment_name(a) for a in job.source.schema.possible_assignments()],
+        param_names=[assignment_name(a) for a in fitted.labels],
+        feature_ids=np.array(job.source.feature_ids),
+        stats=job.raw_stats,
+        scores=job.feature_to_score)
+
     make_report(job, results, args.rows_per_page)
 
     with chdir(job.html_directory):
@@ -230,21 +252,9 @@ def run_job(args):
 
     makedirs(job.directory)
 
-    fitted = job.full_model.fit(job.source.table)
-    means = get_group_means(job.source.schema, job.source.table)
-
     job.run()
 
-    results = ResultTable(
-        means=means,
-        coeffs=fitted.params,
-        group_names=[assignment_name(a) for a in job.source.schema.possible_assignments()],
-        param_names=[assignment_name(a) for a in fitted.labels],
-        feature_ids=np.array(job.source.feature_ids),
-        stats=job.raw_stats,
-        scores=job.feature_to_score)
-
-    return (job, results)
+    return job
 
 def make_report(job, results, rows_per_page):
 
@@ -485,7 +495,6 @@ class SourceData:
     def num_features(self):
         return len(self.feature_ids)
 
-
     @property
     def table_path(self):
         return os.path.join(self.directory, 'table.npy')
@@ -592,6 +601,7 @@ class Job:
                  min_conf=None,
                  conf_levels=None):
 
+        # Settings
         self.source = source
         self.directory = directory
         self.stat_name = stat
@@ -627,6 +637,18 @@ class Job:
         self.raw_stats = file.create_dataset("raw_stats", data=self.raw_stats)
         self.summary_bins = file.create_dataset("summary_bins", data=self.summary_bins)
         self.summary_counts = file.create_dataset("summary_counts", data=self.summary_counts)
+        self._sample_indexes    = file.create_dataset("sample_indexes", data=self._sample_indexes)
+
+        file.attrs['stat_name'] = self.stat_name
+        file.attrs['min_conf'] = self.min_conf
+        file.attrs['conf_levels'] = self.conf_levels
+        file.attrs['num_bins'] = self.num_bins
+        file.attrs['num_samples'] = self.num_samples
+        file.attrs['sample_from'] = self.sample_from
+        file.attrs['sample_method'] = self.sample_method
+        file.attrs['full_model'] = str(self.full_model.expr)
+        file.attrs['reduced_model'] = str(self.reduced_model.expr)
+
         file.close()
 
     def load(self, filename="job.hdf5"):
@@ -640,6 +662,17 @@ class Job:
         self.raw_counts = file['raw_stats'][...]
         self.summary_bins = file['summary_bins'][...]
         self.summary_counts = file['summary_counts'][...]
+
+        self.stat_name = file.attrs['stat_name']
+        self.min_conf = file.attrs['min_conf']
+        self.conf_levels = file.attrs['conf_levels']
+        self.num_bins = file.attrs['num_bins']
+        self.num_samples = file.attrs['num_samples']
+        self.sample_from = file.attrs['sample_from']
+        self.sample_method = file.attrs['sample_method']
+        self.full_model = Model(self.source.schema, file.attrs['full_model'])
+        self.reduced_model = Model(self.source.schema, file.attrs['reduced_model'])
+
         file.close()
 
     def save_sample_indexes(self, indexes):
@@ -1047,8 +1080,15 @@ schema.yaml file, then run 'page.py run ...'.""")
 
     add_model_args(run_parser)
     add_fdr_args(run_parser)
-    add_reporting_args(run_parser)
     run_parser.set_defaults(func=do_run)
+
+    report_parser = subparsers.add_parser(
+        'report',
+        help="""Generate report""",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[parents])
+    add_reporting_args(report_parser)
+    report_parser.set_defaults(func=do_report)
 
     return uberparser.parse_args()
 
