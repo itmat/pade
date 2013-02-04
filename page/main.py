@@ -202,6 +202,8 @@ def assignment_name(a):
            
 def do_run(args):
     (job, results) = run_job(args)
+    job.save()
+    job.load()
     make_report(job, results, args.rows_per_page)
 
     with chdir(job.html_directory):
@@ -589,6 +591,7 @@ class Job:
                  sample_method=None,
                  min_conf=None,
                  conf_levels=None):
+
         self.source = source
         self.directory = directory
         self.stat_name = stat
@@ -602,18 +605,42 @@ class Job:
         self.reduced_model = Model(self.source.schema, reduced_model)
         self._sample_indexes = None
 
-        self.file = h5py.File('job.hdf5')
-
         # Results
         self.bins = None
         self.raw_counts = None
         self.baseline_counts = None
         self.bin_to_score = None
-        self.feature_to_to_score = None
+        self.feature_to_score = None
         self.raw_stats = None
         self.summary_bins = None
         self.summary_counts = None
 
+
+    def save(self):
+        logging.info("Saving job results")
+        file = h5py.File('job.hdf5')
+        self.bins = file.create_dataset("bins", data=self.bins)
+        self.raw_counts = file.create_dataset("raw_counts", data=self.raw_counts)
+        self.baseline_counts = file.create_dataset("baseline_counts", data=self.baseline_counts)
+        self.bin_to_score = file.create_dataset("bin_to_score", data=self.bin_to_score)
+        self.feature_to_score = file.create_dataset("feature_to_score", data=self.feature_to_score)
+        self.raw_stats = file.create_dataset("raw_stats", data=self.raw_stats)
+        self.summary_bins = file.create_dataset("summary_bins", data=self.summary_bins)
+        self.summary_counts = file.create_dataset("summary_counts", data=self.summary_counts)
+        file.close()
+
+    def load(self, filename="job.hdf5"):
+        logging.info("Loading job results")
+        file = h5py.File('job.hdf5')
+        bins = file['bins']
+        self.raw_counts = file['raw_counts'][...]
+        self.baseline_counts = file['baseline_counts'][...]
+        self.bin_to_score = file['bin_to_score'][...]
+        self.feature_to_score = file['feature_to_score'][...]
+        self.raw_counts = file['raw_stats'][...]
+        self.summary_bins = file['summary_bins'][...]
+        self.summary_counts = file['summary_counts'][...]
+        file.close()
 
     def save_sample_indexes(self, indexes):
         self._sample_indexes = indexes
