@@ -3,7 +3,7 @@
 import numpy as np
 import textwrap
 import yaml
-
+import logging
 from collections import OrderedDict
 from itertools import product
 
@@ -232,6 +232,7 @@ is_sample are false will simply be ignored.
     
     def save(self, out):
         """Save the schema to the specified file."""
+        logging.info("Saving schema to " + out.name)
 
         # Need to convert column names to strings, from whatever numpy
         # type they're stored as.

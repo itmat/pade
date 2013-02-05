@@ -250,6 +250,48 @@ def stat_for_name(db):
         return Ttest(alpha=1.0)
 
 
+def import_table(db, path):
+    logging.info("Loading table from " + path)
+    logging.info("Counting rows and columns in input file")
+    with open(path) as fh:
+
+        headers = fh.next().rstrip().split("\t")
+        num_cols = len(headers) - 1
+        num_rows = 0
+        for line in fh:
+            num_rows += 1
+        
+    logging.info(
+        "Input has {features} features and {samples} samples".format(
+            features=num_rows,
+            samples=num_cols))
+
+    logging.info("Creating raw data table")
+
+    table = np.zeros((num_rows, num_cols),
+                     RAW_VALUE_DTYPE)
+        
+    log_interval=int(num_rows / 10)
+
+    file = h5py.File(db.path, 'w')
+
+    table = np.zeros((num_rows, num_cols))
+    ids = []
+        
+    with open(path) as fh:
+
+        headers = fh.next().rstrip().split("\t")
+
+        for i, line in enumerate(fh):
+            row = line.rstrip().split("\t")
+            ids.append(row[0])
+            table[i] = [float(x) for x in row[1:]]
+            if (i % log_interval) == log_interval - 1:
+                logging.debug("Copied {0} rows".format(i + 1))
+
+    db.table = table
+    db.feature_ids = ids
+    
 
 @profiled
 def run_job(args):
@@ -257,6 +299,8 @@ def run_job(args):
     db = DB(
         schema_path=args.schema,
         path=args.db)
+
+    import_table(db, args.infile.name)
 
     db.stat = args.stat
     db.num_bins = args.num_bins
@@ -438,9 +482,7 @@ def save_text_output(db, results):
         
     dtype = [(c.name, c.dtype) for c in cols]
 
-    print "Orig table is", np.shape(db.table)
-    print "Table is", np.shape(table)
-    print "Dtype is", dtype
+
     table = np.array(table, dtype)
     with open("results.txt", "w") as out:
         out.write("\t".join(c.name for c in cols) + "\n")
@@ -532,6 +574,8 @@ def get_group_means(schema, data):
     return result
 
 
+
+
 ##############################################################################
 ###
 ### Classes
@@ -580,18 +624,19 @@ class DB:
         else:
             self.schema = schema
 
-        if input_txt_path is not None:
-            self.import_table(input_txt_path)
-        else:
-            f = h5py.File(path, 'r')
-            self.table = f['table'][...]
-            self.feature_ids = f['feature_ids'][...]
-            f.close()
 
     def save(self):
         logging.info("Saving job results to " + self.path)
         file = h5py.File(self.path, 'r+')
 
+        # Saving feature ids is tricky because they are strings
+        dt = h5py.special_dtype(vlen=str)
+        ids = self.feature_ids
+        self.feature_ids = file.create_dataset("feature_ids", (len(ids),), dt)
+        for i, fid in enumerate(ids):
+            self.feature_ids[i] = fid
+
+        self.table = file.create_dataset("table", data=self.table)
         self.bins = file.create_dataset("bins", data=self.bins)
         self.raw_counts = file.create_dataset("raw_counts", data=self.raw_counts)
         self.baseline_counts = file.create_dataset("baseline_counts", data=self.baseline_counts)
@@ -618,6 +663,8 @@ class DB:
 
         logging.info("Loading job results from " + self.path)
         file = h5py.File(self.path, 'r')
+        print "Feature ids are", file['feature_ids']
+
         self.table = file['table'][...]
         self.feature_ids = file['feature_ids'][...]
         self.bins = file['bins'][...]
@@ -639,85 +686,9 @@ class DB:
         self.sample_method = file.attrs['sample_method']
         self.full_model = Model(self.schema, file.attrs['full_model'])
         self.reduced_model = Model(self.schema, file.attrs['reduced_model'])
-
         
         file.close()
 
-
-
-    @property
-    def num_features(self):
-        return len(self.feature_ids)
-
-    @property
-    def table(self):
-        """The data table as a (sample x feature) ndarray."""
-        if self._table is None:
-            shape = (self.num_features,
-                     len(self.schema.sample_column_names))
-            self._table = np.memmap(
-                self.table_path, 
-                mode='r',
-                shape=shape,
-                dtype=RAW_VALUE_DTYPE)
-        return self._table
-
-    @property
-    def feature_ids(self):
-        """Array of the ids of features from my input file."""
-        if self._feature_ids is None:
-            self._feature_ids = np.memmap(
-                self.feature_ids_path,
-                mode='r',
-                dtype=FEATURE_ID_DTYPE)
-
-        return self._feature_ids
-
-    def import_table(self, raw_input_path):
-        logging.info("Loading table from " + raw_input_path.name +
-                     " to " + self.path)
-        
-        logging.info("Counting rows and columns in input file")
-        with open(raw_input_path.name) as fh:
-
-            headers = fh.next().rstrip().split("\t")
-            num_cols = len(headers) - 1
-            num_rows = 0
-            for line in fh:
-                num_rows += 1
-        
-        logging.info(
-            "Input has {features} features and {samples} samples".format(
-                features=num_rows,
-                samples=num_cols))
-
-        logging.info(
-            "Creating raw data table")
-
-        table = np.zeros((num_rows, num_cols),
-                         RAW_VALUE_DTYPE)
-        
-        log_interval=int(num_rows / 10)
-
-        file = h5py.File(self.path, 'w')
-        table = file.create_dataset("table", (num_rows, num_cols), float)
-        dt = h5py.special_dtype(vlen=str)
-        ids = file.create_dataset("feature_ids", (num_rows,), dt)
-        
-        with open(raw_input_path.name) as fh:
-
-            headers = fh.next().rstrip().split("\t")
-
-            for i, line in enumerate(fh):
-                row = line.rstrip().split("\t")
-                ids[i]   = row[0]
-                table[i] = [float(x) for x in row[1:]]
-                if (i % log_interval) == log_interval - 1:
-                    logging.debug("Copied {0} rows".format(i + 1))
-
-        file.close()
-        self._table = table
-        self._feature_ids = ids
 
 def new_sample_indexes(self):
 
@@ -762,7 +733,6 @@ def print_profile(db):
     features = [ len(db.table) for row in walked ]
     samples  = [ len(db.table[0]) for row in walked ]
 
-    print "row is", len(walked[0]), ", fmt is", len(fmt)
     walked = append_fields(walked, names='features', data=features)
     walked = append_fields(walked, names='samples', data=samples)
 
@@ -818,6 +788,7 @@ def init_schema(infile=None):
     """
     if isinstance(infile, str):
         infile = open(infile)
+    logging.info("Initializing schema from " + infile.name)
     header_line = infile.next().rstrip()    
     headers = header_line.split("\t")                
     is_feature_id = [i == 0 for i in range(len(headers))]
@@ -838,29 +809,23 @@ def init_job(infile, factors, schema_path=None, db_path=None, force=False):
     for name, values in factors.items():
         schema.add_factor(name, values)
 
-    source = DB(
-        path=db_path,
-        schema_path=schema_path,
-        schema=schema,
-        input_txt_path=infile)
-
     mode = 'w' if force else 'wx'
     try:
         with open(schema_path, mode) as out:
-            source.schema.save(out)
+            schema.save(out)
     except IOError as e:
         if e.errno == errno.EEXIST:
             raise UsageException("""\
                    The schema file \"{}\" already exists. If you want to
                    overwrite it, use the --force or -f argument.""".format(
-                    source.schema_path))
+                    schema_path))
         raise e
 
-    return source
+    return schema
 
 @profiled
 def do_setup(args):
-    source = init_job(
+    schema = init_job(
         infile=args.infile,
         schema_path=args.schema,
         db_path=args.db,
@@ -869,8 +834,8 @@ def do_setup(args):
 
     print fix_newlines("""
 I have generated a schema for your input file, with factors {factors}, and saved it to "{filename}". You should now edit that file to set the factors for each sample. The file contains instructions on how to edit it.
-""").format(factors=source.schema.factors.keys(),
-            filename=source.schema_path)
+""").format(factors=schema.factors.keys(),
+            filename=args.schema)
 
 def add_reporting_args(p):
     grp = p.add_argument_group(
@@ -1023,7 +988,11 @@ page_schema.yaml file, then run 'page.py run ...'.""")
         help="""Run the job.""",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[parents, source_parents, results_parents])
-
+    run_parser.add_argument(
+        'infile',
+        help="""Name of input file""",
+        default=argparse.SUPPRESS,
+        type=file)
     add_model_args(run_parser)
     add_fdr_args(run_parser)
     run_parser.set_defaults(func=do_run)
