@@ -215,8 +215,6 @@ def do_report(args):
     fitted = job.full_model.fit(job.source.table)
     means = get_group_means(job.source.schema, job.source.table)
 
-    print "Stats are", job.raw_stats
-
     results = ResultTable(
         means=means,
         coeffs=fitted.params,
@@ -659,7 +657,7 @@ class Job:
         self.baseline_counts = file['baseline_counts'][...]
         self.bin_to_score = file['bin_to_score'][...]
         self.feature_to_score = file['feature_to_score'][...]
-        self.raw_counts = file['raw_stats'][...]
+        self.raw_stats = file['raw_stats'][...]
         self.summary_bins = file['summary_bins'][...]
         self.summary_counts = file['summary_counts'][...]
 
@@ -673,6 +671,9 @@ class Job:
         self.full_model = Model(self.source.schema, file.attrs['full_model'])
         self.reduced_model = Model(self.source.schema, file.attrs['reduced_model'])
 
+        logging.debug("Raw stats is " + str(self.raw_stats))
+        logging.debug("Full model is " + str(self.full_model.expr))
+        
         file.close()
 
     def save_sample_indexes(self, indexes):
