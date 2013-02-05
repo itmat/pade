@@ -131,7 +131,7 @@ def predicted_values(job):
     defined by the reduced model.
 
     """
-    data = job.source.table
+    data = job.table
     prediction = np.zeros_like(data)
 
     for grp in job.reduced_model.layout:
@@ -214,22 +214,22 @@ def do_run(args):
 def do_report(args):
 
     job = Job(result_db_path=args.results,
-              source=SourceData(
-            raw_db_path=args.raw_db,
+              source=DB(
+            path=args.raw_db,
             schema_path=args.schema))
     job.load()
-    job.source.feature_ids
-    job.source.table
+    job.feature_ids
+    job.table
 
-    fitted = job.full_model.fit(job.source.table)
-    means = get_group_means(job.source.schema, job.source.table)
+    fitted = job.full_model.fit(job.table)
+    means = get_group_means(job.schema, job.table)
 
     results = ResultTable(
         means=means,
         coeffs=fitted.params,
-        group_names=[assignment_name(a) for a in job.source.schema.possible_assignments()],
+        group_names=[assignment_name(a) for a in job.schema.possible_assignments()],
         param_names=[assignment_name(a) for a in fitted.labels],
-        feature_ids=np.array(job.source.feature_ids),
+        feature_ids=np.array(job.feature_ids),
         stats=job.raw_stats,
         scores=job.feature_to_score)
 
@@ -239,29 +239,92 @@ def do_report(args):
         print_profile(job)
 
  
+def stat_for_name(db):
+    """The statistic used for this job."""
+    name = db.stat
+    if name == 'f':
+        return page.stat.Ftest(
+            layout_full=db.full_model.layout,
+            layout_reduced=db.reduced_model.layout,
+            alphas=DEFAULT_TUNING_PARAMS)
+    elif name == 'f_sqrt':
+        return page.stat.FtestSqrt(
+            layout_full=db.full_model.layout,
+            layout_reduced=db.reduced_model.layout)
+    elif name == 't':
+        return Ttest(alpha=1.0)
+
+
+
 @profiled
 def run_job(args):
 
-    source = SourceData(
+    db = DB(
         schema_path=args.schema,
-        raw_db_path=args.raw_db)
+        path=args.db)
 
-    job = Job(
-        result_db_path=args.results,
-        source=source,
-        stat=args.stat,
-        num_bins=args.num_bins,
-        num_samples=args.num_samples,
-        full_model=args.full_model,
-        reduced_model=args.reduced_model,
-        sample_from=args.sample_from,
-        sample_method=args.sample_method,
-        min_conf=args.min_conf,
-        conf_levels=args.conf_levels)
+    db.stat = args.stat
+    db.num_bins = args.num_bins
+    db.num_samples = args.num_samples
+    db.full_model = Model(db.schema, args.full_model)
+    db.reduced_model = Model(db.schema, args.reduced_model)
+    db.sample_from = args.sample_from
+    db.sample_method = args.sample_method
+    
+    db.min_conf=args.min_conf
+    db.conf_levels=args.conf_levels
 
-    job.run()
+    db.sample_indexes = new_sample_indexes(db)
 
-    return job
+    data = db.table
+    stat = stat_for_name(db)
+    
+    raw_stats = stat(data)
+
+    logging.debug("Shape of raw stats is " + str(np.shape(raw_stats)))
+
+    db.bins = page.stat.bins_uniform(db.num_bins, raw_stats)
+
+    if db.sample_from == 'residuals':
+        logging.info("Bootstrapping based on residuals")
+        prediction = predicted_values(db)
+        diffs      = data - prediction
+        db.baseline_counts = page.stat.bootstrap(
+            # data,
+            prediction,
+            stat, 
+            indexes=db.sample_indexes,
+            residuals=diffs,
+            bins=db.bins)
+    else:
+        logging.info("Using raw data")
+        # Shift all values in the data by the means of the groups from
+        # the full model, so that the mean of each group is 0.
+        # perm, raw, shifted: 113, 29
+        # boot, raw, shifted: 103, 24
+        # boot, residuals: 113, 32
+        # perm, raw, unshifted: 113, 29
+        # boot, raw, unshifted: 103, 24
+        shifted = residuals(data, db.full_model.layout)
+        
+        db.baseline_counts = page.stat.bootstrap(
+            shifted,
+            stat, 
+            indexes=db.sample_indexes,
+            bins=db.bins)
+
+    db.raw_stats    = raw_stats
+    db.raw_counts   = page.stat.cumulative_hist(db.raw_stats, db.bins)
+    db.bin_to_score = confidence_scores(
+        db.raw_counts, db.baseline_counts, np.shape(raw_stats)[-1])
+    db.feature_to_score = assign_scores_to_features(
+        db.raw_stats, db.bins, db.bin_to_score)
+    db.summary_bins = np.linspace(db.min_conf, 1.0, db.conf_levels)
+    db.summary_counts = page.stat.cumulative_hist(
+        db.feature_to_score, db.summary_bins)
+
+
+    return db
 
 def make_report(job, results, rows_per_page, directory):
 
@@ -324,7 +387,7 @@ The full report is available at {0}""".format(
     return (job, results)
 
 def save_text_output(job, results):
-    (num_rows, num_cols) = job.source.table.shape
+    (num_rows, num_cols) = job.table.shape
     num_cols += 2
     table = np.zeros((num_rows, num_cols))
     idxs = np.argmax(results.scores, axis=0)
@@ -334,11 +397,11 @@ def save_text_output(job, results):
 
     # For each row in the data, add feature id, stat, score, group
     # means, and raw values.
-    for i in range(len(job.source.table)):
+    for i in range(len(job.table)):
         row = []
 
         # Feature id
-        row.append(job.source.feature_ids[i])
+        row.append(job.feature_ids[i])
         
         # Best stat and all stats
         row.append(results.stats[idxs[i], i])
@@ -351,9 +414,9 @@ def save_text_output(job, results):
             row.append(results.scores[j, i])
         row.extend(results.means[i])
         row.extend(results.coeffs[i])
-        row.extend(job.source.table[i])
+        row.extend(job.table[i])
         table.append(tuple(row))
-    schema = job.source.schema
+    schema = job.schema
 
     cols = []
     Col = namedtuple("Col", ['name', 'dtype', 'format'])
@@ -380,7 +443,7 @@ def save_text_output(job, results):
         
     dtype = [(c.name, c.dtype) for c in cols]
 
-    print "Orig table is", np.shape(job.source.table)
+    print "Orig table is", np.shape(job.table)
     print "Table is", np.shape(table)
     print "Dtype is", dtype
     table = np.array(table, dtype)
@@ -479,21 +542,42 @@ def get_group_means(schema, data):
 ### Classes
 ###
 
-class SourceData:
+class DB:
 
     def __init__(self, 
                  schema=None,
                  schema_path=None,
-                 raw_db_path=None,
-                 input_txt_path=None
-                 ):
+                 path=None,
+                 input_txt_path=None):
 
         # This will be populated lazily by the table and feature_ids
         # properties
         self.table       = None
         self.feature_ids = None
         self.schema_path = schema_path
-        self.raw_db_path = raw_db_path
+        self.path = path
+
+        # Settings
+        self.stat_name = None
+        self.min_conf = None
+        self.conf_levels = None
+        self.num_bins = None
+        self.num_samples = None
+        self.sample_from = None
+        self.sample_method = None
+        self.full_model    = None
+        self.reduced_model = None
+        self.sample_indexes = None
+
+        # Results
+        self.bins = None
+        self.raw_counts = None
+        self.baseline_counts = None
+        self.bin_to_score = None
+        self.feature_to_score = None
+        self.raw_stats = None
+        self.summary_bins = None
+        self.summary_counts = None
 
         if schema is None:
             logging.info("Loading schema from " + self.schema_path)
@@ -502,15 +586,38 @@ class SourceData:
             self.schema = schema
 
         if input_txt_path is not None:
-            self.copy_table(input_txt_path)
+            self.import_table(input_txt_path)
         else:
-            f = h5py.File(raw_db_path, 'r')
+            f = h5py.File(path, 'r')
             self.table = f['table'][...]
             self.feature_ids = f['feature_ids'][...]
+            f.close()
 
-    def save_schema(self, mode):
-        out = open(self.schema_path, mode)
-        self.schema.save(out)
+    def save(self):
+        logging.info("Saving job results to " + self.path)
+        file = h5py.File(self.path, 'r+')
+
+        self.bins = file.create_dataset("bins", data=self.bins)
+        self.raw_counts = file.create_dataset("raw_counts", data=self.raw_counts)
+        self.baseline_counts = file.create_dataset("baseline_counts", data=self.baseline_counts)
+        self.bin_to_score = file.create_dataset("bin_to_score", data=self.bin_to_score)
+        self.feature_to_score = file.create_dataset("feature_to_score", data=self.feature_to_score)
+        self.raw_stats = file.create_dataset("raw_stats", data=self.raw_stats)
+        self.summary_bins = file.create_dataset("summary_bins", data=self.summary_bins)
+        self.summary_counts = file.create_dataset("summary_counts", data=self.summary_counts)
+        self.sample_indexes = file.create_dataset("sample_indexes", data=self.sample_indexes)
+
+        file.attrs['stat_name'] = self.stat
+        file.attrs['min_conf'] = self.min_conf
+        file.attrs['conf_levels'] = self.conf_levels
+        file.attrs['num_bins'] = self.num_bins
+        file.attrs['num_samples'] = self.num_samples
+        file.attrs['sample_from'] = self.sample_from
+        file.attrs['sample_method'] = self.sample_method
+        file.attrs['full_model'] = str(self.full_model.expr)
+        file.attrs['reduced_model'] = str(self.reduced_model.expr)
+
+        file.close()
 
     @property
     def num_features(self):
@@ -540,9 +647,9 @@ class SourceData:
 
         return self._feature_ids
 
-    def copy_table(self, raw_input_path):
+    def import_table(self, raw_input_path):
         logging.info("Loading table from " + raw_input_path.name +
-                     " to " + self.raw_db_path)
+                     " to " + self.path)
         
         logging.info("Counting rows and columns in input file")
         with open(raw_input_path.name) as fh:
@@ -566,11 +673,11 @@ class SourceData:
         
         log_interval=int(num_rows / 10)
 
-        file = h5py.File(self.raw_db_path, 'w')
+        file = h5py.File(self.path, 'w')
         table = file.create_dataset("table", (num_rows, num_cols), float)
         dt = h5py.special_dtype(vlen=str)
         ids = file.create_dataset("feature_ids", (num_rows,), dt)
-
+        
         with open(raw_input_path.name) as fh:
 
             headers = fh.next().rstrip().split("\t")
@@ -582,81 +689,43 @@ class SourceData:
                 if (i % log_interval) == log_interval - 1:
                     logging.debug("Copied {0} rows".format(i + 1))
 
+        file.close()
         self._table = table
         self._feature_ids = ids
+
+def new_sample_indexes(self):
+
+    method = (self.sample_method, self.sample_from)
+        
+    full = self.full_model
+    reduced = self.reduced_model
+    R = self.num_samples
+
+    if method == ('perm', 'raw'):
+        logging.info("Creating max of {0} random permutations".format(R))
+        return list(random_orderings(full.layout, reduced.layout, R))
+
+    elif method == ('boot', 'raw'):
+        logging.info("Bootstrapping raw values, within groups defined by '" + 
+                     str(reduced.expr) + "'")
+        return random_indexes(reduced.layout, R)
+        
+    elif method == ('boot', 'residuals'):
+        logging.info("Bootstrapping using samples constructed from residuals, not using groups")
+        return random_indexes(
+            [ sorted(self.schema.sample_name_index.values()) ], R)
+
+    else:
+        raise UsageException("Invalid sampling method")
 
 
 class Job:
 
-    DEFAULT_DIRECTORY = "page_job"
 
-    def __init__(self, 
-                 source=None,
-                 result_db_path=None,
-                 stat=None,
-                 full_model=None,
-                 reduced_model=None,
-                 num_bins=None,
-                 num_samples=None,
-                 sample_from=None,
-                 sample_method=None,
-                 min_conf=None,
-                 conf_levels=None):
-
-        self.result_db_path = result_db_path
-
-        # Settings
-        self.source = source
-        self.stat_name = stat
-        self.min_conf = min_conf
-        self.conf_levels = conf_levels
-        self.num_bins = num_bins
-        self.num_samples = num_samples
-        self.sample_from = sample_from
-        self.sample_method = sample_method
-        self.full_model    = Model(self.source.schema, full_model)
-        self.reduced_model = Model(self.source.schema, reduced_model)
-        self.sample_indexes = None
-
-        # Results
-        self.bins = None
-        self.raw_counts = None
-        self.baseline_counts = None
-        self.bin_to_score = None
-        self.feature_to_score = None
-        self.raw_stats = None
-        self.summary_bins = None
-        self.summary_counts = None
-
-
-    def save(self):
-        logging.info("Saving job results")
-        file = h5py.File(self.result_db_path, 'w')
-        self.bins = file.create_dataset("bins", data=self.bins)
-        self.raw_counts = file.create_dataset("raw_counts", data=self.raw_counts)
-        self.baseline_counts = file.create_dataset("baseline_counts", data=self.baseline_counts)
-        self.bin_to_score = file.create_dataset("bin_to_score", data=self.bin_to_score)
-        self.feature_to_score = file.create_dataset("feature_to_score", data=self.feature_to_score)
-        self.raw_stats = file.create_dataset("raw_stats", data=self.raw_stats)
-        self.summary_bins = file.create_dataset("summary_bins", data=self.summary_bins)
-        self.summary_counts = file.create_dataset("summary_counts", data=self.summary_counts)
-        self.sample_indexes = file.create_dataset("sample_indexes", data=self.sample_indexes)
-
-        file.attrs['stat_name'] = self.stat_name
-        file.attrs['min_conf'] = self.min_conf
-        file.attrs['conf_levels'] = self.conf_levels
-        file.attrs['num_bins'] = self.num_bins
-        file.attrs['num_samples'] = self.num_samples
-        file.attrs['sample_from'] = self.sample_from
-        file.attrs['sample_method'] = self.sample_method
-        file.attrs['full_model'] = str(self.full_model.expr)
-        file.attrs['reduced_model'] = str(self.reduced_model.expr)
-
-        file.close()
 
     def load(self, filename="job.hdf5"):
         logging.info("Loading job results")
-        file = h5py.File(self.result_db_path, 'r')
+        file = None #h5py.File(self.result_db_path, 'r')
         bins = file['bins']
         self.raw_counts = file['raw_counts'][...]
         self.baseline_counts = file['baseline_counts'][...]
@@ -674,38 +743,14 @@ class Job:
         self.num_samples = file.attrs['num_samples']
         self.sample_from = file.attrs['sample_from']
         self.sample_method = file.attrs['sample_method']
-        self.full_model = Model(self.source.schema, file.attrs['full_model'])
-        self.reduced_model = Model(self.source.schema, file.attrs['reduced_model'])
+        self.full_model = Model(self.schema, file.attrs['full_model'])
+        self.reduced_model = Model(self.schema, file.attrs['reduced_model'])
 
         logging.debug("Raw stats is " + str(self.raw_stats))
         logging.debug("Full model is " + str(self.full_model.expr))
         
         file.close()
 
-    def new_sample_indexes(self):
-
-        method = (self.sample_method, self.sample_from)
-        
-        full = self.full_model
-        reduced = self.reduced_model
-        R = self.num_samples
-
-        if method == ('perm', 'raw'):
-            logging.info("Creating max of {0} random permutations".format(R))
-            return list(random_orderings(full.layout, reduced.layout, R))
-
-        elif method == ('boot', 'raw'):
-            logging.info("Bootstrapping raw values, within groups defined by '" + 
-                         str(reduced.expr) + "'")
-            return random_indexes(reduced.layout, R)
-        
-        elif method == ('boot', 'residuals'):
-            logging.info("Bootstrapping using samples constructed from residuals, not using groups")
-            return random_indexes(
-                [ sorted(self.schema.sample_name_index.values()) ], R)
-
-        else:
-            raise UsageException("Invalid sampling method")
 
     @property
     def sample_indexes(self):
@@ -723,71 +768,6 @@ class Job:
     def images_directory(self):
         return os.path.join(self.directory, 'images')
 
-    @property
-    def stat(self):
-        """The statistic used for this job."""
-        if self.stat_name == 'f':
-            return page.stat.Ftest(
-                layout_full=self.full_model.layout,
-                layout_reduced=self.reduced_model.layout,
-                alphas=DEFAULT_TUNING_PARAMS)
-        elif self.stat_name == 'f_sqrt':
-            return page.stat.FtestSqrt(
-                layout_full=self.full_model.layout,
-                layout_reduced=self.reduced_model.layout)
-        elif self.stat_name == 't':
-            return Ttest(alpha=1.0)
-
-    @profiled
-    def run(self):
-
-        self.sample_indexes = self.new_sample_indexes()
-
-        data = self.source.table
-        stat = self.stat
-        raw_stats = stat(data)
-
-        logging.debug("Shape of raw stats is " + str(np.shape(raw_stats)))
-
-        self.bins = page.stat.bins_uniform(self.num_bins, raw_stats)
-
-        if self.sample_from == 'residuals':
-            logging.info("Bootstrapping based on residuals")
-            prediction = predicted_values(self)
-            diffs      = data - prediction
-            self.baseline_counts = page.stat.bootstrap(
-                # data,
-                prediction,
-                stat, 
-                indexes=self.sample_indexes,
-                residuals=diffs,
-                bins=self.bins)
-        else:
-            logging.info("Using raw data")
-            # Shift all values in the data by the means of the groups from
-            # the full model, so that the mean of each group is 0.
-            # perm, raw, shifted: 113, 29
-            # boot, raw, shifted: 103, 24
-            # boot, residuals: 113, 32
-            # perm, raw, unshifted: 113, 29
-            # boot, raw, unshifted: 103, 24
-            shifted = residuals(data, self.full_model.layout)
-
-            self.baseline_counts = page.stat.bootstrap(
-                shifted,
-                stat, 
-                indexes=self.sample_indexes,
-                bins=self.bins)
-
-        self.raw_stats    = raw_stats
-        self.raw_counts   = page.stat.cumulative_hist(self.raw_stats, self.bins)
-        self.bin_to_score = confidence_scores(
-            self.raw_counts, self.baseline_counts, np.shape(raw_stats)[-1])
-        self.feature_to_score = assign_scores_to_features(
-            self.raw_stats, self.bins, self.bin_to_score)
-        self.summary_bins = np.linspace(self.min_conf, 1.0, self.conf_levels)
-        self.summary_counts = page.stat.cumulative_hist(
-            self.feature_to_score, self.summary_bins)
 
 
 def print_profile(job):
@@ -804,8 +784,8 @@ def print_profile(job):
     fmt += ["%d", "%d", "%s", "%f", "%f", "%f", "%f", "%f", "%f"]
     fmt += ["%d", "%d"]
 
-    features = [ len(job.source.table) for row in walked ]
-    samples  = [ len(job.source.table[0]) for row in walked ]
+    features = [ len(job.table) for row in walked ]
+    samples  = [ len(job.table[0]) for row in walked ]
 
     print "row is", len(walked[0]), ", fmt is", len(fmt)
     walked = append_fields(walked, names='features', data=features)
@@ -874,7 +854,7 @@ def init_schema(infile=None):
         column_names=headers)
 
 
-def init_job(infile, factors, schema_path=None, raw_db_path=None, force=False):
+def init_job(infile, factors, schema_path=None, db_path=None, force=False):
 
     if isinstance(infile, str):
         infile = open(infile)
@@ -883,15 +863,16 @@ def init_job(infile, factors, schema_path=None, raw_db_path=None, force=False):
     for name, values in factors.items():
         schema.add_factor(name, values)
 
-    source = SourceData(
-        raw_db_path=raw_db_path,
+    source = DB(
+        path=db_path,
         schema_path=schema_path,
         schema=schema,
         input_txt_path=infile)
 
     mode = 'w' if force else 'wx'
     try:
-        source.save_schema(mode)
+        with open(schema_path, mode) as out:
+            source.schema.save(out)
     except IOError as e:
         if e.errno == errno.EEXIST:
             raise UsageException("""\
@@ -907,7 +888,7 @@ def do_setup(args):
     source = init_job(
         infile=args.infile,
         schema_path=args.schema,
-        raw_db_path=args.raw_db,
+        db_path=args.db,
         factors={f : None for f in args.factor},
         force=args.force)
 
@@ -1025,9 +1006,9 @@ page_schema.yaml file, then run 'page.py run ...'.""")
         help="Location of schema file",
         default="page_schema.yaml")
     source_parents.add_argument(
-        '--raw-db', 
+        '--db', 
         help="Location of raw db file",
-        default="page_raw.hdf5")
+        default="page_db.hdf5")
     
     results_parents = argparse.ArgumentParser(add_help=False)
     results_parents.add_argument(
