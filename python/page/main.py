@@ -193,7 +193,7 @@ def do_fdr(job):
         fdr.raw_counts, fdr.baseline_counts, np.shape(raw_stats)[-1])
     fdr.feature_to_score = assign_scores_to_features(
         fdr.raw_stats, fdr.bins, fdr.bin_to_score)
-    fdr.summary_bins = np.arange(0.0, 1.0, job.conf_interval)
+    fdr.summary_bins = np.arange(0.1, 1.0, job.conf_interval)
     fdr.summary_counts = page.stat.cumulative_hist(
         fdr.feature_to_score, fdr.summary_bins)
 
@@ -357,7 +357,7 @@ Summary of features by confidence level:
 Confidence |   Num.
    Level   | Features
 -----------+---------"""
-        for i in range(len(summary_counts) - 1):
+        for i in range(len(summary_counts)):
             print "{bin:10.1%} | {count:8d}".format(
                 bin=summary_bins[i],
                 count=int(summary_counts[i]))
@@ -940,8 +940,8 @@ def add_fdr_args(p):
 
     grp.add_argument(
         '--conf-interval',
-        default=0.025,
-        type=int,
+        default=0.05,
+        type=float,
         help="Interval of confidence levels")
 
 
