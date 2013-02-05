@@ -745,26 +745,6 @@ def new_sample_indexes(self):
         raise UsageException("Invalid sampling method")
 
 
-class Job:
-
-    @property
-    def sample_indexes(self):
-        logging.debug("In Job.sample_indexes")
-        if self._sample_indexes is None:
-            if os.path.exists(path):
-                logging.debug("Found sample indexes to load")
-                self._sample_indexes = np.load(path)
-            else:
-                logging.debug("Sample indexes aren't created yet")
-        return self._sample_indexes
-
-
-    @property
-    def images_directory(self):
-        return os.path.join(self.directory, 'images')
-
-
-
 def print_profile(job):
 
     walked = walk_profile()
