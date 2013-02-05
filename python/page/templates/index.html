@@ -18,7 +18,12 @@
       {% for i in range(summary_counts | length) %}
       <tr>
         <td>{{ summary_bins[i] }}</td>
+
+        {% if summary_bins[i] >= job.min_conf %}
         <td><a href="conf_level_{{i}}_page_0.html">{{ summary_counts[i] }}</a></td>
+        {% else %}
+        <td>{{ summary_counts[i] }}</td>
+        {% endif %}
       </tr>
       {% endfor %}
 
