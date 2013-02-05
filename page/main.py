@@ -213,30 +213,25 @@ def do_run(args):
 
 def do_report(args):
 
-    job = Job(result_db_path=args.results,
-              source=DB(
-            path=args.raw_db,
-            schema_path=args.schema))
-    job.load()
-    job.feature_ids
-    job.table
+    db = DB(path=args.db, schema_path=args.schema)
+    db.load()
 
-    fitted = job.full_model.fit(job.table)
-    means = get_group_means(job.schema, job.table)
+    fitted = db.full_model.fit(db.table)
+    means = get_group_means(db.schema, db.table)
 
     results = ResultTable(
         means=means,
         coeffs=fitted.params,
-        group_names=[assignment_name(a) for a in job.schema.possible_assignments()],
+        group_names=[assignment_name(a) for a in db.schema.possible_assignments()],
         param_names=[assignment_name(a) for a in fitted.labels],
-        feature_ids=np.array(job.feature_ids),
-        stats=job.raw_stats,
-        scores=job.feature_to_score)
+        feature_ids=np.array(db.feature_ids),
+        stats=db.raw_stats,
+        scores=db.feature_to_score)
 
     makedirs(args.report_directory)
     with chdir(args.report_directory):
-        make_report(job, results, args.rows_per_page, args.report_directory)
-        print_profile(job)
+        make_report(db, results, args.rows_per_page, args.report_directory)
+        print_profile(db)
 
  
 def stat_for_name(db):
@@ -619,6 +614,37 @@ class DB:
 
         file.close()
 
+    def load(self):
+
+        logging.info("Loading job results from " + self.path)
+        file = h5py.File(self.path, 'r')
+        self.table = file['table'][...]
+        self.feature_ids = file['feature_ids'][...]
+        self.bins = file['bins'][...]
+        self.raw_counts = file['raw_counts'][...]
+        self.baseline_counts = file['baseline_counts'][...]
+        self.bin_to_score = file['bin_to_score'][...]
+        self.feature_to_score = file['feature_to_score'][...]
+        self.raw_stats = file['raw_stats'][...]
+        self.summary_bins = file['summary_bins'][...]
+        self.summary_counts = file['summary_counts'][...]
+        self.sample_indexes = file['sample_indexes'][...]
+
+        self.stat_name = file.attrs['stat_name']
+        self.min_conf = file.attrs['min_conf']
+        self.conf_levels = file.attrs['conf_levels']
+        self.num_bins = file.attrs['num_bins']
+        self.num_samples = file.attrs['num_samples']
+        self.sample_from = file.attrs['sample_from']
+        self.sample_method = file.attrs['sample_method']
+        self.full_model = Model(self.schema, file.attrs['full_model'])
+        self.reduced_model = Model(self.schema, file.attrs['reduced_model'])
+
+        
+        file.close()
+
+
+
     @property
     def num_features(self):
         return len(self.feature_ids)
@@ -720,37 +746,6 @@ def new_sample_indexes(self):
 
 
 class Job:
-
-
-
-    def load(self, filename="job.hdf5"):
-        logging.info("Loading job results")
-        file = None #h5py.File(self.result_db_path, 'r')
-        bins = file['bins']
-        self.raw_counts = file['raw_counts'][...]
-        self.baseline_counts = file['baseline_counts'][...]
-        self.bin_to_score = file['bin_to_score'][...]
-        self.feature_to_score = file['feature_to_score'][...]
-        self.raw_stats = file['raw_stats'][...]
-        self.summary_bins = file['summary_bins'][...]
-        self.summary_counts = file['summary_counts'][...]
-        self.sample_indexes = file['sample_indexes'][...]
-
-        self.stat_name = file.attrs['stat_name']
-        self.min_conf = file.attrs['min_conf']
-        self.conf_levels = file.attrs['conf_levels']
-        self.num_bins = file.attrs['num_bins']
-        self.num_samples = file.attrs['num_samples']
-        self.sample_from = file.attrs['sample_from']
-        self.sample_method = file.attrs['sample_method']
-        self.full_model = Model(self.schema, file.attrs['full_model'])
-        self.reduced_model = Model(self.schema, file.attrs['reduced_model'])
-
-        logging.debug("Raw stats is " + str(self.raw_stats))
-        logging.debug("Full model is " + str(self.full_model.expr))
-        
-        file.close()
-
 
     @property
     def sample_indexes(self):
