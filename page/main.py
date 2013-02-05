@@ -55,15 +55,15 @@ class UsageException(Exception):
 
 StatDistPlot=namedtuple('StatDistPlot', ['tuning_param', 'filename'])
 
-def plot_stat_dist(job, fdr):
-    logging.info("Saving histograms of " + job.stat.name + " values")
+def plot_stat_dist(db, fdr):
+    logging.info("Saving histograms of " + db.stat.name + " values")
     max_stat = np.max(fdr.raw_stats)
     for i, alpha in enumerate(DEFAULT_TUNING_PARAMS):
         filename = "images/raw_stats_" + str(i) + ".png"
         with figure(filename):
             plt.hist(fdr.raw_stats[i], log=False, bins=250)
-            plt.title(job.stat.name + " distribution over features, $\\alpha = " + str(alpha) + "$")
-            plt.xlabel(job.stat.name + " value")
+            plt.title(db.stat.name + " distribution over features, $\\alpha = " + str(alpha) + "$")
+            plt.xlabel(db.stat.name + " value")
             plt.ylabel("Features")
             plt.xlim(0, max_stat)
             yield StatDistPlot(alpha, filename)
@@ -123,7 +123,7 @@ def ensure_scores_increase(scores):
 
 
 @profiled
-def predicted_values(job):
+def predicted_values(db):
     """Return the values predicted by the reduced model.
     
     The return value has the same shape as the input table, with each
@@ -131,10 +131,10 @@ def predicted_values(job):
     defined by the reduced model.
 
     """
-    data = job.table
+    data = db.table
     prediction = np.zeros_like(data)
 
-    for grp in job.reduced_model.layout:
+    for grp in db.reduced_model.layout:
         means = np.mean(data[..., grp], axis=1)
         means = means.reshape(np.shape(means) + (1,))
         prediction[..., grp] = means
@@ -208,8 +208,8 @@ def assignment_name(a):
     return ", ".join(parts)
            
 def do_run(args):
-    job = run_job(args)
-    job.save()
+    db = run_job(args)
+    db.save()
 
 def do_report(args):
 
@@ -321,20 +321,20 @@ def run_job(args):
 
     return db
 
-def make_report(job, results, rows_per_page, directory):
+def make_report(db, results, rows_per_page, directory):
 
     with profiling('do_report: build report'):
 
-        extra = "\nstat " + job.stat_name + ", sampling " + job.sample_from
+        extra = "\nstat " + db.stat_name + ", sampling " + db.sample_from
         env = jinja2.Environment(loader=jinja2.PackageLoader('page'))
         setup_css(env)
 
-        summary_bins = job.summary_bins
+        summary_bins = db.summary_bins
         summary_counts = np.zeros(len(summary_bins))
 
         template = env.get_template('conf_level.html')
-        for level in range(len(job.summary_bins)):
-            score=job.summary_bins[level]
+        for level in range(len(db.summary_bins)):
+            score=db.summary_bins[level]
             filtered = results.filter_by_score(score)
             summary_counts[level] = len(filtered)
             pages = list(filtered.pages(rows_per_page))
@@ -343,7 +343,7 @@ def make_report(job, results, rows_per_page, directory):
                     out.write(template.render(
                             conf_level=level,
                             min_score=score,
-                            job=job,
+                            job=db,
                             results=page,
                             page_num=page_num,
                             num_pages=len(pages)))
@@ -352,9 +352,9 @@ def make_report(job, results, rows_per_page, directory):
         template = env.get_template('index.html')
         with open('index.html', 'w') as out:
             out.write(template.render(
-                    job=job,
+                    job=db,
                     results=results,
-                    summary_bins=job.summary_bins,
+                    summary_bins=db.summary_bins,
                     summary_counts=summary_counts))
 
 #        with chdir(job.directory):
@@ -378,11 +378,11 @@ Confidence |   Num.
 The full report is available at {0}""".format(
             os.path.join(directory, "index.html"))
 
-    save_text_output(job, results)
-    return (job, results)
+    save_text_output(db, results)
+    return (db, results)
 
-def save_text_output(job, results):
-    (num_rows, num_cols) = job.table.shape
+def save_text_output(db, results):
+    (num_rows, num_cols) = db.table.shape
     num_cols += 2
     table = np.zeros((num_rows, num_cols))
     idxs = np.argmax(results.scores, axis=0)
@@ -392,11 +392,11 @@ def save_text_output(job, results):
 
     # For each row in the data, add feature id, stat, score, group
     # means, and raw values.
-    for i in range(len(job.table)):
+    for i in range(len(db.table)):
         row = []
 
         # Feature id
-        row.append(job.feature_ids[i])
+        row.append(db.feature_ids[i])
         
         # Best stat and all stats
         row.append(results.stats[idxs[i], i])
@@ -409,9 +409,9 @@ def save_text_output(job, results):
             row.append(results.scores[j, i])
         row.extend(results.means[i])
         row.extend(results.coeffs[i])
-        row.extend(job.table[i])
+        row.extend(db.table[i])
         table.append(tuple(row))
-    schema = job.schema
+    schema = db.schema
 
     cols = []
     Col = namedtuple("Col", ['name', 'dtype', 'format'])
@@ -438,7 +438,7 @@ def save_text_output(job, results):
         
     dtype = [(c.name, c.dtype) for c in cols]
 
-    print "Orig table is", np.shape(job.table)
+    print "Orig table is", np.shape(db.table)
     print "Table is", np.shape(table)
     print "Dtype is", dtype
     table = np.array(table, dtype)
@@ -745,7 +745,7 @@ def new_sample_indexes(self):
         raise UsageException("Invalid sampling method")
 
 
-def print_profile(job):
+def print_profile(db):
 
     walked = walk_profile()
     env = jinja2.Environment(loader=jinja2.PackageLoader('page'))
@@ -759,8 +759,8 @@ def print_profile(job):
     fmt += ["%d", "%d", "%s", "%f", "%f", "%f", "%f", "%f", "%f"]
     fmt += ["%d", "%d"]
 
-    features = [ len(job.table) for row in walked ]
-    samples  = [ len(job.table[0]) for row in walked ]
+    features = [ len(db.table) for row in walked ]
+    samples  = [ len(db.table[0]) for row in walked ]
 
     print "row is", len(walked[0]), ", fmt is", len(fmt)
     walked = append_fields(walked, names='features', data=features)
