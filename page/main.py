@@ -213,7 +213,7 @@ def do_run(args):
 
 def do_report(args):
 
-    job = Job(directory=args.job_directory,
+    job = Job(result_db_path=args.results,
               source=SourceData(
             raw_db_path=args.raw_db,
             schema_path=args.schema))
@@ -233,9 +233,9 @@ def do_report(args):
         stats=job.raw_stats,
         scores=job.feature_to_score)
 
-    make_report(job, results, args.rows_per_page)
-
-    with chdir(job.html_directory):
+    makedirs(args.report_directory)
+    with chdir(args.report_directory):
+        make_report(job, results, args.rows_per_page, args.report_directory)
         print_profile(job)
 
  
@@ -247,7 +247,7 @@ def run_job(args):
         raw_db_path=args.raw_db)
 
     job = Job(
-        directory=args.job_directory,
+        result_db_path=args.results,
         source=source,
         stat=args.stat,
         num_bins=args.num_bins,
@@ -259,48 +259,45 @@ def run_job(args):
         min_conf=args.min_conf,
         conf_levels=args.conf_levels)
 
-    makedirs(job.directory)
-
     job.run()
 
     return job
 
-def make_report(job, results, rows_per_page):
+def make_report(job, results, rows_per_page, directory):
 
     with profiling('do_report: build report'):
-        makedirs(job.html_directory)
-        with chdir(job.html_directory):
-            extra = "\nstat " + job.stat_name + ", sampling " + job.sample_from
-            env = jinja2.Environment(loader=jinja2.PackageLoader('page'))
-            setup_css(env)
 
-            summary_bins = job.summary_bins
-            summary_counts = np.zeros(len(summary_bins))
+        extra = "\nstat " + job.stat_name + ", sampling " + job.sample_from
+        env = jinja2.Environment(loader=jinja2.PackageLoader('page'))
+        setup_css(env)
 
-            template = env.get_template('conf_level.html')
-            for level in range(len(job.summary_bins)):
-                score=job.summary_bins[level]
-                filtered = results.filter_by_score(score)
-                summary_counts[level] = len(filtered)
-                pages = list(filtered.pages(rows_per_page))
-                for page_num, page in enumerate(pages):
-                    with open('conf_level_{0}_page_{1}.html'.format(level, page_num), 'w') as out:
-                        out.write(template.render(
-                                conf_level=level,
-                                min_score=score,
-                                job=job,
-                                results=page,
-                                page_num=page_num,
-                                num_pages=len(pages)))
+        summary_bins = job.summary_bins
+        summary_counts = np.zeros(len(summary_bins))
 
+        template = env.get_template('conf_level.html')
+        for level in range(len(job.summary_bins)):
+            score=job.summary_bins[level]
+            filtered = results.filter_by_score(score)
+            summary_counts[level] = len(filtered)
+            pages = list(filtered.pages(rows_per_page))
+            for page_num, page in enumerate(pages):
+                with open('conf_level_{0}_page_{1}.html'.format(level, page_num), 'w') as out:
+                    out.write(template.render(
+                            conf_level=level,
+                            min_score=score,
+                            job=job,
+                            results=page,
+                            page_num=page_num,
+                            num_pages=len(pages)))
+                    
 
-            template = env.get_template('index.html')
-            with open('index.html', 'w') as out:
-                out.write(template.render(
-                        job=job,
-                        results=results,
-                        summary_bins=job.summary_bins,
-                        summary_counts=summary_counts))
+        template = env.get_template('index.html')
+        with open('index.html', 'w') as out:
+            out.write(template.render(
+                    job=job,
+                    results=results,
+                    summary_bins=job.summary_bins,
+                    summary_counts=summary_counts))
 
 #        with chdir(job.directory):
 #            stat_dist_template = env.get_template('stat_dist.html')
@@ -321,69 +318,77 @@ Confidence |   Num.
 
         print """
 The full report is available at {0}""".format(
-            os.path.join(job.directory, "html/index.html"))
+            os.path.join(directory, "index.html"))
 
     save_text_output(job, results)
     return (job, results)
 
 def save_text_output(job, results):
-    with chdir(job.directory):
-        (num_rows, num_cols) = job.source.table.shape
-        num_cols += 2
-        table = np.zeros((num_rows, num_cols))
-        idxs = np.argmax(results.scores, axis=0)
-        stats = [results.stats[idxs[i], i] for i in range(len(idxs))]
-        scores = [results.scores[idxs[i], i] for i in range(len(idxs))]
-        table = []
+    (num_rows, num_cols) = job.source.table.shape
+    num_cols += 2
+    table = np.zeros((num_rows, num_cols))
+    idxs = np.argmax(results.scores, axis=0)
+    stats = [results.stats[idxs[i], i] for i in range(len(idxs))]
+    scores = [results.scores[idxs[i], i] for i in range(len(idxs))]
+    table = []
 
-        # For each row in the data, add feature id, stat, score, group
-        # means, and raw values.
-        for i in range(len(job.source.table)):
-            row = []
-            row.append(job.source.feature_ids[i])
-            row.append(results.stats[idxs[i], i])
-            for j in range(len(DEFAULT_TUNING_PARAMS)):
-                row.append(results.stats[j, i])
-            row.append(results.scores[idxs[i], i])
-            for j in range(len(DEFAULT_TUNING_PARAMS)):
-                row.append(results.scores[j, i])
-            row.extend(results.means[i])
-            row.extend(results.coeffs[i])
-            row.extend(job.source.table[i])
-            table.append(tuple(row))
-        schema = job.source.schema
+    # For each row in the data, add feature id, stat, score, group
+    # means, and raw values.
+    for i in range(len(job.source.table)):
+        row = []
 
-        cols = []
-        Col = namedtuple("Col", ['name', 'dtype', 'format'])
-        def add_col(name, dtype, format):
-            cols.append(Col(name, dtype, format))
-
-        add_col(schema.feature_id_column_names[0], object, "%s")
-        add_col('best_stat', float, "%f")
-        for i, alpha in enumerate(DEFAULT_TUNING_PARAMS):
-            add_col('stat_' + str(alpha), float, "%f")
-
-        add_col('best_score', float, "%f")
-        for i, alpha in enumerate(DEFAULT_TUNING_PARAMS):
-            add_col('score_' + str(alpha), float, "%f")
-
-        for name in results.group_names:
-            add_col("mean: " + name, float, "%f")
-
-        for name in results.param_names:
-            add_col("param: " + name, float, "%f")
-
-        for i, name in enumerate(schema.sample_column_names):
-            add_col(name, float, "%f")
+        # Feature id
+        row.append(job.source.feature_ids[i])
         
-        dtype = [(c.name, c.dtype) for c in cols]
+        # Best stat and all stats
+        row.append(results.stats[idxs[i], i])
+        for j in range(len(DEFAULT_TUNING_PARAMS)):
+            row.append(results.stats[j, i])
+        
+        # Best score and all scores
+        row.append(results.scores[idxs[i], i])
+        for j in range(len(DEFAULT_TUNING_PARAMS)):
+            row.append(results.scores[j, i])
+        row.extend(results.means[i])
+        row.extend(results.coeffs[i])
+        row.extend(job.source.table[i])
+        table.append(tuple(row))
+    schema = job.source.schema
 
-        table = np.array(table, dtype)
-        with open("results.txt", "w") as out:
-            out.write("\t".join(c.name for c in cols) + "\n")
-            np.savetxt(out, table, 
-                       fmt=[c.format for c in cols],
-                       delimiter="\t")
+    cols = []
+    Col = namedtuple("Col", ['name', 'dtype', 'format'])
+    def add_col(name, dtype, format):
+        cols.append(Col(name, dtype, format))
+
+    add_col(schema.feature_id_column_names[0], object, "%s")
+    add_col('best_stat', float, "%f")
+    for i, alpha in enumerate(DEFAULT_TUNING_PARAMS):
+        add_col('stat_' + str(alpha), float, "%f")
+
+    add_col('best_score', float, "%f")
+    for i, alpha in enumerate(DEFAULT_TUNING_PARAMS):
+        add_col('score_' + str(alpha), float, "%f")
+
+    for name in results.group_names:
+        add_col("mean: " + name, float, "%f")
+
+    for name in results.param_names:
+        add_col("param: " + name, float, "%f")
+
+    for i, name in enumerate(schema.sample_column_names):
+        add_col(name, float, "%f")
+        
+    dtype = [(c.name, c.dtype) for c in cols]
+
+    print "Orig table is", np.shape(job.source.table)
+    print "Table is", np.shape(table)
+    print "Dtype is", dtype
+    table = np.array(table, dtype)
+    with open("results.txt", "w") as out:
+        out.write("\t".join(c.name for c in cols) + "\n")
+        np.savetxt(out, table, 
+                   fmt=[c.format for c in cols],
+                   delimiter="\t")
 
 
 @profiled
@@ -499,7 +504,7 @@ class SourceData:
         if input_txt_path is not None:
             self.copy_table(input_txt_path)
         else:
-            f = h5py.File(raw_db_path)
+            f = h5py.File(raw_db_path, 'r')
             self.table = f['table'][...]
             self.feature_ids = f['feature_ids'][...]
 
@@ -561,7 +566,7 @@ class SourceData:
         
         log_interval=int(num_rows / 10)
 
-        file = h5py.File(self.raw_db_path)
+        file = h5py.File(self.raw_db_path, 'w')
         table = file.create_dataset("table", (num_rows, num_cols), float)
         dt = h5py.special_dtype(vlen=str)
         ids = file.create_dataset("feature_ids", (num_rows,), dt)
@@ -587,7 +592,7 @@ class Job:
 
     def __init__(self, 
                  source=None,
-                 directory=None, 
+                 result_db_path=None,
                  stat=None,
                  full_model=None,
                  reduced_model=None,
@@ -598,9 +603,10 @@ class Job:
                  min_conf=None,
                  conf_levels=None):
 
+        self.result_db_path = result_db_path
+
         # Settings
         self.source = source
-        self.directory = directory
         self.stat_name = stat
         self.min_conf = min_conf
         self.conf_levels = conf_levels
@@ -610,7 +616,7 @@ class Job:
         self.sample_method = sample_method
         self.full_model    = Model(self.source.schema, full_model)
         self.reduced_model = Model(self.source.schema, reduced_model)
-        self._sample_indexes = None
+        self.sample_indexes = None
 
         # Results
         self.bins = None
@@ -625,7 +631,7 @@ class Job:
 
     def save(self):
         logging.info("Saving job results")
-        file = h5py.File('job.hdf5')
+        file = h5py.File(self.result_db_path, 'w')
         self.bins = file.create_dataset("bins", data=self.bins)
         self.raw_counts = file.create_dataset("raw_counts", data=self.raw_counts)
         self.baseline_counts = file.create_dataset("baseline_counts", data=self.baseline_counts)
@@ -634,7 +640,7 @@ class Job:
         self.raw_stats = file.create_dataset("raw_stats", data=self.raw_stats)
         self.summary_bins = file.create_dataset("summary_bins", data=self.summary_bins)
         self.summary_counts = file.create_dataset("summary_counts", data=self.summary_counts)
-        self._sample_indexes    = file.create_dataset("sample_indexes", data=self._sample_indexes)
+        self.sample_indexes = file.create_dataset("sample_indexes", data=self.sample_indexes)
 
         file.attrs['stat_name'] = self.stat_name
         file.attrs['min_conf'] = self.min_conf
@@ -650,7 +656,7 @@ class Job:
 
     def load(self, filename="job.hdf5"):
         logging.info("Loading job results")
-        file = h5py.File('job.hdf5')
+        file = h5py.File(self.result_db_path, 'r')
         bins = file['bins']
         self.raw_counts = file['raw_counts'][...]
         self.baseline_counts = file['baseline_counts'][...]
@@ -659,6 +665,7 @@ class Job:
         self.raw_stats = file['raw_stats'][...]
         self.summary_bins = file['summary_bins'][...]
         self.summary_counts = file['summary_counts'][...]
+        self.sample_indexes = file['sample_indexes'][...]
 
         self.stat_name = file.attrs['stat_name']
         self.min_conf = file.attrs['min_conf']
@@ -674,10 +681,6 @@ class Job:
         logging.debug("Full model is " + str(self.full_model.expr))
         
         file.close()
-
-    def save_sample_indexes(self, indexes):
-        self._sample_indexes = indexes
-        np.save(self.sample_indexes_path, indexes)
 
     def new_sample_indexes(self):
 
@@ -708,10 +711,6 @@ class Job:
     def sample_indexes(self):
         logging.debug("In Job.sample_indexes")
         if self._sample_indexes is None:
-            path = self.sample_indexes_path
-
-            logging.debug("_sample_indexes is none; initializing. Looking at " + 
-                          path)
             if os.path.exists(path):
                 logging.debug("Found sample indexes to load")
                 self._sample_indexes = np.load(path)
@@ -719,18 +718,10 @@ class Job:
                 logging.debug("Sample indexes aren't created yet")
         return self._sample_indexes
 
-    @property
-    def html_directory(self):
-        return os.path.join(self.directory, 'html')
 
     @property
     def images_directory(self):
         return os.path.join(self.directory, 'images')
-
-    @property
-    def sample_indexes_path(self):
-        """Path to table of sample indexes"""
-        return os.path.join(self.directory, 'sample_indexes.npy')
 
     @property
     def stat(self):
@@ -750,6 +741,8 @@ class Job:
     @profiled
     def run(self):
 
+        self.sample_indexes = self.new_sample_indexes()
+
         data = self.source.table
         stat = self.stat
         raw_stats = stat(data)
@@ -757,8 +750,6 @@ class Job:
         logging.debug("Shape of raw stats is " + str(np.shape(raw_stats)))
 
         self.bins = page.stat.bins_uniform(self.num_bins, raw_stats)
-
-        self.save_sample_indexes(self.new_sample_indexes())
 
         if self.sample_from == 'residuals':
             logging.info("Bootstrapping based on residuals")
@@ -798,13 +789,6 @@ class Job:
         self.summary_counts = page.stat.cumulative_hist(
             self.feature_to_score, self.summary_bins)
 
-
-class Report:
-
-    DEFAULT_DIRECTORY = "page_report"
-
-    def __init__(self, directory):
-        self.directory = directory
 
 def print_profile(job):
 
@@ -1018,7 +1002,7 @@ def get_arguments():
     subparsers = uberparser.add_subparsers(
         title='actions',
         description="""Normal usage is to run 'page.py setup ...', then manually edit the
-schema.yaml file, then run 'page.py run ...'.""")
+page_schema.yaml file, then run 'page.py run ...'.""")
 
     # Set up "parent" parser, which contains some arguments used by all other parsers
     parents = argparse.ArgumentParser(add_help=False)
@@ -1034,14 +1018,6 @@ schema.yaml file, then run 'page.py run ...'.""")
         '--log',
         default="page.log",
         help="Location of log file")
-    parents.add_argument(
-        '--job-directory', '-J',
-        default=Job.DEFAULT_DIRECTORY,
-        help="The directory that contains the intermediate results")
-    parents.add_argument(
-        '--report-directory',
-        default=Report.DEFAULT_DIRECTORY,
-        help="The directory to write the report to")
 
     source_parents = argparse.ArgumentParser(add_help=False)
     source_parents.add_argument(
@@ -1053,6 +1029,12 @@ schema.yaml file, then run 'page.py run ...'.""")
         help="Location of raw db file",
         default="page_raw.hdf5")
     
+    results_parents = argparse.ArgumentParser(add_help=False)
+    results_parents.add_argument(
+        '--results',
+        help="PaGE results db",
+        default="page_results.hdf5")
+
     # Create setup parser
     setup_parser = subparsers.add_parser(
         'setup',
@@ -1084,7 +1066,7 @@ schema.yaml file, then run 'page.py run ...'.""")
         'run',
         help="""Run the job.""",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[parents, source_parents])
+        parents=[parents, source_parents, results_parents])
 
     add_model_args(run_parser)
     add_fdr_args(run_parser)
@@ -1094,7 +1076,12 @@ schema.yaml file, then run 'page.py run ...'.""")
         'report',
         help="""Generate report""",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[parents])
+        parents=[parents, source_parents, results_parents])
+    report_parser.add_argument(
+        '--report-directory',
+        default='page_report',
+        help="The directory to write the report to")
+
     add_reporting_args(report_parser)
     report_parser.set_defaults(func=do_report)
 
