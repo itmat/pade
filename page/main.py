@@ -1,5 +1,12 @@
 #!/usr/bin/env python
 
+# Files:
+#  + raw input file
+#  + page_schema.yaml
+#  + page_raw.hdf5
+#  + page_results.hdf5
+
+
 """The main program for page."""
 
 # External imports
@@ -207,7 +214,9 @@ def do_run(args):
 def do_report(args):
 
     job = Job(directory=args.job_directory,
-              source=SourceData(args.source_directory))
+              source=SourceData(
+            raw_db_path=args.raw_db,
+            schema_path=args.schema))
     job.load()
     job.source.feature_ids
     job.source.table
@@ -233,7 +242,9 @@ def do_report(args):
 @profiled
 def run_job(args):
 
-    source = SourceData(args.source_directory)
+    source = SourceData(
+        schema_path=args.schema,
+        raw_db_path=args.raw_db)
 
     job = Job(
         directory=args.job_directory,
@@ -465,25 +476,32 @@ def get_group_means(schema, data):
 
 class SourceData:
 
-    DEFAULT_DIRECTORY = "page_source"
-
     def __init__(self, 
-                 directory=DEFAULT_DIRECTORY,
                  schema=None,
-                 
+                 schema_path=None,
+                 raw_db_path=None,
+                 input_txt_path=None
                  ):
-        self.directory = directory
 
         # This will be populated lazily by the table and feature_ids
         # properties
-        self._table = None
-        self._feature_ids = None
+        self.table       = None
+        self.feature_ids = None
+        self.schema_path = schema_path
+        self.raw_db_path = raw_db_path
 
         if schema is None:
+            logging.info("Loading schema from " + self.schema_path)
             self.schema = Schema.load(open(self.schema_path))
         else:
             self.schema = schema
 
+        if input_txt_path is not None:
+            self.copy_table(input_txt_path)
+        else:
+            f = h5py.File(raw_db_path)
+            self.table = f['table'][...]
+            self.feature_ids = f['feature_ids'][...]
 
     def save_schema(self, mode):
         out = open(self.schema_path, mode)
@@ -492,19 +510,6 @@ class SourceData:
     @property
     def num_features(self):
         return len(self.feature_ids)
-
-    @property
-    def table_path(self):
-        return os.path.join(self.directory, 'table.npy')
-
-    @property
-    def feature_ids_path(self):
-        return os.path.join(self.directory, 'feature_ids.npy')
-
-    @property
-    def schema_path(self):
-        """The path to the schema."""
-        return os.path.join(self.directory, 'schema.yaml')
 
     @property
     def table(self):
@@ -519,7 +524,6 @@ class SourceData:
                 dtype=RAW_VALUE_DTYPE)
         return self._table
 
-
     @property
     def feature_ids(self):
         """Array of the ids of features from my input file."""
@@ -532,11 +536,11 @@ class SourceData:
         return self._feature_ids
 
     def copy_table(self, raw_input_path):
-        logging.info("Loading table from " + raw_input_path +
-                     " to " + self.table_path + " and " + self.feature_ids_path)
+        logging.info("Loading table from " + raw_input_path.name +
+                     " to " + self.raw_db_path)
         
         logging.info("Counting rows and columns in input file")
-        with open(raw_input_path) as fh:
+        with open(raw_input_path.name) as fh:
 
             headers = fh.next().rstrip().split("\t")
             num_cols = len(headers) - 1
@@ -552,21 +556,17 @@ class SourceData:
         logging.info(
             "Creating raw data table")
 
-        table = np.memmap(
-            self.table_path, 
-            mode='w+',
-            dtype=RAW_VALUE_DTYPE,
-            shape=(num_rows, num_cols))
-
-        ids = np.memmap(
-            self.feature_ids_path,
-            mode='w+',
-            dtype=FEATURE_ID_DTYPE,
-            shape=(num_rows,))
-
+        table = np.zeros((num_rows, num_cols),
+                         RAW_VALUE_DTYPE)
+        
         log_interval=int(num_rows / 10)
 
-        with open(raw_input_path) as fh:
+        file = h5py.File(self.raw_db_path)
+        table = file.create_dataset("table", (num_rows, num_cols), float)
+        dt = h5py.special_dtype(vlen=str)
+        ids = file.create_dataset("feature_ids", (num_rows,), dt)
+
+        with open(raw_input_path.name) as fh:
 
             headers = fh.next().rstrip().split("\t")
 
@@ -577,9 +577,8 @@ class SourceData:
                 if (i % log_interval) == log_interval - 1:
                     logging.debug("Copied {0} rows".format(i + 1))
 
-
-        del table
-        del ids
+        self._table = table
+        self._feature_ids = ids
 
 
 class Job:
@@ -891,7 +890,7 @@ def init_schema(infile=None):
         column_names=headers)
 
 
-def init_job(infile, factors, directory, force=False):
+def init_job(infile, factors, schema_path=None, raw_db_path=None, force=False):
 
     if isinstance(infile, str):
         infile = open(infile)
@@ -900,8 +899,11 @@ def init_job(infile, factors, directory, force=False):
     for name, values in factors.items():
         schema.add_factor(name, values)
 
-    source = SourceData(directory, schema=schema)
-    makedirs(source.directory)
+    source = SourceData(
+        raw_db_path=raw_db_path,
+        schema_path=schema_path,
+        schema=schema,
+        input_txt_path=infile)
 
     mode = 'w' if force else 'wx'
     try:
@@ -914,15 +916,14 @@ def init_job(infile, factors, directory, force=False):
                     source.schema_path))
         raise e
 
-    source.copy_table(infile.name)
-
     return source
 
 @profiled
 def do_setup(args):
     source = init_job(
         infile=args.infile,
-        directory=args.source_directory,
+        schema_path=args.schema,
+        raw_db_path=args.raw_db,
         factors={f : None for f in args.factor},
         force=args.force)
 
@@ -1034,10 +1035,6 @@ schema.yaml file, then run 'page.py run ...'.""")
         default="page.log",
         help="Location of log file")
     parents.add_argument(
-        '--source-directory', '-S',
-        default=SourceData.DEFAULT_DIRECTORY,
-        help="The directory that contains the source data and schema"),
-    parents.add_argument(
         '--job-directory', '-J',
         default=Job.DEFAULT_DIRECTORY,
         help="The directory that contains the intermediate results")
@@ -1046,6 +1043,16 @@ schema.yaml file, then run 'page.py run ...'.""")
         default=Report.DEFAULT_DIRECTORY,
         help="The directory to write the report to")
 
+    source_parents = argparse.ArgumentParser(add_help=False)
+    source_parents.add_argument(
+        '--schema', 
+        help="Location of schema file",
+        default="page_schema.yaml")
+    source_parents.add_argument(
+        '--raw-db', 
+        help="Location of raw db file",
+        default="page_raw.hdf5")
+    
     # Create setup parser
     setup_parser = subparsers.add_parser(
         'setup',
@@ -1053,7 +1060,7 @@ schema.yaml file, then run 'page.py run ...'.""")
                 outputs a YAML file that you then need to fill out in order to
                 properly configure the job.""",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[parents])
+        parents=[parents, source_parents])
     setup_parser.add_argument(
         'infile',
         help="""Name of input file""",
@@ -1077,7 +1084,7 @@ schema.yaml file, then run 'page.py run ...'.""")
         'run',
         help="""Run the job.""",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[parents])
+        parents=[parents, source_parents])
 
     add_model_args(run_parser)
     add_fdr_args(run_parser)
