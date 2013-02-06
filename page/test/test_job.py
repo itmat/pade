@@ -4,7 +4,7 @@ import page
 import os
 import numpy as np
 
-from page.test.utils import sample_job
+from page.test.utils import sample_db
 from page.main import *
 
 class CommonTest(unittest.TestCase):
@@ -29,7 +29,7 @@ class CommonTest(unittest.TestCase):
     def test_table(self):
         schema = init_schema(self.sample_input_4_class)
         
-        with sample_job(self.sample_input_4_class,
+        with sample_db(self.sample_input_4_class,
                         self.factor_map_treated_sex) as job:
 
             self.assertEquals(np.shape(job.table), (1000, 16))
@@ -37,7 +37,7 @@ class CommonTest(unittest.TestCase):
 
     def test_model_to_layout(self):
 
-        with sample_job(self.sample_input_4_class,
+        with sample_db(self.sample_input_4_class,
                         self.factor_map_treated_sex) as job:
 
             # One class
