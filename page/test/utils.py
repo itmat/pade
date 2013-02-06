@@ -4,6 +4,7 @@ import shutil
 import os
 
 from page.main import *
+from page.db   import *
 
 @contextlib.contextmanager
 def tempdir():
@@ -14,29 +15,33 @@ def tempdir():
         shutil.rmtree(d)
 
 @contextlib.contextmanager
-def sample_job(infile, factor_map):
+def sample_db(infile, factor_map):
     schema = init_schema(infile)
 
     with tempdir() as tmp:
-        filename = os.path.join(tmp, 'schema.yaml')
+        schema_path = os.path.join(tmp, 'page_schema.yaml')
+        db_path     = os.path.join(tmp, 'page_db.h5')
 
         factors = {}
         for f in factor_map:
             values = set(factor_map[f].values())
             factors[f] = values
 
-        job = init_job(
-            directory=tmp,
+        schema = init_job(
+            schema_path=schema_path,
             infile=infile,
             factors=factors)
-        schema = job.schema
 
         for factor, col_to_val in factor_map.items():
             for col, val in col_to_val.items():
                 schema.set_factor(col, factor, val)
                 
-        with open(job.schema_path, 'w') as out:
+        with open(schema_path, 'w') as out:
             schema.save(out)
 
-        yield job
+        db = DB(
+            schema_path=schema_path,
+            path=db_path)
+        import_table(db, infile)
+        yield db
     

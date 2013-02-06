@@ -698,7 +698,7 @@ def init_schema(infile=None):
         column_names=headers)
 
 
-def init_job(infile, factors, schema_path=None, db_path=None, force=False):
+def init_job(infile, factors, schema_path=None, force=False):
 
     if isinstance(infile, str):
         infile = open(infile)
@@ -710,6 +710,7 @@ def init_job(infile, factors, schema_path=None, db_path=None, force=False):
     mode = 'w' if force else 'wx'
     try:
         with open(schema_path, mode) as out:
+            logging.info("Saving schema to " + out.name)
             schema.save(out)
     except IOError as e:
         if e.errno == errno.EEXIST:
@@ -726,7 +727,6 @@ def do_setup(args):
     schema = init_job(
         infile=args.infile,
         schema_path=args.schema,
-        db_path=args.db,
         factors={f : None for f in args.factor},
         force=args.force)
 

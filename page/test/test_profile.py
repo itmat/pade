@@ -10,14 +10,14 @@ class ProfileTest(unittest.TestCase):
         #     foo()
         #     foo()
         self.profile_log = [
-            ('enter', 'top',  1),
-            ('enter', 'foo',  2),
-            ('exit',  'foo',  3),
-            ('enter', 'bar',  5),
-            ('enter', 'baz',  7),
-            ('exit',  'baz', 11),
-            ('exit',  'bar', 13),
-            ('exit',  'top', 17)]
+            ('enter', 'top',  1, 0),
+            ('enter', 'foo',  2, 1),
+            ('exit',  'foo',  3, 2),
+            ('enter', 'bar',  5, 3),
+            ('enter', 'baz',  7, 4),
+            ('exit',  'baz', 11, 5),
+            ('exit',  'bar', 13, 6),
+            ('exit',  'top', 17, 7)]
 
     def test_walk_profile(self):
         scanned = walk_profile(self.profile_log)

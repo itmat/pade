@@ -87,7 +87,6 @@ class DB:
 
         logging.info("Loading job results from " + self.path)
         file = h5py.File(self.path, 'r')
-        print "Feature ids are", file['feature_ids']
 
         self.table = file['table'][...]
         self.feature_ids = file['feature_ids'][...]
