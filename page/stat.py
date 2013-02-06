@@ -275,7 +275,6 @@ DEFAULT_ACCUMULATOR = Accumulator(
     lambda res, val: res + [ val ],
     lambda x: np.array(x))
 
-
 def _binning_accumulator(bins, num_samples):
     initializer = np.zeros(cumulative_hist_shape(bins))
 
@@ -370,13 +369,13 @@ def bootstrap(data,
     # features. Each row is the array of statistics for all the
     # features, using a different random sampling.
     
-    with profiling("build samples, do stats, reduce"):
-        samples = (build_sample(p) for p in indexes)
-        stats   = (stat_fn(s)      for s in samples)
-        reduced = reduce(accumulator.reduce_fn, stats, accumulator.initializer)
+    logging.info("Processing {0} samples".format(len(indexes)))
+    samples = (build_sample(p) for p in indexes)
+    stats   = (stat_fn(s)      for s in samples)
+    reduced = reduce(accumulator.reduce_fn, stats, accumulator.initializer)
 
-    with profiling("finalize"):
-        return accumulator.finalize_fn(reduced)
+    logging.info("Finalizing results")
+    return accumulator.finalize_fn(reduced)
 
 def cumulative_hist_shape(bins):
     """Returns the shape of the histogram with the given bins.
