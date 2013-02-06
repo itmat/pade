@@ -327,12 +327,14 @@ def args_to_db(args):
 @profiled
 def run_job(db):
 
-    stat = stat_for_name(db)
-    
-    raw_stats = stat(db.table)
+    stat      = stat_for_name(db)
 
+    logging.info("Computing {stat} statistics on raw data".format(stat=stat.name))
+    raw_stats = stat(db.table)
     logging.debug("Shape of raw stats is " + str(np.shape(raw_stats)))
 
+    logging.info("Creating {num_bins} bins based on values of raw stats".format(
+            num_bins=db.num_bins))
     db.bins = page.stat.bins_uniform(db.num_bins, raw_stats)
 
     if db.sample_from == 'residuals':
@@ -346,14 +348,9 @@ def run_job(db):
             residuals=diffs,
             bins=db.bins)
     else:
-        logging.info("Using raw data")
+        logging.info("Bootstrapping based on raw data")
         # Shift all values in the data by the means of the groups from
         # the full model, so that the mean of each group is 0.
-        # perm, raw, shifted: 113, 29
-        # boot, raw, shifted: 103, 24
-        # boot, residuals: 113, 32
-        # perm, raw, unshifted: 113, 29
-        # boot, raw, unshifted: 103, 24
         shifted = residuals(db.table, db.full_model.layout)
         
         db.baseline_counts = page.stat.bootstrap(
@@ -362,6 +359,7 @@ def run_job(db):
             indexes=db.sample_indexes,
             bins=db.bins)
 
+    logging.info("Done bootstrapping, now computing confidence scores")
     db.raw_stats    = raw_stats
     db.raw_counts   = page.stat.cumulative_hist(db.raw_stats, db.bins)
     db.bin_to_score = confidence_scores(
