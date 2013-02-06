@@ -264,8 +264,12 @@ def do_report(args):
 
     makedirs(args.report_directory)
     with chdir(args.report_directory):
-        make_html_report(db, results, args.rows_per_page, args.report_directory)
-        save_text_output(db, results)
+        if args.html:
+            make_html_report(db, results, args.rows_per_page, args.report_directory)
+            print "Saved HTML report to ", os.path.join(args.report_directory, "index.html")
+        if args.text:
+            save_text_output(db, results)
+            print "Saved text report to ", os.path.join(args.report_directory, "results.txt")
         print_profile(db)
 
  
@@ -441,6 +445,7 @@ def save_text_output(db, results):
 
     # For each row in the data, add feature id, stat, score, group
     # means, and raw values.
+    logging.info("Building internal results table")
     for i in range(len(db.table)):
         row = []
 
@@ -487,7 +492,7 @@ def save_text_output(db, results):
         
     dtype = [(c.name, c.dtype) for c in cols]
 
-
+    logging.info("Writing table")
     table = np.array(table, dtype)
     with open("results.txt", "w") as out:
         out.write("\t".join(c.name for c in cols) + "\n")
@@ -907,6 +912,14 @@ page_schema.yaml file, then run 'page.py run ...'.""")
         '--report-directory',
         default='page_report',
         help="The directory to write the report to")
+    report_parser.add_argument(
+        '--text',
+        action='store_true',
+        help="Indicates that text reports should be produced")
+    report_parser.add_argument(
+        '--html',
+        action='store_true',
+        help="Indicates that HTML reports should be produced")
 
     add_reporting_args(report_parser)
     report_parser.set_defaults(func=do_report)
