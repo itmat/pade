@@ -39,6 +39,7 @@ class DB:
         self.raw_stats = None
         self.summary_bins = None
         self.summary_counts = None
+        self.best_param_idxs = None
 
         if schema is None:
             logging.info("Loading schema from " + self.schema_path)
@@ -68,6 +69,7 @@ class DB:
         self.summary_bins = file.create_dataset("summary_bins", data=self.summary_bins)
         self.summary_counts = file.create_dataset("summary_counts", data=self.summary_counts)
         self.sample_indexes = file.create_dataset("sample_indexes", data=self.sample_indexes)
+        self.best_param_idxs = file.create_dataset("best_param_idxs", data=self.best_param_idxs)
 
         file.attrs['stat_name'] = self.stat
         file.attrs['min_conf'] = self.min_conf
@@ -98,6 +100,7 @@ class DB:
         self.summary_bins = file['summary_bins'][...]
         self.summary_counts = file['summary_counts'][...]
         self.sample_indexes = file['sample_indexes'][...]
+        self.best_param_idxs = file['best_param_idxs'][...]
 
         self.stat_name = file.attrs['stat_name']
         self.min_conf = file.attrs['min_conf']

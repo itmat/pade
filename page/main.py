@@ -142,13 +142,31 @@ def predicted_values(db):
     return prediction
 
 def summarize_by_conf_level(db):
+
+    logging.info("Summarizing the results")
+
     db.summary_bins   = np.linspace(db.min_conf, 1.0, db.conf_levels)
+    db.best_param_idxs = np.zeros(len(db.summary_bins))
     db.summary_counts = np.zeros(len(db.summary_bins))
+
     for i, conf in enumerate(db.summary_bins):
         idxs = db.feature_to_score > conf
         best = np.argmax(np.sum(idxs, axis=1))
-#        db.best_param_idxs[i] = best
+        db.best_param_idxs[i] = best
         db.summary_counts[i]  = np.sum(idxs[best])
+
+def print_summary(db):
+    print """
+Summary of features by confidence level:
+
+Confidence |   Num.   | Tuning
+   Level   | Features | Param.
+-----------+----------+-------"""
+    for i in range(len(db.summary_counts) - 1):
+        print "{bin:10.1%} | {count:8d} | {param:0.4f}".format(
+            bin=db.summary_bins[i],
+            count=int(db.summary_counts[i]),
+            param=DEFAULT_TUNING_PARAMS[db.best_param_idxs[i]])
 
 
 class ResultTable:
@@ -224,6 +242,7 @@ def do_run(args):
     setup_sample_indexes(db)
     run_job(db)
     summarize_by_conf_level(db)
+    print_summary(db)
     db.save()
 
 def do_report(args):
@@ -407,26 +426,8 @@ def make_report(db, results, rows_per_page, directory):
 #                out.write(stat_dist_template.render(
 #                        plots=plot_stat_dist(job, fdr)))
 
-        print """
-Summary of features by confidence level:
-
-Confidence |   Num.
-   Level   | Features
------------+---------"""
-        for i in range(len(db.summary_counts) - 1):
-            print "{bin:10.0%} | {count:8d}".format(
-                bin=db.summary_bins[i],
-                count=int(db.summary_counts[i]))
-
-        print """
-The full report is available at {0}""".format(
-            os.path.join(directory, "index.html"))
-
     save_text_output(db, results)
     return (db, results)
-
-
-
     
 
 def save_text_output(db, results):
