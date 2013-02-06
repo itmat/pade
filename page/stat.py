@@ -279,6 +279,7 @@ def _binning_accumulator(bins, num_samples):
     initializer = np.zeros(cumulative_hist_shape(bins))
 
     def reduce_fn(res, val):
+        logging.debug("Got a set of results")
         return res + cumulative_hist(val, bins)
     
     def finalize_fn(res):
