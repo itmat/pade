@@ -587,7 +587,9 @@ def new_sample_indexes(self):
 
     if method == ('perm', 'raw'):
         logging.info("Creating max of {0} random permutations".format(R))
-        return list(random_orderings(full.layout, reduced.layout, R))
+        res = list(random_orderings(full.layout, reduced.layout, R))
+        logging.info("Got {0} permutations".format(len(res)))
+        return res
 
     elif method == ('boot', 'raw'):
         logging.info("Bootstrapping raw values, within groups defined by '" + 
