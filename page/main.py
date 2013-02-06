@@ -264,7 +264,8 @@ def do_report(args):
 
     makedirs(args.report_directory)
     with chdir(args.report_directory):
-        make_report(db, results, args.rows_per_page, args.report_directory)
+        make_html_report(db, results, args.rows_per_page, args.report_directory)
+        save_text_output(db, results)
         print_profile(db)
 
  
@@ -388,7 +389,7 @@ def run_job(db):
 
     return db
 
-def make_report(db, results, rows_per_page, directory):
+def make_html_report(db, results, rows_per_page, directory):
 
     with profiling('do_report: build report'):
 
@@ -426,7 +427,6 @@ def make_report(db, results, rows_per_page, directory):
 #                out.write(stat_dist_template.render(
 #                        plots=plot_stat_dist(job, fdr)))
 
-    save_text_output(db, results)
     return (db, results)
     
 
@@ -434,9 +434,10 @@ def save_text_output(db, results):
     (num_rows, num_cols) = db.table.shape
     num_cols += 2
     table = np.zeros((num_rows, num_cols))
+
+    # Best tuning param for each feature
     idxs = np.argmax(results.scores, axis=0)
-    stats = [results.stats[idxs[i], i] for i in range(len(idxs))]
-    scores = [results.scores[idxs[i], i] for i in range(len(idxs))]
+    print "Idxs are", idxs
     table = []
 
     # For each row in the data, add feature id, stat, score, group
@@ -448,14 +449,14 @@ def save_text_output(db, results):
         row.append(db.feature_ids[i])
         
         # Best stat and all stats
-        row.append(results.stats[idxs[i], i])
+        row.append(db.raw_stats[idxs[i], i])
         for j in range(len(DEFAULT_TUNING_PARAMS)):
-            row.append(results.stats[j, i])
+            row.append(db.raw_stats[j, i])
         
         # Best score and all scores
-        row.append(results.scores[idxs[i], i])
+        row.append(db.feature_to_score[idxs[i], i])
         for j in range(len(DEFAULT_TUNING_PARAMS)):
-            row.append(results.scores[j, i])
+            row.append(db.feature_to_score[j, i])
         row.extend(results.means[i])
         row.extend(results.coeffs[i])
         row.extend(db.table[i])
