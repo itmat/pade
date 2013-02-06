@@ -706,6 +706,7 @@ def init_job(infile, factors, schema_path=None, db_path=None, force=False):
     mode = 'w' if force else 'wx'
     try:
         with open(schema_path, mode) as out:
+            logging.info("Saving schema to " + out.name)
             schema.save(out)
     except IOError as e:
         if e.errno == errno.EEXIST:
