@@ -1,6 +1,7 @@
 import logging
 import h5py
 from page.schema import Schema
+from page.model import Model
 
 class DB:
 

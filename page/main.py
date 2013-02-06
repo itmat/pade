@@ -141,6 +141,15 @@ def predicted_values(db):
         prediction[..., grp] = means
     return prediction
 
+def summarize_by_conf_level(db):
+    db.summary_bins   = np.linspace(db.min_conf, 1.0, db.conf_levels)
+    db.summary_counts = np.zeros(len(db.summary_bins))
+    for i, conf in enumerate(db.summary_bins):
+        idxs = db.feature_to_score > conf
+        best = np.argmax(np.sum(idxs, axis=1))
+#        db.best_param_idxs[i] = best
+        db.summary_counts[i]  = np.sum(idxs[best])
+
 
 class ResultTable:
 
@@ -205,9 +214,16 @@ def assignment_name(a):
     parts = ["{0}={1}".format(k, v) for k, v in a.items()]
 
     return ", ".join(parts)
+
+def setup_sample_indexes(db):
+    db.sample_indexes = new_sample_indexes(db)
            
 def do_run(args):
-    db = run_job(args)
+    db = args_to_db(args)
+    import_table(db, args.infile.name)
+    setup_sample_indexes(db)
+    run_job(db)
+    summarize_by_conf_level(db)
     db.save()
 
 def do_report(args):
@@ -290,16 +306,11 @@ def import_table(db, path):
 
     db.table = table
     db.feature_ids = ids
-    
 
-@profiled
-def run_job(args):
-
+def args_to_db(args):
     db = DB(
         schema_path=args.schema,
         path=args.db)
-
-    import_table(db, args.infile.name)
 
     db.stat = args.stat
     db.num_bins = args.num_bins
@@ -308,16 +319,17 @@ def run_job(args):
     db.reduced_model = Model(db.schema, args.reduced_model)
     db.sample_from = args.sample_from
     db.sample_method = args.sample_method
-    
     db.min_conf=args.min_conf
     db.conf_levels=args.conf_levels
 
-    db.sample_indexes = new_sample_indexes(db)
+    return db
 
-    data = db.table
+@profiled
+def run_job(db):
+
     stat = stat_for_name(db)
     
-    raw_stats = stat(data)
+    raw_stats = stat(db.table)
 
     logging.debug("Shape of raw stats is " + str(np.shape(raw_stats)))
 
@@ -326,9 +338,8 @@ def run_job(args):
     if db.sample_from == 'residuals':
         logging.info("Bootstrapping based on residuals")
         prediction = predicted_values(db)
-        diffs      = data - prediction
+        diffs      = db.table - prediction
         db.baseline_counts = page.stat.bootstrap(
-            # data,
             prediction,
             stat, 
             indexes=db.sample_indexes,
@@ -343,7 +354,7 @@ def run_job(args):
         # boot, residuals: 113, 32
         # perm, raw, unshifted: 113, 29
         # boot, raw, unshifted: 103, 24
-        shifted = residuals(data, db.full_model.layout)
+        shifted = residuals(db.table, db.full_model.layout)
         
         db.baseline_counts = page.stat.bootstrap(
             shifted,
@@ -357,10 +368,6 @@ def run_job(args):
         db.raw_counts, db.baseline_counts, np.shape(raw_stats)[-1])
     db.feature_to_score = assign_scores_to_features(
         db.raw_stats, db.bins, db.bin_to_score)
-    db.summary_bins = np.linspace(db.min_conf, 1.0, db.conf_levels)
-    db.summary_counts = page.stat.cumulative_hist(
-        db.feature_to_score, db.summary_bins)
-
 
     return db
 
@@ -372,14 +379,10 @@ def make_report(db, results, rows_per_page, directory):
         env = jinja2.Environment(loader=jinja2.PackageLoader('page'))
         setup_css(env)
 
-        summary_bins = db.summary_bins
-        summary_counts = np.zeros(len(summary_bins))
-
         template = env.get_template('conf_level.html')
         for level in range(len(db.summary_bins)):
             score=db.summary_bins[level]
             filtered = results.filter_by_score(score)
-            summary_counts[level] = len(filtered)
             pages = list(filtered.pages(rows_per_page))
             for page_num, page in enumerate(pages):
                 with open('conf_level_{0}_page_{1}.html'.format(level, page_num), 'w') as out:
@@ -398,7 +401,7 @@ def make_report(db, results, rows_per_page, directory):
                     job=db,
                     results=results,
                     summary_bins=db.summary_bins,
-                    summary_counts=summary_counts))
+                    summary_counts=db.summary_counts))
 
 #        with chdir(job.directory):
 #            stat_dist_template = env.get_template('stat_dist.html')
@@ -412,10 +415,10 @@ Summary of features by confidence level:
 Confidence |   Num.
    Level   | Features
 -----------+---------"""
-        for i in range(len(summary_counts) - 1):
+        for i in range(len(db.summary_counts) - 1):
             print "{bin:10.0%} | {count:8d}".format(
-                bin=summary_bins[i],
-                count=int(summary_counts[i]))
+                bin=db.summary_bins[i],
+                count=int(db.summary_counts[i]))
 
         print """
 The full report is available at {0}""".format(
@@ -423,6 +426,10 @@ The full report is available at {0}""".format(
 
     save_text_output(db, results)
     return (db, results)
+
+
+
+    
 
 def save_text_output(db, results):
     (num_rows, num_cols) = db.table.shape
@@ -587,9 +594,7 @@ def new_sample_indexes(self):
 
     if method == ('perm', 'raw'):
         logging.info("Creating max of {0} random permutations".format(R))
-        res = list(random_orderings(full.layout, reduced.layout, R))
-        logging.info("Got {0} permutations".format(len(res)))
-        return res
+        return list(random_orderings(full.layout, reduced.layout, R))
 
     elif method == ('boot', 'raw'):
         logging.info("Bootstrapping raw values, within groups defined by '" + 
