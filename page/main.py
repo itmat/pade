@@ -437,7 +437,6 @@ def save_text_output(db, results):
 
     # Best tuning param for each feature
     idxs = np.argmax(results.scores, axis=0)
-    print "Idxs are", idxs
     table = []
 
     # For each row in the data, add feature id, stat, score, group
