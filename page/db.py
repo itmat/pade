@@ -1,5 +1,6 @@
 import logging
 import h5py
+from StringIO import StringIO
 from page.schema import Schema
 from page.model import Model
 
@@ -42,8 +43,9 @@ class DB:
         self.best_param_idxs = None
 
         if schema is None:
-            logging.info("Loading schema from " + self.schema_path)
-            self.schema = Schema.load(open(self.schema_path))
+            if self.schema_path is not None:
+                logging.info("Loading schema from " + self.schema_path)
+                self.schema = Schema.load(open(self.schema_path))
         else:
             self.schema = schema
 
@@ -71,6 +73,10 @@ class DB:
         self.sample_indexes = file.create_dataset("sample_indexes", data=self.sample_indexes)
         self.best_param_idxs = file.create_dataset("best_param_idxs", data=self.best_param_idxs)
 
+
+        schema_str = StringIO()
+        self.schema.save(schema_str)
+        file.attrs['schema'] = str(schema_str.getvalue())
         file.attrs['stat_name'] = self.stat
         file.attrs['min_conf'] = self.min_conf
         file.attrs['conf_levels'] = self.conf_levels
@@ -101,6 +107,8 @@ class DB:
         self.sample_indexes = file['sample_indexes'][...]
         self.best_param_idxs = file['best_param_idxs'][...]
 
+        schema_str = StringIO(file.attrs['schema'])
+        self.schema = Schema.load(schema_str)
         self.stat_name = file.attrs['stat_name']
         self.min_conf = file.attrs['min_conf']
         self.conf_levels = file.attrs['conf_levels']

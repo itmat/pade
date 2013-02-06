@@ -247,7 +247,7 @@ def do_run(args):
 
 def do_report(args):
 
-    db = DB(path=args.db, schema_path=args.schema)
+    db = DB(path=args.db)
     db.load()
 
     fitted = db.full_model.fit(db.table)
@@ -833,16 +833,6 @@ page_schema.yaml file, then run 'page.py run ...'.""")
         default="page.log",
         help="Location of log file")
 
-    source_parents = argparse.ArgumentParser(add_help=False)
-    source_parents.add_argument(
-        '--schema', 
-        help="Location of schema file",
-        default="page_schema.yaml")
-    source_parents.add_argument(
-        '--db', 
-        help="Location of raw db file",
-        default="page_db.hdf5")
-    
     results_parents = argparse.ArgumentParser(add_help=False)
     results_parents.add_argument(
         '--results',
@@ -856,7 +846,7 @@ page_schema.yaml file, then run 'page.py run ...'.""")
                 outputs a YAML file that you then need to fill out in order to
                 properly configure the job.""",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[parents, source_parents])
+        parents=[parents])
     setup_parser.add_argument(
         'infile',
         help="""Name of input file""",
@@ -873,6 +863,11 @@ page_schema.yaml file, then run 'page.py run ...'.""")
         '--force', '-f',
         action='store_true',
         help="""Overwrite any existing files""")
+    setup_parser.add_argument(
+        '--schema', 
+        help="Path to write the schema file to",
+        default="page_schema.yaml")
+
     setup_parser.set_defaults(func=do_setup)
 
     # Create "run" parser
@@ -880,12 +875,21 @@ page_schema.yaml file, then run 'page.py run ...'.""")
         'run',
         help="""Run the job.""",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[parents, source_parents, results_parents])
+        parents=[parents, results_parents])
+    run_parser.add_argument(
+        '--schema', 
+        help="Path to read the schema file from",
+        default="page_schema.yaml")
     run_parser.add_argument(
         'infile',
         help="""Name of input file""",
         default=argparse.SUPPRESS,
         type=file)
+    run_parser.add_argument(
+        '--db', 
+        help="Path to the db file that I will create to store the results",
+        default="page_db.h5")
+    
     add_model_args(run_parser)
     add_fdr_args(run_parser)
     run_parser.set_defaults(func=do_run)
@@ -894,7 +898,11 @@ page_schema.yaml file, then run 'page.py run ...'.""")
         'report',
         help="""Generate report""",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[parents, source_parents, results_parents])
+        parents=[parents, results_parents])
+    report_parser.add_argument(
+        '--db', 
+        help="Path to the db file to read results from",
+        default="page_db.h5")
     report_parser.add_argument(
         '--report-directory',
         default='page_report',
