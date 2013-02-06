@@ -59,7 +59,7 @@ StatDistPlot=namedtuple('StatDistPlot', ['tuning_param', 'filename'])
 def plot_stat_dist(db, fdr):
     logging.info("Saving histograms of " + db.stat.name + " values")
     max_stat = np.max(fdr.raw_stats)
-    for i, alpha in enumerate(DEFAULT_TUNING_PARAMS):
+    for i, alpha in enumerate(db.tuning_params):
         filename = "images/raw_stats_" + str(i) + ".png"
         with figure(filename):
             plt.hist(fdr.raw_stats[i], log=False, bins=250)
@@ -166,7 +166,7 @@ Confidence |   Num.   | Tuning
         print "{bin:10.1%} | {count:8d} | {param:0.4f}".format(
             bin=db.summary_bins[i],
             count=int(db.summary_counts[i]),
-            param=DEFAULT_TUNING_PARAMS[db.best_param_idxs[i]])
+            param=db.tuning_params[db.best_param_idxs[i]])
 
 
 class ResultTable:
@@ -280,7 +280,7 @@ def stat_for_name(db):
         return page.stat.Ftest(
             layout_full=db.full_model.layout,
             layout_reduced=db.reduced_model.layout,
-            alphas=DEFAULT_TUNING_PARAMS)
+            alphas=db.tuning_params)
     elif name == 'f_sqrt':
         return page.stat.FtestSqrt(
             layout_full=db.full_model.layout,
@@ -336,6 +336,7 @@ def args_to_db(args):
         schema_path=args.schema,
         path=args.db)
 
+    db.tuning_params = DEFAULT_TUNING_PARAMS
     db.stat = args.stat
     db.num_bins = args.num_bins
     db.num_samples = args.num_samples
@@ -454,12 +455,12 @@ def save_text_output(db, results):
         
         # Best stat and all stats
         row.append(db.raw_stats[idxs[i], i])
-        for j in range(len(DEFAULT_TUNING_PARAMS)):
+        for j in range(len(db.tuning_params)):
             row.append(db.raw_stats[j, i])
         
         # Best score and all scores
         row.append(db.feature_to_score[idxs[i], i])
-        for j in range(len(DEFAULT_TUNING_PARAMS)):
+        for j in range(len(db.tuning_params)):
             row.append(db.feature_to_score[j, i])
         row.extend(results.means[i])
         row.extend(results.coeffs[i])
@@ -474,11 +475,11 @@ def save_text_output(db, results):
 
     add_col(schema.feature_id_column_names[0], object, "%s")
     add_col('best_stat', float, "%f")
-    for i, alpha in enumerate(DEFAULT_TUNING_PARAMS):
+    for i, alpha in enumerate(db.tuning_params):
         add_col('stat_' + str(alpha), float, "%f")
 
     add_col('best_score', float, "%f")
-    for i, alpha in enumerate(DEFAULT_TUNING_PARAMS):
+    for i, alpha in enumerate(db.tuning_params):
         add_col('score_' + str(alpha), float, "%f")
 
     for name in results.group_names:

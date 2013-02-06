@@ -30,6 +30,7 @@ class DB:
         self.full_model    = None
         self.reduced_model = None
         self.sample_indexes = None
+        self.tuning_params = None
 
         # Results
         self.bins = None
@@ -72,6 +73,7 @@ class DB:
         self.summary_counts = file.create_dataset("summary_counts", data=self.summary_counts)
         self.sample_indexes = file.create_dataset("sample_indexes", data=self.sample_indexes)
         self.best_param_idxs = file.create_dataset("best_param_idxs", data=self.best_param_idxs)
+        self.tuning_params = file.create_dataset("tuning_params", data=self.tuning_params)
 
 
         schema_str = StringIO()
@@ -106,6 +108,7 @@ class DB:
         self.summary_counts = file['summary_counts'][...]
         self.sample_indexes = file['sample_indexes'][...]
         self.best_param_idxs = file['best_param_idxs'][...]
+        self.tuning_params = file['tuning_params'][...]
 
         schema_str = StringIO(file.attrs['schema'])
         self.schema = Schema.load(schema_str)
