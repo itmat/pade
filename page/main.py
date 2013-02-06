@@ -618,7 +618,6 @@ def print_profile(db):
 
     walked = walk_profile()
     env = jinja2.Environment(loader=jinja2.PackageLoader('page'))
-    setup_css(env)
     template = env.get_template('profile.html')
     with open('profile.html', 'w') as out:
         logging.info("Saving profile")
