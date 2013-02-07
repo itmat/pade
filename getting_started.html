@@ -119,12 +119,6 @@ data).</p>
 <p>The names of the columns do not matter, except that each column&#8217;s name
 must be unique.</p>
 </div>
-<div class="section" id="output-files">
-<h3>Output files<a class="headerlink" href="#output-files" title="Permalink to this headline">¶</a></h3>
-<p>When PaGE is done it will place all of its output data and HTML
-reports in a directory. The default location is <tt class="docutils literal"><span class="pre">pageseq_out</span></tt>, but
-this can be changed with the <tt class="docutils literal"><span class="pre">--directory</span></tt> option.</p>
-</div>
 <div class="section" id="creating-the-schema">
 <h3>Creating the schema<a class="headerlink" href="#creating-the-schema" title="Permalink to this headline">¶</a></h3>
 <p>The first step of any PaGE job is to run <tt class="docutils literal"><span class="pre">page</span> <span class="pre">setup</span></tt> on the input
@@ -139,10 +133,11 @@ treat gender as a &#8220;nuisance&#8221; variables. So we have two factors:
 <div class="highlight-python"><pre>page setup --factor gender --factor treated sample_data/sample_data_4_class.txt</pre>
 </div>
 <p>This will read in the input file and create a skeleton &#8220;schema&#8221; file
-based on it, in pageseq_out/schema.yaml. We then need to edit this
-file to list the values available for each of the two factors, and to
-assign those factor values to each of the sample column names.</p>
-<p>First, in the very top section of the pageseq_out/schema.yaml file,
+based on it, in page_schema.yaml (this can be changed with the
+<tt class="docutils literal"><span class="pre">--schema</span></tt> option). We then need to edit this file to list the
+values available for each of the two factors, and to assign those
+factor values to each of the sample column names.</p>
+<p>First, in the very top section of the page_schema.yaml file,
 list the valid values for the factors. Change it to look like this:</p>
 <div class="highlight-python"><pre>factors:
 - name: treated
@@ -220,8 +215,7 @@ considering gender at all), you would not provide a reduced model.</p>
 <p>The simplest PaGE job for our 4-class sample input would be something like:</p>
 <div class="highlight-python"><pre>page run --full-model "treated * gender" --reduced-model gender</pre>
 </div>
-<p>This should take less than a minute, and should print a message
-telling you the location of the HTML reports.</p>
+<p>This should take less than a minute.</p>
 </div>
 <div class="section" id="interesting-options">
 <h4>Interesting options<a class="headerlink" href="#interesting-options" title="Permalink to this headline">¶</a></h4>
@@ -240,6 +234,14 @@ more verbose with the <tt class="docutils literal"><span class="pre">--verbose</
 even more debugging-level output if you give it <tt class="docutils literal"><span class="pre">--debug</span></tt> or <tt class="docutils literal"><span class="pre">-d</span></tt>.</p>
 </div>
 </div>
+<div class="section" id="generating-reports">
+<h3>Generating reports<a class="headerlink" href="#generating-reports" title="Permalink to this headline">¶</a></h3>
+<p>When you run <tt class="docutils literal"><span class="pre">page</span> <span class="pre">run</span></tt>, it will store the results of the analysis
+in a binary file called <tt class="docutils literal"><span class="pre">page_db.h5</span></tt>. The file name can be changed
+with the <tt class="docutils literal"><span class="pre">--db</span></tt> option. You need to run another command to generate
+the reports:</p>
+<p>page report</p>
+</div>
 </div>
 </div>
 
@@ -257,7 +259,6 @@ even more debugging-level output if you give it <tt class="docutils literal"><sp
 <li><a class="reference internal" href="#installing">Installing</a></li>
 <li><a class="reference internal" href="#running-a-sample-job">Running a sample job</a><ul>
 <li><a class="reference internal" href="#input-files">Input files</a></li>
-<li><a class="reference internal" href="#output-files">Output files</a></li>
 <li><a class="reference internal" href="#creating-the-schema">Creating the schema</a></li>
 <li><a class="reference internal" href="#running-the-analysis">Running the analysis</a><ul>
 <li><a class="reference internal" href="#full-model">Full model</a></li>
@@ -266,6 +267,7 @@ even more debugging-level output if you give it <tt class="docutils literal"><sp
 <li><a class="reference internal" href="#interesting-options">Interesting options</a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#generating-reports">Generating reports</a></li>
 </ul>
 </li>
 </ul>
