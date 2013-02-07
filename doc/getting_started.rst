@@ -73,13 +73,6 @@ data).
 The names of the columns do not matter, except that each column's name
 must be unique. 
 
-Output files
-^^^^^^^^^^^^
-
-When PaGE is done it will place all of its output data and HTML
-reports in a directory. The default location is ``pageseq_out``, but
-this can be changed with the ``--directory`` option.
-
 Creating the schema
 ^^^^^^^^^^^^^^^^^^^
 
@@ -96,11 +89,12 @@ treat gender as a "nuisance" variables. So we have two factors:
   page setup --factor gender --factor treated sample_data/sample_data_4_class.txt
 
 This will read in the input file and create a skeleton "schema" file
-based on it, in pageseq_out/schema.yaml. We then need to edit this
-file to list the values available for each of the two factors, and to
-assign those factor values to each of the sample column names.
+based on it, in page_schema.yaml (this can be changed with the
+``--schema`` option). We then need to edit this file to list the
+values available for each of the two factors, and to assign those
+factor values to each of the sample column names.
 
-First, in the very top section of the pageseq_out/schema.yaml file,
+First, in the very top section of the page_schema.yaml file,
 list the valid values for the factors. Change it to look like this::
 
   factors:
@@ -186,8 +180,7 @@ The simplest PaGE job for our 4-class sample input would be something like::
 
   page run --full-model "treated * gender" --reduced-model gender
 
-This should take less than a minute, and should print a message
-telling you the location of the HTML reports.
+This should take less than a minute.
 
 Interesting options
 """""""""""""""""""
@@ -207,3 +200,14 @@ By default PaGE prints very little output; just a report at the end
 showing the distribution of the confidence levels. You can make it be
 more verbose with the ``--verbose`` or ``-v`` option. It will print
 even more debugging-level output if you give it ``--debug`` or ``-d``.
+
+Generating reports
+^^^^^^^^^^^^^^^^^^
+
+When you run ``page run``, it will store the results of the analysis
+in a binary file called ``page_db.h5``. The file name can be changed
+with the ``--db`` option. You need to run another command to generate
+the reports::
+
+page report
+
