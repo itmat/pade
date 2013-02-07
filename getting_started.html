@@ -213,9 +213,10 @@ considering gender at all), you would not provide a reduced model.</p>
 <div class="section" id="default-settings">
 <h4>Default settings<a class="headerlink" href="#default-settings" title="Permalink to this headline">¶</a></h4>
 <p>The simplest PaGE job for our 4-class sample input would be something like:</p>
-<div class="highlight-python"><pre>page run --full-model "treated * gender" --reduced-model gender</pre>
+<div class="highlight-python"><pre>page run --full-model "treated * gender" --reduced-model gender sample_data/sample_data_4_class.txt</pre>
 </div>
-<p>This should take less than a minute.</p>
+<p>This should take less than a minute. Note that you need to provide the
+input file on the command line.</p>
 </div>
 <div class="section" id="interesting-options">
 <h4>Interesting options<a class="headerlink" href="#interesting-options" title="Permalink to this headline">¶</a></h4>
@@ -240,7 +241,8 @@ even more debugging-level output if you give it <tt class="docutils literal"><sp
 in a binary file called <tt class="docutils literal"><span class="pre">page_db.h5</span></tt>. The file name can be changed
 with the <tt class="docutils literal"><span class="pre">--db</span></tt> option. You need to run another command to generate
 the reports:</p>
-<p>page report</p>
+<div class="highlight-python"><pre>page report</pre>
+</div>
 </div>
 </div>
 </div>
