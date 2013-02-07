@@ -178,9 +178,10 @@ Default settings
 
 The simplest PaGE job for our 4-class sample input would be something like::
 
-  page run --full-model "treated * gender" --reduced-model gender
+  page run --full-model "treated * gender" --reduced-model gender sample_data/sample_data_4_class.txt
 
-This should take less than a minute.
+This should take less than a minute. Note that you need to provide the
+input file on the command line.
 
 Interesting options
 """""""""""""""""""
@@ -209,5 +210,5 @@ in a binary file called ``page_db.h5``. The file name can be changed
 with the ``--db`` option. You need to run another command to generate
 the reports::
 
-page report
+  page report
 
