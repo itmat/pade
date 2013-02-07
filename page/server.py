@@ -9,7 +9,11 @@ import argparse
 import logging 
 import StringIO
 
-app = Flask(__name__)
+class PadeApp(Flask):
+
+    def __init__(self, db):
+        super(PadeApp, self).__init__(__name__)
+        self.db = db
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -18,6 +22,9 @@ args = parser.parse_args()
 
 db = DB(path=args.db)
 db.load()
+
+app = PadeApp(db)
+
 
 @app.route("/")
 def index():
