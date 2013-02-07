@@ -57,6 +57,7 @@
 <span class="kn">import</span> <span class="nn">contextlib</span>
 <span class="kn">import</span> <span class="nn">resource</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">time</span>
 
 <span class="n">EVENTS</span> <span class="o">=</span> <span class="p">[]</span>
 
@@ -69,10 +70,10 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">pre_maxrss</span> <span class="o">=</span> <span class="n">maxrss</span><span class="p">()</span>
-    <span class="n">EVENTS</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;enter&#39;</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">maxrss</span><span class="p">()))</span>
+    <span class="n">EVENTS</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;enter&#39;</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">maxrss</span><span class="p">(),</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()))</span>
     <span class="k">yield</span>
     <span class="n">post_maxrss</span> <span class="o">=</span> <span class="n">maxrss</span><span class="p">()</span>
-    <span class="n">EVENTS</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;exit&#39;</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">maxrss</span><span class="p">()))</span>
+    <span class="n">EVENTS</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;exit&#39;</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">maxrss</span><span class="p">(),</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()))</span>
 </div>
 <div class="viewcode-block" id="profiled"><a class="viewcode-back" href="../../api.html#page.performance.profiled">[docs]</a><span class="k">def</span> <span class="nf">profiled</span><span class="p">(</span><span class="n">method</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Decorator for profiling a function.&quot;&quot;&quot;</span>
@@ -93,13 +94,14 @@
     <span class="n">events</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">order</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">profile_log</span><span class="p">:</span>
-        <span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">maxrss</span><span class="p">)</span> <span class="o">=</span> <span class="n">entry</span>
+        <span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">maxrss</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span> <span class="o">=</span> <span class="n">entry</span>
         <span class="k">if</span> <span class="n">event</span> <span class="o">==</span> <span class="s">&#39;enter&#39;</span><span class="p">:</span>
             <span class="n">stack</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
                     <span class="s">&#39;order&#39;</span>      <span class="p">:</span> <span class="n">order</span><span class="p">,</span>
                     <span class="s">&#39;depth&#39;</span>      <span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">stack</span><span class="p">),</span>
                     <span class="s">&#39;label&#39;</span>      <span class="p">:</span> <span class="n">label</span><span class="p">,</span>
-                    <span class="s">&#39;maxrss_pre&#39;</span> <span class="p">:</span> <span class="n">maxrss</span> <span class="p">})</span>
+                    <span class="s">&#39;maxrss_pre&#39;</span> <span class="p">:</span> <span class="n">maxrss</span><span class="p">,</span>
+                    <span class="s">&#39;time_pre&#39;</span>   <span class="p">:</span> <span class="n">t</span><span class="p">})</span>
             <span class="n">order</span> <span class="o">+=</span> <span class="mi">1</span>
         <span class="k">elif</span> <span class="n">event</span> <span class="o">==</span> <span class="s">&#39;exit&#39;</span><span class="p">:</span>
             <span class="n">entry</span> <span class="o">=</span> <span class="n">stack</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
@@ -108,6 +110,7 @@
                     <span class="s">&quot;Expected to pop {0}, got {1} instead&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                         <span class="n">label</span><span class="p">,</span> <span class="n">entry</span><span class="p">[</span><span class="s">&#39;label&#39;</span><span class="p">]))</span>
             <span class="n">entry</span><span class="p">[</span><span class="s">&#39;maxrss_post&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">maxrss</span>
+            <span class="n">entry</span><span class="p">[</span><span class="s">&#39;time_post&#39;</span><span class="p">]</span>   <span class="o">=</span> <span class="n">t</span>
             <span class="n">events</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">ProfileStackException</span><span class="p">(</span>
@@ -119,7 +122,10 @@
              <span class="n">e</span><span class="p">[</span><span class="s">&#39;maxrss_pre&#39;</span><span class="p">],</span> 
              <span class="n">e</span><span class="p">[</span><span class="s">&#39;maxrss_post&#39;</span><span class="p">],</span>
              <span class="mf">0.0</span><span class="p">,</span>
-             <span class="mf">0.0</span><span class="p">)</span>
+             <span class="mf">0.0</span><span class="p">,</span>
+             <span class="n">e</span><span class="p">[</span><span class="s">&#39;time_pre&#39;</span><span class="p">],</span>
+             <span class="n">e</span><span class="p">[</span><span class="s">&#39;time_post&#39;</span><span class="p">]</span>
+             <span class="p">)</span>
             <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">events</span><span class="p">]</span>
 
     <span class="n">dtype</span><span class="o">=</span><span class="p">[(</span><span class="s">&#39;depth&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
@@ -128,7 +134,9 @@
            <span class="p">(</span><span class="s">&#39;maxrss_pre&#39;</span><span class="p">,</span> <span class="nb">float</span><span class="p">),</span>
            <span class="p">(</span><span class="s">&#39;maxrss_post&#39;</span><span class="p">,</span> <span class="nb">float</span><span class="p">),</span>
            <span class="p">(</span><span class="s">&#39;maxrss_diff&#39;</span><span class="p">,</span> <span class="nb">float</span><span class="p">),</span>
-           <span class="p">(</span><span class="s">&#39;maxrss_diff_percent&#39;</span><span class="p">,</span> <span class="nb">float</span><span class="p">)]</span>
+           <span class="p">(</span><span class="s">&#39;maxrss_diff_percent&#39;</span><span class="p">,</span> <span class="nb">float</span><span class="p">),</span>
+           <span class="p">(</span><span class="s">&#39;time_pre&#39;</span><span class="p">,</span> <span class="nb">float</span><span class="p">),</span>
+           <span class="p">(</span><span class="s">&#39;time_post&#39;</span><span class="p">,</span> <span class="nb">float</span><span class="p">)]</span>
 
     <span class="n">table</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">recs</span><span class="p">,</span> <span class="n">dtype</span><span class="p">)</span>
 
