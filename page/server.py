@@ -9,27 +9,19 @@ import argparse
 import logging 
 import StringIO
 
+
 class PadeApp(Flask):
 
-    def __init__(self, db):
+    def __init__(self):
         super(PadeApp, self).__init__(__name__)
-        self.db = db
+        self.db = None
 
-parser = argparse.ArgumentParser()
-parser.add_argument(
-    'db')
-args = parser.parse_args()
-
-db = DB(path=args.db)
-db.load()
-
-app = PadeApp(db)
-
+app = PadeApp()
 
 @app.route("/")
 def index():
     logging.info("Getting index")
-    return render_template("index.html", db=db)
+    return render_template("index.html", db=app.db)
 
 @app.route("/conf_dist.png")
 def conf_dist_png():
@@ -39,7 +31,7 @@ def conf_dist_png():
         title="Feature count by confidence score",
         xlabel="Confidence score",
         ylabel="Features")
-    ax.plot(db.summary_bins, db.summary_counts)
+    ax.plot(app.db.summary_bins, app.db.summary_counts)
     png_output = StringIO.StringIO()
     fig.savefig(png_output)
     response = make_response(png_output.getvalue())
@@ -49,17 +41,17 @@ def conf_dist_png():
 
 @app.route("/stat_dist/<tuning_param>.png")
 def plot_stat_dist(tuning_param):
-    max_stat = np.max(db.raw_stats)
+    max_stat = np.max(app.db.raw_stats)
     tuning_param = int(tuning_param)
     fig = plt.figure()
     ax = fig.add_subplot(
         111,
-        title=db.stat_name + " distribution over features, $\\alpha = " + str(tuning_param) + "$",
-        xlabel=db.stat_name + " value",
+        title=app.db.stat_name + " distribution over features, $\\alpha = " + str(tuning_param) + "$",
+        xlabel=app.db.stat_name + " value",
         ylabel="Features",
         xlim=(0, max_stat))
 
-    plt.hist(db.raw_stats[tuning_param], log=False, bins=250)
+    plt.hist(app.db.raw_stats[tuning_param], log=False, bins=250)
     png_output = StringIO.StringIO()
     fig.savefig(png_output)
     response = make_response(png_output.getvalue())
@@ -75,9 +67,9 @@ def score_dist_by_tuning_param():
 
     lines = []
     labels = []
-    for i, alpha in enumerate(db.tuning_params):
+    for i, alpha in enumerate(app.db.tuning_params):
         bins = np.arange(0.5, 1.0, 0.01)
-        hist = cumulative_hist(db.feature_to_score[i], bins)
+        hist = cumulative_hist(app.db.feature_to_score[i], bins)
         print "Shape of bins is", np.shape(bins)
         print "Shape of hist is", np.shape(hist)
         lines.append(ax.plot(bins[:-1], hist, label=str(alpha)))
@@ -90,7 +82,4 @@ def score_dist_by_tuning_param():
     response.headers['Content-Type'] = 'image/png'
     return response
 
-if __name__ == "__main__":
-    app.debug = True
-    app.run()
 

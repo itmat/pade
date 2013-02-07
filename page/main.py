@@ -16,7 +16,6 @@ import collections
 import errno
 import jinja2
 import logging
-import matplotlib.pyplot as plt
 import numpy.ma as ma
 import numpy as np
 import h5py
@@ -244,6 +243,17 @@ def do_run(args):
     summarize_by_conf_level(db)
     print_summary(db)
     db.save()
+
+def do_server(args):
+    import page.server
+    db = DB(path=args.results)
+    db.load()
+    page.server.app.db = db
+    if args.debug:
+        page.server.app.debug = True
+    page.server.app.run()
+    
+
 
 def do_report(args):
 
@@ -873,8 +883,6 @@ page_schema.yaml file, then run 'page.py run ...'.""")
         help="Path to write the schema file to",
         default="page_schema.yaml")
 
-    setup_parser.set_defaults(func=do_setup)
-
     # Create "run" parser
     run_parser = subparsers.add_parser(
         'run',
@@ -897,7 +905,6 @@ page_schema.yaml file, then run 'page.py run ...'.""")
     
     add_model_args(run_parser)
     add_fdr_args(run_parser)
-    run_parser.set_defaults(func=do_run)
 
     report_parser = subparsers.add_parser(
         'report',
@@ -922,7 +929,17 @@ page_schema.yaml file, then run 'page.py run ...'.""")
         help="Indicates that HTML reports should be produced")
 
     add_reporting_args(report_parser)
+
+    server_parser = subparsers.add_parser(
+        'server',
+        help="""Start server to show results""",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[parents, results_parents])
+
     report_parser.set_defaults(func=do_report)
+    run_parser.set_defaults(func=do_run)
+    setup_parser.set_defaults(func=do_setup)
+    server_parser.set_defaults(func=do_server)
 
     return uberparser.parse_args()
 

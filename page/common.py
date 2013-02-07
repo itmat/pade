@@ -10,7 +10,6 @@ import contextlib
 import resource
 import numpy as np
 import textwrap
-import matplotlib.pyplot as plt
 
 def double_sum(data):
     """Returns the sum of data over the first two axes."""
