@@ -40,9 +40,12 @@
     <div class="grid_2">
       <ul>
         <li><a href="{{url_for('index')}}">Summary</a></li>
-        <li><a href="profile.html">Profile</a></li>
-        <li><a href="stat_dist.html">Stat distribution</a></li>
-        <li><a href="conf_dist.png">Confidence score distribution</a></li>
+      </ul>
+      <h3>Plots</h3>
+      <ul>
+        <li><a href="{{url_for('conf_dist_plot')}}">Confidence score distribution</a></li>
+
+        <li><a href="{{url_for('stat_dist_plots_page')}}">Statistic distribution</a></li>
       </ul>
 
     </div>

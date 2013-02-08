@@ -1,3 +1,6 @@
+# TODO:
+#  Pre-generate histograms of stat distributions
+
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -31,7 +34,7 @@ def index():
     return render_template("index.html", db=app.db)
 
 @app.route("/conf_dist.png")
-def conf_dist_png():
+def conf_dist_plot():
     fig = plt.figure()
     ax = fig.add_subplot(
         111,
@@ -149,8 +152,12 @@ def details(conf_level):
                     num_pages=len(pages))
 
 
+@app.route("/stat_dist.html")
+def stat_dist_plots_page():
+    return render_template("stat_dist.html", db=app.db)
+
 @app.route("/stat_dist/<tuning_param>.png")
-def plot_stat_dist(tuning_param):
+def stat_dist_plot(tuning_param):
     max_stat = np.max(app.db.raw_stats)
     tuning_param = int(tuning_param)
     fig = plt.figure()
