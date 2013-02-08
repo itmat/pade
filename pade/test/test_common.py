@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 
-from page.main import *
+from pade.main import *
 
 class CommonTest(unittest.TestCase):
 

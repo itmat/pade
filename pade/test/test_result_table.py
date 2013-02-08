@@ -1,6 +1,6 @@
 import unittest
 
-from page.main import *
+from pade.main import *
 
 class ResultTableTest(unittest.TestCase):
 

@@ -1,5 +1,5 @@
 import unittest
-from page.main import *
+from pade.main import *
 
 class ProfileTest(unittest.TestCase):
 

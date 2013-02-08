@@ -1,8 +1,8 @@
 import logging
 import h5py
 from StringIO import StringIO
-from page.schema import Schema
-from page.model import Model
+from pade.schema import Schema
+from pade.model import Model
 
 class DB:
 

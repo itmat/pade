@@ -4,10 +4,10 @@
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from page.stat import cumulative_hist
+from pade.stat import cumulative_hist
 import numpy as np
 from flask import Flask, render_template, make_response, request
-from page.db import DB
+from pade.db import DB
 import argparse
 import logging 
 import StringIO

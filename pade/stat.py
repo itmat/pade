@@ -1,8 +1,8 @@
 """Low-level statistical methods.
 
 This module should be general-purpose, and not have any dependencies
-on the data model used in PaGE or the workflow. The idea is that we
-may use these functions outside of the standard PaGE workflow.
+on the data model used in Pade or the workflow. The idea is that we
+may use these functions outside of the standard Pade workflow.
 
 """
 
@@ -11,9 +11,9 @@ import numpy as np
 import numpy.ma as ma
 import collections
 from itertools import combinations, product
-from page.performance import profiling, profiled
+from pade.performance import profiling, profiled
 
-from page.common import *
+from pade.common import *
 from scipy.misc import comb
 
 def group_means(data, layout):
@@ -158,7 +158,7 @@ class Ttest:
     """.. deprecated:: 1.0
 
     This is the original Ttest implementation, but it probably doesn't
-    actually work with the current PaGE, since it expects a statistic
+    actually work with the current Pade, since it expects a statistic
     that takes *all* the groups and returns *one* statistic per
     feature. We may restore this in the future.
 

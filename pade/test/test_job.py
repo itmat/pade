@@ -1,11 +1,11 @@
 import unittest
 import contextlib
-import page
+import pade
 import os
 import numpy as np
 
-from page.test.utils import sample_db
-from page.main import *
+from pade.test.utils import sample_db
+from pade.main import *
 
 class CommonTest(unittest.TestCase):
 

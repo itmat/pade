@@ -2,12 +2,12 @@
 
 # Files:
 #  + raw input file
-#  + page_schema.yaml
-#  + page_raw.hdf5
-#  + page_results.hdf5
+#  + pade_schema.yaml
+#  + pade_raw.hdf5
+#  + pade_results.hdf5
 
 
-"""The main program for page."""
+"""The main program for pade."""
 
 # External imports
 
@@ -26,13 +26,13 @@ from itertools import combinations, product
 
 from bisect import bisect
 
-from page.common import *
-from page.performance import *
-from page.schema import *
-from page.model import *
-import page.stat
-from page.stat import random_indexes, random_orderings, residuals, group_means
-from page.db import DB
+from pade.common import *
+from pade.performance import *
+from pade.schema import *
+from pade.model import *
+import pade.stat
+from pade.stat import random_indexes, random_orderings, residuals, group_means
+from pade.db import DB
 
 REAL_PATH = os.path.realpath(__file__)
 RAW_VALUE_DTYPE = float
@@ -229,17 +229,17 @@ Analyzing {filename}, which is described by the schema {schema}.
     db.save()
     print """
 The results for the job are saved in {path}. You will now need to run
-"page report" to generate the report.
+"pade report" to generate the report.
 """.format(path=db.path)
 
 def do_server(args):
-    import page.server
+    import pade.server
     db = DB(path=args.results)
     db.load()
-    page.server.app.db = db
+    pade.server.app.db = db
     if args.debug:
-        page.server.app.debug = True
-    page.server.app.run()
+        pade.server.app.debug = True
+    pade.server.app.run()
     
 
 
@@ -276,12 +276,12 @@ def stat_for_name(db):
     """The statistic used for this job."""
     name = db.stat
     if name == 'f':
-        return page.stat.Ftest(
+        return pade.stat.Ftest(
             layout_full=db.full_model.layout,
             layout_reduced=db.reduced_model.layout,
             alphas=db.tuning_params)
     elif name == 'f_sqrt':
-        return page.stat.FtestSqrt(
+        return pade.stat.FtestSqrt(
             layout_full=db.full_model.layout,
             layout_reduced=db.reduced_model.layout)
     elif name == 't':
@@ -360,13 +360,13 @@ def run_job(db):
 
     logging.info("Creating {num_bins} bins based on values of raw stats".format(
             num_bins=db.num_bins))
-    db.bins = page.stat.bins_uniform(db.num_bins, raw_stats)
+    db.bins = pade.stat.bins_uniform(db.num_bins, raw_stats)
 
     if db.sample_from == 'residuals':
         logging.info("Bootstrapping based on residuals")
         prediction = predicted_values(db)
         diffs      = db.table - prediction
-        db.bin_to_mean_perm_count = page.stat.bootstrap(
+        db.bin_to_mean_perm_count = pade.stat.bootstrap(
             prediction,
             stat, 
             indexes=db.sample_indexes,
@@ -379,14 +379,14 @@ def run_job(db):
         if db.equalize_means:
             shifted = residuals(db.table, db.full_model.layout)
             print "Shifted is\n", shifted[0]
-            db.bin_to_mean_perm_count = page.stat.bootstrap(
+            db.bin_to_mean_perm_count = pade.stat.bootstrap(
                 shifted,
                 stat, 
                 indexes=db.sample_indexes,
                 bins=db.bins)
         else:
             print "Unshifted is\n", db.table[0]
-            db.bin_to_mean_perm_count = page.stat.bootstrap(
+            db.bin_to_mean_perm_count = pade.stat.bootstrap(
                 db.table,
                 stat, 
                 indexes=db.sample_indexes,
@@ -394,7 +394,7 @@ def run_job(db):
 
     logging.info("Done bootstrapping, now computing confidence scores")
     db.raw_stats    = raw_stats
-    db.bin_to_unperm_count   = page.stat.cumulative_hist(db.raw_stats, db.bins)
+    db.bin_to_unperm_count   = pade.stat.cumulative_hist(db.raw_stats, db.bins)
     db.bin_to_score = confidence_scores(
         db.bin_to_unperm_count, db.bin_to_mean_perm_count, np.shape(raw_stats)[-1])
     db.feature_to_score = assign_scores_to_features(
@@ -587,7 +587,7 @@ def new_sample_indexes(self):
 def print_profile(db):
 
     walked = walk_profile()
-    env = jinja2.Environment(loader=jinja2.PackageLoader('page'))
+    env = jinja2.Environment(loader=jinja2.PackageLoader('pade'))
     template = env.get_template('profile.html')
     with open('profile.html', 'w') as out:
         logging.info("Saving profile")
@@ -611,7 +611,7 @@ def print_profile(db):
 
 @profiled
 def main():
-    """Run pageseq."""
+    """Run padeseq."""
 
     args = get_arguments()
 
@@ -634,16 +634,16 @@ def main():
 
     logging.getLogger('').addHandler(console)
 
-    logging.info('Page starting')
+    logging.info('Pade starting')
 
     try:
         args.func(args)
     except UsageException as e:
-        logging.fatal("Page exiting because of usage error")
+        logging.fatal("Pade exiting because of usage error")
         print fix_newlines(e.message)
         exit(1)
     
-    logging.info('Page finishing')    
+    logging.info('Pade finishing')    
 
 
 def init_schema(infile=None):
@@ -702,7 +702,7 @@ def do_setup(args):
     print fix_newlines("""
 I have generated a schema for your input file, with factors {factors}, and saved it to "{filename}". You should now edit that file to set the factors for each sample. The file contains instructions on how to edit it.
 
-Once you have finished the schema, you will need to run "page run" to do the analysis. See "page run -h" for its usage.
+Once you have finished the schema, you will need to run "pade run" to do the analysis. See "pade run -h" for its usage.
 """).format(factors=schema.factors.keys(),
             filename=args.schema)
 
@@ -710,10 +710,10 @@ def add_reporting_args(p):
     grp = p.add_argument_group(
         title="reporting arguments")
     grp.add_argument(
-        '--rows-per-page',
+        '--rows-per-pade',
         type=int,
         default=100,
-        help="Number of rows to display on each page of the report"),
+        help="Number of rows to display on each pade of the report"),
 
 
 def add_model_args(p):
@@ -797,8 +797,8 @@ def get_arguments():
 
     subparsers = uberparser.add_subparsers(
         title='actions',
-        description="""Normal usage is to run 'page.py setup ...', then manually edit the
-page_schema.yaml file, then run 'page.py run ...'.""")
+        description="""Normal usage is to run 'pade.py setup ...', then manually edit the
+pade_schema.yaml file, then run 'pade.py run ...'.""")
 
     # Set up "parent" parser, which contains some arguments used by all other parsers
     parents = argparse.ArgumentParser(add_help=False)
@@ -812,14 +812,14 @@ page_schema.yaml file, then run 'page.py run ...'.""")
         help="Print debugging information")
     parents.add_argument(
         '--log',
-        default="page.log",
+        default="pade.log",
         help="Location of log file")
 
     results_parents = argparse.ArgumentParser(add_help=False)
     results_parents.add_argument(
         '--results',
-        help="PaGE results db",
-        default="page_results.hdf5")
+        help="Pade results db",
+        default="pade_results.hdf5")
 
     # Create setup parser
     setup_parser = subparsers.add_parser(
@@ -848,7 +848,7 @@ page_schema.yaml file, then run 'page.py run ...'.""")
     setup_parser.add_argument(
         '--schema', 
         help="Path to write the schema file to",
-        default="page_schema.yaml")
+        default="pade_schema.yaml")
 
     # Create "run" parser
     run_parser = subparsers.add_parser(
@@ -859,7 +859,7 @@ page_schema.yaml file, then run 'page.py run ...'.""")
     run_parser.add_argument(
         '--schema', 
         help="Path to read the schema file from",
-        default="page_schema.yaml")
+        default="pade_schema.yaml")
     run_parser.add_argument(
         'infile',
         help="""Name of input file""",
@@ -868,7 +868,7 @@ page_schema.yaml file, then run 'page.py run ...'.""")
     run_parser.add_argument(
         '--db', 
         help="Path to the db file that I will create to store the results",
-        default="page_db.h5")
+        default="pade_db.h5")
     
     add_model_args(run_parser)
     add_fdr_args(run_parser)
@@ -881,10 +881,10 @@ page_schema.yaml file, then run 'page.py run ...'.""")
     report_parser.add_argument(
         '--db', 
         help="Path to the db file to read results from",
-        default="page_db.h5")
+        default="pade_db.h5")
     report_parser.add_argument(
         '--report-directory',
-        default='page_report',
+        default='pade_report',
         help="The directory to write the report to")
     report_parser.add_argument(
         '--text',
