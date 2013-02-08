@@ -30,6 +30,7 @@ class DB:
         self.full_model    = None
         self.reduced_model = None
         self.sample_indexes = None
+        self.equalize_means = None
 
         # Results
         self.bins = None

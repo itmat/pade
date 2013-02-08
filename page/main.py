@@ -360,6 +360,7 @@ def args_to_db(args):
     db.sample_method = args.sample_method
     db.min_conf=args.min_conf
     db.conf_levels=args.conf_levels
+    db.equalize_means = args.equalize_means
 
     return db
 
@@ -390,13 +391,22 @@ def run_job(db):
         logging.info("Bootstrapping based on raw data")
         # Shift all values in the data by the means of the groups from
         # the full model, so that the mean of each group is 0.
-        shifted = residuals(db.table, db.full_model.layout)
-        
-        db.baseline_counts = page.stat.bootstrap(
-            shifted,
-            stat, 
-            indexes=db.sample_indexes,
-            bins=db.bins)
+
+        if db.equalize_means:
+            shifted = residuals(db.table, db.full_model.layout)
+            print "Shifted is\n", shifted[0]
+            db.baseline_counts = page.stat.bootstrap(
+                shifted,
+                stat, 
+                indexes=db.sample_indexes,
+                bins=db.bins)
+        else:
+            print "Unshifted is\n", db.table[0]
+            db.baseline_counts = page.stat.bootstrap(
+                db.table,
+                stat, 
+                indexes=db.sample_indexes,
+                bins=db.bins)            
 
     logging.info("Done bootstrapping, now computing confidence scores")
     db.raw_stats    = raw_stats
@@ -827,6 +837,12 @@ def add_fdr_args(p):
         type=int,
         help="Number of confidence levels to show")
 
+    grp.add_argument(
+        '--no-equalize-means',
+        action='store_false',
+        dest='equalize_means',
+        default=True,
+        help="""Shift values of samples within same group for same feature so that their mean is 0 before the permutation test.""")
 
 def get_arguments():
     """Parse the command line options and return an argparse args
