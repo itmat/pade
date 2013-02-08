@@ -33,31 +33,6 @@ def index():
     logging.info("Getting index")
     return render_template("index.html", db=app.db)
 
-@app.route("/conf_dist.png")
-def conf_dist_plot():
-    fig = plt.figure()
-    ax = fig.add_subplot(
-        111,
-        title="Feature count by confidence score",
-        xlabel="Confidence score",
-        ylabel="Features")
-    ax.plot(app.db.summary_bins, app.db.summary_counts)
-    return figure_response(fig)
-
-def get_group_means(schema, data):
-
-    assignments = schema.possible_assignments()
-
-    num_features = len(data)
-    num_groups = len(assignments)
-
-    result = np.zeros((num_features, num_groups))
-
-    for i, assignment in enumerate(assignments):
-        indexes = schema.indexes_with_assignments(assignment)
-        result[:, i] = np.mean(data[:, indexes], axis=1)
-
-    return result
 
 class ResultTable:
 
@@ -151,10 +126,24 @@ def details(conf_level):
                     page_num=page_num,
                     num_pages=len(pages))
 
-
 @app.route("/stat_dist.html")
 def stat_dist_plots_page():
-    return render_template("stat_dist.html", db=app.db)
+    semilogx = request.args.get('semilogx') == 'True'
+    return render_template("stat_dist.html", 
+                           db=app.db,
+                           semilogx=semilogx)
+
+@app.route("/feature_count_and_score_by_stat.html")
+def feature_count_and_score_by_stat():
+    semilogx = request.args.get('semilogx') == 'True'
+    return render_template("feature_count_and_score_by_stat.html", 
+                           db=app.db,
+                           semilogx=semilogx)
+
+@app.route("/confidence_dist.html")
+def confidence_dist():
+    return render_template("confidence_dist.html", 
+                           db=app.db)
 
 @app.route("/stat_dist/<tuning_param>.png")
 def stat_dist_plot(tuning_param):
@@ -177,15 +166,17 @@ def bin_to_score_plot():
     fig = plt.figure()
     ax = fig.add_subplot(
         111,
-        title="Score by bin",
-        xlabel="Bin",
-        ylabel="Score")
+        title="Confidence by stat value value",
+        xlabel="Statistic value",
+        ylabel="Confidence")
 
     for i, param in enumerate(app.db.tuning_params):
-        ax.plot(data[i], label=str(param))
+        ax.plot(app.db.bins[i, :-1], data[i], label=str(param))
 
+    if request.args.get('semilogx') == 'True':
+        ax.semilogx(base=10)
     ax.legend(loc='lower right')
-    ax.semilogx(base=10)
+
     return figure_response(fig)
 
 @app.route("/bin_to_features.png")
@@ -198,15 +189,27 @@ def bin_to_features_plot():
     fig = plt.figure()
     ax = fig.add_subplot(
         111,
-        title='Features by bin',
-        xlabel='bin',
-        ylabel='features')
+        title='Features count by statistic value',
+        xlabel='Statistic value',
+        ylabel='Features')
     db = app.db
     for i, param in enumerate(params):
-        ax.plot(db.bin_to_mean_perm_count[i], label=str(param) + " permuted")
-        ax.plot(db.bin_to_unperm_count[i], label=str(param) + " unpermuted")
-    ax.semilogx(base=10)
+        ax.plot(db.bins[i, :-1], db.bin_to_mean_perm_count[i], '--', label=str(param) + " permuted")
+        ax.plot(db.bins[i, :-1], db.bin_to_unperm_count[i], label=str(param) + " unpermuted")
+    if request.args.get('semilogx') == 'True':
+        ax.semilogx(base=10)
     ax.legend(loc='upper right')
+    return figure_response(fig)
+
+@app.route("/conf_dist.png")
+def conf_dist_plot():
+    fig = plt.figure()
+    ax = fig.add_subplot(
+        111,
+        title="Feature count by confidence score",
+        xlabel="Confidence score",
+        ylabel="Features")
+    ax.plot(app.db.summary_bins, app.db.summary_counts)
     return figure_response(fig)
     
 
@@ -214,7 +217,10 @@ def bin_to_features_plot():
 def score_dist_by_tuning_param():
     fig = plt.figure()
     ax = fig.add_subplot(
-        111)
+        111,
+        title='Features by confidence score',
+        xlabel='Confidence',
+        ylabel='Features')
 
     lines = []
     labels = []
@@ -226,15 +232,9 @@ def score_dist_by_tuning_param():
     for i, alpha in enumerate(params):
         bins = np.arange(0.5, 1.0, 0.01)
         hist = cumulative_hist(app.db.feature_to_score[i], bins)
-        print "Shape of bins is", np.shape(bins)
-        print "Shape of hist is", np.shape(hist)
         lines.append(ax.plot(bins[:-1], hist, label=str(alpha)))
         labels.append(str(alpha))
-
-    png_output = StringIO.StringIO()
     ax.legend(loc='upper right')
-    fig.savefig(png_output)
-    response = make_response(png_output.getvalue())
-    response.headers['Content-Type'] = 'image/png'
-    return response
+
+    return figure_response(fig)
 
