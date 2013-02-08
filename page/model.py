@@ -158,10 +158,10 @@ class Model:
 
         result = np.zeros(shape)
 
-        #for i, row in enumerate(data):
-        #    y = row[indexes]
-        #    (coeffs, residuals, rank, s) = np.linalg.lstsq(x, y)
-        #    result[i] = coeffs
+        for i, row in enumerate(data):
+            y = row[indexes]
+            (coeffs, residuals, rank, s) = np.linalg.lstsq(x, y)
+            result[i] = coeffs
 
         return FittedModel(dummies.names, x, indexes, result)
 

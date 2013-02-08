@@ -202,6 +202,18 @@ def assignment_name(a):
 def setup_sample_indexes(db):
     db.sample_indexes = new_sample_indexes(db)
            
+
+def compute_means_and_coeffs(db):
+    logging.info("Computing means and coefficients")
+    db.group_means = get_group_means(db.schema, db.table)
+    db.group_names = [assignment_name(a) for a in db.schema.possible_assignments()]
+
+    fitted = db.full_model.fit(db.table)
+    db.coeff_values = fitted.params
+    db.coeff_names  = [assignment_name(a) for a in fitted.labels]
+
+    print "Fitted is\n", fitted
+
 def do_run(args):
     print """
 Analyzing {filename}, which is described by the schema {schema}.
@@ -211,6 +223,7 @@ Analyzing {filename}, which is described by the schema {schema}.
     import_table(db, args.infile.name)
     setup_sample_indexes(db)
     run_job(db)
+    compute_means_and_coeffs(db)
     summarize_by_conf_level(db)
     print_summary(db)
     db.save()
@@ -239,23 +252,17 @@ Generating report for result database {db}.
 
     db.load()
 
-    fitted = db.full_model.fit(db.table)
-    means = get_group_means(db.schema, db.table)
-
     results = ResultTable(
-        means=means,
-        coeffs=fitted.params,
-        group_names=[assignment_name(a) for a in db.schema.possible_assignments()],
-        param_names=[assignment_name(a) for a in fitted.labels],
+        means=db.group_means,
+        coeffs=db.coeff_values,
+        group_names=db.group_names,
+        param_names=db.coeff_names,
         feature_ids=np.array(db.feature_ids),
         stats=db.raw_stats,
         scores=db.feature_to_score)
 
     makedirs(args.report_directory)
     with chdir(args.report_directory):
-        if args.html:
-            make_html_report(db, results, args.rows_per_page, args.report_directory)
-            print "Saved HTML report to ", os.path.join(args.report_directory, "index.html")
         if args.text:
             save_text_output(db, results)
             print "Saved text report to ", os.path.join(args.report_directory, "results.txt")
@@ -395,46 +402,6 @@ def run_job(db):
 
     return db
 
-def make_html_report(db, results, rows_per_page, directory):
-
-    with profiling('do_report: build report'):
-
-        extra = "\nstat " + db.stat_name + ", sampling " + db.sample_from
-        env = jinja2.Environment(loader=jinja2.PackageLoader('page'))
-        setup_css(env)
-
-        template = env.get_template('conf_level.html')
-        for level in range(len(db.summary_bins)):
-            score=db.summary_bins[level]
-            filtered = results.filter_by_score(score)
-            pages = list(filtered.pages(rows_per_page))
-            for page_num, page in enumerate(pages):
-                with open('conf_level_{0}_page_{1}.html'.format(level, page_num), 'w') as out:
-                    out.write(template.render(
-                            conf_level=level,
-                            min_score=score,
-                            job=db,
-                            results=page,
-                            page_num=page_num,
-                            num_pages=len(pages)))
-                    
-
-        template = env.get_template('index.html')
-        with open('index.html', 'w') as out:
-            out.write(template.render(
-                    job=db,
-                    results=results,
-                    summary_bins=db.summary_bins,
-                    summary_counts=db.summary_counts))
-
-#        with chdir(job.directory):
-#            stat_dist_template = env.get_template('stat_dist.html')
-#            with open('html/stat_dist.html', 'w') as out:
-#                out.write(stat_dist_template.render(
-#                        plots=plot_stat_dist(job, fdr)))
-
-    return (db, results)
-    
 
 def save_text_output(db, results):
     (num_rows, num_cols) = db.table.shape

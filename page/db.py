@@ -29,9 +29,10 @@ class DB:
         self.sample_method = None
         self.full_model    = None
         self.reduced_model = None
-        self.sample_indexes = None
         self.tuning_params = None
         self.equalize_means = None
+        self.group_names = None
+        self.coeff_names  = None
 
         # Results
         self.bins = None
@@ -43,6 +44,9 @@ class DB:
         self.summary_bins = None
         self.summary_counts = None
         self.best_param_idxs = None
+        self.sample_indexes = None
+        self.group_means = None
+        self.coeff_values = None
 
         if schema is None:
             if self.schema_path is not None:
@@ -50,9 +54,6 @@ class DB:
                 self.schema = Schema.load(open(self.schema_path))
         else:
             self.schema = schema
-
-
-            
 
     def save(self):
         logging.info("Saving job results to " + self.path)
@@ -78,6 +79,8 @@ class DB:
         self.sample_indexes = file.create_dataset("sample_indexes", data=self.sample_indexes)
         self.best_param_idxs = file.create_dataset("best_param_idxs", data=self.best_param_idxs)
         self.tuning_params = file.create_dataset("tuning_params", data=self.tuning_params)
+        self.group_means = file.create_dataset("group_means", data=self.group_means)
+        self.coeff_values = file.create_dataset("coeff_values", data=self.coeff_values)
 
 
         schema_str = StringIO()
@@ -92,6 +95,8 @@ class DB:
         file.attrs['sample_method'] = self.sample_method
         file.attrs['full_model'] = str(self.full_model.expr)
         file.attrs['reduced_model'] = str(self.reduced_model.expr)
+        file.attrs['group_names'] = self.group_names
+        file.attrs['coeff_names'] = self.coeff_names
 
         file.close()
 
@@ -113,6 +118,8 @@ class DB:
         self.sample_indexes = file['sample_indexes'][...]
         self.best_param_idxs = file['best_param_idxs'][...]
         self.tuning_params = file['tuning_params'][...]
+        self.group_means = file['group_means'][...]
+        self.coeff_values = file['coeff_values'][...]
 
         schema_str = StringIO(file.attrs['schema'])
         self.schema = Schema.load(schema_str)
@@ -125,6 +132,8 @@ class DB:
         self.sample_method = file.attrs['sample_method']
         self.full_model = Model(self.schema, file.attrs['full_model'])
         self.reduced_model = Model(self.schema, file.attrs['reduced_model'])
+        self.group_names = file.attrs['group_names']
+        self.coeff_names = file.attrs['coeff_names']
         
         file.close()
 

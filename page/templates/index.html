@@ -18,7 +18,7 @@
       {% for i in range(db.summary_counts | length) %}
       <tr>
         <td>{{ db.summary_bins[i] }}</td>
-        <td><a href="conf_level_{{i}}_page_0.html">{{ db.summary_counts[i] }}</a></td>
+        <td><a href="{{url_for('details', conf_level=i)}}">{{ db.summary_counts[i] }}</a></td>
       </tr>
       {% endfor %}
 

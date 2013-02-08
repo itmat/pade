@@ -19,10 +19,10 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
   
-  <link rel="stylesheet" href="static/css/base.css">
-  <link rel="stylesheet" href="static/css/grid.css">
-  <link rel="stylesheet" href="static/css/style.css">
-  <link rel="stylesheet" href="static/css/custom.css">
+  <link rel="stylesheet" href="{{url_for('static', filename='css/base.css')}}">
+  <link rel="stylesheet" href="{{url_for('static', filename='css/grid.css')}}">
+  <link rel="stylesheet" href="{{url_for('static', filename='css/style.css')}}">
+  <link rel="stylesheet" href="{{url_for('static', filename='css/custom.css')}}">
   
   <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
   <script src="js/modernizr-2.5.2.min.js"></script>
@@ -39,7 +39,7 @@
 
     <div class="grid_2">
       <ul>
-        <li><a href="index.html">Summary</a></li>
+        <li><a href="{{url_for('index')}}">Summary</a></li>
         <li><a href="profile.html">Profile</a></li>
         <li><a href="stat_dist.html">Stat distribution</a></li>
         <li><a href="conf_dist.png">Confidence score distribution</a></li>
