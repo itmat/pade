@@ -34,8 +34,8 @@ class DB:
 
         # Results
         self.bins = None
-        self.raw_counts = None
-        self.baseline_counts = None
+        self.bin_to_unperm_count = None
+        self.bin_to_mean_perm_count = None
         self.bin_to_score = None
         self.feature_to_score = None
         self.raw_stats = None
@@ -51,6 +51,8 @@ class DB:
             self.schema = schema
 
 
+            
+
     def save(self):
         logging.info("Saving job results to " + self.path)
         file = h5py.File(self.path, 'r+')
@@ -64,8 +66,9 @@ class DB:
 
         self.table = file.create_dataset("table", data=self.table)
         self.bins = file.create_dataset("bins", data=self.bins)
-        self.raw_counts = file.create_dataset("raw_counts", data=self.raw_counts)
-        self.baseline_counts = file.create_dataset("baseline_counts", data=self.baseline_counts)
+
+        self.bin_to_mean_perm_count = file.create_dataset("bin_to_mean_perm_count", data=self.bin_to_mean_perm_count)
+        self.bin_to_unperm_count   = file.create_dataset("bin_to_unperm_count", data=self.bin_to_unperm_count)
         self.bin_to_score = file.create_dataset("bin_to_score", data=self.bin_to_score)
         self.feature_to_score = file.create_dataset("feature_to_score", data=self.feature_to_score)
         self.raw_stats = file.create_dataset("raw_stats", data=self.raw_stats)
@@ -99,9 +102,9 @@ class DB:
         self.table = file['table'][...]
         self.feature_ids = file['feature_ids'][...]
         self.bins = file['bins'][...]
-        self.raw_counts = file['raw_counts'][...]
-        self.baseline_counts = file['baseline_counts'][...]
-        self.bin_to_score = file['bin_to_score'][...]
+        self.bin_to_unperm_count      = file['bin_to_unperm_count'][...]
+        self.bin_to_mean_perm_count = file['bin_to_mean_perm_count'][...]
+        self.bin_to_score    = file['bin_to_score'][...]
         self.feature_to_score = file['feature_to_score'][...]
         self.raw_stats = file['raw_stats'][...]
         self.summary_bins = file['summary_bins'][...]

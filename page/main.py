@@ -68,39 +68,6 @@ def plot_stat_dist(db, fdr):
             plt.xlim(0, max_stat)
             yield StatDistPlot(alpha, filename)
 
-def plot_conf_by_stat(fdr, filename='conf_by_stat',
-                      extra=None):
-    conf = fdr.bin_to_score
-    bins = fdr.bins
-    with figure(filename):
-        plt.plot(bins[1:], conf, label='raw',)
-        plt.plot(bins[1:], ensure_scores_increase(conf),
-                 label='increasing')
-        plt.xlabel('statistic')
-        plt.ylabel('confidence')
-        title = "Confidence level by statistic"
-        if extra:
-            title += extra
-        plt.title(title)
-        plt.semilogx()
-
-
-def plot_counts_by_stat(fdr, filename='counts_by_stat', extra=None):
-    raw_stats = fdr.raw_counts
-    resampled_stats = fdr.baseline_counts
-    bins = fdr.bins
-    with figure(filename):
-        plt.plot(bins[1:], raw_stats, label='raw data')
-        plt.plot(bins[1:], resampled_stats, label='resampled')
-        plt.loglog()
-        title = 'Count of features by statistic'
-        if extra is not None:
-            title += extra
-        plt.title(title)
-        plt.xlabel('Statistic value')
-        plt.ylabel('Features with statistic >= value')
-        plt.legend()
-
 
 def setup_css(env):
     """Copy the css from 996grid/code/css into its output location."""
@@ -376,7 +343,7 @@ def run_job(db):
         logging.info("Bootstrapping based on residuals")
         prediction = predicted_values(db)
         diffs      = db.table - prediction
-        db.baseline_counts = page.stat.bootstrap(
+        db.bin_to_mean_perm_count = page.stat.bootstrap(
             prediction,
             stat, 
             indexes=db.sample_indexes,
@@ -387,8 +354,8 @@ def run_job(db):
         # Shift all values in the data by the means of the groups from
         # the full model, so that the mean of each group is 0.
         shifted = residuals(db.table, db.full_model.layout)
-        
-        db.baseline_counts = page.stat.bootstrap(
+
+        db.bin_to_mean_perm_count = page.stat.bootstrap(
             shifted,
             stat, 
             indexes=db.sample_indexes,
@@ -396,9 +363,9 @@ def run_job(db):
 
     logging.info("Done bootstrapping, now computing confidence scores")
     db.raw_stats    = raw_stats
-    db.raw_counts   = page.stat.cumulative_hist(db.raw_stats, db.bins)
+    db.bin_to_unperm_count   = page.stat.cumulative_hist(db.raw_stats, db.bins)
     db.bin_to_score = confidence_scores(
-        db.raw_counts, db.baseline_counts, np.shape(raw_stats)[-1])
+        db.bin_to_unperm_count, db.bin_to_mean_perm_count, np.shape(raw_stats)[-1])
     db.feature_to_score = assign_scores_to_features(
         db.raw_stats, db.bins, db.bin_to_score)
 
@@ -571,6 +538,7 @@ def confidence_scores(raw_counts, perm_counts, num_features):
     for idx in np.ndindex(shape[:-1]):
         adjusted[idx] = adjust_num_diff(perm_counts[idx], raw_counts[idx], num_features)
 
+    # (unpermuted counts - mean permuted counts) / unpermuted counts
     res = (raw_counts - adjusted) / raw_counts
 
     for idx in np.ndindex(res.shape[:-1]):

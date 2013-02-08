@@ -279,8 +279,8 @@ def _binning_accumulator(bins, num_samples):
     initializer = np.zeros(cumulative_hist_shape(bins))
 
     def reduce_fn(res, val):
-        logging.debug("Got a set of results")
-        return res + cumulative_hist(val, bins)
+        hist = cumulative_hist(val, bins)
+        return res + hist
     
     def finalize_fn(res):
         return res / num_samples
@@ -373,7 +373,9 @@ def bootstrap(data,
     logging.info("Processing {0} samples".format(len(indexes)))
     samples = (build_sample(p) for p in indexes)
     stats   = (stat_fn(s)      for s in samples)
+
     reduced = reduce(accumulator.reduce_fn, stats, accumulator.initializer)
+
 
     logging.info("Finalizing results")
     return accumulator.finalize_fn(reduced)
