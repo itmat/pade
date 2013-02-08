@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Statistic distributions{% endblock %}
+{% block content %}
+
+Note: I need to do this for each tuning parameter
+
+<img src="{{url_for('bin_to_features_plot', semilogx=semilogx)}}"></img>
+<img src="{{url_for('bin_to_score_plot', semilogx=semilogx)}}"></img>
+
+{% endblock %}
