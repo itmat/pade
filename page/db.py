@@ -31,6 +31,7 @@ class DB:
         self.reduced_model = None
         self.sample_indexes = None
         self.tuning_params = None
+        self.equalize_means = None
 
         # Results
         self.bins = None

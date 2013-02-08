@@ -203,6 +203,10 @@ def setup_sample_indexes(db):
     db.sample_indexes = new_sample_indexes(db)
            
 def do_run(args):
+    print """
+Analyzing {filename}, which is described by the schema {schema}.
+""".format(filename=args.infile.name,
+           schema=args.schema)
     db = args_to_db(args)
     import_table(db, args.infile.name)
     setup_sample_indexes(db)
@@ -210,6 +214,10 @@ def do_run(args):
     summarize_by_conf_level(db)
     print_summary(db)
     db.save()
+    print """
+The results for the job are saved in {path}. You will now need to run
+"page report" to generate the report.
+""".format(path=db.path)
 
 def do_server(args):
     import page.server
@@ -225,6 +233,10 @@ def do_server(args):
 def do_report(args):
 
     db = DB(path=args.db)
+    print """
+Generating report for result database {db}.
+""".format(db=db.path)
+
     db.load()
 
     fitted = db.full_model.fit(db.table)
@@ -249,7 +261,10 @@ def do_report(args):
             print "Saved text report to ", os.path.join(args.report_directory, "results.txt")
         print_profile(db)
 
- 
+    print """
+Reports are available in {loc}.
+""".format(loc=args.report_directory)
+
 def stat_for_name(db):
     """The statistic used for this job."""
     name = db.stat
@@ -323,6 +338,7 @@ def args_to_db(args):
     db.sample_method = args.sample_method
     db.min_conf=args.min_conf
     db.conf_levels=args.conf_levels
+    db.equalize_means = args.equalize_means
 
     return db
 
@@ -353,13 +369,21 @@ def run_job(db):
         logging.info("Bootstrapping based on raw data")
         # Shift all values in the data by the means of the groups from
         # the full model, so that the mean of each group is 0.
-        shifted = residuals(db.table, db.full_model.layout)
-
-        db.bin_to_mean_perm_count = page.stat.bootstrap(
-            shifted,
-            stat, 
-            indexes=db.sample_indexes,
-            bins=db.bins)
+        if db.equalize_means:
+            shifted = residuals(db.table, db.full_model.layout)
+            print "Shifted is\n", shifted[0]
+            db.bin_to_mean_perm_count = page.stat.bootstrap(
+                shifted,
+                stat, 
+                indexes=db.sample_indexes,
+                bins=db.bins)
+        else:
+            print "Unshifted is\n", db.table[0]
+            db.bin_to_mean_perm_count = page.stat.bootstrap(
+                db.table,
+                stat, 
+                indexes=db.sample_indexes,
+                bins=db.bins)            
 
     logging.info("Done bootstrapping, now computing confidence scores")
     db.raw_stats    = raw_stats
@@ -710,6 +734,8 @@ def do_setup(args):
 
     print fix_newlines("""
 I have generated a schema for your input file, with factors {factors}, and saved it to "{filename}". You should now edit that file to set the factors for each sample. The file contains instructions on how to edit it.
+
+Once you have finished the schema, you will need to run "page run" to do the analysis. See "page run -h" for its usage.
 """).format(factors=schema.factors.keys(),
             filename=args.schema)
 
@@ -788,6 +814,12 @@ def add_fdr_args(p):
         type=int,
         help="Number of confidence levels to show")
 
+    grp.add_argument(
+        '--no-equalize-means',
+        action='store_false',
+        dest='equalize_means',
+        default=True,
+        help="""Shift values of samples within same group for same feature so that their mean is 0 before the permutation test.""")
 
 def get_arguments():
     """Parse the command line options and return an argparse args

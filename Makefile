@@ -34,11 +34,11 @@ site :
 deploy_site:
 
 	cd doc; make html
-	cd doc/_build/html; tar cf ../../../../site.tar *
-	cd ../; git checkout gh-pages
-	cd ../; tar xf site.tar
-	cd ../; git add `tar tf site.tar`
-	cd ../; git commit -m 'Updating site'
-	cd ../; git push origin gh-pages
+	cd doc/_build/html; tar cf ../../../site.tar *
+	git checkout gh-pages
+	tar xf site.tar
+	git add `tar tf site.tar`
+	git commit -m 'Updating site'
+	git push origin gh-pages
 	git checkout master
 
