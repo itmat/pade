@@ -266,7 +266,7 @@ Generating report for result database {db}.
         if args.text:
             save_text_output(db, results)
             print "Saved text report to ", os.path.join(args.report_directory, "results.txt")
-        print_profile(db)
+        #print_profile(db)
 
     print """
 Reports are available in {loc}.

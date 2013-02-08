@@ -1,14 +1,14 @@
 from distutils.core import setup
 
-setup(name='PaGE',
-      version='6.0',
+setup(name='pade',
+      version='0.1',
       author='Mike DeLaurentis',
-      author_email='delaurentis@gmail.com',
-      url='https://github.com/itmat/PaGE',
-      scripts=['bin/page'],
-      packages=['page', 'page.css', 'page.templates'],
+      author_email='midel@upenn.edu',
+      url='https://github.com/itmat/pade',
+      scripts=['bin/pade'],
+      packages=['pade', 'pade.static.css', 'pade.templates'],
       requires=['jinja2', 'matplotlib', 'scipy', 'numpy', 'yaml'],
       package_data={
-        'page.css' : ['*.css'],
-        'page.templates' : ['*']}
+        'pade.static.css' : ['*.css'],
+        'pade.templates' : ['*']}
       )

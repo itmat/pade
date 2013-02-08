@@ -1,6 +1,6 @@
 import numpy as np
 import unittest
-from page.stat import *
+from pade.stat import *
 
 class StatTest(unittest.TestCase):
 
