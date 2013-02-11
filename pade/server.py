@@ -103,8 +103,6 @@ def details(conf_level):
     conf_level = int(conf_level)
     db = app.db
 
-    fitted = db.full_model.fit(db.table)
-
     results = ResultTable(
         means=db.group_means,
         coeffs=db.coeff_values,
