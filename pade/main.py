@@ -350,7 +350,7 @@ def args_to_db(args):
     return db
 
 @profiled
-def run_job(db):
+def run_job(db, equalize_means_ids):
 
     stat      = stat_for_name(db)
 
@@ -378,12 +378,30 @@ def run_job(db):
         # the full model, so that the mean of each group is 0.
         if db.equalize_means:
             shifted = residuals(db.table, db.full_model.layout)
-            print "Shifted is\n", shifted[0]
-            db.bin_to_mean_perm_count = pade.stat.bootstrap(
-                shifted,
+            data = np.zeros_like(db.table)
+            if equalize_means_ids is None:
+                data = shifted
+            else:
+                ids = set([line.rstrip() for line in equalize_means_ids])
+                count = len(ids)
+                for i, fid in enumerate(db.feature_ids):
+                    if fid in ids:
+                        data[i] = shifted[i]
+                        ids.remove(fid)
+                    else:
+                        data[i] = db.table[i]
+                logging.info("Equalized means for " + str(count - len(ids)) + " features")
+                if len(ids) > 0:
+                    logging.warn("There were " + str(len(ids)) + " feature " +
+                                 "ids given that don't exist in the data: " +
+                                 str(ids))
+
+            db.bin_to_mean_perm_count = page.stat.bootstrap(
+                data,
                 stat, 
                 indexes=db.sample_indexes,
                 bins=db.bins)
+
         else:
             print "Unshifted is\n", db.table[0]
             db.bin_to_mean_perm_count = pade.stat.bootstrap(
@@ -787,6 +805,10 @@ def add_fdr_args(p):
         dest='equalize_means',
         default=True,
         help="""Shift values of samples within same group for same feature so that their mean is 0 before the permutation test.""")
+    grp.add_argument(
+        '--equalize-means-ids',
+        type=file,
+        help="""File giving list of feature ids to equalize means for. The file must contain each id by itself on its own line, with no header row.""")
 
 def get_arguments():
     """Parse the command line options and return an argparse args
