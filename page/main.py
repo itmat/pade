@@ -863,7 +863,7 @@ def add_fdr_args(p):
     grp.add_argument(
         '--equalize-means-ids',
         type=file,
-        help="""File giving list of feature ids to equalize means for.""")
+        help="""File giving list of feature ids to equalize means for. The file must contain each id by itself on its own line, with no header row.""")
 
 def get_arguments():
     """Parse the command line options and return an argparse args
