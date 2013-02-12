@@ -136,7 +136,11 @@ class DB:
     def load(self):
 
         logging.info("Loading job results from " + self.path)
-        file = h5py.File(self.path, 'r')
+        file = None
+        try:
+            file = h5py.File(self.path, 'r')
+        except IOError as e:
+            raise IOError("While trying to load database from " + self.path, e)
 
         self.table = file['table'][...]
         self.feature_ids = file['feature_ids'][...]
