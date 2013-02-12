@@ -44,7 +44,8 @@ class ResultTable:
                  stats=None,
                  feature_ids=None,
                  scores=None,
-                 min_score=None):
+                 min_score=None,
+                 indexes=None):
         self.means = means
         self.coeffs = coeffs
         self.group_names = group_names
@@ -53,7 +54,7 @@ class ResultTable:
         self.feature_ids = feature_ids
         self.scores = scores
         self.min_score = min_score
-        
+        self.indexes = indexes
 
     def filter_by_score(self, min_score):
         idxs = self.scores > min_score
@@ -69,6 +70,7 @@ class ResultTable:
             stats=stats[idxs],
             feature_ids=self.feature_ids[idxs],
             scores=scores[idxs],
+            indexes=idxs,
             min_score=min_score)
 
     def __len__(self):
@@ -82,11 +84,13 @@ class ResultTable:
             yield ResultTable(
                 group_names=self.group_names,
                 param_names=self.param_names,
+                indexes=self.indexes[start : end],
                 means=self.means[start : end],
                 coeffs=self.coeffs[start : end],
                 stats=self.stats[start : end],
                 feature_ids=self.feature_ids[start : end],
                 scores=self.scores[start : end])
+
 
 def assignment_name(a):
 
@@ -120,13 +124,16 @@ def details(conf_level):
     if 'page' in request.args:
         page_num = int(request.args.get('page'))
 
-    return render_template("conf_level.html",
-                    conf_level=conf_level,
-                    min_score=score,
-                    job=db,
-                    results=pages[page_num],
-                    page_num=page_num,
-                    num_pages=len(pages))
+    return render_template(
+        "conf_level.html",
+        conf_level=conf_level,
+        min_score=score,
+        job=db,
+        results=pages[page_num],
+        db=db,
+        indexes=pages[page_num].indexes,
+        page_num=page_num,
+        num_pages=len(pages))
 
 @app.route("/stat_dist.html")
 def stat_dist_plots_page():

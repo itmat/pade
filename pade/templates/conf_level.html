@@ -8,8 +8,9 @@
     <th class="details"></th>
     <th class="details"></th>
     <th class="details"></th>
-    <th class="details" colspan="{{results.group_names|length}}">Means</th>
-    <th class="details" colspan="{{results.param_names|length}}">Coefficients</th>
+    <th class="details" colspan="{{results.group_names|length}}">Mean</th>
+    <th class="details" colspan="{{results.group_names|length}}">Fold Change</th>
+    <th class="details" colspan="{{results.param_names|length}}">Coefficient</th>
   </tr>
 
   <tr>
@@ -17,6 +18,10 @@
     
     <th class="details">Score</th>
     <th class="details">{{ job.stat_name }} stat</th>
+
+    {% for name in results.group_names %}
+    <th class="details">{{ name }}</th>
+    {% endfor %}
 
     {% for name in results.group_names %}
     <th class="details">{{ name }}</th>
@@ -42,6 +47,11 @@
     <td class="details">{{ "%.2f"|format(mean) }}</td>
     {% endfor %}
 
+    <!-- Mean for each condition -->
+    {% for fc in db.fold_change[indexes[i]] %}
+    <td class="details">{{ "%.2f"|format(fc) }}</td>
+    {% endfor %}
+
     <!-- Coefficient for each condition -->
     {% for coeff in results.coeffs[i] %}
     <td class="details">{{ "%.2f"|format(coeff) }}</td>
@@ -57,7 +67,8 @@
   {% if i == page_num %}
   {{ page_num + 1}}
   {% else %}
-  <a href="{{url_for('details', conf_level=conf_level, page=i)}}">{{ i + 1 }}</a>
+  <a href="{{url_for('details', conf_level=conf_level, page=i
+           )}}">{{ i + 1 }}</a>
   {% endif %}
   {% endfor %}
 </p>

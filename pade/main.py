@@ -135,60 +135,6 @@ Confidence |   Num.   | Tuning
             param=db.tuning_params[db.best_param_idxs[i]])
 
 
-class ResultTable:
-
-    def __init__(self,
-                 group_names=None,
-                 param_names=None,
-                 means=None,
-                 coeffs=None,
-                 stats=None,
-                 feature_ids=None,
-                 scores=None,
-                 min_score=None):
-        self.means = means
-        self.coeffs = coeffs
-        self.group_names = group_names
-        self.param_names = param_names
-        self.stats = stats
-        self.feature_ids = feature_ids
-        self.scores = scores
-        self.min_score = min_score
-        
-
-    def filter_by_score(self, min_score):
-        idxs = self.scores > min_score
-        best = np.argmax(np.sum(idxs, axis=1))
-        idxs = idxs[best]
-        stats = self.stats[best]
-        scores = self.scores[best]
-        return ResultTable(
-            group_names=self.group_names,
-            param_names=self.param_names,
-            means=self.means[idxs],
-            coeffs=self.coeffs[idxs],
-            stats=stats[idxs],
-            feature_ids=self.feature_ids[idxs],
-            scores=scores[idxs],
-            min_score=min_score)
-
-    def __len__(self):
-        return len(self.feature_ids)
-
-    def pages(self, rows_per_page=100):
-        for start in range(0, len(self), rows_per_page):
-            size = min(rows_per_page, len(self) - start)
-            end = start + size
-
-            yield ResultTable(
-                group_names=self.group_names,
-                param_names=self.param_names,
-                means=self.means[start : end],
-                coeffs=self.coeffs[start : end],
-                stats=self.stats[start : end],
-                feature_ids=self.feature_ids[start : end],
-                scores=self.scores[start : end])
-
 
 def assignment_name(a):
 
@@ -211,8 +157,11 @@ def compute_means_and_coeffs(db):
     fitted = db.full_model.fit(db.table)
     db.coeff_values = fitted.params
     db.coeff_names  = [assignment_name(a) for a in fitted.labels]
+    
+    db.fold_change = np.zeros_like(db.group_means)
+    for i in range(len(db.group_names)):
+        db.fold_change[..., i] = db.group_means[..., i] / db.group_means[..., 0]
 
-    print "Fitted is\n", fitted
 
 def do_run(args):
     print """
@@ -252,14 +201,15 @@ Generating report for result database {db}.
 
     db.load()
 
-    results = ResultTable(
+    results = pade.server.ResultTable(
         means=db.group_means,
         coeffs=db.coeff_values,
         group_names=db.group_names,
         param_names=db.coeff_names,
         feature_ids=np.array(db.feature_ids),
         stats=db.raw_stats,
-        scores=db.feature_to_score)
+        scores=db.feature_to_score,
+        indexes=np.arange(len(feature_ids)))
 
     makedirs(args.report_directory)
     with chdir(args.report_directory):
@@ -396,7 +346,7 @@ def run_job(db, equalize_means_ids):
                                  "ids given that don't exist in the data: " +
                                  str(ids))
 
-            db.bin_to_mean_perm_count = page.stat.bootstrap(
+            db.bin_to_mean_perm_count = pade.stat.bootstrap(
                 data,
                 stat, 
                 indexes=db.sample_indexes,

@@ -47,6 +47,7 @@ class DB:
         self.sample_indexes = None
         self.group_means = None
         self.coeff_values = None
+        self.fold_change = None
 
         if schema is None:
             if self.schema_path is not None:
@@ -81,6 +82,7 @@ class DB:
         self.tuning_params = file.create_dataset("tuning_params", data=self.tuning_params)
         self.group_means = file.create_dataset("group_means", data=self.group_means)
         self.coeff_values = file.create_dataset("coeff_values", data=self.coeff_values)
+        self.fold_change = file.create_dataset("fold_change", data=self.fold_change)
 
 
         schema_str = StringIO()
@@ -120,6 +122,7 @@ class DB:
         self.tuning_params = file['tuning_params'][...]
         self.group_means = file['group_means'][...]
         self.coeff_values = file['coeff_values'][...]
+        self.fold_change = file['fold_change'][...]
 
         schema_str = StringIO(file.attrs['schema'])
         self.schema = Schema.load(schema_str)
