@@ -222,7 +222,7 @@ Analyzing {filename}, which is described by the schema {schema}.
     db = args_to_db(args)
     import_table(db, args.infile.name)
     setup_sample_indexes(db)
-    run_job(db)
+    run_job(db, args.equalize_means_ids)
     compute_means_and_coeffs(db)
     summarize_by_conf_level(db)
     print_summary(db)
