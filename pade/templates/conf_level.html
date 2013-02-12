@@ -57,7 +57,7 @@
   {% if i == page_num %}
   {{ page_num + 1}}
   {% else %}
-  <a href="conf_level_{{conf_level}}_page_{{i}}.html">{{ i + 1 }}</a>
+  <a href="{{url_for('details', conf_level=conf_level, page=i)}}">{{ i + 1 }}</a>
   {% endif %}
   {% endfor %}
 </p>
