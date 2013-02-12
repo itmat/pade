@@ -28,7 +28,7 @@
     <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="top" title="PaGE 6.0 documentation" href="index.html" />
     <link rel="next" title="Algorithm" href="algorithm.html" />
-    <link rel="prev" title="Welcome to PaGE’s documentation!" href="index.html" /> 
+    <link rel="prev" title="Welcome to Pade’s documentation!" href="index.html" /> 
   </head>
   <body>
     <div class="related">
@@ -38,10 +38,13 @@
           <a href="genindex.html" title="General Index"
              accesskey="I">index</a></li>
         <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
           <a href="algorithm.html" title="Algorithm"
              accesskey="N">next</a> |</li>
         <li class="right" >
-          <a href="index.html" title="Welcome to PaGE’s documentation!"
+          <a href="index.html" title="Welcome to Pade’s documentation!"
              accesskey="P">previous</a> |</li>
         <li><a href="index.html">PaGE 6.0 documentation</a> &raquo;</li> 
       </ul>
@@ -56,7 +59,7 @@
 <h1>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="prerequisites">
 <h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this headline">¶</a></h2>
-<p>PaGE requires a number of libraries that aren&#8217;t built in to Python:</p>
+<p>Pade requires a number of libraries that aren&#8217;t built in to Python:</p>
 <ul class="simple">
 <li>jinja2</li>
 <li>matplotlib</li>
@@ -75,7 +78,7 @@ able to use the <em>Enthought Python Distribution</em>, available here:
 </div>
 <div class="section" id="obtaining">
 <h2>Obtaining<a class="headerlink" href="#obtaining" title="Permalink to this headline">¶</a></h2>
-<p>You can obtain PaGE by cloning or forking it from github here:
+<p>You can obtain Pade by cloning or forking it from github here:
 <a class="reference external" href="https://github.com/itmat/PaGE">https://github.com/itmat/PaGE</a>.</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
@@ -84,12 +87,12 @@ able to use the <em>Enthought Python Distribution</em>, available here:
 </div>
 <div class="section" id="installing">
 <h2>Installing<a class="headerlink" href="#installing" title="Permalink to this headline">¶</a></h2>
-<p>Once you&#8217;ve obtained PaGE, you can either run it from the directory
+<p>Once you&#8217;ve obtained Pade, you can either run it from the directory
 where you&#8217;ve unpacked it, or install it globally. If you run it from a
 local directory, you&#8217;ll need to update your PYTHONPATH environment
-variable to point to the root of the PaGE directory. For example, if
-you&#8217;ve downloaded PaGE to ~/projects/PaGE, you might want to add</p>
-<div class="highlight-python"><pre>export PYTHONPATH=$PYTHONPATH:$HOME/projects/PaGE</pre>
+variable to point to the root of the Pade directory. For example, if
+you&#8217;ve downloaded Pade to ~/projects/, you might want to add</p>
+<div class="highlight-python"><pre>export PYTHONPATH=$PYTHONPATH:$HOME/projects/pade</pre>
 </div>
 <p>to your ~/.profile or ~/.bashrc file.</p>
 <p>You can install it simply by running <tt class="docutils literal"><span class="pre">python</span> <span class="pre">setup.py</span> <span class="pre">install</span></tt>.  Note
@@ -98,13 +101,13 @@ that you may need to run this as root or under sudo.</p>
 <div class="section" id="running-a-sample-job">
 <h2>Running a sample job<a class="headerlink" href="#running-a-sample-job" title="Permalink to this headline">¶</a></h2>
 <p>We recommend running a small job using the sample data provided in the
-PaGE distribution in order to familiarize yourself with the program
+pade distribution in order to familiarize yourself with the program
 before attempting to run it on your own data.</p>
-<p>The PaGE distribution includes a couple very small sample data files,
+<p>The pade distribution includes a couple very small sample data files,
 in the <tt class="docutils literal"><span class="pre">sample_data</span></tt> directory.</p>
 <div class="section" id="input-files">
 <h3>Input files<a class="headerlink" href="#input-files" title="Permalink to this headline">¶</a></h3>
-<p>The input to any PaGE job (at this time) is a tab-delimited file. The
+<p>The input to any pade job (at this time) is a tab-delimited file. The
 file must contain a header row, plus one row for each feature. There
 should be one column that contains a unique identifier for the
 features (for example a gene id). Then each of the samples should have
@@ -118,23 +121,23 @@ must be unique.</p>
 </div>
 <div class="section" id="creating-the-schema">
 <h3>Creating the schema<a class="headerlink" href="#creating-the-schema" title="Permalink to this headline">¶</a></h3>
-<p>The first step of any PaGE job is to run <tt class="docutils literal"><span class="pre">page</span> <span class="pre">setup</span></tt> on the input
+<p>The first step of any pade job is to run <tt class="docutils literal"><span class="pre">pade</span> <span class="pre">setup</span></tt> on the input
 file, which will create a &#8220;schema&#8221; file that you will then edit to
-describe the grouping of columns in the input file. You run <tt class="docutils literal"><span class="pre">page</span>
+describe the grouping of columns in the input file. You run <tt class="docutils literal"><span class="pre">pade</span>
 <span class="pre">setup</span></tt> and provide the input file on the command line, plus a
 <tt class="docutils literal"><span class="pre">--factor</span></tt> argument for each factor that you want to use to group
 the columns. For example, suppose say we are trying to find genes that
 are differentially expressed due to some treatment, and we want to
 treat gender as a &#8220;nuisance&#8221; variables. So we have two factors:
 &#8220;treated&#8221; and &#8220;gender&#8221;. We would setup the job as follows:</p>
-<div class="highlight-python"><pre>page setup --factor gender --factor treated sample_data/sample_data_4_class.txt</pre>
+<div class="highlight-python"><pre>pade setup --factor gender --factor treated sample_data/sample_data_4_class.txt</pre>
 </div>
 <p>This will read in the input file and create a skeleton &#8220;schema&#8221; file
-based on it, in page_schema.yaml (this can be changed with the
+based on it, in pade_schema.yaml (this can be changed with the
 <tt class="docutils literal"><span class="pre">--schema</span></tt> option). We then need to edit this file to list the
 values available for each of the two factors, and to assign those
 factor values to each of the sample column names.</p>
-<p>First, in the very top section of the page_schema.yaml file,
+<p>First, in the very top section of the pade_schema.yaml file,
 list the valid values for the factors. Change it to look like this:</p>
 <div class="highlight-python"><pre>factors:
 - name: treated
@@ -171,7 +174,7 @@ gender and whether or not it was treated:</p>
 <div class="section" id="running-the-analysis">
 <h3>Running the analysis<a class="headerlink" href="#running-the-analysis" title="Permalink to this headline">¶</a></h3>
 <p>Once you have created the schema file, you are ready to run the
-analysis, using <tt class="docutils literal"><span class="pre">page</span> <span class="pre">run</span></tt>. You&#8217;ll need to specify a couple options,
+analysis, using <tt class="docutils literal"><span class="pre">pade</span> <span class="pre">run</span></tt>. You&#8217;ll need to specify a couple options,
 most importantly <tt class="docutils literal"><span class="pre">--full-model</span></tt> and optionally <tt class="docutils literal"><span class="pre">--reduced-model</span></tt>.</p>
 <div class="section" id="full-model">
 <h4>Full model<a class="headerlink" href="#full-model" title="Permalink to this headline">¶</a></h4>
@@ -192,7 +195,7 @@ want to look for interaction effects, you would use:</p>
 <h4>Reduced model<a class="headerlink" href="#reduced-model" title="Permalink to this headline">¶</a></h4>
 <p>If you have more than one variable in the full model, you may specify
 a reduced model, which must be a subset of the variables in the full
-model. The null hypothesis tested by PaGE is that the variables in the
+model. The null hypothesis tested by Pade is that the variables in the
 reduced model describe the data as well as the variables in the full model.</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
@@ -209,24 +212,24 @@ considering gender at all), you would not provide a reduced model.</p>
 </div>
 <div class="section" id="default-settings">
 <h4>Default settings<a class="headerlink" href="#default-settings" title="Permalink to this headline">¶</a></h4>
-<p>The simplest PaGE job for our 4-class sample input would be something like:</p>
-<div class="highlight-python"><pre>page run --full-model "treated * gender" --reduced-model gender sample_data/sample_data_4_class.txt</pre>
+<p>The simplest Pade job for our 4-class sample input would be something like:</p>
+<div class="highlight-python"><pre>pade run --full-model "treated * gender" --reduced-model gender sample_data/sample_data_4_class.txt</pre>
 </div>
 <p>This should take less than a minute. Note that you need to provide the
 input file on the command line.</p>
 </div>
 <div class="section" id="interesting-options">
 <h4>Interesting options<a class="headerlink" href="#interesting-options" title="Permalink to this headline">¶</a></h4>
-<p>By default, PaGE computes the false discovery rate by using a
+<p>By default, Pade computes the false discovery rate by using a
 permutation test with the f-statistic. You can change the method used
 for computing the false discovery rate with the &#8220;&#8211;sample-method&#8221; and
 &#8220;&#8211;sample-from&#8221; options. This allows you to do bootstrapping instead
 of permutation, and to sample from either the raw data values or from
 the residuals of the data values (from the means predicted by the
-reduced model). Please see <tt class="docutils literal"><span class="pre">page</span> <span class="pre">run</span> <span class="pre">-h</span></tt> for more details.</p>
+reduced model). Please see <tt class="docutils literal"><span class="pre">pade</span> <span class="pre">run</span> <span class="pre">-h</span></tt> for more details.</p>
 <p>You can change the number of samples used for bootstrapping (or the
 permutation test) with <tt class="docutils literal"><span class="pre">--num-samples</span></tt> or <tt class="docutils literal"><span class="pre">-R</span></tt>.</p>
-<p>By default PaGE prints very little output; just a report at the end
+<p>By default Pade prints very little output; just a report at the end
 showing the distribution of the confidence levels. You can make it be
 more verbose with the <tt class="docutils literal"><span class="pre">--verbose</span></tt> or <tt class="docutils literal"><span class="pre">-v</span></tt> option. It will print
 even more debugging-level output if you give it <tt class="docutils literal"><span class="pre">--debug</span></tt> or <tt class="docutils literal"><span class="pre">-d</span></tt>.</p>
@@ -234,11 +237,11 @@ even more debugging-level output if you give it <tt class="docutils literal"><sp
 </div>
 <div class="section" id="generating-reports">
 <h3>Generating reports<a class="headerlink" href="#generating-reports" title="Permalink to this headline">¶</a></h3>
-<p>When you run <tt class="docutils literal"><span class="pre">page</span> <span class="pre">run</span></tt>, it will store the results of the analysis
-in a binary file called <tt class="docutils literal"><span class="pre">page_db.h5</span></tt>. The file name can be changed
+<p>When you run <tt class="docutils literal"><span class="pre">pade</span> <span class="pre">run</span></tt>, it will store the results of the analysis
+in a binary file called <tt class="docutils literal"><span class="pre">pade_db.h5</span></tt>. The file name can be changed
 with the <tt class="docutils literal"><span class="pre">--db</span></tt> option. You need to run another command to generate
 the reports:</p>
-<div class="highlight-python"><pre>page report</pre>
+<div class="highlight-python"><pre>pade report</pre>
 </div>
 </div>
 </div>
@@ -275,7 +278,7 @@ the reports:</p>
 
   <h4>Previous topic</h4>
   <p class="topless"><a href="index.html"
-                        title="previous chapter">Welcome to PaGE&#8217;s documentation!</a></p>
+                        title="previous chapter">Welcome to Pade&#8217;s documentation!</a></p>
   <h4>Next topic</h4>
   <p class="topless"><a href="algorithm.html"
                         title="next chapter">Algorithm</a></p>
@@ -308,10 +311,13 @@ the reports:</p>
           <a href="genindex.html" title="General Index"
              >index</a></li>
         <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
           <a href="algorithm.html" title="Algorithm"
              >next</a> |</li>
         <li class="right" >
-          <a href="index.html" title="Welcome to PaGE’s documentation!"
+          <a href="index.html" title="Welcome to Pade’s documentation!"
              >previous</a> |</li>
         <li><a href="index.html">PaGE 6.0 documentation</a> &raquo;</li> 
       </ul>
