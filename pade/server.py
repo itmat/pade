@@ -116,6 +116,10 @@ def details(conf_level):
     filtered = results.filter_by_score(score)
     pages = list(filtered.pages(100))
     page_num = 0
+
+    if 'page' in request.args:
+        page_num = int(request.args.get('page'))
+
     return render_template("conf_level.html",
                     conf_level=conf_level,
                     min_score=score,
