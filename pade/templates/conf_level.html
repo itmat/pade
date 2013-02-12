@@ -2,6 +2,14 @@
 {% block title %}Details for score >= {{ min_score }}, page {{ page_num + 1 }} of {{ num_pages }} {% endblock %}
 {% block content %}
 
+<h3>Sorting options</h3>
+  <ul>
+    <li><a href="{{url_for('details', conf_level=conf_level, page=page_num, order='score_original')}}">Score (filtered by score, fall back to original)</a></li>
+    <li><a href="{{url_for('details', conf_level=conf_level, page=page_num, order='foldchange_original')}}">Fold change (filtered by score, fall back to original)</a></li>
+    <li><a href="{{url_for('details', conf_level=conf_level, page=page_num)}}">Original ordering (filtered by score)</a></li>
+  </ul>
+</h3>
+
 <table class="details">
 
   <tr>
@@ -37,7 +45,7 @@
     <td class="details">{{ feature_ids[i] }}</td>
 
     <!-- Confidence score -->
-    <td class="details">{{ "%.2f"|format(scores[i]) }}</td>
+    <td class="details">{{ "%.4f"|format(scores[i]) }}</td>
 
     <!-- Statistic value -->
     <td class="details">{{ "%.2f"|format(stats[i]) }}</td>
@@ -49,7 +57,7 @@
 
     <!-- Mean for each condition -->
     {% for fc in fold_change[i] %}
-    <td class="details">{{ "%.10f"|format(fc) }}</td>
+    <td class="details">{{ "%.2f"|format(fc) }}</td>
     {% endfor %}
 
     <!-- Coefficient for each condition -->

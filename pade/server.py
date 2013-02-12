@@ -45,24 +45,40 @@ def assignment_name(a):
     return ", ".join(parts)
 
 
+
 @app.route("/details/<conf_level>")
 def details(conf_level):
     db = app.db
 
     ### Process params
     conf_level = int(conf_level)
+    alpha_idx = db.best_param_idxs[conf_level]
+
     page_num = 0
     if 'page' in request.args:
         page_num = int(request.args.get('page'))
 
-    scores = db.feature_to_score[conf_level]
-    stats  = db.raw_stats[conf_level]
+
+    scores = db.feature_to_score[alpha_idx]
+    stats = db.raw_stats[alpha_idx]
     min_score = db.summary_bins[conf_level]
 
     rows_per_page = 50
 
-    all_idxs      = np.arange(len(db.feature_ids))
-    filtered_idxs = all_idxs[scores > min_score]
+    orig_idxs = np.arange(len(db.feature_ids))
+    all_idxs = None
+    order_name = request.args.get('order')
+    if order_name is None:
+        all_idxs      = np.arange(len(db.feature_ids))
+    elif order_name == 'score_original':
+        all_idxs = db.ordering_by_score_original[alpha_idx]
+    elif order_name == 'foldchange_original':
+        all_idxs = db.ordering_by_foldchange_original[..., 1]
+
+    print "All idxs is", all_idxs
+
+    filtered_idxs = all_idxs[scores[all_idxs] > min_score]
+    print "Filtered is", filtered_idxs
     start = page_num * rows_per_page
     end = start + rows_per_page
     idxs = filtered_idxs[ start : end ]

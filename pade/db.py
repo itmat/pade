@@ -154,6 +154,8 @@ class DB:
         self.group_means = file['group_means'][...]
         self.coeff_values = file['coeff_values'][...]
         self.fold_change = file['fold_change'][...]
+        self.ordering_by_score_original = file['orderings']['score_original'][...]
+        self.ordering_by_foldchange_original = file['orderings']['foldchange_original'][...]
 
         schema_str = StringIO(file.attrs['schema'])
         self.schema = Schema.load(schema_str)
