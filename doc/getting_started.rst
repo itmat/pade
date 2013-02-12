@@ -4,7 +4,7 @@ Getting Started
 Prerequisites
 -------------
 
-PaGE requires a number of libraries that aren't built in to Python:
+Pade requires a number of libraries that aren't built in to Python:
 
 * jinja2
 * matplotlib
@@ -25,7 +25,7 @@ http://www.enthought.com/products/epd.php.
 Obtaining
 ---------
 
-You can obtain PaGE by cloning or forking it from github here:
+You can obtain Pade by cloning or forking it from github here:
 https://github.com/itmat/PaGE. 
 
 .. NOTE::
@@ -34,13 +34,13 @@ https://github.com/itmat/PaGE.
 Installing
 ----------
 
-Once you've obtained PaGE, you can either run it from the directory
+Once you've obtained Pade, you can either run it from the directory
 where you've unpacked it, or install it globally. If you run it from a
 local directory, you'll need to update your PYTHONPATH environment
-variable to point to the root of the PaGE directory. For example, if
-you've downloaded PaGE to ~/projects/PaGE, you might want to add ::
+variable to point to the root of the Pade directory. For example, if
+you've downloaded Pade to ~/projects/, you might want to add ::
 
-  export PYTHONPATH=$PYTHONPATH:$HOME/projects/PaGE
+  export PYTHONPATH=$PYTHONPATH:$HOME/projects/pade
 
 to your ~/.profile or ~/.bashrc file.
 
@@ -51,16 +51,16 @@ Running a sample job
 --------------------
 
 We recommend running a small job using the sample data provided in the
-PaGE distribution in order to familiarize yourself with the program
+pade distribution in order to familiarize yourself with the program
 before attempting to run it on your own data.
 
-The PaGE distribution includes a couple very small sample data files,
+The pade distribution includes a couple very small sample data files,
 in the ``sample_data`` directory.
 
 Input files
 ^^^^^^^^^^^
 
-The input to any PaGE job (at this time) is a tab-delimited file. The
+The input to any pade job (at this time) is a tab-delimited file. The
 file must contain a header row, plus one row for each feature. There
 should be one column that contains a unique identifier for the
 features (for example a gene id). Then each of the samples should have
@@ -76,9 +76,9 @@ must be unique.
 Creating the schema
 ^^^^^^^^^^^^^^^^^^^
 
-The first step of any PaGE job is to run ``page setup`` on the input
+The first step of any pade job is to run ``pade setup`` on the input
 file, which will create a "schema" file that you will then edit to
-describe the grouping of columns in the input file. You run ``page
+describe the grouping of columns in the input file. You run ``pade
 setup`` and provide the input file on the command line, plus a
 ``--factor`` argument for each factor that you want to use to group
 the columns. For example, suppose say we are trying to find genes that
@@ -86,15 +86,15 @@ are differentially expressed due to some treatment, and we want to
 treat gender as a "nuisance" variables. So we have two factors:
 "treated" and "gender". We would setup the job as follows::
 
-  page setup --factor gender --factor treated sample_data/sample_data_4_class.txt
+  pade setup --factor gender --factor treated sample_data/sample_data_4_class.txt
 
 This will read in the input file and create a skeleton "schema" file
-based on it, in page_schema.yaml (this can be changed with the
+based on it, in pade_schema.yaml (this can be changed with the
 ``--schema`` option). We then need to edit this file to list the
 values available for each of the two factors, and to assign those
 factor values to each of the sample column names.
 
-First, in the very top section of the page_schema.yaml file,
+First, in the very top section of the pade_schema.yaml file,
 list the valid values for the factors. Change it to look like this::
 
   factors:
@@ -134,7 +134,7 @@ Running the analysis
 ^^^^^^^^^^^^^^^^^^^^
 
 Once you have created the schema file, you are ready to run the
-analysis, using ``page run``. You'll need to specify a couple options,
+analysis, using ``pade run``. You'll need to specify a couple options,
 most importantly ``--full-model`` and optionally ``--reduced-model``.
 
 Full model
@@ -159,7 +159,7 @@ Reduced model
 
 If you have more than one variable in the full model, you may specify
 a reduced model, which must be a subset of the variables in the full
-model. The null hypothesis tested by PaGE is that the variables in the
+model. The null hypothesis tested by Pade is that the variables in the
 reduced model describe the data as well as the variables in the full model.
 
 .. NOTE::
@@ -176,9 +176,9 @@ considering gender at all), you would not provide a reduced model.
 Default settings
 """"""""""""""""
 
-The simplest PaGE job for our 4-class sample input would be something like::
+The simplest Pade job for our 4-class sample input would be something like::
 
-  page run --full-model "treated * gender" --reduced-model gender sample_data/sample_data_4_class.txt
+  pade run --full-model "treated * gender" --reduced-model gender sample_data/sample_data_4_class.txt
 
 This should take less than a minute. Note that you need to provide the
 input file on the command line.
@@ -186,18 +186,18 @@ input file on the command line.
 Interesting options
 """""""""""""""""""
 
-By default, PaGE computes the false discovery rate by using a
+By default, Pade computes the false discovery rate by using a
 permutation test with the f-statistic. You can change the method used
 for computing the false discovery rate with the "--sample-method" and
 "--sample-from" options. This allows you to do bootstrapping instead
 of permutation, and to sample from either the raw data values or from
 the residuals of the data values (from the means predicted by the
-reduced model). Please see ``page run -h`` for more details.
+reduced model). Please see ``pade run -h`` for more details.
 
 You can change the number of samples used for bootstrapping (or the
 permutation test) with ``--num-samples`` or ``-R``.
 
-By default PaGE prints very little output; just a report at the end
+By default Pade prints very little output; just a report at the end
 showing the distribution of the confidence levels. You can make it be
 more verbose with the ``--verbose`` or ``-v`` option. It will print
 even more debugging-level output if you give it ``--debug`` or ``-d``.
@@ -205,10 +205,10 @@ even more debugging-level output if you give it ``--debug`` or ``-d``.
 Generating reports
 ^^^^^^^^^^^^^^^^^^
 
-When you run ``page run``, it will store the results of the analysis
-in a binary file called ``page_db.h5``. The file name can be changed
+When you run ``pade run``, it will store the results of the analysis
+in a binary file called ``pade_db.h5``. The file name can be changed
 with the ``--db`` option. You need to run another command to generate
 the reports::
 
-  page report
+  pade report
 

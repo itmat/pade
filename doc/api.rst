@@ -1,26 +1,26 @@
 API Documentation
 =================
 
-page.common
+pade.common
 -----------
 
-.. automodule:: page.common
+.. automodule:: pade.common
    :members:
 
-page.schema
+pade.schema
 -----------
 
-.. automodule:: page.schema
+.. automodule:: pade.schema
    :members:
 
-page.stat
+pade.stat
 ---------
 
-.. automodule:: page.stat
+.. automodule:: pade.stat
    :members:
 
-page.performance
+pade.performance
 ----------------
 
-.. automodule:: page.performance
+.. automodule:: pade.performance
    :members:
