@@ -8,52 +8,52 @@
     <th class="details"></th>
     <th class="details"></th>
     <th class="details"></th>
-    <th class="details" colspan="{{results.group_names|length}}">Mean</th>
-    <th class="details" colspan="{{results.group_names|length}}">Fold Change</th>
-    <th class="details" colspan="{{results.param_names|length}}">Coefficient</th>
+    <th class="details" colspan="{{group_names|length}}">Mean</th>
+    <th class="details" colspan="{{group_names|length}}">Fold Change</th>
+    <th class="details" colspan="{{coeff_names|length}}">Coefficient</th>
   </tr>
 
   <tr>
     <th class="details">Feature id</th>
     
     <th class="details">Score</th>
-    <th class="details">{{ job.stat_name }} stat</th>
+    <th class="details">{{ stat_name }} stat</th>
 
-    {% for name in results.group_names %}
+    {% for name in group_names %}
     <th class="details">{{ name }}</th>
     {% endfor %}
 
-    {% for name in results.group_names %}
+    {% for name in group_names %}
     <th class="details">{{ name }}</th>
     {% endfor %}
 
-    {% for name in results.param_names %}
+    {% for name in coeff_names %}
     <th class="details">{{ name }}</th>
     {% endfor %}
   </tr>
 
-  {% for i in range(results.feature_ids|length) %}
+  {% for i in range(feature_ids|length) %}
   <tr>
-    <td class="details">{{ results.feature_ids[i] }}</td>
+    <td class="details">{{ feature_ids[i] }}</td>
 
     <!-- Confidence score -->
-    <td class="details">{{ "%.2f"|format(results.scores[i]) }}</td>
+    <td class="details">{{ "%.2f"|format(scores[i]) }}</td>
 
     <!-- Statistic value -->
-    <td class="details">{{ "%.2f"|format(results.stats[i]) }}</td>
+    <td class="details">{{ "%.2f"|format(stats[i]) }}</td>
 
     <!-- Mean for each condition -->
-    {% for mean in results.means[i] %}
+    {% for mean in means[i] %}
     <td class="details">{{ "%.2f"|format(mean) }}</td>
     {% endfor %}
 
     <!-- Mean for each condition -->
-    {% for fc in db.fold_change[indexes[i]] %}
-    <td class="details">{{ "%.2f"|format(fc) }}</td>
+    {% for fc in fold_change[i] %}
+    <td class="details">{{ "%.10f"|format(fc) }}</td>
     {% endfor %}
 
     <!-- Coefficient for each condition -->
-    {% for coeff in results.coeffs[i] %}
+    {% for coeff in coeffs[i] %}
     <td class="details">{{ "%.2f"|format(coeff) }}</td>
     {% endfor %}
 

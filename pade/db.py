@@ -3,6 +3,7 @@ import h5py
 from StringIO import StringIO
 from pade.schema import Schema
 from pade.model import Model
+import numpy as np
 
 class DB:
 
@@ -49,6 +50,8 @@ class DB:
         self.coeff_values = None
         self.fold_change = None
 
+        self.file = None
+
         if schema is None:
             if self.schema_path is not None:
                 logging.info("Loading schema from " + self.schema_path)
@@ -84,7 +87,6 @@ class DB:
         self.coeff_values = file.create_dataset("coeff_values", data=self.coeff_values)
         self.fold_change = file.create_dataset("fold_change", data=self.fold_change)
 
-
         schema_str = StringIO()
         self.schema.save(schema_str)
         file.attrs['schema'] = str(schema_str.getvalue())
@@ -100,8 +102,37 @@ class DB:
         file.attrs['group_names'] = self.group_names
         file.attrs['coeff_names'] = self.coeff_names
 
+        self.file = file
+        self.compute_orderings()
+        self.file = None
+
         file.close()
 
+    def compute_orderings(self):
+
+        grp = self.file.create_group('orderings')
+        original = np.arange(len(self.feature_ids))
+        stats = self.feature_to_score[...]
+        rev_stats = 0.0 - stats
+
+        by_score_original = np.zeros(np.shape(self.raw_stats), int)
+        for i in range(len(self.tuning_params)):
+            by_score_original[i] = np.lexsort(
+                (original, rev_stats[i]))
+
+        grp['score_original'] = by_score_original
+
+        by_foldchange_original = np.zeros(np.shape(self.fold_change), int)
+        foldchange = self.fold_change[...]
+        rev_foldchange = 0.0 - foldchange
+        for i in range(len(self.group_names)):
+            by_foldchange_original[..., i] = np.lexsort(
+                (original, rev_foldchange[..., i]))
+
+        grp['foldchange_original'] = by_foldchange_original
+
+
+    
     def load(self):
 
         logging.info("Loading job results from " + self.path)

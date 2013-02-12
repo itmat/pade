@@ -34,63 +34,6 @@ def index():
     return render_template("index.html", db=app.db)
 
 
-class ResultTable:
-
-    def __init__(self,
-                 group_names=None,
-                 param_names=None,
-                 means=None,
-                 coeffs=None,
-                 stats=None,
-                 feature_ids=None,
-                 scores=None,
-                 min_score=None,
-                 indexes=None):
-        self.means = means
-        self.coeffs = coeffs
-        self.group_names = group_names
-        self.param_names = param_names
-        self.stats = stats
-        self.feature_ids = feature_ids
-        self.scores = scores
-        self.min_score = min_score
-        self.indexes = indexes
-
-    def filter_by_score(self, min_score):
-        idxs = self.scores > min_score
-        best = np.argmax(np.sum(idxs, axis=1))
-        idxs = idxs[best]
-        stats = self.stats[best]
-        scores = self.scores[best]
-        return ResultTable(
-            group_names=self.group_names,
-            param_names=self.param_names,
-            means=self.means[idxs],
-            coeffs=self.coeffs[idxs],
-            stats=stats[idxs],
-            feature_ids=self.feature_ids[idxs],
-            scores=scores[idxs],
-            indexes=idxs,
-            min_score=min_score)
-
-    def __len__(self):
-        return len(self.feature_ids)
-
-    def pages(self, rows_per_page=100):
-        for start in range(0, len(self), rows_per_page):
-            size = min(rows_per_page, len(self) - start)
-            end = start + size
-
-            yield ResultTable(
-                group_names=self.group_names,
-                param_names=self.param_names,
-                indexes=self.indexes[start : end],
-                means=self.means[start : end],
-                coeffs=self.coeffs[start : end],
-                stats=self.stats[start : end],
-                feature_ids=self.feature_ids[start : end],
-                scores=self.scores[start : end])
-
 
 def assignment_name(a):
 
@@ -104,36 +47,46 @@ def assignment_name(a):
 
 @app.route("/details/<conf_level>")
 def details(conf_level):
-    conf_level = int(conf_level)
     db = app.db
 
-    results = ResultTable(
-        means=db.group_means,
-        coeffs=db.coeff_values,
-        group_names=db.group_names,
-        param_names=db.coeff_names,
-        feature_ids=np.array(db.feature_ids),
-        stats=db.raw_stats,
-        scores=db.feature_to_score)
-
-    score=db.summary_bins[conf_level]
-    filtered = results.filter_by_score(score)
-    pages = list(filtered.pages(100))
+    ### Process params
+    conf_level = int(conf_level)
     page_num = 0
-
     if 'page' in request.args:
         page_num = int(request.args.get('page'))
 
+    scores = db.feature_to_score[conf_level]
+    stats  = db.raw_stats[conf_level]
+    min_score = db.summary_bins[conf_level]
+
+    rows_per_page = 50
+
+    all_idxs      = np.arange(len(db.feature_ids))
+    filtered_idxs = all_idxs[scores > min_score]
+    start = page_num * rows_per_page
+    end = start + rows_per_page
+    idxs = filtered_idxs[ start : end ]
+
+    score=db.summary_bins[conf_level]
+
+    num_pages = int(np.ceil(float(len(filtered_idxs)) / float(rows_per_page)))
+
     return render_template(
         "conf_level.html",
+        num_pages=num_pages,
         conf_level=conf_level,
         min_score=score,
-        job=db,
-        results=pages[page_num],
-        db=db,
-        indexes=pages[page_num].indexes,
-        page_num=page_num,
-        num_pages=len(pages))
+
+        group_names=db.group_names,
+        coeff_names=db.coeff_names,
+        stat_name=db.stat_name,
+        scores=scores[idxs],
+        stats=scores[idxs],
+        means=db.group_means[idxs],
+        coeffs=db.coeff_values[idxs],
+        feature_ids=db.feature_ids[idxs],
+        fold_change=db.fold_change[idxs],
+        page_num=page_num)
 
 @app.route("/stat_dist.html")
 def stat_dist_plots_page():
