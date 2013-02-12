@@ -234,7 +234,7 @@ The results for the job are saved in {path}. You will now need to run
 
 def do_server(args):
     import pade.server
-    db = DB(path=args.results)
+    db = DB(path=args.db)
     db.load()
     pade.server.app.db = db
     if args.debug:
@@ -837,12 +837,6 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
         default="pade.log",
         help="Location of log file")
 
-    results_parents = argparse.ArgumentParser(add_help=False)
-    results_parents.add_argument(
-        '--results',
-        help="Pade results db",
-        default="pade_results.hdf5")
-
     # Create setup parser
     setup_parser = subparsers.add_parser(
         'setup',
@@ -877,7 +871,7 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
         'run',
         help="""Run the job.""",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[parents, results_parents])
+        parents=[parents])
     run_parser.add_argument(
         '--schema', 
         help="Path to read the schema file from",
@@ -899,7 +893,7 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
         'report',
         help="""Generate report""",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[parents, results_parents])
+        parents=[parents])
     report_parser.add_argument(
         '--db', 
         help="Path to the db file to read results from",
@@ -923,7 +917,11 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
         'server',
         help="""Start server to show results""",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[parents, results_parents])
+        parents=[parents])
+    server_parser.add_argument(
+        '--db', 
+        help="Path to the db file to read results from",
+        default="pade_db.h5")
 
     report_parser.set_defaults(func=do_report)
     run_parser.set_defaults(func=do_run)
