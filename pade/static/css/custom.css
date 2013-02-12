@@ -1,0 +1,21 @@
+
+.up_regulated {
+    color: green;
+}
+
+.down_regulated {
+    color: red;
+}
+
+table.details {
+  border: 1px solid lightgray;
+}
+
+td.details {
+  border: 1px solid lightgray;
+  text-align: right;
+}
+
+th.details {
+  border: 1px solid lightgray;
+}
