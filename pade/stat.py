@@ -578,45 +578,4 @@ def random_orderings(full, reduced, R):
                 yield arr
 
 
-def old_random_orderings(full, reduced, R):
 
-    print "In here\n"
-    # The total number of orderings of indexes for this combination
-    # of full and reduced layouts.
-    N = num_orderings(full, reduced)
-
-
-    # Get a randomized set of indexes into the orderings. We'll
-    # yield only those orderings. If the number of orderings is
-    # not greater than R, then add the indexes for all the
-    # orderings to idxs.
-    idxs = set()
-    if R >= N:
-        idxs.update(np.arange(N))
-    else:
-        while len(idxs) < R:
-            print "Length of indexes is", len(idxs), " N is ", N, ", R is", R
-            idxs.add(np.random.randint(0, N))
-
-    print "Got here\n"
-
-    # Sort the list of indexes into the orderings, and then go
-    # through all of the orderings, yielding only the ones that we
-    # have marked.
-    idxs = sorted(idxs)
-
-    yielded = 0
-
-    print "Getting all orderings for", full, reduced
-    for i, arr in enumerate(all_orderings(full, reduced)):
-        print "Got one"
-        # If we've yielded all we need to, quit.
-        if yielded == len(idxs):
-            break
-        
-        if i == idxs[yielded]:
-            yielded += 1
-            print "Yielded " + str(yielded)
-            yield arr
-
-    print "Returning"

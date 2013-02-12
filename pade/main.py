@@ -403,7 +403,6 @@ def run_job(db, equalize_means_ids):
                 bins=db.bins)
 
         else:
-            print "Unshifted is\n", db.table[0]
             db.bin_to_mean_perm_count = pade.stat.bootstrap(
                 db.table,
                 stat, 
