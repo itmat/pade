@@ -111,7 +111,6 @@ def summarize_by_conf_level(db):
 
     logging.info("Summarizing the results")
 
-    db.summary_bins   = np.linspace(db.min_conf, 1.0, db.conf_levels)
     db.best_param_idxs = np.zeros(len(db.summary_bins))
     db.summary_counts = np.zeros(len(db.summary_bins))
 
@@ -289,7 +288,7 @@ def args_to_db(args):
     db.sample_from = args.sample_from
     db.sample_method = args.sample_method
     db.min_conf=args.min_conf
-    db.conf_levels=args.conf_levels
+    db.summary_bins = np.arange(args.min_conf, 1.0, args.conf_interval)
     db.equalize_means = args.equalize_means
 
     return db
@@ -749,10 +748,10 @@ def add_fdr_args(p):
         help="Smallest confidence level to report")
 
     grp.add_argument(
-        '--conf-levels',
-        default=11,
-        type=int,
-        help="Number of confidence levels to show")
+        '--conf-interval',
+        default=0.05,
+        type=float,
+        help="Interval of confidence levels")
 
     grp.add_argument(
         '--no-equalize-means',

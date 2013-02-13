@@ -22,8 +22,6 @@ class DB:
 
         # Settings
         self.stat_name = None
-        self.min_conf = None
-        self.conf_levels = None
         self.num_bins = None
         self.num_samples = None
         self.sample_from = None
@@ -91,8 +89,6 @@ class DB:
         self.schema.save(schema_str)
         file.attrs['schema'] = str(schema_str.getvalue())
         file.attrs['stat_name'] = self.stat
-        file.attrs['min_conf'] = self.min_conf
-        file.attrs['conf_levels'] = self.conf_levels
         file.attrs['num_bins'] = self.num_bins
         file.attrs['num_samples'] = self.num_samples
         file.attrs['sample_from'] = self.sample_from
@@ -164,8 +160,6 @@ class DB:
         schema_str = StringIO(file.attrs['schema'])
         self.schema = Schema.load(schema_str)
         self.stat_name = file.attrs['stat_name']
-        self.min_conf = file.attrs['min_conf']
-        self.conf_levels = file.attrs['conf_levels']
         self.num_bins = file.attrs['num_bins']
         self.num_samples = file.attrs['num_samples']
         self.sample_from = file.attrs['sample_from']
