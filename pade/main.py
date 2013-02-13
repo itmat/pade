@@ -151,8 +151,13 @@ def setup_sample_indexes(db):
 
 def compute_means_and_coeffs(db):
     logging.info("Computing means and coefficients")
-    db.group_means = get_group_means(db.schema, db.table)
-    db.group_names = [assignment_name(a) for a in db.schema.possible_assignments()]
+
+    model = db.full_model
+    factors = model.expr.variables
+
+    db.group_means = get_group_means(db.schema, db.table, factors)
+    db.group_names = [assignment_name(a) 
+                      for a in db.schema.possible_assignments(factors)]
 
     fitted = db.full_model.fit(db.table)
     db.coeff_values = fitted.params
@@ -201,20 +206,10 @@ Generating report for result database {db}.
 
     db.load()
 
-    results = pade.server.ResultTable(
-        means=db.group_means,
-        coeffs=db.coeff_values,
-        group_names=db.group_names,
-        param_names=db.coeff_names,
-        feature_ids=np.array(db.feature_ids),
-        stats=db.raw_stats,
-        scores=db.feature_to_score,
-        indexes=np.arange(len(feature_ids)))
-
     makedirs(args.report_directory)
     with chdir(args.report_directory):
         if args.text:
-            save_text_output(db, results)
+            save_text_output(db)
             print "Saved text report to ", os.path.join(args.report_directory, "results.txt")
         #print_profile(db)
 
@@ -370,13 +365,23 @@ def run_job(db, equalize_means_ids):
     return db
 
 
-def save_text_output(db, results):
+def save_text_output(db):
+
+    #means=db.group_means,
+    #    coeffs=db.coeff_values,
+    #    group_names=db.group_names,
+    #    param_names=db.coeff_names,
+    #    feature_ids=np.array(db.feature_ids),
+    #    stats=db.raw_stats,
+    #    scores=db.feature_to_score,
+    #    indexes=np.arange(len(feature_ids)))
+
     (num_rows, num_cols) = db.table.shape
     num_cols += 2
     table = np.zeros((num_rows, num_cols))
 
     # Best tuning param for each feature
-    idxs = np.argmax(results.scores, axis=0)
+    idxs = np.argmax(db.feature_to_score, axis=0)
     table = []
 
     # For each row in the data, add feature id, stat, score, group
@@ -397,8 +402,8 @@ def save_text_output(db, results):
         row.append(db.feature_to_score[idxs[i], i])
         for j in range(len(db.tuning_params)):
             row.append(db.feature_to_score[j, i])
-        row.extend(results.means[i])
-        row.extend(results.coeffs[i])
+        row.extend(db.group_means[i])
+        row.extend(db.coeff_values[i])
         row.extend(db.table[i])
         table.append(tuple(row))
     schema = db.schema
@@ -417,10 +422,10 @@ def save_text_output(db, results):
     for i, alpha in enumerate(db.tuning_params):
         add_col('score_' + str(alpha), float, "%f")
 
-    for name in results.group_names:
+    for name in db.group_names:
         add_col("mean: " + name, float, "%f")
 
-    for name in results.param_names:
+    for name in db.coeff_names:
         add_col("param: " + name, float, "%f")
 
     for i, name in enumerate(schema.sample_column_names):
@@ -505,9 +510,9 @@ def confidence_scores(raw_counts, perm_counts, num_features):
     return res
 
 
-def get_group_means(schema, data):
-
-    assignments = schema.possible_assignments()
+def get_group_means(schema, data, factors):
+    logging.info("Getting group means for factors " + str(factors))
+    assignments = schema.possible_assignments(factors=factors)
 
     num_features = len(data)
     num_groups = len(assignments)
