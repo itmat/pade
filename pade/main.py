@@ -181,8 +181,14 @@ Analyzing {filename}, which is described by the schema {schema}.
     print_summary(db)
     db.save()
     print """
-The results for the job are saved in {path}. You will now need to run
-"pade report" to generate the report.
+The results for the job are saved in {path}. To generate a text
+report, run:
+
+  pade report --text --db {path}
+
+To launch a small web server to generate the HTML reports, run:
+
+  pade server --db {path}
 """.format(path=db.path)
 
 def do_server(args):
