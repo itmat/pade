@@ -141,7 +141,7 @@ class Model:
 
         effect_level = 1 if self.expr.operator == '+' else len(self.expr.variables)
 
-        dummies = dummy_vars(self.schema, level=effect_level)
+        dummies = dummy_vars(self.schema, level=effect_level, factors=self.expr.variables)
 
         x = []
         indexes = []
