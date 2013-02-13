@@ -708,9 +708,10 @@ def add_fdr_args(p):
         description="""These options control how we estimate the confidence levels. You can probably leave them unchanged, in which case I'll compute it using a permutation test with an f-test as the statistic, using a maximum of 1000 permutations.""")
     grp.add_argument(
         '--stat', '-s',
-        choices=['f', 't', 'f_sqrt'],
+#        choices=['f', 't', 'f_sqrt'],
+        choices=['f'],
         default='f',
-        help="The statistic to use")
+        help="The statistic to use. Only f-test is implemented at the moment, so this option has no effect.")
 
     grp.add_argument(
         '--num-samples', '-R',
@@ -728,7 +729,7 @@ def add_fdr_args(p):
         '--num-bins',
         type=int,
         default=1000,
-        help="Number of bins to divide the statistic space into.")
+        help="Number of bins to divide the statistic space into. You probably don't need to change this.")
 
     grp.add_argument(
         '--sample-method',
@@ -753,7 +754,7 @@ def add_fdr_args(p):
         action='store_false',
         dest='equalize_means',
         default=True,
-        help="""Shift values of samples within same group for same feature so that their mean is 0 before the permutation test.""")
+        help="""Shift values of samples within same group for same feature so that their mean is 0 before the permutation test. This will likely cause Pade to be more conservative in selecting features.""")
     grp.add_argument(
         '--equalize-means-ids',
         type=file,
@@ -776,7 +777,7 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
     parents.add_argument(
         '--verbose', '-v',
         action='store_true',
-        help="Be verbose (print INFO level log messages)")
+        help="Be verbose")
     parents.add_argument(
         '--debug', '-d', 
         action='store_true',
@@ -823,7 +824,7 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
         parents=[parents])
     run_parser.add_argument(
         '--schema', 
-        help="Path to read the schema file from",
+        help="The schema YAML file",
         default="pade_schema.yaml")
     run_parser.add_argument(
         'infile',
@@ -832,7 +833,7 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
         type=file)
     run_parser.add_argument(
         '--db', 
-        help="Path to the db file that I will create to store the results",
+        help="Path to the binary output file",
         default="pade_db.h5")
     
     add_model_args(run_parser)
