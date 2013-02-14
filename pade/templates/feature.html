@@ -5,14 +5,6 @@
 <p>Feature number: {{ feature_num }}</p>
 <p>Feature id: {{ feature_id }}</p>
 
-TODO: 
-
-<ul>
-  <li>Show the mean for each group</li>
-  <li>Show the stat and score for each value of the tuning param</li>
-  <li>Show the mean number of features with stat above this stat for each value of tuning param</li>
-</ul>
-
 <h2>Details for feature {{ feature_id }}</h2>
 
 <table class="feature_detail">
@@ -60,38 +52,52 @@ TODO:
 This table shows the details for this feature, for each of the
 different tuning parameters we tried.
 
-For each tuning parameter:
+For each tuning parameter, we show:
 
-<ul>
-  <li>Statistic is the f-test value for this feature using that tuning parameter.</li>
-  <li>Max stat is the largest statistic for any feature using this tuning parameter.</li>
+<dl>
+  <dt>Tuning param</dt>
+  <dd>The value of the tuning param</dd>
 
-  <li>
+  <dt>Statistic</dt>
+  <dd>The f-test value for this feature using that tuning parameter.</dd>
+
+  <dt>Max stat</dt>
+  <dd>Max stat is the largest statistic for any feature using this tuning parameter.</dd>
+
+  <dt>Bin</dt>
+  <dd>
     Each bin represents 1/{{num_bins}}th of the maximum statistic. So
     features with bin 0 have a statistic less than 1/{{num_bins}} of
     the maximum. A low bin number means that many features have a
     higher statistic than this feature.
-  </li>
-  <li>
+  </dd>
+
+  <dt>Unperm count</dt>
+  <dd>
     Unperm count is the number of features whose f-test (unpermuted)
     is in the same bin or a higher bin than this feature.
-  </li>
-  <li>
+  </dd>
+
+  <dt>Mean perm count</dt>
+  <dd>
     Mean perm count is the mean number of features across all
     permutations of the samples whose f-test is in the same bin or a
     higher bin than this feature.
-  </li>
-  <li>
+  </dd>
+
+  <dt>Adjusted perm count</dt>
+  <dd>
     We adjust the "mean perm count" down in an iterative manner. For a
     description of why we do this, please see the
     original <a href="http://www.cbil.upenn.edu/PaGE/doc/perl/PaGE_documentation_technical_manual.pdf">PaGE
     Technical Manual</a>. 
-  </li>
+  </dd>
 
-  <li>Confidence is the confidence score (1 - FDR) for this feature. The confidence score is simply (unperm_count - adjusted_perm_count) / unperm_count.</li>
+  <dt>Confidence</dt>
+  <dd>Confidence is the confidence score (1 - FDR) for this feature. The confidence score is simply (unperm_count - adjusted_perm_count) / unperm_count.</dd>
 
-</ul>
-<table>
+</dl>
+<table class="feature_detail_by_alpha">
   <tr>
     <th>Tuning param</th>
     <th>Statistic</th>

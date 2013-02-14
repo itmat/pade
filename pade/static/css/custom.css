@@ -21,11 +21,23 @@ th.details {
 }
 
 table.feature_detail td {
+  text-align: right;
+  border: 1px solid lightgray;
+}
+
+table.feature_detail th {
+  text-align: right;
   border: 1px solid lightgray;
 }
 
 
-table.feature_detail th {
+table.feature_detail_by_alpha td {
+  text-align: right;
+  border: 1px solid lightgray;
+}
+
+table.feature_detail_by_alpha th {
+  text-align: right;
   border: 1px solid lightgray;
 }
 
