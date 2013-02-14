@@ -42,7 +42,7 @@
 
   {% for i in range(feature_ids|length) %}
   <tr>
-    <td class="details">{{ feature_ids[i] }}</td>
+    <td class="details"><a href="{{url_for('feature', feature_num=indexes[i])}}">{{ feature_ids[i] }}</a></td>
 
     <!-- Confidence score -->
     <td class="details">{{ "%.4f"|format(scores[i]) }}</td>

@@ -78,3 +78,12 @@ def makedirs(path):
         if not os.path.isdir(path):
             raise e
 
+def assignment_name(a):
+
+    if len(a) == 0:
+        return "intercept"
+    
+    parts = ["{0}={1}".format(k, v) for k, v in a.items()]
+
+    return ", ".join(parts)
+

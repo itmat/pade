@@ -11,7 +11,7 @@ from pade.db import DB
 import argparse
 import logging 
 import StringIO
-
+from pade.common import *
 
 class PadeApp(Flask):
 
@@ -33,18 +33,93 @@ def index():
     logging.info("Getting index")
     return render_template("index.html", db=app.db)
 
-
-
-def assignment_name(a):
-
-    if len(a) == 0:
-        return "intercept"
+@app.route("/measurement_scatter/<feature_num>")
+def measurement_scatter(feature_num):
     
-    parts = ["{0}={1}".format(k, v) for k, v in a.items()]
+    feature_num = int(feature_num)
 
-    return ", ".join(parts)
+    db = app.db
+    schema = db.schema
+    model = db.full_model
+    measurements = db.table[feature_num]
+    
+    fig = plt.figure()
+    ax = fig.add_subplot(
+        111,
+        title='Measurements',
+        xlabel='Group',
+        ylabel='Measurement')
+
+    assignments = schema.possible_assignments(model.expr.variables)
+    names = [assignment_name(a) for a in assignments]
+    grps = [schema.indexes_with_assignments(a) for a in assignments]
+
+    print "Groups are", grps
+
+    for i, a in enumerate(assignments):
+
+        y = measurements[grps[i]]
+        x = [i for j in y]
+        ax.scatter(x, y)
+
+    plt.xticks(np.arange(len(names)), names)
+
+    ax.legend(loc='upper_right')
+    return figure_response(fig)
+
+@app.route("/measurement_bars/<feature_num>")
+def measurement_bars(feature_num):
+    
+    feature_num = int(feature_num)
+
+    db = app.db
+    schema = db.schema
+    model = db.full_model
+    measurements = db.table[feature_num]
+    
+    fig = plt.figure()
+    ax = fig.add_subplot(
+        111,
+        title='Measurements for ' + db.feature_ids[feature_num],
+        ylabel='Measurement')
+
+    assignments = schema.possible_assignments(model.expr.variables)
+
+    x = np.arange(len(assignments))
+    width = 0.8
+
+    y = []
+    grps = [schema.indexes_with_assignments(a) for a in assignments]
+    names = [assignment_name(a) for a in assignments]
+    y = [ np.mean(measurements[g]) for g in grps]
+    err = [ np.std(measurements[g]) for g in grps]
+    ax.bar(x, y, yerr=err, color='y')
+    plt.xticks(x+width/2., names)
+
+    return figure_response(fig)
 
 
+@app.route("/features/<feature_num>")
+def feature(feature_num):
+    db = app.db
+    schema = db.schema
+    feature_num = int(feature_num)
+    factor_values = {
+        s : { f : schema.get_factor(s, f) for f in schema.factors }
+        for s in schema.sample_column_names }
+
+    print db.full_model.layout
+
+    return render_template(
+        "feature.html",
+        feature_num=feature_num,
+        feature_id=db.feature_ids[feature_num],
+        measurements=db.table[feature_num],
+        sample_names=db.schema.sample_column_names,
+        factors=db.schema.factors,
+        factor_values=factor_values,
+        layout=db.full_model.layout
+        )
 
 @app.route("/details/<conf_level>")
 def details(conf_level):
@@ -92,7 +167,7 @@ def details(conf_level):
         num_pages=num_pages,
         conf_level=conf_level,
         min_score=score,
-
+        indexes=idxs,
         group_names=db.group_names,
         coeff_names=db.coeff_names,
         stat_name=db.stat_name,
