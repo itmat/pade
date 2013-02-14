@@ -26,7 +26,7 @@ Obtaining
 ---------
 
 You can obtain Pade by cloning or forking it from github here:
-https://github.com/itmat/PaGE. 
+https://github.com/itmat/pade. 
 
 .. NOTE::
    We need to create a tarball and put it somewhere to be downloaded.
