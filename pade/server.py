@@ -48,13 +48,21 @@ def assignment_name(a):
 @app.route("/features/<feature_num>")
 def feature(feature_num):
     db = app.db
+    schema = db.schema
     feature_num = int(feature_num)
+    factor_values = {
+        s : { f : schema.get_factor(s, f) for f in schema.factors }
+        for s in schema.sample_column_names }
+
     return render_template(
         "feature.html",
         feature_num=feature_num,
         feature_id=db.feature_ids[feature_num],
         measurements=db.table[feature_num],
-        sample_names=db.schema.sample_column_names)
+        sample_names=db.schema.sample_column_names,
+        factors=db.schema.factors,
+        factor_values=factor_values
+        )
 
 @app.route("/details/<conf_level>")
 def details(conf_level):

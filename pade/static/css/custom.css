@@ -19,3 +19,7 @@ td.details {
 th.details {
   border: 1px solid lightgray;
 }
+
+table.feature_detail td {
+  border: 1px solid lightgray;
+}

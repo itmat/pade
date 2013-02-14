@@ -15,11 +15,32 @@ TODO:
   <li>Show the mean number of features with stat above this stat for each value of tuning param</li>
 </ul>
 
-<table>
+<table class="feature_detail">
+
+  <th>
+    <th></th>
+    <th></th>
+    <th colspan="{{ factors | length }}">Factors</th>
+  </th>
+
+  <tr>
+    <th>Column name</th>
+    <th>Measured value</th>
+
+    {% for f in factors %}
+    <th>{{ f }}</th>
+    {% endfor %}
+
+  </tr>
+
   {% for i in range(measurements|length) %}
   <tr>
     <td>{{ sample_names[i] }}</td>
     <td>{{ measurements[i] }}</td>
+    {% for f in factors %}
+    <td> {{ factor_values[sample_names[i]][f] }} </td>
+    {% endfor %}
+    
   </tr>
   {% endfor %}
 </table>
