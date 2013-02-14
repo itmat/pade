@@ -749,7 +749,7 @@ def add_fdr_args(p):
 
     grp.add_argument(
         '--min-conf',
-        default=0.5,
+        default=0.25,
         type=float,
         help="Smallest confidence level to report")
 
