@@ -170,5 +170,5 @@ class DB:
         self.coeff_names = file.attrs['coeff_names']
         
         file.close()
-
+        logging.info("Done loading results")
 

@@ -187,6 +187,8 @@ def do_server(args):
     pade.server.app.db = db
     if args.debug:
         pade.server.app.debug = True
+    if args.port is not None:
+        pade.server.app.port = args.port
     pade.server.app.run()
     
 
@@ -577,7 +579,7 @@ def print_profile(db):
 
 @profiled
 def main():
-    """Run padeseq."""
+    """Run pade."""
 
     args = get_arguments()
 
@@ -594,6 +596,8 @@ def main():
     if args.debug:
         console.setLevel(logging.DEBUG)
     elif args.verbose:
+        console.setLevel(logging.INFO)
+    elif args.func == do_server:
         console.setLevel(logging.INFO)
     else:
         console.setLevel(logging.ERROR)
@@ -871,6 +875,10 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
         '--db', 
         help="Path to the db file to read results from",
         default="pade_db.h5")
+    server_parser.add_argument(
+        '--port',
+        type=int,
+        help="Specify the port for the server to listen on")
 
     report_parser.set_defaults(func=do_report)
     run_parser.set_defaults(func=do_run)
