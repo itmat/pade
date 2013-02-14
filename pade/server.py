@@ -52,10 +52,13 @@ def measurement_scatter(feature_num):
 
     assignments = schema.possible_assignments(model.expr.variables)
     names = [assignment_name(a) for a in assignments]
+    grps = [schema.indexes_with_assignments(a) for a in assignments]
+
+    print "Groups are", grps
 
     for i, a in enumerate(assignments):
-        idxs = schema.indexes_with_assignments(a)
-        y = measurements[idxs]
+
+        y = measurements[grps[i]]
         x = [i for j in y]
         ax.scatter(x, y)
 

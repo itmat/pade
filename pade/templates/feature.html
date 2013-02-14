@@ -13,6 +13,8 @@ TODO:
   <li>Show the mean number of features with stat above this stat for each value of tuning param</li>
 </ul>
 
+<h2>Details for feature {{ feature_id }}</h2>
+
 <table class="feature_detail">
 
   <th>
@@ -44,5 +46,13 @@ TODO:
   {% endfor %}
   {% endfor %}
 </table>
+
+<h2>Plots</h2>
+
+<h3>This shows the mean and standard deviation of the measurements for each group</h3>
+<img src="{{ url_for('measurement_bars', feature_num=feature_num) }}"></img>
+
+<h3>This shows the actual measured values for each group</h3>
+<img src="{{ url_for('measurement_scatter', feature_num=feature_num) }}"></img>
 
 {% endblock %}
