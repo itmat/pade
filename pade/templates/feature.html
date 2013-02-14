@@ -17,19 +17,19 @@ TODO:
 
 <table class="feature_detail">
 
-  <th>
+  <tr>
     <th></th>
     <th></th>
     <th colspan="{{ factors | length }}">Factors</th>
-  </th>
+  </tr>
 
   <tr>
     <th>Column name</th>
-    <th>Measured value</th>
 
     {% for f in factors %}
     <th>{{ f }}</th>
     {% endfor %}
+    <th>Measured value</th>
 
   </tr>
 
@@ -38,10 +38,10 @@ TODO:
   
   <tr>
     <td>{{ sample_names[i] }}</td>
-    <td>{{ measurements[i] }}</td>
     {% for f in factors %}
     <td> {{ factor_values[sample_names[i]][f] }} </td>
     {% endfor %}
+    <td>{{ measurements[i] }}</td>
   </tr>
   {% endfor %}
   {% endfor %}
@@ -54,5 +54,15 @@ TODO:
 
 <h3>This shows the actual measured values for each group</h3>
 <img src="{{ url_for('measurement_scatter', feature_num=feature_num) }}"></img>
+
+<table>
+  {% for i in range(tuning_params|length) %}
+  <tr>
+    <td>{{ tuning_params[i] }}</td>
+    <td>{{ stats[i] }}</td>
+    <td>{{ scores[i] }}</td>
+  </tr>
+  {% endfor %}
+</table>
 
 {% endblock %}
