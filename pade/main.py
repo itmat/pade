@@ -37,7 +37,7 @@ from pade.db import DB
 REAL_PATH = os.path.realpath(__file__)
 RAW_VALUE_DTYPE = float
 FEATURE_ID_DTYPE = 'S64'
-DEFAULT_TUNING_PARAMS=np.array([0.001, 0.01, 0.1, 1, 3])
+DEFAULT_TUNING_PARAMS=np.array([0.001, 0.01, 0.1, 1, 3, 10, 30, 100, 300])
 
 ##############################################################################
 ###
