@@ -45,6 +45,16 @@ def assignment_name(a):
     return ", ".join(parts)
 
 
+@app.route("/features/<feature_num>")
+def feature(feature_num):
+    db = app.db
+    feature_num = int(feature_num)
+    return render_template(
+        "feature.html",
+        feature_num=feature_num,
+        feature_id=db.feature_ids[feature_num],
+        measurements=db.table[feature_num],
+        sample_names=db.schema.sample_column_names)
 
 @app.route("/details/<conf_level>")
 def details(conf_level):
@@ -92,7 +102,7 @@ def details(conf_level):
         num_pages=num_pages,
         conf_level=conf_level,
         min_score=score,
-
+        indexes=idxs,
         group_names=db.group_names,
         coeff_names=db.coeff_names,
         stat_name=db.stat_name,

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Feature {{ feature_id }} {% endblock %}
+{% block content %}
+
+<p>Feature number: {{ feature_num }}</p>
+<p>Feature id: {{ feature_id }}</p>
+
+TODO: 
+
+<ul>
+  <li>Group the measurements according to the full model</li>
+  <li>Show the mean for each group</li>
+  <li>Show the factor values for each sample</li>
+  <li>Show the stat and score for each value of the tuning param</li>
+  <li>Show the mean number of features with stat above this stat for each value of tuning param</li>
+</ul>
+
+<table>
+  {% for i in range(measurements|length) %}
+  <tr>
+    <td>{{ sample_names[i] }}</td>
+    <td>{{ measurements[i] }}</td>
+  </tr>
+  {% endfor %}
+</table>
+
+{% endblock %}
