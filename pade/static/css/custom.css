@@ -24,3 +24,8 @@ table.feature_detail td {
   border: 1px solid lightgray;
 }
 
+
+table.feature_detail th {
+  border: 1px solid lightgray;
+}
+
