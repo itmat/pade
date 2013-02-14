@@ -133,17 +133,6 @@ Confidence |   Num.   | Tuning
             count=int(db.summary_counts[i]),
             param=db.tuning_params[db.best_param_idxs[i]])
 
-
-
-def assignment_name(a):
-
-    if len(a) == 0:
-        return "intercept"
-    
-    parts = ["{0}={1}".format(k, v) for k, v in a.items()]
-
-    return ", ".join(parts)
-
 def setup_sample_indexes(db):
     db.sample_indexes = new_sample_indexes(db)
            
