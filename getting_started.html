@@ -235,14 +235,21 @@ more verbose with the <tt class="docutils literal"><span class="pre">--verbose</
 even more debugging-level output if you give it <tt class="docutils literal"><span class="pre">--debug</span></tt> or <tt class="docutils literal"><span class="pre">-d</span></tt>.</p>
 </div>
 </div>
-<div class="section" id="generating-reports">
-<h3>Generating reports<a class="headerlink" href="#generating-reports" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="viewing-reports">
+<h3>Viewing reports<a class="headerlink" href="#viewing-reports" title="Permalink to this headline">¶</a></h3>
 <p>When you run <tt class="docutils literal"><span class="pre">pade</span> <span class="pre">run</span></tt>, it will store the results of the analysis
 in a binary file called <tt class="docutils literal"><span class="pre">pade_db.h5</span></tt>. The file name can be changed
-with the <tt class="docutils literal"><span class="pre">--db</span></tt> option. You need to run another command to generate
-the reports:</p>
-<div class="highlight-python"><pre>pade report</pre>
+with the <tt class="docutils literal"><span class="pre">--db</span></tt> option. Once that step is done, you can generate a
+tab-delimited text file containing the reuslts, or launch a small web
+server to display the results in HTML format. To generate the text
+file output, run:</p>
+<div class="highlight-python"><pre>pade report --text</pre>
 </div>
+<p>To start the Pade server, run:</p>
+<blockquote>
+<div>pade server</div></blockquote>
+<p>It will take several seconds to start up. Then visit localhost:5000 in
+a browser to look at the reports.</p>
 </div>
 </div>
 </div>
@@ -269,7 +276,7 @@ the reports:</p>
 <li><a class="reference internal" href="#interesting-options">Interesting options</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#generating-reports">Generating reports</a></li>
+<li><a class="reference internal" href="#viewing-reports">Viewing reports</a></li>
 </ul>
 </li>
 </ul>

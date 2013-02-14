@@ -202,13 +202,21 @@ showing the distribution of the confidence levels. You can make it be
 more verbose with the ``--verbose`` or ``-v`` option. It will print
 even more debugging-level output if you give it ``--debug`` or ``-d``.
 
-Generating reports
-^^^^^^^^^^^^^^^^^^
+Viewing reports
+^^^^^^^^^^^^^^^
 
 When you run ``pade run``, it will store the results of the analysis
 in a binary file called ``pade_db.h5``. The file name can be changed
-with the ``--db`` option. You need to run another command to generate
-the reports::
+with the ``--db`` option. Once that step is done, you can generate a
+tab-delimited text file containing the reuslts, or launch a small web
+server to display the results in HTML format. To generate the text
+file output, run::
 
-  pade report
+  pade report --text
 
+To start the Pade server, run:
+
+  pade server
+
+It will take several seconds to start up. Then visit localhost:5000 in
+a browser to look at the reports.
