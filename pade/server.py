@@ -54,6 +54,8 @@ def feature(feature_num):
         s : { f : schema.get_factor(s, f) for f in schema.factors }
         for s in schema.sample_column_names }
 
+    print db.full_model.layout
+
     return render_template(
         "feature.html",
         feature_num=feature_num,
@@ -61,7 +63,8 @@ def feature(feature_num):
         measurements=db.table[feature_num],
         sample_names=db.schema.sample_column_names,
         factors=db.schema.factors,
-        factor_values=factor_values
+        factor_values=factor_values,
+        layout=db.full_model.layout
         )
 
 @app.route("/details/<conf_level>")

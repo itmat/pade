@@ -8,9 +8,7 @@
 TODO: 
 
 <ul>
-  <li>Group the measurements according to the full model</li>
   <li>Show the mean for each group</li>
-  <li>Show the factor values for each sample</li>
   <li>Show the stat and score for each value of the tuning param</li>
   <li>Show the mean number of features with stat above this stat for each value of tuning param</li>
 </ul>
@@ -33,15 +31,17 @@ TODO:
 
   </tr>
 
-  {% for i in range(measurements|length) %}
+  {% for grp in layout %}
+  {% for i in grp %}
+  
   <tr>
     <td>{{ sample_names[i] }}</td>
     <td>{{ measurements[i] }}</td>
     {% for f in factors %}
     <td> {{ factor_values[sample_names[i]][f] }} </td>
     {% endfor %}
-    
   </tr>
+  {% endfor %}
   {% endfor %}
 </table>
 
