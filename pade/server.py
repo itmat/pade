@@ -118,7 +118,10 @@ def feature(feature_num):
         sample_names=db.schema.sample_column_names,
         factors=db.schema.factors,
         factor_values=factor_values,
-        layout=db.full_model.layout
+        layout=db.full_model.layout,
+        tuning_params=db.tuning_params,
+        stats=db.raw_stats[..., feature_num],
+        scores=db.feature_to_score[..., feature_num],
         )
 
 @app.route("/details/<conf_level>")

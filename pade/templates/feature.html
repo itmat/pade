@@ -55,4 +55,14 @@ TODO:
 <h3>This shows the actual measured values for each group</h3>
 <img src="{{ url_for('measurement_scatter', feature_num=feature_num) }}"></img>
 
+<table>
+  {% for i in range(tuning_params|length) %}
+  <tr>
+    <td>{{ tuning_params[i] }}</td>
+    <td>{{ stats[i] }}</td>
+    <td>{{ scores[i] }}</td>
+  </tr>
+  {% endfor %}
+</table>
+
 {% endblock %}

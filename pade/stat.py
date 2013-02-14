@@ -54,7 +54,9 @@ def group_rss(data, layout):
     5.0
 
     """
-    return np.sum(residuals(data, layout) ** 2, axis=-1)
+    r = residuals(data, layout)
+    rs = r ** 2
+    return np.sum(rs, axis=-1)
 
 
 def rss(data):
