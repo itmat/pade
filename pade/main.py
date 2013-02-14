@@ -187,9 +187,7 @@ def do_server(args):
     pade.server.app.db = db
     if args.debug:
         pade.server.app.debug = True
-    if args.port is not None:
-        pade.server.app.port = args.port
-    pade.server.app.run()
+    pade.server.app.run(port=args.port)
     
 
 
@@ -471,13 +469,6 @@ def assign_scores_to_features(stats, bins, scores):
     logging.debug("Scores have shape {0}".format(np.shape(res)))
     return res
 
-
-def adjust_num_diff(V0, R, num_ids):
-    V = np.zeros((6,) + np.shape(V0))
-    V[0] = V0
-    for i in range(1, 6):
-        V[i] = V[0] - V[0] / num_ids * (R - V[i - 1])
-    return V[5]
 
 @profiled
 def confidence_scores(raw_counts, perm_counts, num_features):

@@ -55,12 +55,67 @@ TODO:
 <h3>This shows the actual measured values for each group</h3>
 <img src="{{ url_for('measurement_scatter', feature_num=feature_num) }}"></img>
 
+<h2>Details by tuning parameter</h2>
+
+This table shows the details for this feature, for each of the
+different tuning parameters we tried.
+
+For each tuning parameter:
+
+<ul>
+  <li>Statistic is the f-test value for this feature using that tuning parameter.</li>
+  <li>Max stat is the largest statistic for any feature using this tuning parameter.</li>
+
+  <li>
+    Each bin represents 1/{{num_bins}}th of the maximum statistic. So
+    features with bin 0 have a statistic less than 1/{{num_bins}} of
+    the maximum. A low bin number means that many features have a
+    higher statistic than this feature.
+  </li>
+  <li>
+    Unperm count is the number of features whose f-test (unpermuted)
+    is in the same bin or a higher bin than this feature.
+  </li>
+  <li>
+    Mean perm count is the mean number of features across all
+    permutations of the samples whose f-test is in the same bin or a
+    higher bin than this feature.
+  </li>
+  <li>
+    We adjust the "mean perm count" down in an iterative manner. For a
+    description of why we do this, please see the
+    original <a href="http://www.cbil.upenn.edu/PaGE/doc/perl/PaGE_documentation_technical_manual.pdf">PaGE
+    Technical Manual</a>. 
+  </li>
+
+  <li>Confidence is the confidence score (1 - FDR) for this feature. The confidence score is simply (unperm_count - adjusted_perm_count) / unperm_count.</li>
+
+</ul>
 <table>
+  <tr>
+    <th>Tuning param</th>
+    <th>Statistic</th>
+    <th>Max stat (of all features)</th>
+    <th>Bin (out of {{ num_bins -1}})</th>
+    <th>Unperm count</th>
+    <th>Mean perm count</th>
+    <th>Adjusted perm count</th>
+    <th>Confidence</th>
+  </tr>
+
   {% for i in range(tuning_params|length) %}
   <tr>
     <td>{{ tuning_params[i] }}</td>
-    <td>{{ stats[i] }}</td>
-    <td>{{ scores[i] }}</td>
+    <td>{{ "%.3f"|format(stats[i]) }}</td>
+    <td>{{ "%.3f"|format(max_stat[i]) }}</td>
+    <td>{{ bins[i] }}</td>
+    <td>{{ "%d"|format(unperm_count[i]) }}</td>
+    <td>{{ "%.1f"|format(mean_perm_count[i]) }}</td>
+    <td>{{ "%.1f"|format(adjusted_perm_count[i]) }}</td>
+
+    <td>{{ "%.4f"|format(scores[i]) }}</td>
+
+
   </tr>
   {% endfor %}
 </table>

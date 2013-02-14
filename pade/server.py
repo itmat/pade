@@ -12,6 +12,7 @@ import argparse
 import logging 
 import StringIO
 from pade.common import *
+from bisect import bisect
 
 class PadeApp(Flask):
 
@@ -53,8 +54,6 @@ def measurement_scatter(feature_num):
     assignments = schema.possible_assignments(model.expr.variables)
     names = [assignment_name(a) for a in assignments]
     grps = [schema.indexes_with_assignments(a) for a in assignments]
-
-    print "Groups are", grps
 
     for i, a in enumerate(assignments):
 
@@ -108,8 +107,20 @@ def feature(feature_num):
         s : { f : schema.get_factor(s, f) for f in schema.factors }
         for s in schema.sample_column_names }
 
-    print db.full_model.layout
+    stats=db.raw_stats[..., feature_num]
 
+    params = db.tuning_params
+
+    bins = np.array([ bisect(db.bins[i], stats[i]) - 1 for i in range(len(params)) ])
+    unperm_count=np.array([ db.bin_to_unperm_count[i, bins[i]] for i in range(len(params))])
+    mean_perm_count=np.array([ db.bin_to_mean_perm_count[i, bins[i]] for i in range(len(params))])
+
+    adjusted=np.array(adjust_num_diff(mean_perm_count, unperm_count, len(db.table)))
+
+    new_scores = (unperm_count - adjusted) / unperm_count
+
+    max_stat = db.bins[..., -2]
+    print "Max stat", max_stat
     return render_template(
         "feature.html",
         feature_num=feature_num,
@@ -120,8 +131,15 @@ def feature(feature_num):
         factor_values=factor_values,
         layout=db.full_model.layout,
         tuning_params=db.tuning_params,
-        stats=db.raw_stats[..., feature_num],
+        stats=stats,
+        bins=bins,
+        num_bins=len(db.bins[0]),
+        unperm_count=unperm_count,
+        mean_perm_count=mean_perm_count,
+        adjusted_perm_count=adjusted,
+        max_stat=max_stat,
         scores=db.feature_to_score[..., feature_num],
+        new_scores=new_scores
         )
 
 @app.route("/details/<conf_level>")
@@ -153,10 +171,7 @@ def details(conf_level):
     elif order_name == 'foldchange_original':
         all_idxs = db.ordering_by_foldchange_original[..., 1]
 
-    print "All idxs is", all_idxs
-
     filtered_idxs = all_idxs[scores[all_idxs] > min_score]
-    print "Filtered is", filtered_idxs
     start = page_num * rows_per_page
     end = start + rows_per_page
     idxs = filtered_idxs[ start : end ]
