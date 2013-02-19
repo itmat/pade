@@ -2,6 +2,13 @@ import numpy as np
 import unittest
 from pade.stat import *
 
+
+def pairedOrderings(n, R):
+    idxs = np.arange(2 * n)
+    full_layout = idxs.reshape((2 * n, 1))
+    reduced_layout = idxs.reshape((n, 2))
+    return list(random_orderings(full_layout, reduced_layout, 100))
+
 class StatTest(unittest.TestCase):
 
     def setUp(self):
@@ -336,6 +343,16 @@ class StatTest(unittest.TestCase):
         np.testing.assert_almost_equal(test(row1), expected[0])
         np.testing.assert_almost_equal(test(row2), expected[1])
         np.testing.assert_almost_equal(test(table), expected)        
+
+
+
+    def test_random_orderings_paired(self):
+
+        for n in range(7):
+
+            self.assertEquals(len(pairedOrderings(n, 100)), 2 ** n)
+
+        self.assertEquals(len(pairedOrderings(10, 100)), 100)
 
 if __name__ == '__main__':
     unittest.main()
