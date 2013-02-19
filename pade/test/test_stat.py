@@ -314,6 +314,28 @@ class StatTest(unittest.TestCase):
         np.testing.assert_almost_equal(test(table), expected)
         
 
+    def test_one_sample_diff_t_test(self):
+        
+        row1 = np.array([3., 2., 
+                         6., 4., 
+                         9., 6., 
+                         7., 3.])
+
+        row2 = np.array([2., 4.,
+                         4., 7.,
+                         5., 1.,
+                         8., 3.])
+
+        table = np.vstack((row1, row2))
+
+        reduced_layout = np.arange(8).reshape((4, 2))
+
+        test = OneSampleDifferenceTTest(reduced_layout)
+        expected = np.array([4.47213595, 0.56568542])
+
+        np.testing.assert_almost_equal(test(row1), expected[0])
+        np.testing.assert_almost_equal(test(row2), expected[1])
+        np.testing.assert_almost_equal(test(table), expected)        
 
 if __name__ == '__main__':
     unittest.main()

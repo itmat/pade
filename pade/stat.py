@@ -580,6 +580,7 @@ def random_orderings(full, reduced, R):
                 yield arr
 
 
+
 class OneSampleTTest:
 
     def __call__(self, data):
@@ -589,10 +590,29 @@ class OneSampleTTest:
         return x / (s / np.sqrt(n))
         
 
+# Full model: pig * treated
+# Reduced model: pig
+
 class OneSampleDifferenceTTest:
-    
-    def __init__(self, layout_full, layout_reduced):
-        self.layout_full = layout_full
+
+    def __init__(self, layout_reduced):
+
+        pair_lens = [len(pair) for pair in layout_reduced]
+        if not all([n == 2 for n in pair_lens]):
+            raise Exception(
+                "The reduced layout " + str(layout_reduced) + " " +
+                "is invalid for a one-sample difference t-test. " +
+                "Each group must have exactly two items in it")
+                        
         self.layout_reduced = layout_reduced        
+        self.child = OneSampleTTest()
+
+    def __call__(self, data):
         
-    
+        pairs = self.layout_reduced
+        idxs_a = [p[0] for p in pairs]
+        idxs_b = [p[1] for p in pairs]
+        diffs = data[..., idxs_a] - data[..., idxs_b]
+
+        return self.child(diffs)
+        
