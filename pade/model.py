@@ -135,13 +135,6 @@ class Model:
                 for a in s.possible_assignments(self.expr.variables)]
 
 
-    def layout_is_pairs(self):
-        for pair in self.layout:
-            if len(pair) != 2:
-                return False
-        return True
-
-        
     def fit(self, data):
 
         logging.info("Computing coefficients using least squares for " +

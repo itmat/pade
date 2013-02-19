@@ -354,5 +354,9 @@ class StatTest(unittest.TestCase):
 
         self.assertEquals(len(pairedOrderings(10, 100)), 100)
 
+    def test_layout_is_paired(self):
+        self.assertTrue(layout_is_paired([[0,1], [2,3], [4,5]]))
+        self.assertFalse(layout_is_paired([[0,1,2],[3,4,5]]))
+
 if __name__ == '__main__':
     unittest.main()

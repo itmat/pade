@@ -135,33 +135,3 @@ class ModelTest(unittest.TestCase):
         self.assertEquals(dummies, expected)
 
 
-    def test_is_paired(self):
-        sample_nums = range(1, 7)
-        colnames = ["gene_id"] + ["sample" + str(x) for x in sample_nums]
-        
-        is_feature_id = [True]  + [False for x in sample_nums]
-        is_sample     = [False] + [True  for x in sample_nums]
-
-        paired_schema = Schema(
-            column_names=colnames,
-            is_feature_id=is_feature_id,
-            is_sample=is_sample)
-
-        paired_schema.add_factor('pig', ['a', 'b', 'c'])
-        paired_schema.add_factor('treated', [False, True])
-        
-        factor_table = [
-                ('sample1', 'a', False),
-                ('sample2', 'b', False),
-                ('sample3', 'c', False),
-                ('sample4', 'a', True),
-                ('sample5', 'b', True),
-                ('sample6', 'c', True)]
-
-        for row in factor_table:
-            (name, pig, treated) = row
-            paired_schema.set_factor(name, 'pig', pig)
-            paired_schema.set_factor(name, 'treated', treated)
-
-        self.assertTrue(Model(paired_schema, "pig").layout_is_pairs())
-        self.assertFalse(Model(paired_schema, "pig * treated").layout_is_pairs())

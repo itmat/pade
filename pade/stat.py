@@ -16,6 +16,12 @@ from pade.performance import profiling, profiled
 from pade.common import *
 from scipy.misc import comb
 
+def layout_is_paired(layout):
+    for grp in layout:
+        if len(grp) != 2:
+            return False
+    return True
+
 def group_means(data, layout):
     """Get the means for each group defined by layout."""
     
@@ -603,8 +609,7 @@ class OneSampleDifferenceTTest:
 
     def __init__(self, layout_reduced):
 
-        pair_lens = [len(pair) for pair in layout_reduced]
-        if not all([n == 2 for n in pair_lens]):
+        if not layout_is_paired(layout_reduced):
             raise Exception(
                 "The reduced layout " + str(layout_reduced) + " " +
                 "is invalid for a one-sample difference t-test. " +
