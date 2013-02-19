@@ -580,4 +580,19 @@ def random_orderings(full, reduced, R):
                 yield arr
 
 
+class OneSampleTTest:
 
+    def __call__(self, data):
+        n = np.size(data, axis=-1)
+        x = np.mean(data, axis=-1)
+        s = np.std(data, axis=-1)
+        return x / (s / np.sqrt(n))
+        
+
+class OneSampleDifferenceTTest:
+    
+    def __init__(self, layout_full, layout_reduced):
+        self.layout_full = layout_full
+        self.layout_reduced = layout_reduced        
+        
+    

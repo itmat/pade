@@ -300,6 +300,20 @@ class StatTest(unittest.TestCase):
                                 np.arange(6, 12),
                                 np.arange(12, 18) ]),
             np.array(68))
-    
+
+    def test_one_sample_t_test(self):
+        row1 = np.array([1., 2., 3., 4.])
+        row2 = np.array([-2, -3, 4, 5])
+        table = np.vstack((row1, row2))
+        
+        test = OneSampleTTest()
+        expected = np.array([4.47213595, 0.56568542])
+
+        np.testing.assert_almost_equal(test(row1), expected[0])
+        np.testing.assert_almost_equal(test(row2), expected[1])
+        np.testing.assert_almost_equal(test(table), expected)
+        
+
+
 if __name__ == '__main__':
     unittest.main()
