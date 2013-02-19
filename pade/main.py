@@ -273,6 +273,7 @@ def import_table(db, path):
     db.feature_ids = ids
 
 def args_to_db(args):
+
     db = DB(
         schema_path=args.schema,
         path=args.db)
@@ -281,7 +282,16 @@ def args_to_db(args):
     db.stat = args.stat
     db.num_bins = args.num_bins
     db.num_samples = args.num_samples
-    db.full_model = Model(db.schema, args.full_model)
+
+    if args.full_model is None:
+        factors = db.schema.factors
+        if len(factors) == 1:
+            db.full_model = Model(db.schema, factors.keys()[0])
+        else:
+            raise Exception("Since you have multiple factors, please specify a full model")
+    else:
+        db.full_model = Model(db.schema, args.full_model)
+
     db.reduced_model = Model(db.schema, args.reduced_model)
     db.sample_from = args.sample_from
     db.sample_method = args.sample_method
