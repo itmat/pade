@@ -48,7 +48,7 @@ class ModelTest(unittest.TestCase):
             [ 1, 3, 4,  6],
             [ 1, 3, 4, 10]])
         
-        means = get_group_means(self.schema, data)
+        means = get_group_means(self.schema, data, self.schema.factors)
         np.testing.assert_almost_equal(means, expected_means)
 
     def test_coeffs_with_interaction(self):
@@ -72,7 +72,7 @@ class ModelTest(unittest.TestCase):
 
     def test_coeffs_no_interaction(self):
         
-        model = Model(self.schema, "sex + treated")
+        model = Model(self.schema, "treated + sex")
 
         data = np.array([
                 [ 1, 1, 3, 3, 4, 4,  6,  6 ],
