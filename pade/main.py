@@ -225,6 +225,9 @@ def stat_for_name(db):
             layout_reduced=db.reduced_model.layout)
     elif name == 't':
         return Ttest(alpha=1.0)
+    elif name == 'one_sample_t_test':
+        return OneSampleTTest()
+
 
 
 def import_table(db, path):
@@ -517,13 +520,12 @@ def get_group_means(schema, data, factors):
 ### Classes
 ###
 
-def new_sample_indexes(self):
+def new_sample_indexes(db):
 
-    method = (self.sample_method, self.sample_from)
-        
-    full = self.full_model
-    reduced = self.reduced_model
-    R = self.num_samples
+    method  = (db.sample_method, db.sample_from)
+    full    = db.full_model
+    reduced = db.reduced_model
+    R       = db.num_samples
 
     if method == ('perm', 'raw'):
         logging.info("Creating max of {0} random permutations".format(R))
@@ -537,7 +539,11 @@ def new_sample_indexes(self):
     elif method == ('boot', 'residuals'):
         logging.info("Bootstrapping using samples constructed from residuals, not using groups")
         return random_indexes(
-            [ sorted(self.schema.sample_name_index.values()) ], R)
+            [ sorted(db.schema.sample_name_index.values()) ], R)
+
+    # Paired design
+    elif method == ('raw', 'diffs'):
+        return list(random_orderings(full.layout, reduced.layout, R))
 
     else:
         raise UsageException("Invalid sampling method")
@@ -703,9 +709,10 @@ def add_fdr_args(p):
     grp.add_argument(
         '--stat', '-s',
 #        choices=['f', 't', 'f_sqrt'],
-        choices=['f'],
+        choices=['f', 'one_sample_t_test'],
         default='f',
         help="The statistic to use. Only f-test is implemented at the moment, so this option has no effect.")
+
 
     grp.add_argument(
         '--num-samples', '-R',
