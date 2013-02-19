@@ -108,6 +108,12 @@ class Ftest:
 
     """
     def __init__(self, layout_full, layout_reduced, alphas=None):
+
+        pair_lens = [len(pair) for pair in layout_full]
+        if not all([n > 1 for n in pair_lens]):
+            raise Exception(
+                """I can't use an FTest with the specified full model, because some of the groups contain only one sample.""")
+
         self.layout_full = layout_full
         self.layout_reduced = layout_reduced
         self.alphas = alphas
