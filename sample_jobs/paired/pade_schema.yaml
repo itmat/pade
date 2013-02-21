@@ -1,0 +1,61 @@
+# This lists all the factors defined for this file.
+factors:
+- name: treated
+  values: [no, yes]
+- name: pig
+  values: [a, b, c, d]
+
+# This lists all of the columns that contain feature IDs (for example
+# gene ids).
+feature_id_columns:
+- id
+
+# These are the headers in the input file. YOU MUST NOT CHANGE THESE!
+headers:
+- id
+- c0r1
+- c0r2
+- c0r3
+- c0r4
+- c1r1
+- c1r2
+- c1r3
+- c1r4
+
+# This sets all of the factors for all columns that represent samples.
+# You should fill out this section to set each factor for each sample.
+# For example, if you had a sample called sample1 that recieved some
+# kind of treatment, and one called sample2 that did not, you might
+# have:
+
+# sample_factor_mapping:
+#   sample1:
+#     treated: yes
+#   sample2:
+#     treated: no
+
+sample_factor_mapping:
+  c0r1:
+    pig: a
+    treated: no
+  c0r2:
+    pig: b
+    treated: no
+  c0r3:
+    pig: c
+    treated: no
+  c0r4:
+    pig: d
+    treated: no
+  c1r1:
+    pig: a
+    treated: yes
+  c1r2:
+    pig: b
+    treated: yes
+  c1r3:
+    pig: c
+    treated: yes
+  c1r4:
+    pig: d
+    treated: yes
