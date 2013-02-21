@@ -234,8 +234,6 @@ a paired layout. If this is the case, you can use
             layout_reduced=db.reduced_model.layout,
             alphas=db.tuning_params)
 
-
-
 def import_table(db, path):
     logging.info("Loading table from " + path)
     logging.info("Counting rows and columns in input file")
@@ -321,7 +319,7 @@ def run_job(db, equalize_means_ids):
     db.bins = pade.stat.bins_uniform(db.num_bins, raw_stats)
 
     if db.sample_from == 'residuals':
-        logging.info("Bootstrapping based on residuals")
+        logging.info("Sampling from residuals")
         prediction = predicted_values(db)
         diffs      = db.table - prediction
         db.bin_to_mean_perm_count = pade.stat.bootstrap(
@@ -331,7 +329,7 @@ def run_job(db, equalize_means_ids):
             residuals=diffs,
             bins=db.bins)
     else:
-        logging.info("Bootstrapping based on raw data")
+        logging.info("Sampling from raw data")
         # Shift all values in the data by the means of the groups from
         # the full model, so that the mean of each group is 0.
         if db.equalize_means:

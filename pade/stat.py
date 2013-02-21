@@ -635,7 +635,11 @@ class OneSampleDifferenceTTest:
         pairs = self.layout_reduced
         idxs_a = [p[0] for p in pairs]
         idxs_b = [p[1] for p in pairs]
+        a = data[..., idxs_a]
+        b = data[..., idxs_b]
+
         diffs = data[..., idxs_a] - data[..., idxs_b]
 
-        return self.child(diffs)
+        res = self.child(diffs)
+        return res
         
