@@ -320,6 +320,11 @@ class StatTest(unittest.TestCase):
         np.testing.assert_almost_equal(test(row2), expected[1])
         np.testing.assert_almost_equal(test(table), expected)
         
+        test = OneSampleTTest(alphas=[0])
+        np.testing.assert_almost_equal(test(row1), expected[0])
+        np.testing.assert_almost_equal(test(row2), expected[1])
+        np.testing.assert_almost_equal(test(table), [ expected ])
+
 
     def test_one_sample_diff_t_test(self):
         

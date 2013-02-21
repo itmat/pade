@@ -595,11 +595,20 @@ def random_orderings(full, reduced, R):
 
 class OneSampleTTest:
 
+    def __init__(self, alphas=None):
+        self.alphas = alphas
+
     def __call__(self, data):
         n = np.size(data, axis=-1)
         x = np.mean(data, axis=-1)
         s = np.std(data, axis=-1)
-        return x / (s / np.sqrt(n))
+
+        numer = x
+        denom = s / np.sqrt(n)
+        if self.alphas is not None:
+            denom = np.array([denom + x for x in self.alphas])
+        return numer / denom
+
         
 
 # Full model: pig * treated
@@ -607,7 +616,10 @@ class OneSampleTTest:
 
 class OneSampleDifferenceTTest:
 
-    def __init__(self, layout_reduced):
+    def __init__(self, layout_reduced, alphas=None):
+
+        self.alphas = alphas
+        self.name   = "OneSampleDifferenceTTest"
 
         if not layout_is_paired(layout_reduced):
             raise Exception(
@@ -616,7 +628,7 @@ class OneSampleDifferenceTTest:
                 "Each group must have exactly two items in it")
                         
         self.layout_reduced = layout_reduced        
-        self.child = OneSampleTTest()
+        self.child = OneSampleTTest(alphas=self.alphas)
 
     def __call__(self, data):
         

@@ -31,7 +31,7 @@ from pade.performance import *
 from pade.schema import *
 from pade.model import *
 import pade.stat
-from pade.stat import random_indexes, random_orderings, residuals, group_means
+from pade.stat import random_indexes, random_orderings, residuals, group_means, layout_is_paired
 from pade.db import DB
 
 REAL_PATH = os.path.realpath(__file__)
@@ -215,18 +215,24 @@ def stat_for_name(db):
     """The statistic used for this job."""
     name = db.stat
     if name == 'f':
+
+        if layout_is_paired(db.reduced_model.layout):
+            raise UsageException(
+"""I can't use the f-test with this data, because the reduced model
+you specified has groups with only one sample. It seems like you have
+a paired layout. If this is the case, you can use
+'--stat one_sample_t_test'.
+""")
+
         return pade.stat.Ftest(
             layout_full=db.full_model.layout,
             layout_reduced=db.reduced_model.layout,
             alphas=db.tuning_params)
-    elif name == 'f_sqrt':
-        return pade.stat.FtestSqrt(
-            layout_full=db.full_model.layout,
-            layout_reduced=db.reduced_model.layout)
-    elif name == 't':
-        return Ttest(alpha=1.0)
+
     elif name == 'one_sample_t_test':
-        return OneSampleTTest()
+        return pade.stat.OneSampleDifferenceTTest(
+            layout_reduced=db.reduced_model.layout,
+            alphas=db.tuning_params)
 
 
 
