@@ -135,25 +135,27 @@ Confidence |   Num.   | Tuning
 
 def setup_sample_indexes(db):
     db.sample_indexes = new_sample_indexes(db)
-           
+    
+def compute_coeffs(db):
+    fitted = db.full_model.fit(db.table)
+    db.coeff_values = fitted.params
+    db.coeff_names  = [assignment_name(a) for a in fitted.labels]    
 
 def compute_means_and_coeffs(db):
     logging.info("Computing means and coefficients")
 
     model = db.full_model
     factors = model.expr.variables
-
+        
     db.group_means = get_group_means(db.schema, db.table, factors)
     db.group_names = [assignment_name(a) 
                       for a in db.schema.possible_assignments(factors)]
 
-    fitted = db.full_model.fit(db.table)
-    db.coeff_values = fitted.params
-    db.coeff_names  = [assignment_name(a) for a in fitted.labels]
-    
     db.fold_change = np.zeros_like(db.group_means)
     for i in range(len(db.group_names)):
         db.fold_change[..., i] = db.group_means[..., i] / db.group_means[..., 0]
+
+    compute_coeffs(db)
 
 
 def do_run(args):
