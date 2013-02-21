@@ -288,9 +288,11 @@ def args_to_db(args):
     db.num_bins = args.num_bins
     db.num_samples = args.num_samples
     logging.info("Creating db from args " + str(args))
-    if args.paired:
+    db.is_paired = args.paired
+
+
+    if db.is_paired:
         logging.info("You've given the --paired option, so I'll use a one-sample t-test, and I won't equalize means")
-        db.is_paired = True
         db.equalize_means = False
         db.stat = "one_sample_t_test"
 
@@ -740,6 +742,7 @@ def add_fdr_args(p):
     grp.add_argument(
         '--paired', 
         action='store_true',
+        default=False,
         help="Indicates that the input is paired")
 
     grp.add_argument(
