@@ -214,23 +214,23 @@ Reports are available in {loc}.
 def stat_for_name(db):
     """The statistic used for this job."""
     name = db.stat
-    if name == 'f':
+
+    if db.is_paired:
+        return pade.stat.OneSampleDifferenceTTest(
+            layout_reduced=db.reduced_model.layout,
+            alphas=db.tuning_params)
+
+    elif name == 'f':
 
         if layout_is_paired(db.reduced_model.layout):
             raise UsageException(
 """I can't use the f-test with this data, because the reduced model
 you specified has groups with only one sample. It seems like you have
-a paired layout. If this is the case, you can use
-'--stat one_sample_t_test'.
+a paired layout. If this is the case, please use the --paired option.
 """)
 
         return pade.stat.Ftest(
             layout_full=db.full_model.layout,
-            layout_reduced=db.reduced_model.layout,
-            alphas=db.tuning_params)
-
-    elif name == 'one_sample_t_test':
-        return pade.stat.OneSampleDifferenceTTest(
             layout_reduced=db.reduced_model.layout,
             alphas=db.tuning_params)
 
@@ -283,9 +283,18 @@ def args_to_db(args):
         path=args.db)
 
     db.tuning_params = DEFAULT_TUNING_PARAMS
-    db.stat = args.stat
     db.num_bins = args.num_bins
     db.num_samples = args.num_samples
+    logging.info("Creating db from args " + str(args))
+    if args.paired:
+        logging.info("You've given the --paired option, so I'll use a one-sample t-test, and I won't equalize means")
+        db.is_paired = True
+        db.equalize_means = False
+        db.stat = "one_sample_t_test"
+
+    else:
+        db.equalize_means = args.equalize_means
+        db.stat = args.stat
 
     if args.full_model is None:
         factors = db.schema.factors
@@ -301,7 +310,6 @@ def args_to_db(args):
     db.sample_method = args.sample_method
     db.min_conf=args.min_conf
     db.summary_bins = np.arange(args.min_conf, 1.0, args.conf_interval)
-    db.equalize_means = args.equalize_means
 
     return db
 
@@ -727,6 +735,10 @@ def add_fdr_args(p):
         default='f',
         help="The statistic to use. Only f-test is implemented at the moment, so this option has no effect.")
 
+    grp.add_argument(
+        '--paired', 
+        action='store_true',
+        help="Indicates that the input is paired")
 
     grp.add_argument(
         '--num-samples', '-R',

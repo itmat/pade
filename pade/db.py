@@ -32,6 +32,7 @@ class DB:
         self.equalize_means = None
         self.group_names = None
         self.coeff_names  = None
+        self.is_paired = None
 
         # Results
         self.bins = None
@@ -97,6 +98,7 @@ class DB:
         file.attrs['reduced_model'] = str(self.reduced_model.expr)
         file.attrs['group_names'] = self.group_names
         file.attrs['coeff_names'] = self.coeff_names
+        file.attrs['is_paired'] = self.is_paired
 
         self.file = file
         self.compute_orderings()
@@ -168,6 +170,7 @@ class DB:
         self.reduced_model = Model(self.schema, file.attrs['reduced_model'])
         self.group_names = file.attrs['group_names']
         self.coeff_names = file.attrs['coeff_names']
+        self.is_paired = file.attrs['is_paired']
         
         file.close()
         logging.info("Done loading results")
