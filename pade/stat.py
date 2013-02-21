@@ -607,7 +607,7 @@ class OneSampleTTest:
         denom = s / np.sqrt(n)
         if self.alphas is not None:
             denom = np.array([denom + x for x in self.alphas])
-        return numer / denom
+        return np.abs(numer / denom)
 
         
 
