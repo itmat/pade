@@ -37,7 +37,7 @@ from pade.db import DB
 REAL_PATH = os.path.realpath(__file__)
 RAW_VALUE_DTYPE = float
 FEATURE_ID_DTYPE = 'S64'
-DEFAULT_TUNING_PARAMS=np.array([0.001, 0.01, 0.1, 1, 3, 10, 30, 100, 300, 1000, 3000])
+DEFAULT_TUNING_PARAMS=[0.001, 0.01, 0.1, 1, 3, 10, 30, 100, 300, 1000, 3000]
 
 ##############################################################################
 ###
@@ -284,12 +284,15 @@ def args_to_db(args):
         schema_path=args.schema,
         path=args.db)
 
-    db.tuning_params = DEFAULT_TUNING_PARAMS
+    if args.tuning_param is None or len(args.tuning_param) == 0 :
+        db.tuning_params = np.array(DEFAULT_TUNING_PARAMS)
+    else:
+        db.tuning_params = np.array(args.tuning_param)
+
     db.num_bins = args.num_bins
     db.num_samples = args.num_samples
     logging.info("Creating db from args " + str(args))
     db.is_paired = args.paired
-
 
     if db.is_paired:
         logging.info("You've given the --paired option, so I'll use a one-sample t-test, and I won't equalize means")
@@ -738,6 +741,11 @@ def add_fdr_args(p):
         choices=['f', 'one_sample_t_test'],
         default='f',
         help="The statistic to use. Only f-test is implemented at the moment, so this option has no effect.")
+
+    grp.add_argument(
+        '--tuning-param',
+        type=float,
+        action='append')
 
     grp.add_argument(
         '--paired', 
