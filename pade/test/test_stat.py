@@ -369,17 +369,19 @@ class StatTest(unittest.TestCase):
 
         row1 = np.array([0, 2, 7, 4, 6, 8])
         row2 = np.array([5, 4, 3, 2, 1, 0])
+        table = np.vstack((row1, row2))
 
         # Asymmetric
         test = MeansRatio(full_layout, reduced_layout, symmetric=False)
         np.testing.assert_almost_equal(test(row1), 0.5)
         np.testing.assert_almost_equal(test(row2), 4.0)
+        np.testing.assert_almost_equal(test(table), [0.5, 4.0])
 
         # Symmetric
         test = MeansRatio(full_layout, reduced_layout)
         np.testing.assert_almost_equal(test(row1), 2.0)
         np.testing.assert_almost_equal(test(row2), 4.0)
-
+        np.testing.assert_almost_equal(test(table), [2.0, 4.0])
 
 
 if __name__ == '__main__':

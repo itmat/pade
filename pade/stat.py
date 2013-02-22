@@ -643,8 +643,8 @@ class MeansRatio:
             numer = np.max(means, axis=-1)
             denom = np.min(means, axis=-1)
         else:
-            numer = means[0]
-            denom = means[1]
+            numer = means[..., 0]
+            denom = means[..., 1]
 
         return numer / denom
         
