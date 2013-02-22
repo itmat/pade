@@ -173,6 +173,14 @@ def compute_fold_change(db):
         for a in test_assignments[1:]:
             fold_changes.append(get_means(a) / baseline_mean)
             names.append(assignment_name(a))
+
+
+    # Ignoring nuisance vars
+    test_assignments = db.schema.possible_assignments(test_factors)
+    baseline_mean = get_means(test_assignments[0])
+    for a in test_assignments[1:]:
+        fold_changes.append(get_means(a) / baseline_mean)
+        names.append(assignment_name(a))
         
     num_features = len(data)
     num_groups = len(names)
