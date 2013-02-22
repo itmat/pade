@@ -141,6 +141,31 @@ def compute_coeffs(db):
     db.coeff_values = fitted.params
     db.coeff_names  = [assignment_name(a) for a in fitted.labels]    
 
+def compute_fold_change(db):
+
+
+    logging.info("Computing fold change")
+    
+    full_factors     = set(db.full_model.expr.variables)
+    nuisance_factors = set(db.reduced_model.expr.variables)
+    test_factors     = full_factors.difference(nuisance_factors)
+    
+    assignments = db.schema.possible_assignments(full_factors)
+    
+    logging.info("Assignments are " + str(assignments))
+    logging.info("Test factors are " + str(test_factors))
+    
+    for f in test_factors:
+        print "Baseline value for", f, "is", db.schema.factor_values(f)[0]
+
+    for a in assignments:
+        print "Got assignment", a
+
+    if len(test_factors) > 1:
+        raise UsageException(
+            """Your full model must have exactly one more variable than the reduced model. We will change this soon.""")
+
+    
 def compute_means_and_coeffs(db):
     logging.info("Computing means and coefficients")
 
@@ -157,6 +182,7 @@ def compute_means_and_coeffs(db):
 
     compute_coeffs(db)
 
+    compute_fold_change(db)
 
 def do_run(args):
     print """
