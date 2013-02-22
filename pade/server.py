@@ -169,7 +169,8 @@ def details(conf_level):
     elif order_name == 'score_original':
         all_idxs = db.ordering_by_score_original[alpha_idx]
     elif order_name == 'foldchange_original':
-        all_idxs = db.ordering_by_foldchange_original[..., 1]
+        groupnum = int(request.args.get('groupnum'))
+        all_idxs = db.ordering_by_foldchange_original[..., groupnum]
 
     filtered_idxs = all_idxs[scores[all_idxs] > min_score]
     start = page_num * rows_per_page

@@ -5,7 +5,14 @@
 <h3>Sorting options</h3>
   <ul>
     <li><a href="{{url_for('details', conf_level=conf_level, page=page_num, order='score_original')}}">Score (filtered by score, fall back to original)</a></li>
-    <li><a href="{{url_for('details', conf_level=conf_level, page=page_num, order='foldchange_original')}}">Fold change (filtered by score, fall back to original)</a></li>
+    
+    <li>Fold change:
+      <ul>
+        {% for i in range(fold_change_group_names|length) %}
+        <li><a href="{{url_for('details', conf_level=conf_level, page=page_num, order='foldchange_original', groupnum=i)}}">Fold change for {{ fold_change_group_names[i] }} (filtered by score, fall back to original)</a></li>
+        {% endfor %}
+
+      </ul>
     <li><a href="{{url_for('details', conf_level=conf_level, page=page_num)}}">Original ordering (filtered by score)</a></li>
   </ul>
 </h3>
