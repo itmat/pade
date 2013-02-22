@@ -1,7 +1,7 @@
 from distutils.core import setup
 
 setup(name='pade',
-      version='0.2.0a2',
+      version='0.2.0a3',
       author='Mike DeLaurentis',
       author_email='midel@upenn.edu',
       url='https://github.com/itmat/pade',
