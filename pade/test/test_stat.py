@@ -384,5 +384,30 @@ class StatTest(unittest.TestCase):
         np.testing.assert_almost_equal(test(table), [2.0, 4.0])
 
 
+        alphas = np.array([0.0, 1.0, 2.0])
+
+        # Asymmetric with alphas
+        test = MeansRatio(full_layout, reduced_layout, 
+                          symmetric=False,
+                          alphas=alphas)
+        np.testing.assert_almost_equal(test(row1), [3. / 6., 4. / 7., 5. / 8.])
+        np.testing.assert_almost_equal(test(row2), [4.0, 5. / 2., 2.])
+        np.testing.assert_almost_equal(test(table), 
+                                       np.array([[3. / 6.,  4. / 1.],
+                                                 [4. / 7.,  5. / 2.],
+                                                 [5. / 8.,  6. / 3.]]))
+
+
+        # Symmetric with alphas
+        test = MeansRatio(full_layout, reduced_layout, 
+                          alphas=alphas)
+        np.testing.assert_almost_equal(test(row1), [6. / 3., 7. / 4., 8. / 5.])
+        np.testing.assert_almost_equal(test(row2), [4.0, 5. / 2., 2.])
+        np.testing.assert_almost_equal(test(table), 
+                                       np.array([[6. / 3.,  4. / 1.],
+                                                 [7. / 4.,  5. / 2.],
+                                                 [8. / 5.,  6. / 3.]]))
+        
+
 if __name__ == '__main__':
     unittest.main()
