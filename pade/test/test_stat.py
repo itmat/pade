@@ -363,5 +363,17 @@ class StatTest(unittest.TestCase):
         self.assertTrue(layout_is_paired([[0,1], [2,3], [4,5]]))
         self.assertFalse(layout_is_paired([[0,1,2],[3,4,5]]))
 
+    def test_means_ratio(self):
+        full_layout    = [[0, 1, 2], [3, 4, 5]]
+        reduced_layout = [[0, 1, 2,   3, 4, 5]]
+
+        test = MeansRatio(full_layout, reduced_layout, symmetric=False)
+
+        row1 = np.array([0, 2, 7, 4, 6, 8])
+        np.testing.assert_almost_equal(test(row1), 0.5)
+
+        test = MeansRatio(full_layout, reduced_layout)
+        np.testing.assert_almost_equal(test(row1), 2.0)
+
 if __name__ == '__main__':
     unittest.main()
