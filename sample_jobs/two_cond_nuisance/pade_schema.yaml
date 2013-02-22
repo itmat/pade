@@ -1,0 +1,93 @@
+# This lists all the factors defined for this file.
+factors:
+- name: treated
+  values: [no, yes]
+- name: sex
+  values: [male, female]
+
+# This lists all of the columns that contain feature IDs (for example
+# gene ids).
+feature_id_columns:
+- id
+
+# These are the headers in the input file. YOU MUST NOT CHANGE THESE!
+headers:
+- id
+- c0r1
+- c0r2
+- c0r3
+- c0r4
+- c1r1
+- c1r2
+- c1r3
+- c1r4
+- c2r1
+- c2r2
+- c2r3
+- c2r4
+- c3r1
+- c3r2
+- c3r3
+- c3r4
+
+# This sets all of the factors for all columns that represent samples.
+# You should fill out this section to set each factor for each sample.
+# For example, if you had a sample called sample1 that recieved some
+# kind of treatment, and one called sample2 that did not, you might
+# have:
+
+# sample_factor_mapping:
+#   sample1:
+#     treated: yes
+#   sample2:
+#     treated: no
+
+sample_factor_mapping:
+  c0r1:
+    sex: male
+    treated: no
+  c0r2:
+    sex: male
+    treated: no
+  c0r3:
+    sex: male
+    treated: no
+  c0r4:
+    sex: male
+    treated: no
+  c1r1:
+    sex: male
+    treated: yes
+  c1r2:
+    sex: male
+    treated: yes
+  c1r3:
+    sex: male
+    treated: yes
+  c1r4:
+    sex: male
+    treated: yes
+  c2r1:
+    sex: female
+    treated: no
+  c2r2:
+    sex: female
+    treated: no
+  c2r3:
+    sex: female
+    treated: no
+  c2r4:
+    sex: female
+    treated: no
+  c3r1:
+    sex: female
+    treated: yes
+  c3r2:
+    sex: female
+    treated: yes
+  c3r3:
+    sex: female
+    treated: yes
+  c3r4:
+    sex: female
+    treated: yes
