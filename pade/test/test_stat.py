@@ -367,13 +367,20 @@ class StatTest(unittest.TestCase):
         full_layout    = [[0, 1, 2], [3, 4, 5]]
         reduced_layout = [[0, 1, 2,   3, 4, 5]]
 
-        test = MeansRatio(full_layout, reduced_layout, symmetric=False)
-
         row1 = np.array([0, 2, 7, 4, 6, 8])
-        np.testing.assert_almost_equal(test(row1), 0.5)
+        row2 = np.array([5, 4, 3, 2, 1, 0])
 
+        # Asymmetric
+        test = MeansRatio(full_layout, reduced_layout, symmetric=False)
+        np.testing.assert_almost_equal(test(row1), 0.5)
+        np.testing.assert_almost_equal(test(row2), 4.0)
+
+        # Symmetric
         test = MeansRatio(full_layout, reduced_layout)
         np.testing.assert_almost_equal(test(row1), 2.0)
+        np.testing.assert_almost_equal(test(row2), 4.0)
+
+
 
 if __name__ == '__main__':
     unittest.main()
