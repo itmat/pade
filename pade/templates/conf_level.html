@@ -2,14 +2,6 @@
 {% block title %}Details for score >= {{ min_score }}, page {{ page_num + 1 }} of {{ num_pages }} {% endblock %}
 {% block content %}
 
-<h3>Sorting options</h3>
-  <ul>
-    <li><a href="{{url_for('details', conf_level=conf_level, page=page_num, order='score_original')}}">Score (filtered by score, fall back to original)</a></li>
-    
-    <li><a href="{{url_for('details', conf_level=conf_level, page=page_num)}}">Original ordering (filtered by score)</a></li>
-  </ul>
-</h3>
-
 <table class="details">
 
   <tr>
@@ -22,9 +14,9 @@
   </tr>
 
   <tr>
-    <th class="details">Feature id</th>
+    <th class="details"><a href="{{url_for('details', conf_level=conf_level, page=page_num)}}">Feature id</a></th>
     
-    <th class="details">Score</th>
+    <th class="details"><a href="{{url_for('details', conf_level=conf_level, page=page_num, order='score_original')}}">Score</th>
     <th class="details">{{ stat_name }} stat</th>
 
     {% for name in group_names %}
