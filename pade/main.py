@@ -262,6 +262,13 @@ a paired layout. If this is the case, please use the --paired option.
             layout_reduced=db.reduced_model.layout,
             alphas=db.tuning_params)
 
+    elif name == 'means_ratio':
+        return pade.stat.MeansRatio(
+            layout_full=db.full_model.layout,
+            layout_reduced=db.reduced_model.layout,
+            alphas=db.tuning_params)
+
+
 def import_table(db, path):
     logging.info("Loading table from " + path)
     logging.info("Counting rows and columns in input file")
@@ -325,6 +332,11 @@ def args_to_db(args):
         db.equalize_means = False
         db.stat = "one_sample_t_test"
 
+    elif args.stat == 'means_ratio':
+        logging.info("You've chosen to use a means ratio, so I won't equalize means.")
+        db.equalize_means = False
+        db.stat = "means_ratio"
+
     else:
         db.equalize_means = args.equalize_means
         db.stat = args.stat
@@ -369,6 +381,7 @@ def run_job(db, equalize_means_ids):
             indexes=db.sample_indexes,
             residuals=diffs,
             bins=db.bins)
+
     else:
         logging.info("Sampling from raw data")
         # Shift all values in the data by the means of the groups from
@@ -764,7 +777,7 @@ def add_fdr_args(p):
     grp.add_argument(
         '--stat', '-s',
 #        choices=['f', 't', 'f_sqrt'],
-        choices=['f', 'one_sample_t_test'],
+        choices=['f', 'one_sample_t_test', 'means_ratio'],
         default='f',
         help="The statistic to use. Only f-test is implemented at the moment, so this option has no effect.")
 

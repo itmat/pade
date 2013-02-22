@@ -407,7 +407,7 @@ class StatTest(unittest.TestCase):
                                        np.array([[6. / 3.,  4. / 1.],
                                                  [7. / 4.,  5. / 2.],
                                                  [8. / 5.,  6. / 3.]]))
-        
+
 
 if __name__ == '__main__':
     unittest.main()

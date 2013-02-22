@@ -616,6 +616,8 @@ class OneSampleTTest:
 
 class MeansRatio:
 
+    name = "means ratio"
+
     def __init__(self, layout_full, layout_reduced, alphas=None, symmetric=True):
         
         full_grps    = len(layout_full)
