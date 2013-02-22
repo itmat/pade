@@ -17,7 +17,7 @@
     <th class="details"></th>
     <th class="details"></th>
     <th class="details" colspan="{{group_names|length}}">Mean</th>
-    <th class="details" colspan="{{group_names|length}}">Fold Change</th>
+    <th class="details" colspan="{{fold_change_group_names|length}}">Fold Change</th>
     <th class="details" colspan="{{coeff_names|length}}">Coefficient</th>
   </tr>
 
@@ -31,7 +31,7 @@
     <th class="details">{{ name }}</th>
     {% endfor %}
 
-    {% for name in group_names %}
+    {% for name in fold_change_group_names %}
     <th class="details">{{ name }}</th>
     {% endfor %}
 

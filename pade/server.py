@@ -188,6 +188,7 @@ def details(conf_level):
         indexes=idxs,
         group_names=db.group_names,
         coeff_names=db.coeff_names,
+        fold_change_group_names=db.fold_change_group_names,
         stat_name=db.stat_name,
         scores=scores[idxs],
         stats=scores[idxs],

@@ -149,21 +149,42 @@ def compute_fold_change(db):
     full_factors     = set(db.full_model.expr.variables)
     nuisance_factors = set(db.reduced_model.expr.variables)
     test_factors     = full_factors.difference(nuisance_factors)
-    
-    assignments = db.schema.possible_assignments(full_factors)
-    
-    logging.info("Assignments are " + str(assignments))
-    logging.info("Test factors are " + str(test_factors))
-    
-    for f in test_factors:
-        print "Baseline value for", f, "is", db.schema.factor_values(f)[0]
-
-    for a in assignments:
-        print "Got assignment", a
 
     if len(test_factors) > 1:
         raise UsageException(
             """Your full model must have exactly one more variable than the reduced model. We will change this soon.""")
+
+    nuisance_assignments = db.schema.possible_assignments(nuisance_factors)
+    fold_changes = []
+    names = []
+
+    data = db.table
+    get_means = lambda a: np.mean(data[:, db.schema.indexes_with_assignments(a)], axis=-1)
+
+    for na in nuisance_assignments:
+        print "Nuisance Assignment", na
+        test_assignments = db.schema.possible_assignments(test_factors)
+        test_assignments = [OrderedDict(d.items() + na.items()) for d in test_assignments]
+
+        layouts = [ db.schema.indexes_with_assignments(a) for a in test_assignments ]
+        
+        baseline_mean = get_means(test_assignments[0])
+        print "Baseline mean is", np.shape(baseline_mean)
+        for a in test_assignments[1:]:
+            fold_changes.append(get_means(a) / baseline_mean)
+            names.append(assignment_name(a))
+        
+    num_features = len(data)
+    num_groups = len(names)
+
+    result = np.zeros((num_features, num_groups))
+    for i in range(len(fold_changes)):
+        result[..., i] = fold_changes[i]
+
+    db.fold_change_group_names = names
+    db.fold_change = result
+
+    print "Fold changes are", np.shape(fold_changes)
 
     
 def compute_means_and_coeffs(db):
@@ -176,12 +197,7 @@ def compute_means_and_coeffs(db):
     db.group_names = [assignment_name(a) 
                       for a in db.schema.possible_assignments(factors)]
 
-    db.fold_change = np.zeros_like(db.group_means)
-    for i in range(len(db.group_names)):
-        db.fold_change[..., i] = db.group_means[..., i] / db.group_means[..., 0]
-
     compute_coeffs(db)
-
     compute_fold_change(db)
 
 def do_run(args):

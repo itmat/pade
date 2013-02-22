@@ -31,6 +31,7 @@ class DB:
         self.tuning_params = None
         self.equalize_means = None
         self.group_names = None
+        self.fold_change_group_names = None
         self.coeff_names  = None
         self.is_paired = None
 
@@ -96,6 +97,7 @@ class DB:
         file.attrs['sample_method'] = self.sample_method
         file.attrs['full_model'] = str(self.full_model.expr)
         file.attrs['reduced_model'] = str(self.reduced_model.expr)
+        file.attrs['fold_change_group_names'] = self.fold_change_group_names
         file.attrs['group_names'] = self.group_names
         file.attrs['coeff_names'] = self.coeff_names
         file.attrs['is_paired'] = self.is_paired
@@ -123,9 +125,11 @@ class DB:
         by_foldchange_original = np.zeros(np.shape(self.fold_change), int)
         foldchange = self.fold_change[...]
         rev_foldchange = 0.0 - foldchange
-        for i in range(len(self.group_names)):
-            by_foldchange_original[..., i] = np.lexsort(
-                (original, rev_foldchange[..., i]))
+        for i in range(len(self.fold_change_group_names)):
+            print "Original is shape", np.shape(original), ", fold change is", np.shape(rev_foldchange)
+            keys = (original, rev_foldchange[..., i])
+
+            by_foldchange_original[..., i] = np.lexsort(keys)
 
         grp['foldchange_original'] = by_foldchange_original
 
@@ -169,6 +173,7 @@ class DB:
         self.full_model = Model(self.schema, file.attrs['full_model'])
         self.reduced_model = Model(self.schema, file.attrs['reduced_model'])
         self.group_names = file.attrs['group_names']
+        self.fold_change_group_names = file.attrs['fold_change_group_names']
         self.coeff_names = file.attrs['coeff_names']
         self.is_paired = file.attrs['is_paired']
         
