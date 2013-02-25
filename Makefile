@@ -7,10 +7,12 @@ test :
 	nosetests --with-doctest
 
 clean :
-	rm -f *~ **/*~ **/*.pyc *.pyc *.log tests/*~ tests/*.pyc 
+	rm -f *~ **/*~ **/*.pyc *.pyc *.log tests/*~ tests/*.pyc site.tar
 	cd doc; make clean
 	rm -rf doc/html/generated
 	rm -rf cover
+
+
 
 perf_setup :
 	mkdir -p perf_report
