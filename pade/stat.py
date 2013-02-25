@@ -36,15 +36,25 @@ def layout_is_paired(layout):
 def group_means(data, layout):
     """Get the means for each group defined by layout.
 
-    Returns an array based on the data argument, where the last
-    dimension is replaced by a dimension that gives the mean for each
-    group in layout.
+    Groups data according to the given layout and returns a new
+    ndarray with the same number of dimensions as data, but with the
+    last dimension replaced by the means according to the specified
+    grouping.
+    
+    One dimensional input:
 
     >>> group_means(np.array([-1, -3, 4, 6]), [[0, 1], [2, 3]])
     array([-2.,  5.])
+
+    Two dimensional input:
+
+    >>> data = np.array([[-1, -3, 4, 6], [10, 12, 30, 40]])
+    >>> layout = [[0, 1], [2, 3]]
+    >>> group_means(data, layout) # doctest: +NORMALIZE_WHITESPACE
+    array([[ -2.,  5.],
+           [ 11., 35.]])
     
     """
-    
     # We'll take the mean of the last axis of each group, so change
     # the shape of the array to collapse the last axis down to one
     # item per group.
@@ -137,7 +147,7 @@ class Ftest:
 
         pair_lens = [len(pair) for pair in layout_full]
         if not all([n > 1 for n in pair_lens]):
-            raise Exception(
+            raise UnsupportedLayoutException(
                 """I can't use an FTest with the specified full model, because some of the groups contain only one sample.""")
 
         self.layout_full = layout_full
@@ -154,10 +164,7 @@ class Ftest:
         at most 3 samples. An input array with shape (5, 3, 2) would
         be 5 features for 3 samples of 2 conditions.
 
-        TODO: Make sure masked input arrays work.
-
         """
-
         # Degrees of freedom
         p_red  = len(self.layout_reduced)
         p_full = len(self.layout_full)
@@ -175,18 +182,6 @@ class Ftest:
             denom = np.array([denom + x for x in self.alphas])
         return numer / denom
 
-class FtestSqrt:
-    """Statistic that gives the square root of the f-test.
-
-    This is a simple wrapper around the Ftest that returns its square
-    root. You can use this to simulate a t-test between two groups.
-
-    """
-    def __init__(self, layout_full, layout_reduced):
-        self.test = Ftest(layout_full, layout_reduced)
-        
-    def __call__(self, data):
-        return np.sqrt(self.test(data))
 
 
 def random_indexes(layout, R):
