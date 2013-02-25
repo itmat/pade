@@ -290,21 +290,21 @@ class StatTest(unittest.TestCase):
         self.assertFalse(layout_is_paired([[0,1,2],[3,4,5]]))
 
     def test_means_ratio(self):
-        full_layout    = [[0, 1, 2], [3, 4, 5]]
-        reduced_layout = [[0, 1, 2,   3, 4, 5]]
+        condition_layout = [[0, 1, 2], [3, 4, 5]]
+        block_layout     = [[0, 1, 2,   3, 4, 5]]
 
         row1 = np.array([0, 2, 7, 4, 6, 8])
         row2 = np.array([5, 4, 3, 2, 1, 0])
         table = np.vstack((row1, row2))
 
         # Asymmetric
-        test = MeansRatio(full_layout, reduced_layout, symmetric=False)
+        test = MeansRatio(condition_layout, block_layout, symmetric=False)
         np.testing.assert_almost_equal(test(row1), 0.5)
         np.testing.assert_almost_equal(test(row2), 4.0)
         np.testing.assert_almost_equal(test(table), [0.5, 4.0])
 
         # Symmetric
-        test = MeansRatio(full_layout, reduced_layout)
+        test = MeansRatio(condition_layout, block_layout)
         np.testing.assert_almost_equal(test(row1), 2.0)
         np.testing.assert_almost_equal(test(row2), 4.0)
         np.testing.assert_almost_equal(test(table), [2.0, 4.0])
@@ -313,7 +313,7 @@ class StatTest(unittest.TestCase):
         alphas = np.array([0.0, 1.0, 2.0])
 
         # Asymmetric with alphas
-        test = MeansRatio(full_layout, reduced_layout, 
+        test = MeansRatio(condition_layout, block_layout, 
                           symmetric=False,
                           alphas=alphas)
         np.testing.assert_almost_equal(test(row1), [3. / 6., 4. / 7., 5. / 8.])
@@ -324,7 +324,7 @@ class StatTest(unittest.TestCase):
                                                  [5. / 8.,  6. / 3.]]))
 
         # Symmetric with alphas
-        test = MeansRatio(full_layout, reduced_layout, 
+        test = MeansRatio(condition_layout, block_layout, 
                           alphas=alphas)
         np.testing.assert_almost_equal(test(row1), [6. / 3., 7. / 4., 8. / 5.])
         np.testing.assert_almost_equal(test(row2), [4.0, 5. / 2., 2.])
