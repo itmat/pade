@@ -618,21 +618,21 @@ class MeansRatio:
 
     name = "means ratio"
 
-    def __init__(self, layout_full, layout_reduced, alphas=None, symmetric=True):
+    def __init__(self, layout_full, block_layout, alphas=None, symmetric=True):
         
         full_grps    = len(layout_full)
-        reduced_grps = len(layout_reduced)
+        reduced_grps = len(block_layout)
 
         if full_grps != 2 or reduced_grps != 1:
             raise UnsupportedLayoutException(
-                """MeansRatio only supports configurations where there are two groups in the full layout and one in the reduced layout. You have {full} groups in the full layout and {reduced} groups in the reduced layout.""".format(
+                """MeansRatio only supports configurations where there are two groups in the full layout for every group in the reduced layout. You have {full} groups in the full layout and {reduced} groups in the reduced layout.""".format(
                     full=full_grps,
                     reduced=reduced_grps))
 
-        self.layout_full    = layout_full
-        self.layout_reduced = layout_reduced
-        self.alphas         = alphas
-        self.symmetric      = symmetric
+        self.layout_full  = layout_full
+        self.block_layout = block_layout
+        self.alphas       = alphas
+        self.symmetric    = symmetric
 
     def __call__(self, data):
         layout = self.layout_full

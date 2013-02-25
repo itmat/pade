@@ -397,7 +397,6 @@ class StatTest(unittest.TestCase):
                                                  [4. / 7.,  5. / 2.],
                                                  [5. / 8.,  6. / 3.]]))
 
-
         # Symmetric with alphas
         test = MeansRatio(full_layout, reduced_layout, 
                           alphas=alphas)
