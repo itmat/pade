@@ -9,6 +9,8 @@ may use these functions outside of the standard Pade workflow.
 import numbers
 import numpy as np
 import numpy.ma as ma
+import scipy.stats
+
 import collections
 from itertools import combinations, product
 from pade.performance import profiling, profiled
@@ -36,7 +38,7 @@ def group_means(data, layout):
     res = np.zeros(shape)
 
     for i, idxs in enumerate(layout):
-        group = data[..., idxs]
+        group = data[..., list(idxs)]
         res[..., i] = np.mean(group, axis=-1)
 
     return res
@@ -625,29 +627,50 @@ class MeansRatio:
 
         if conditions != 2 or blocks != 1:
             raise UnsupportedLayoutException(
-                """MeansRatio only supports configurations where there are two groups in the full layout for every group in the reduced layout. You have {full} groups in the full layout and {reduced} groups in the reduced layout.""".format(
-                    full=conditions,
-                    reduced=blocks))
+                """MeansRatio only supports configurations where there are two conditions and n blocks. You have {conditions} conditions and {blocks} blocks.""".format(
+                    conditions=conditions,
+                    blocks=blocks))
 
-        self.condition_layout  = condition_layout
-        self.block_layout      = block_layout
+        self.condition_layout  = map(set, condition_layout)
+        self.block_layout      = map(set, block_layout)
         self.alphas            = alphas
         self.symmetric         = symmetric
 
     def __call__(self, data):
-        means = group_means(data, self.condition_layout)
 
+        conds  = self.condition_layout
+        blocks = self.block_layout
+
+        # Build two new layouts. c0 is a list of lists of indexes into
+        # the data that represent condition 0 for each block. c1 is
+        # the same for data that represent condition 1 for each block.
+        c0_blocks = [ conds[0].intersection(x) for x in blocks ]
+        c1_blocks = [ conds[1].intersection(x) for x in blocks ]
+
+        # Get the mean for each block for both conditions.
+        c0_means = group_means(data, c0_blocks)
+        c1_means = group_means(data, c1_blocks)
+
+        # If we have tuning params, add another dimension to the front
+        # of each ndarray to vary the tuning param.
         if self.alphas is not None:
-            means = np.array([ means + x for x in self.alphas ])
+            c0_means = np.array([ c0_means + x for x in self.alphas ])
+            c1_means = np.array([ c1_means + x for x in self.alphas ])
 
-        ratio = means[..., 0] / means[..., 1]
+        ratio = c0_means / c1_means
 
+        # If we have more than one block, we combine their ratios
+        # using the geometric mean.
+        ratio = scipy.stats.gmean(ratio, axis=-1)
+
+        # 'Symmetric' means that the order of the conditions does not
+        # matter, so we should always return a ratio >= 1. So for any
+        # ratios that are < 1, use the inverse.
         if self.symmetric:
             ratio = np.max(np.array([ratio, 1.0 / ratio]), axis=0)
 
         return ratio
         
-
 
 # Full model: pig * treated
 # Reduced model: pig
