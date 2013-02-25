@@ -1,8 +1,8 @@
 import sys
-import page
+import pade
 import cProfile
-import page.main
+import pade.main
 
 if __name__ == '__main__':
     sys.argv = ['foo', 'run', '--directory', 'perf_report/new_1000']
-    cProfile.run('page.main.main()', 'run_prof')
+    cProfile.run('pade.main.main()', 'run_prof')
