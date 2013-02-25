@@ -427,15 +427,6 @@ class StatTest(unittest.TestCase):
         np.testing.assert_almost_equal(test(table), 
                                        np.array([[0.7457926, 1.4736126]]))
 
-        # (0 + 1) / (2 + 1), (7 + 1) / (4 + 1), (6 + 1) / (8 + 1)
-        #      1  / 3      , 8 / 5,           , 7 / 9
-        # 0.7457926
-
-        # (5 + 1) / (4 + 1), (3 + 1) / (2 + 1), (1 + 1) / (0 + 1)
-        #       6 / 5,           4 / 3,              2 / 1
-        # 1.473612
-
-        
 
 if __name__ == '__main__':
     unittest.main()
