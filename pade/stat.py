@@ -23,13 +23,27 @@ class UnsupportedLayoutException(Exception):
     pass
 
 def layout_is_paired(layout):
+    """Returns true of the layout appears to be 'paired'.
+
+    A paired layout is one where each group contains two values.
+
+    """
     for grp in layout:
         if len(grp) != 2:
             return False
     return True
 
 def group_means(data, layout):
-    """Get the means for each group defined by layout."""
+    """Get the means for each group defined by layout.
+
+    Returns an array based on the data argument, where the last
+    dimension is replaced by a dimension that gives the mean for each
+    group in layout.
+
+    >>> group_means(np.array([-1, -3, 4, 6]), [[0, 1], [2, 3]])
+    array([-2.,  5.])
+    
+    """
     
     # We'll take the mean of the last axis of each group, so change
     # the shape of the array to collapse the last axis down to one
