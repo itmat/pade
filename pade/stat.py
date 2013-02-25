@@ -22,10 +22,28 @@ class UnsupportedLayoutException(Exception):
     """Thrown when a statistic is used with a layout that it can't support."""
     pass
 
+def apply_layout(data, layout):
+    """Splits data into groups based on layout.
+
+    1d data:
+    
+    >>> data = np.array([9, 8, 7, 6])
+    >>> layout = [ [0, 1], [2, 3] ]
+    >>> apply_layout(data, layout) # doctest: +NORMALIZE_WHITESPACE
+    [array([9, 8]), array([7, 6])]
+    """
+    return [ data[..., list(idxs)] for idxs in layout]
+
 def layout_is_paired(layout):
     """Returns true of the layout appears to be 'paired'.
 
     A paired layout is one where each group contains two values.
+
+    :param layout:
+       A :term:`layout`      
+
+    :return:
+      Boolean indicating if layout appears to be paired.
 
     """
     for grp in layout:
@@ -53,7 +71,14 @@ def group_means(data, layout):
     >>> group_means(data, layout) # doctest: +NORMALIZE_WHITESPACE
     array([[ -2.,  5.],
            [ 11., 35.]])
-    
+
+    :param data: An ndarray. Any number of dimensions is allowed.
+
+    :param layout: A :term:`layout` describing the data.
+
+    :return: An ndarray giving the means for each group obtained by
+      applying the given layout to the given data.
+
     """
     # We'll take the mean of the last axis of each group, so change
     # the shape of the array to collapse the last axis down to one
@@ -61,8 +86,7 @@ def group_means(data, layout):
     shape = np.shape(data)[:-1] + (len(layout),)
     res = np.zeros(shape)
 
-    for i, idxs in enumerate(layout):
-        group = data[..., list(idxs)]
+    for i, group in enumerate(apply_layout(data, layout)):
         res[..., i] = np.mean(group, axis=-1)
 
     return res
@@ -72,6 +96,13 @@ def residuals(data, layout):
 
     >>> residuals(np.array([1, 2, 3, 6], float), [[0, 1], [2, 3]])
     array([-0.5,  0.5, -1.5,  1.5])
+
+    :param data: An ndarray. Any number of dimensions is allowed.
+
+    :param layout: A :term:`layout` describing the data.
+
+    :return: The residuals obtained by subtracting the means of the
+    groups defined by the layout from the values in data.
 
     """
     means = group_means(data, layout)
@@ -540,6 +571,16 @@ class OneSampleTTest:
 
 class MeansRatio:
 
+    """Means ratio statistic.
+
+    Supports layouts where there are two experimental conditions, with
+    or without blocking.
+
+    
+    """
+
+    
+
     name = "means ratio"
 
     def __init__(self, condition_layout, block_layout, alphas=None, symmetric=True):
@@ -602,8 +643,6 @@ class MeansRatio:
         return ratio
         
 
-# Full model: pig * treated
-# Reduced model: pig
 
 class OneSampleDifferenceTTest:
 
