@@ -641,14 +641,15 @@ class MeansRatio:
         if self.alphas is not None:
             means = np.array([ means + x for x in self.alphas ])
 
-        if self.symmetric:
-            numer = np.max(means, axis=-1)
-            denom = np.min(means, axis=-1)
-        else:
-            numer = means[..., 0]
-            denom = means[..., 1]
+        ratio = means[..., 0] / means[..., 1]
 
-        return numer / denom
+        if self.symmetric:
+            ratio_and_inverse = np.zeros((2,) + np.shape(ratio))
+            ratio_and_inverse[0] = ratio
+            ratio_and_inverse[1] = 1.0 / ratio
+            return np.max(ratio_and_inverse, axis=0)
+        else:
+            return ratio
         
 
 

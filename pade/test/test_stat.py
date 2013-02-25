@@ -409,5 +409,34 @@ class StatTest(unittest.TestCase):
                                                  [8. / 5.,  6. / 3.]]))
 
 
+    def test_multi_means_ratio(self):
+        full_layout    = [[0], [1], [2], [3], [4], [5]] # Treated, pig
+        reduced_layout = [[0,   1], [2,   3], [4,   6]] # Pig
+        exp_layout     = [[0, 2, 4], [1, 3, 5]]
+        
+        row1 = np.array([0, 2, 7, 4, 6, 8])
+        row2 = np.array([5, 4, 3, 2, 1, 0])
+
+        tuning_param = 1
+
+#        test = MeansRatio(full_layout, reduced_layout, 
+#                          symmetric=False, alphas=[1.])
+
+#        np.testing.assert_almost_equal(test(row1), [0.7457926])
+#        np.testing.assert_almost_equal(test(row2), [1.473612])
+#        np.testing.assert_almost_equal(test(table), 
+#                                       np.array([[0.7457926],
+#                                                 [1.473612]]))
+
+        # (0 + 1) / (2 + 1), (7 + 1) / (4 + 1), (6 + 1) / (8 + 1)
+        #      1  / 3      , 8 / 5,           , 7 / 9
+        # 0.7457926
+
+        # (5 + 1) / (4 + 1), (3 + 1) / (2 + 1), (1 + 1) / (0 + 1)
+        #       6 / 5,           4 / 3,              2 / 1
+        # 1.473612
+
+        
+
 if __name__ == '__main__':
     unittest.main()
