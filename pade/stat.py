@@ -644,12 +644,9 @@ class MeansRatio:
         ratio = means[..., 0] / means[..., 1]
 
         if self.symmetric:
-            ratio_and_inverse = np.zeros((2,) + np.shape(ratio))
-            ratio_and_inverse[0] = ratio
-            ratio_and_inverse[1] = 1.0 / ratio
-            return np.max(ratio_and_inverse, axis=0)
-        else:
-            return ratio
+            ratio = np.max(np.array([ratio, 1.0 / ratio]), axis=0)
+
+        return ratio
         
 
 
