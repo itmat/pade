@@ -531,17 +531,21 @@ def save_text_output(db):
 @profiled
 def assign_scores_to_features(stats, bins, scores):
     """Return an array that gives the confidence score for each feature.
+    
+    :param stats:
+      An array giving the statistic value for each feature.
 
-    stats is an array giving the statistic value for each feature.
+    :param bins: 
+      A monotonically increasing array which divides the statistic
+      space up into ranges.
 
-    bins is a monotonically increasing array which divides the
-    statistic space up into ranges.
+    :param scores:
+      A monotonically increasing array of length (len(bins) - 1) where
+      scores[i] is the confidence level associated with statistics
+      that fall in the range (bins[i-1], bins[i]).
 
-    scores is a monotonically increasing array of length (len(bins) -
-    1) where scores[i] is the confidence level associated with
-    statistics that fall in the range (bins[i-1], bins[i]).
-
-    Returns an array that gives the confidence score for each feature.
+    :return:
+      An array that gives the confidence score for each feature.
 
     """
     logging.info("Assigning scores to features")
@@ -604,12 +608,9 @@ def get_group_means(schema, data, factors):
 
     return result
 
-##############################################################################
-###
-### Classes
-###
 
 def new_sample_indexes(db):
+    """Create array of sample indexes and store in db."""
 
     method  = (db.sample_method, db.sample_from)
     full    = db.full_model
@@ -662,13 +663,7 @@ def print_profile(db):
         out.write("\t".join(walked.dtype.names) + "\n")
         np.savetxt(out, walked, fmt=fmt)
 
-
-@profiled
-def main():
-    """Run pade."""
-
-    args = get_arguments()
-
+def setup_logging(args):
     logging.basicConfig(level=logging.DEBUG,
                         format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
                         datefmt='%Y-%m-%d %H:%M:%S',
@@ -690,10 +685,19 @@ def main():
 
     logging.getLogger('').addHandler(console)
 
+
+
+@profiled
+def main():
+    """Run pade."""
+
+    args = get_arguments()
+    setup_logging(args)
     logging.info('Pade starting')
 
     try:
         args.func(args)
+
     except UsageException as e:
         logging.fatal("Pade exiting because of usage error")
         print fix_newlines(e.message)
