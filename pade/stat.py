@@ -687,6 +687,38 @@ class MeansRatio:
 class OneSampleDifferenceTTest:
     """A one-sample t-test where the input is given as pairs.
 
+    Input with two features (one on each row), eight samples
+    arranged as four pairs.
+
+    >>> table = np.array([[3, 2, 6, 4, 9, 6, 7, 3],\
+                          [2, 4, 4, 7, 5, 1, 8, 3]])
+
+    Pairs are grouped together.                          
+
+    >>> block_layout = [ [0, 1], [2, 3], [4, 5], [6, 7] ]
+
+    Assume we have two conditions, the even numbered samples are one
+    condition and the odd numbered ones are the other
+                          
+    >>> condition_layout = [ [0, 2, 4, 6], [1, 3, 5, 7] ]
+
+    Construct the test function with the condition and block layouts.
+
+    >>> test = OneSampleDifferenceTTest(condition_layout, block_layout)
+
+    Apply it to 1d input (the first feature in the table):
+
+    >>> print round(test(table[0]), 7)
+    4.472136
+
+    Now 2d input (both features in the table):
+
+    >>> results = test(table)
+    >>> print round(results[0], 7)
+    4.472136
+    >>> print round(results[1], 7)
+    0.5656854
+
     """
     name = "OneSampleDifferenceTTest"
 
