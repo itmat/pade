@@ -180,3 +180,30 @@ class DB:
         file.close()
         logging.info("Done loading results")
 
+
+    def layout(self, variables):
+        s = self.schema
+        return [s.indexes_with_assignments(a)
+                for a in s.possible_assignments(variables)]
+
+    @property
+    def block_variables(self):
+        return set(self.reduced_model.expr.variables)
+
+    @property
+    def condition_variables(self):
+        block = self.block_variables
+        full  = set(self.full_model.expr.variables)
+        return full.difference(block)
+
+    @property
+    def block_layout(self):
+        return self.layout(self.block_variables)
+
+    @property
+    def condition_layout(self):
+        return self.layout(self.condition_variables)
+
+    @property
+    def full_layout(self):
+        return self.layout(self.full_model.expr.variables)

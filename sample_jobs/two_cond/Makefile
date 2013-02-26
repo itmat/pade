@@ -18,7 +18,7 @@ all : server
 db : $(DB)
 
 pade_db.h5 : 
-	$(PADE) run $(VERBOSITY) --full-model treated sample_data_2_cond.txt --db $(DB)
+	$(PADE) run $(VERBOSITY) --condition treated sample_data_2_cond.txt --db $(DB)
 
 server : $(DB)
 	$(PADE) server --db $<

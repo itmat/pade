@@ -1,8 +1,8 @@
 """Low-level statistical methods.
 
 This module should be general-purpose, and not have any dependencies
-on the data model used in Pade or the workflow. The idea is that we
-may use these functions outside of the standard Pade workflow.
+on the data model used in PADE or the workflow. The idea is that we
+may use these functions outside of the standard PADE workflow.
 
 """
 
@@ -145,7 +145,6 @@ def residuals(data, layout):
     return diffs
 
 def group_rss(data, layout):
-
     """Return the residual sum of squares for the data with the layout.
 
     >>> group_rss(np.array([1, 2, 3, 6], float), [[0, 1], [2, 3]])
@@ -171,9 +170,6 @@ def rss(data):
     return double_sum((data  - y)  ** 2)
 
 class Ftest:
-
-    name = "F-test"
-
     """Computes the F-test.
 
     Some sample data
@@ -205,6 +201,9 @@ class Ftest:
     array([ 3.6,  1. ,  2.5])
 
     """
+
+    name = "F-test"
+
     def __init__(self, condition_layout, block_layout, alphas=None):
 
         full_layout = intersect_layouts(block_layout, condition_layout)
@@ -618,7 +617,6 @@ def random_orderings(condition_layout, block_layout, R):
 
 
 class OneSampleTTest:
-
     def __init__(self, alphas=None):
         self.alphas = alphas
 

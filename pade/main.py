@@ -101,7 +101,7 @@ def predicted_values(db):
     data = db.table
     prediction = np.zeros_like(data)
 
-    for grp in db.reduced_model.layout:
+    for grp in db.block_layout:
         means = np.mean(data[..., grp], axis=1)
         means = means.reshape(np.shape(means) + (1,))
         prediction[..., grp] = means
@@ -269,12 +269,13 @@ def stat_for_name(db):
 
     if db.is_paired:
         return pade.stat.OneSampleDifferenceTTest(
-            layout_reduced=db.reduced_model.layout,
+            block_layout=db.block_layout,
+            condition_layout=db.condition_layout,
             alphas=db.tuning_params)
 
     elif name == 'f_test':
 
-        if layout_is_paired(db.reduced_model.layout):
+        if layout_is_paired(db.block_layout):
             raise UsageException(
 """I can't use the f-test with this data, because the reduced model
 you specified has groups with only one sample. It seems like you have
@@ -282,14 +283,14 @@ a paired layout. If this is the case, please use the --paired option.
 """)
 
         return pade.stat.Ftest(
-            layout_full=db.full_model.layout,
-            layout_reduced=db.reduced_model.layout,
+            condition_layout=db.condition_layout,
+            block_layout=db.block_layout,
             alphas=db.tuning_params)
 
     elif name == 'means_ratio':
         return pade.stat.MeansRatio(
-            layout_full=db.full_model.layout,
-            layout_reduced=db.reduced_model.layout,
+            condition_layout=db.condition_layout,
+            block_layout=db.block_layout,
             alphas=db.tuning_params)
 
 
@@ -365,16 +366,26 @@ def args_to_db(args):
         db.equalize_means = args.equalize_means
         db.stat = args.stat
 
-    if args.full_model is None:
-        factors = db.schema.factors
-        if len(factors) == 1:
-            db.full_model = Model(db.schema, factors.keys()[0])
-        else:
-            raise Exception("Since you have multiple factors, please specify a full model")
-    else:
-        db.full_model = Model(db.schema, args.full_model)
+    blocks = args.block if args.block is not None else []
+    conditions = args.condition if args.condition is not None else []
 
-    db.reduced_model = Model(db.schema, args.reduced_model)
+    if len(blocks) > 0 or len(conditions) > 0:
+        full_model = " * ".join(blocks + conditions)
+        reduced_model = " * ".join(blocks)
+        
+    elif args.full_model is not None:
+        full_model    = args.full_model
+        reduced_model = args.reduced_model
+
+    elif len(factors) == 1:
+        full_model = db.schema.factors[0]
+        reduced_model = None
+    
+    else:
+        raise Exception("Since you have multiple factors, please specify a full model")
+
+    db.full_model    = Model(db.schema, full_model)
+    db.reduced_model = Model(db.schema, reduced_model)
     db.sample_from = args.sample_from
     db.sample_method = args.sample_method
     db.min_conf=args.min_conf
@@ -385,7 +396,7 @@ def args_to_db(args):
 @profiled
 def run_job(db, equalize_means_ids):
 
-    stat      = stat_for_name(db)
+    stat = stat_for_name(db)
 
     logging.info("Computing {stat} statistics on raw data".format(stat=stat.name))
     raw_stats = stat(db.table)
@@ -411,7 +422,7 @@ def run_job(db, equalize_means_ids):
         # Shift all values in the data by the means of the groups from
         # the full model, so that the mean of each group is 0.
         if db.equalize_means:
-            shifted = residuals(db.table, db.full_model.layout)
+            shifted = residuals(db.table, db.full_layout)
             data = np.zeros_like(db.table)
             if equalize_means_ids is None:
                 data = shifted
@@ -621,12 +632,12 @@ def new_sample_indexes(db):
 
     if method == ('perm', 'raw'):
         logging.info("Creating max of {0} random permutations".format(R))
-        return list(random_orderings(full.layout, reduced.layout, R))
+        return list(random_orderings(db.condition_layout, db.block_layout, R))
 
     elif method == ('boot', 'raw'):
         logging.info("Bootstrapping raw values, within groups defined by '" + 
                      str(reduced.expr) + "'")
-        return random_indexes(reduced.layout, R)
+        return random_indexes(db.block_layout, R)
         
     elif method == ('boot', 'residuals'):
         logging.info("Bootstrapping using samples constructed from residuals, not using groups")
@@ -635,7 +646,7 @@ def new_sample_indexes(db):
 
     # Paired design
     elif method == ('raw', 'diffs'):
-        return list(random_orderings(full.layout, reduced.layout, R))
+        return list(random_orderings(db.condition_layout, db.block_layout, R))
 
     else:
         raise UsageException("Invalid sampling method")
