@@ -33,6 +33,7 @@ from pade.model import *
 import pade.stat
 from pade.stat import random_indexes, random_orderings, residuals, group_means, layout_is_paired
 from pade.db import DB
+from pade.conf import *
 
 REAL_PATH = os.path.realpath(__file__)
 DEFAULT_TUNING_PARAMS=[0.001, 0.01, 0.1, 1, 3, 10, 30, 100, 300, 1000, 3000]

@@ -4,7 +4,7 @@
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from pade.stat import cumulative_hist
+from pade.conf import cumulative_hist
 import numpy as np
 from flask import Flask, render_template, make_response, request
 from pade.db import DB
