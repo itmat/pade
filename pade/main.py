@@ -133,6 +133,17 @@ Confidence |   Num.   | Tuning
 
     
 def compute_coeffs(db):
+    """Calculate the coefficients for the full model.
+
+    :param db:
+      The page.db.DB
+
+    :returns:
+      A (names, values) tuple where values is a (feature x coeff)
+      array giving the value of each coefficient for each feature, and
+      names is the list of names of the coefficients.
+
+    """
     fitted = db.full_model.fit(db.table)
     names  = [assignment_name(a) for a in fitted.labels]    
     values = fitted.params
@@ -140,7 +151,17 @@ def compute_coeffs(db):
 
 
 def compute_fold_change(db):
+    """Compute fold change.
 
+    :param db:
+      The pade.db.DB
+
+    :return:
+      A (names, values) tuple where values is a (feature x group)
+      array giving the fold change for each group for each feature,
+      and names is the list of names for the groups.
+
+    """
     logging.info("Computing fold change")
     
     full_factors     = set(db.full_model.expr.variables)
@@ -185,6 +206,18 @@ def compute_fold_change(db):
 
 
 def compute_means(db):
+    """Compute the means for each group in the full model.
+    
+    :param db:
+      The pade.db.DB
+
+    :return:
+      A (names, values) tuple where values is a (feature x group)
+      ndarray that gives the mean for each group for each feature. The
+      groups are based on the 'full model' (combination of condition
+      variables and blocking variables)
+    
+    """
     factors = db.full_model.expr.variables
     names = [assignment_name(a) 
              for a in db.schema.possible_assignments(factors)]
