@@ -555,7 +555,7 @@ def random_ordering(full, reduced):
         row.extend(grp)
     return row
 
-def random_orderings(full, block_layout, R):
+def random_orderings(condition_layout, block_layout, R):
     """Get an iterator over at most R random index shuffles.
 
     :param full: the :term:`layout`
@@ -569,6 +569,8 @@ def random_orderings(full, block_layout, R):
     reduced layout will be shuffled.
     
     """
+    full = intersect_layouts(block_layout, condition_layout)
+
     # Set of random orderings we've returned so far
     orderings = set()
     
@@ -595,7 +597,6 @@ def random_orderings(full, block_layout, R):
             if key not in orderings:
                 orderings.add(key)
                 yield arr
-
 
 
 class OneSampleTTest:

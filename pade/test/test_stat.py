@@ -5,9 +5,12 @@ from pade.stat import *
 
 def pairedOrderings(n, R):
     idxs = np.arange(2 * n)
-    full_layout = idxs.reshape((2 * n, 1))
+
+    cond_layout = [ range(0, 2 * n, 2),
+                    range(1, 2 * n, 2) ]
+    
     reduced_layout = idxs.reshape((n, 2))
-    return list(random_orderings(full_layout, reduced_layout, 100))
+    return list(random_orderings(cond_layout, reduced_layout, 100))
 
 class StatTest(unittest.TestCase):
 
