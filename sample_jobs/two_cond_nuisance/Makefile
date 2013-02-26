@@ -18,7 +18,7 @@ all : server
 db : $(DB)
 
 pade_db.h5 : 
-	$(PADE) run $(VERBOSITY) --full-model 'treated * sex' --reduced-model sex sample_data_2_cond_nuisance.txt --db $(DB)
+	$(PADE) run $(VERBOSITY) --condition treated --block sex sample_data_2_cond_nuisance.txt --db $(DB)
 
 server : $(DB)
 	$(PADE) server --db $<
