@@ -314,9 +314,14 @@ def import_table(db, path):
 
 def args_to_db(args):
 
-    db = DB(
-        schema_path=args.schema,
-        path=args.db)
+    db = DB(path=args.db)
+
+    db.schema_path = args.schema
+    try:
+        with open(args.schema) as f:
+            db.schema = Schema.load(f)
+    except IOError as e:
+        raise UsageException("Couldn't load schema: " + e.filename + ": " + e.strerror)
 
     # Tuning params
     if args.tuning_param is None or len(args.tuning_param) == 0 :

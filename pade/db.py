@@ -10,8 +10,7 @@ class DB:
     def __init__(self, 
                  schema=None,
                  schema_path=None,
-                 path=None,
-                 input_txt_path=None):
+                 path=None):
 
         # This will be populated lazily by the table and feature_ids
         # properties
@@ -51,13 +50,7 @@ class DB:
         self.fold_change = None
 
         self.file = None
-
-        if schema is None:
-            if self.schema_path is not None:
-                logging.info("Loading schema from " + self.schema_path)
-                self.schema = Schema.load(open(self.schema_path))
-        else:
-            self.schema = schema
+        self.schema = schema
 
     def save(self):
         logging.info("Saving job results to " + self.path)
