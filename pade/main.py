@@ -272,7 +272,7 @@ def stat_for_name(db):
             layout_reduced=db.reduced_model.layout,
             alphas=db.tuning_params)
 
-    elif name == 'f':
+    elif name == 'f_test':
 
         if layout_is_paired(db.reduced_model.layout):
             raise UsageException(
@@ -781,6 +781,18 @@ def add_model_args(p):
         description="Use these options to specify the variables to use in the model.")
     
     grp.add_argument(
+        '--block',
+        '-b',
+        help="""Specify a variable to use for blocking.""",
+        action='append')
+    
+    grp.add_argument(
+        '--condition',
+        '-c',
+        help="""Specify a variable that represents an experimental condition.""",
+        action='append')
+
+    grp.add_argument(
         '--full-model', '-M',
 
         help="""Specify the 'full' model. Required if there is more than one
@@ -801,8 +813,8 @@ def add_fdr_args(p):
     grp.add_argument(
         '--stat', '-s',
 #        choices=['f', 't', 'f_sqrt'],
-        choices=['f', 'one_sample_t_test', 'means_ratio'],
-        default='f',
+        choices=['f_test', 'one_sample_t_test', 'means_ratio'],
+        default='f_test',
         help="The statistic to use. Only f-test is implemented at the moment, so this option has no effect.")
 
     grp.add_argument(
