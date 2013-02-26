@@ -134,11 +134,12 @@ Confidence |   Num.   | Tuning
     
 def compute_coeffs(db):
     fitted = db.full_model.fit(db.table)
-    db.coeff_values = fitted.params
-    db.coeff_names  = [assignment_name(a) for a in fitted.labels]    
+    names  = [assignment_name(a) for a in fitted.labels]    
+    values = fitted.params
+    return (names, values)
+
 
 def compute_fold_change(db):
-
 
     logging.info("Computing fold change")
     
@@ -158,18 +159,13 @@ def compute_fold_change(db):
     get_means = lambda a: np.mean(data[:, db.schema.indexes_with_assignments(a)], axis=-1)
 
     for na in nuisance_assignments:
-        print "Nuisance Assignment", na
         test_assignments = db.schema.possible_assignments(test_factors)
         test_assignments = [OrderedDict(d.items() + na.items()) for d in test_assignments]
-
         layouts = [ db.schema.indexes_with_assignments(a) for a in test_assignments ]
-        
         baseline_mean = get_means(test_assignments[0])
-        print "Baseline mean is", np.shape(baseline_mean)
         for a in test_assignments[1:]:
             fold_changes.append(get_means(a) / baseline_mean)
             names.append(assignment_name(a))
-
 
     # Ignoring nuisance vars
     test_assignments = db.schema.possible_assignments(test_factors)
@@ -185,16 +181,15 @@ def compute_fold_change(db):
     for i in range(len(fold_changes)):
         result[..., i] = fold_changes[i]
 
-    db.fold_change_group_names = names
-    db.fold_change = result
+    return (names, result)
 
-    print "Fold changes are", np.shape(fold_changes)
 
 def compute_means(db):
     factors = db.full_model.expr.variables
-    db.group_means = get_group_means(db.schema, db.table, factors)
-    db.group_names = [assignment_name(a) 
-                      for a in db.schema.possible_assignments(factors)]
+    names = [assignment_name(a) 
+             for a in db.schema.possible_assignments(factors)]
+    values = get_group_means(db.schema, db.table, factors)
+    return (names, values)
     
     
 def do_run(args):
@@ -206,9 +201,11 @@ Analyzing {filename}, which is described by the schema {schema}.
     import_table(db, args.infile.name)
     db.sample_indexes = new_sample_indexes(db)
     run_job(db, args.equalize_means_ids)
-    compute_means(db)
-    compute_coeffs(db)
-    compute_fold_change(db)
+
+    (db.group_names, db.group_means) = compute_means(db)
+    (db.coeff_names, db.coeff_values) = compute_coeffs(db)
+    (db.fold_change_group_names, db.fold_change) = compute_fold_change(db)
+
     summarize_by_conf_level(db)
     print_summary(db)
     db.save()
