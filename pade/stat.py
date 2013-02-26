@@ -369,7 +369,6 @@ def bootstrap(data,
 
     reduced = reduce(accumulator.reduce_fn, stats, accumulator.initializer)
 
-
     logging.info("Finalizing results")
     return accumulator.finalize_fn(reduced)
 
