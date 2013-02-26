@@ -67,25 +67,6 @@ class StatTest(unittest.TestCase):
                            [[0, 1,   2, 3], [4, 5,   6, 7]],
                            36)
 
-    def test_orderings_within_group(self):
-        def assertOrderings(items, sizes, expected):
-            got = list(all_orderings_within_group(set(items), sizes))
-            self.assertEquals(got, expected)
-
-        assertOrderings([0], [1], [[0]])
-        assertOrderings([0, 1], [2], [[0, 1]])
-
-        assertOrderings([0, 1], [1, 1], [[0, 1], [1, 0]])
-
-        assertOrderings([0, 1, 2, 3], [2, 2], 
-                           [[0, 1, 2, 3], 
-                            [0, 2, 1, 3],
-                            [0, 3, 1, 2],
-                            [1, 2, 0, 3],
-                            [1, 3, 0, 2],
-                            [2, 3, 0, 1]])
-                            
-
 
     def test_all_orderings(self):
         def assertOrderings(full, reduced, expected):
