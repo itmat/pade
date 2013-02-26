@@ -126,7 +126,6 @@ class DB:
         foldchange = self.fold_change[...]
         rev_foldchange = 0.0 - foldchange
         for i in range(len(self.fold_change_group_names)):
-            print "Original is shape", np.shape(original), ", fold change is", np.shape(rev_foldchange)
             keys = (original, rev_foldchange[..., i])
 
             by_foldchange_original[..., i] = np.lexsort(keys)
@@ -147,9 +146,10 @@ class DB:
         self.table = file['table'][...]
         self.feature_ids = file['feature_ids'][...]
         self.bins = file['bins'][...]
-        self.bin_to_unperm_count      = file['bin_to_unperm_count'][...]
+        self.bin_to_unperm_count    = file['bin_to_unperm_count'][...]
         self.bin_to_mean_perm_count = file['bin_to_mean_perm_count'][...]
-        self.bin_to_score    = file['bin_to_score'][...]
+        self.bin_to_score           = file['bin_to_score'][...]
+
         self.feature_to_score = file['feature_to_score'][...]
         self.raw_stats = file['raw_stats'][...]
         self.summary_bins = file['summary_bins'][...]
@@ -157,10 +157,12 @@ class DB:
         self.sample_indexes = file['sample_indexes'][...]
         self.best_param_idxs = file['best_param_idxs'][...]
         self.tuning_params = file['tuning_params'][...]
-        self.group_means = file['group_means'][...]
+
+        self.group_means  = file['group_means'][...]
         self.coeff_values = file['coeff_values'][...]
-        self.fold_change = file['fold_change'][...]
-        self.ordering_by_score_original = file['orderings']['score_original'][...]
+        self.fold_change  = file['fold_change'][...]
+
+        self.ordering_by_score_original      = file['orderings']['score_original'][...]
         self.ordering_by_foldchange_original = file['orderings']['foldchange_original'][...]
 
         schema_str = StringIO(file.attrs['schema'])

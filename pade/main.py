@@ -19,6 +19,7 @@ import numpy as np
 import h5py
 from numpy.lib.recfunctions import append_fields
 import os
+import scipy.stats
 
 from pade.common import *
 from pade.performance import *
@@ -28,6 +29,7 @@ import pade.stat
 from pade.stat import random_indexes, random_orderings, residuals, group_means, layout_is_paired
 from pade.db import DB
 from pade.conf import *
+
 
 REAL_PATH = os.path.realpath(__file__)
 DEFAULT_TUNING_PARAMS=[0.001, 0.01, 0.1, 1, 3, 10, 30, 100, 300, 1000, 3000]
@@ -134,20 +136,23 @@ def compute_fold_change(db):
     data = db.table
     get_means = lambda a: np.mean(data[:, db.schema.indexes_with_assignments(a)], axis=-1)
 
+    alpha = scipy.stats.scoreatpercentile(db.table.flatten(), 1.0)
+    print "Using alpha of ", alpha
+
     for na in nuisance_assignments:
         test_assignments = db.schema.possible_assignments(test_factors)
         test_assignments = [OrderedDict(d.items() + na.items()) for d in test_assignments]
         layouts = [ db.schema.indexes_with_assignments(a) for a in test_assignments ]
         baseline_mean = get_means(test_assignments[0])
         for a in test_assignments[1:]:
-            fold_changes.append(get_means(a) / baseline_mean)
+            fold_changes.append((get_means(a) + alpha) / (baseline_mean + alpha))
             names.append(assignment_name(a))
 
     # Ignoring nuisance vars
     test_assignments = db.schema.possible_assignments(test_factors)
     baseline_mean = get_means(test_assignments[0])
     for a in test_assignments[1:]:
-        fold_changes.append(get_means(a) / baseline_mean)
+        fold_changes.append((get_means(a) + alpha) / (baseline_mean + alpha))
         names.append(assignment_name(a))
         
     num_features = len(data)
