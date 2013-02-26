@@ -39,7 +39,9 @@ def intersect_layouts(layout0, layout1):
     layout = []
     for a in map(set, layout0):
         for b in map(set, layout1):
-            layout.append(list(a.intersection(b)))
+            c = a.intersection(b)
+            if len(c) > 0:
+                layout.append(list(c))
     return layout
     
 
@@ -441,7 +443,7 @@ def bins_custom(num_bins, stats):
     return bins
 
 
-def num_orderings(full, block_layout=None):
+def num_orderings(condition_layout, block_layout=None):
 
     # If there is no block layout, just find the number of
     # orderings of indexes in the full layout.
@@ -449,16 +451,16 @@ def num_orderings(full, block_layout=None):
 
         # If we only have one group in the full layout, there's only
         # one ordering of the indexes in that group.
-        if len(full) <= 1:
+        if len(condition_layout) <= 1:
             return 1
 
         # Otherwise say N is the total number of items in the full
         # layout and k is the number in the 0th group of the full
         # layout. The number of orderings is (N choose k) times the
         # number of orderings for the rest of the groups.
-        N = sum(map(len, full))
-        k   = len(full[0])
-        return comb(N, k) * num_orderings(full[1:])
+        N = sum(map(len, condition_layout))
+        k   = len(condition_layout[0])
+        return comb(N, k) * num_orderings(condition_layout[1:])
 
     # Since we got a block layout, we need to find the number of
     # orderings *within* the first group in the block layout, then
@@ -468,17 +470,13 @@ def num_orderings(full, block_layout=None):
 
     # First find the number of groups in the full layout that fit in
     # the first group of the block_layout layout.
-    r = 0
-    size = 0
-    while size < len(block_layout[0]):
-        size += len(full[r])
-        r += 1
 
-    if size > len(block_layout[0]):
-        raise InvalidLayoutException("The layout is invalid")
+    prefix = intersect_layouts(condition_layout, block_layout[:1])
+    suffix = intersect_layouts(condition_layout, block_layout[1:])
 
-    num_arr_first = num_orderings(full[ : r])
-    num_arr_rest  = num_orderings(full[r : ], block_layout[1 : ])
+    num_arr_first = num_orderings(prefix)
+    num_arr_rest  = num_orderings(suffix, block_layout[1 : ])
+
     return num_arr_first * num_arr_rest
 
 
