@@ -196,13 +196,13 @@ class StatTest(unittest.TestCase):
 
     def test_group_rss(self):
         np.testing.assert_almost_equal(
-            group_rss(
+            rss(
                 np.array([1, 2, 3, 4, 5], float),
                 [ [0, 1], [2, 3, 4] ]),
             2.5)
 
         np.testing.assert_almost_equal(
-            group_rss(
+            rss(
                 np.array([[ 1,  2,  3,  4,  5],
                           [10, 20, 30, 40, 50]], float),
                 [ [0, 1], [2, 3, 4] ]),
@@ -213,7 +213,7 @@ class StatTest(unittest.TestCase):
                          13, 9, 11, 8, 7, 12], float)
 
         np.testing.assert_almost_equal(
-            group_rss(data, [ np.arange(0, 6),
+            rss(data, [ np.arange(0, 6),
                                 np.arange(6, 12),
                                 np.arange(12, 18) ]),
             np.array(68))

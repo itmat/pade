@@ -86,30 +86,31 @@ def residuals(data, layout):
         diffs[..., idxs] = these_data - these_means
     return diffs
 
-def group_rss(data, layout):
-    """Return the residual sum of squares for the data with the layout.
-
-    >>> group_rss(np.array([1, 2, 3, 6], float), [[0, 1], [2, 3]])
-    5.0
-
-    """
-    r = residuals(data, layout)
-    rs = r ** 2
-    return np.sum(rs, axis=-1)
-
-
-def rss(data):
-    """Return a tuple of the mean and residual sum of squares.
+def rss(data, layout=None):
+    """Return the residual sum of squares for the data and optional layout.
 
     :param data:
       An n-dimensional array.
 
-    :return:
-      The means and residual sum of squares over the last axis.
+    :param layout:
+      If provided, the means will be calculated based on the grouping
+      given by the layout applied to the last axis of data. Otherwise,
+      no grouping will be used.
+
+    >>> rss(np.array([1, 2, 3, 6], float), [[0, 1], [2, 3]])
+    5.0
 
     """
-    y   = np.mean(data, axis=-1).reshape(np.shape(data)[:-1] + (1,))
-    return double_sum((data  - y)  ** 2)
+
+    if layout is None:
+        y   = np.mean(data, axis=-1).reshape(np.shape(data)[:-1] + (1,))
+        return double_sum((data  - y)  ** 2)
+
+    else:
+        r = residuals(data, layout)
+        rs = r ** 2
+        return np.sum(rs, axis=-1)
+
 
 class Ftest:
     """Computes the F-test.
@@ -166,8 +167,8 @@ class Ftest:
 
         # Means and residual sum of squares for the reduced and full
         # model
-        rss_full = group_rss(data, self.layout_full)
-        rss_red  = group_rss(data, self.block_layout)
+        rss_full = rss(data, self.layout_full)
+        rss_red  = rss(data, self.block_layout)
 
         numer = (rss_red - rss_full) / (p_full - p_red)
         denom = rss_full / (n - p_full)
