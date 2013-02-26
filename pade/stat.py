@@ -595,13 +595,13 @@ def random_orderings(condition_layout, block_layout, R):
     # The total number of orderings of indexes within the groups of
     # the reduced layout that result in a distinct assignment of
     # indexes into the groups defined by the full layout.
-    N = num_orderings(full, block_layout)
+    N = num_orderings(condition_layout, block_layout)
     
     # If the number of orderings requested is greater than the number
     # of distinct orderings that actually exist, just return all of
     # them.
     if R >= N:
-        for arr in all_orderings(full, block_layout):
+        for arr in all_orderings(condition_layout, block_layout):
             yield arr
 
     # Otherwise repeatedly find a random ordering, and if it's not one
