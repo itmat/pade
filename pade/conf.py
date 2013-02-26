@@ -1,8 +1,10 @@
+"""Functions for computing confidence score.
+
+""" 
+
 import collections
 import logging
-
 from bisect import bisect
-
 from pade.performance import *
 
 Accumulator = collections.namedtuple(

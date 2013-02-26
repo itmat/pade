@@ -202,6 +202,19 @@ showing the distribution of the confidence levels. You can make it be
 more verbose with the ``--verbose`` or ``-v`` option. It will print
 even more debugging-level output if you give it ``--debug`` or ``-d``.
 
+You can change the statistic pade uses with the '--stat'
+option. Currently we support the following statistics:
+
+f_test:
+  F-test. Can only be used where each group has two or more samples.
+
+one_sample_t_test:
+  Single sample t-test, for paired input only.
+
+means_ratio:
+  Ratio of means. Can only be used when there are two conditions. Can
+  be used with or without blocking. Works with paired data also.
+
 Viewing reports
 ^^^^^^^^^^^^^^^
 
