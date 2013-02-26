@@ -690,16 +690,13 @@ class OneSampleDifferenceTTest:
     Input with two features (one on each row), eight samples
     arranged as four pairs.
 
-    >>> table = np.array([[3, 2, 6, 4, 9, 6, 7, 3],\
-                          [2, 4, 4, 7, 5, 1, 8, 3]])
+    >>> table = np.array([[3, 2, 6, 4, 9, 6, 7, 3], [2, 4, 4, 7, 5, 1, 8, 3]])
 
-    Pairs are grouped together.                          
+    Pairs are grouped together. Assume we have two conditions, the
+    even numbered samples are one condition and the odd numbered ones
+    are the other
 
-    >>> block_layout = [ [0, 1], [2, 3], [4, 5], [6, 7] ]
-
-    Assume we have two conditions, the even numbered samples are one
-    condition and the odd numbered ones are the other
-                          
+    >>> block_layout     = [ [0, 1], [2, 3], [4, 5], [6, 7] ]
     >>> condition_layout = [ [0, 2, 4, 6], [1, 3, 5, 7] ]
 
     Construct the test function with the condition and block layouts.
