@@ -46,41 +46,12 @@ class UsageException(Exception):
     """Thrown when the user gave invalid parameters."""
     pass
 
-##############################################################################
-###
-### Plotting and reporting
-### 
-
-StatDistPlot=namedtuple('StatDistPlot', ['tuning_param', 'filename'])
-
-def plot_stat_dist(db, fdr):
-    logging.info("Saving histograms of " + db.stat.name + " values")
-    max_stat = np.max(fdr.raw_stats)
-    for i, alpha in enumerate(db.tuning_params):
-        filename = "images/raw_stats_" + str(i) + ".png"
-        with figure(filename):
-            plt.hist(fdr.raw_stats[i], log=False, bins=250)
-            plt.title(db.stat.name + " distribution over features, $\\alpha = " + str(alpha) + "$")
-            plt.xlabel(db.stat.name + " value")
-            plt.ylabel("Features")
-            plt.xlim(0, max_stat)
-            yield StatDistPlot(alpha, filename)
-
-
-def setup_css(env):
-    """Copy the css from 996grid/code/css into its output location."""
-
-    src = os.path.join(os.path.dirname(REAL_PATH), 'css')
-
-    shutil.rmtree('css', True)
-    shutil.copytree(src, 'css')
-
-    with open('css/custom.css', 'w') as out:
-        template = env.get_template('custom.css')
-        out.write(template.render())
 
 
 def ensure_scores_increase(scores):
+    """Returns a copy of the given ndarray with monotonically increasing values.
+
+    """
     res = np.copy(scores)
     for i in range(1, len(res)):
         res[i] = max(res[i], res[i - 1])
@@ -106,6 +77,7 @@ def predicted_values(db):
     return prediction
 
 def summarize_by_conf_level(db):
+    """Modify db to summarize the counts by conf level"""
 
     logging.info("Summarizing the results")
 
@@ -262,7 +234,6 @@ def do_server(args):
         pade.server.app.debug = True
     pade.server.app.run(port=args.port)
     
-
 
 def do_report(args):
 
