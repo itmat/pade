@@ -26,7 +26,7 @@ class StatTest(unittest.TestCase):
 
         expected = 9.26470588235
         ftest = Ftest(
-            layout_full=[range(i, 18, 3) for i in range(3)],
+            condition_layout=[range(i, 18, 3) for i in range(3)],
             block_layout=[range(18)])
         self.assertAlmostEqual(expected, ftest(self.ftest_in))
 
@@ -44,7 +44,7 @@ class StatTest(unittest.TestCase):
 
         expected = 9.26470588235
         ftest = Ftest(
-            layout_full=[range(i, 18, 3) for i in range(3)],
+            condition_layout=[range(i, 18, 3) for i in range(3)],
             block_layout=[range(18)],
             alphas=alphas)
 

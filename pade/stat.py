@@ -25,6 +25,24 @@ class UnsupportedLayoutException(Exception):
 class InvalidLayoutException(Exception):
     """Thrown when a layout is supplied that is invalid in some way."""
 
+def intersect_layouts(layout0, layout1):
+
+    """Return a layout where each group is the intersection of a group in
+    layout0 with a group in layout1.
+
+    >>> block_layout = [[0, 1, 2, 3], [4, 5, 6, 7]]
+    >>> condition_layout = [[0, 1, 4, 5], [2, 3, 6, 7]]    
+    >>> intersect_layouts(block_layout, condition_layout)
+    [[0, 1], [2, 3], [4, 5], [6, 7]]
+
+    """
+    layout = []
+    for a in map(set, layout0):
+        for b in map(set, layout1):
+            layout.append(list(a.intersection(b)))
+    return layout
+    
+
 def apply_layout(data, layout):
     """Splits data into groups based on layout.
 
@@ -166,12 +184,12 @@ class Ftest:
     second two in another. The reduced layout has all columns in one
     group.
 
-    >>> full_layout = [[0, 1], [2, 3]]
-    >>> reduced_layout = [[0, 1, 2, 3]]
+    >>> condition_layout = [[0, 1], [2, 3]]
+    >>> block_layout     = [[0, 1, 2, 3]]
     
     Construct one ftest based on our layouts
 
-    >>> ftest = Ftest(full_layout, reduced_layout)
+    >>> ftest = Ftest(condition_layout, block_layout)
     
     Test one row
 
@@ -185,14 +203,14 @@ class Ftest:
     array([ 3.6,  1. ,  2.5])
 
     """
-    def __init__(self, layout_full, block_layout, alphas=None):
+    def __init__(self, condition_layout, block_layout, alphas=None):
 
-        pair_lens = [len(pair) for pair in layout_full]
-        if not all([n > 1 for n in pair_lens]):
+        full_layout = intersect_layouts(block_layout, condition_layout)
+        if min(map(len, full_layout)) < 2:
             raise UnsupportedLayoutException(
-                """I can't use an FTest with the specified full model, because some of the groups contain only one sample.""")
+                """I can't use an FTest with the specified layouts, because the intersection between those layouts results in some groups that contain fewer than two samples.""")
 
-        self.layout_full = layout_full
+        self.layout_full = full_layout
         self.block_layout = block_layout
         self.alphas = alphas
 
@@ -423,11 +441,11 @@ def bins_custom(num_bins, stats):
     return bins
 
 
-def num_orderings(full, reduced=None):
+def num_orderings(full, block_layout=None):
 
-    # If there is no reduced layout, just find the number of
+    # If there is no block layout, just find the number of
     # orderings of indexes in the full layout.
-    if reduced is None or len(reduced) == 0:
+    if block_layout is None or len(block_layout) == 0:
 
         # If we only have one group in the full layout, there's only
         # one ordering of the indexes in that group.
@@ -442,25 +460,25 @@ def num_orderings(full, reduced=None):
         k   = len(full[0])
         return comb(N, k) * num_orderings(full[1:])
 
-    # Since we got a reduced layout, we need to find the number of
-    # orderings *within* the first group in the reduced layout,
-    # then multiply that by the orderings in the rest of the
-    # reduced layout. First find the number of groups in the full
-    # layout that correspond to the first group in the reduced layout.
+    # Since we got a block layout, we need to find the number of
+    # orderings *within* the first group in the block layout, then
+    # multiply that by the orderings in the rest of the block_layout
+    # layout. First find the number of groups in the full layout that
+    # correspond to the first group in the block_layout layout.
 
     # First find the number of groups in the full layout that fit in
-    # the first group of the reduced layout.
+    # the first group of the block_layout layout.
     r = 0
     size = 0
-    while size < len(reduced[0]):
+    while size < len(block_layout[0]):
         size += len(full[r])
         r += 1
 
-    if size > len(reduced[0]):
+    if size > len(block_layout[0]):
         raise InvalidLayoutException("The layout is invalid")
 
     num_arr_first = num_orderings(full[ : r])
-    num_arr_rest  = num_orderings(full[r : ], reduced[1 : ])
+    num_arr_rest  = num_orderings(full[r : ], block_layout[1 : ])
     return num_arr_first * num_arr_rest
 
 
