@@ -35,8 +35,6 @@ from pade.stat import random_indexes, random_orderings, residuals, group_means, 
 from pade.db import DB
 
 REAL_PATH = os.path.realpath(__file__)
-RAW_VALUE_DTYPE = float
-FEATURE_ID_DTYPE = 'S64'
 DEFAULT_TUNING_PARAMS=[0.001, 0.01, 0.1, 1, 3, 10, 30, 100, 300, 1000, 3000]
 
 ##############################################################################
@@ -133,8 +131,6 @@ Confidence |   Num.   | Tuning
             count=int(db.summary_counts[i]),
             param=db.tuning_params[db.best_param_idxs[i]])
 
-def setup_sample_indexes(db):
-    db.sample_indexes = new_sample_indexes(db)
     
 def compute_coeffs(db):
     fitted = db.full_model.fit(db.table)
@@ -194,20 +190,13 @@ def compute_fold_change(db):
 
     print "Fold changes are", np.shape(fold_changes)
 
-    
-def compute_means_and_coeffs(db):
-    logging.info("Computing means and coefficients")
-
-    model = db.full_model
-    factors = model.expr.variables
-        
+def compute_means(db):
+    factors = db.full_model.expr.variables
     db.group_means = get_group_means(db.schema, db.table, factors)
     db.group_names = [assignment_name(a) 
                       for a in db.schema.possible_assignments(factors)]
-
-    compute_coeffs(db)
-    compute_fold_change(db)
-
+    
+    
 def do_run(args):
     print """
 Analyzing {filename}, which is described by the schema {schema}.
@@ -215,9 +204,11 @@ Analyzing {filename}, which is described by the schema {schema}.
            schema=args.schema)
     db = args_to_db(args)
     import_table(db, args.infile.name)
-    setup_sample_indexes(db)
+    db.sample_indexes = new_sample_indexes(db)
     run_job(db, args.equalize_means_ids)
-    compute_means_and_coeffs(db)
+    compute_means(db)
+    compute_coeffs(db)
+    compute_fold_change(db)
     summarize_by_conf_level(db)
     print_summary(db)
     db.save()
@@ -312,13 +303,9 @@ def import_table(db, path):
 
     logging.info("Creating raw data table")
 
-    table = np.zeros((num_rows, num_cols),
-                     RAW_VALUE_DTYPE)
-        
-    log_interval=int(num_rows / 10)
-
+    table = np.zeros((num_rows, num_cols), float)
+    log_interval = int(num_rows / 10)
     file = h5py.File(db.path, 'w')
-
     table = np.zeros((num_rows, num_cols))
     ids = []
         
@@ -473,15 +460,6 @@ def run_job(db, equalize_means_ids):
 
 
 def save_text_output(db):
-
-    #means=db.group_means,
-    #    coeffs=db.coeff_values,
-    #    group_names=db.group_names,
-    #    param_names=db.coeff_names,
-    #    feature_ids=np.array(db.feature_ids),
-    #    stats=db.raw_stats,
-    #    scores=db.feature_to_score,
-    #    indexes=np.arange(len(feature_ids)))
 
     (num_rows, num_cols) = db.table.shape
     num_cols += 2
