@@ -342,31 +342,38 @@ def args_to_db(args):
         schema_path=args.schema,
         path=args.db)
 
+    # Tuning params
     if args.tuning_param is None or len(args.tuning_param) == 0 :
         db.tuning_params = np.array(DEFAULT_TUNING_PARAMS)
     else:
         db.tuning_params = np.array(args.tuning_param)
 
+    # Num bins and samples
     db.num_bins = args.num_bins
     db.num_samples = args.num_samples
+
     logging.info("Creating db from args " + str(args))
     db.is_paired = args.paired
 
+    # Stat name
     if db.is_paired:
-        logging.info("You've given the --paired option, so I'll use a one-sample t-test, and I won't equalize means")
-        db.equalize_means = False
-        db.stat = "one_sample_t_test"
+        logging.info("You've given the --paired option, so I'll use a one-sample t-test.")
+        stat_name = 'one_sample_t_test'
+    else:
+        stat_name = args.stat
 
-    elif args.stat == 'means_ratio':
-        logging.info("You've chosen to use a means ratio, so I won't equalize means.")
-        db.equalize_means = False
-        db.stat = "means_ratio"
+    # Equalize means
+    if stat_name in set(['one_sample_t_test', 'means_ratio']):
+        logging.info("We're using stat " + stat_name + ", so I won't equalize means")
+        equalize_means = False
 
     else:
-        db.equalize_means = args.equalize_means
-        db.stat = args.stat
+        equalize_means = args.equalize_means
 
-    blocks = args.block if args.block is not None else []
+    db.stat = stat_name
+    db.equalize_means = equalize_means
+    
+    blocks     = args.block     if args.block     is not None else []
     conditions = args.condition if args.condition is not None else []
 
     if len(blocks) > 0 or len(conditions) > 0:
