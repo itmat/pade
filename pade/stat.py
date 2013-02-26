@@ -604,15 +604,30 @@ class MeansRatio:
     Supports layouts where there are two experimental conditions, with
     or without blocking.
 
-    
-    """
+    :param condition_layout:
+      A layout that groups the sample indexes together into groups
+      that have the same experimental condition. MeansRatio only
+      supports designs where there are exactly two conditions, so
+      len(condition_layout) must be 2.
 
-    
+    :param block_layout: 
+      If the input has blocking variables, then block layout
+      should be a layout that groups the sample indexes together
+      by block.
+
+    :param alphas: 
+      Optional array of "tuning parameters". 
+
+    :param symmetric:
+      If true, gives the inverse of the ratio when the ratio is less
+      than 1. Use this when it does not matter which condition is
+      greater than the other one.
+      
+    """
 
     name = "means ratio"
 
     def __init__(self, condition_layout, block_layout, alphas=None, symmetric=True):
-        
         conditions = len(condition_layout)
         blocks     = len(block_layout)
 
@@ -627,6 +642,7 @@ class MeansRatio:
         self.alphas            = alphas
         self.symmetric         = symmetric
 
+
     def __call__(self, data):
 
         conds  = self.condition_layout
@@ -637,9 +653,6 @@ class MeansRatio:
         # the same for data that represent condition 1 for each block.
         c0_blocks = [ conds[0].intersection(x) for x in blocks ]
         c1_blocks = [ conds[1].intersection(x) for x in blocks ]
-
-        print "C0 blocks are", c0_blocks
-        print "C1 blocks are", c1_blocks
 
         # Get the mean for each block for both conditions.
         means = np.array([group_means(data, c0_blocks),
@@ -670,7 +683,6 @@ class MeansRatio:
 
         return ratio
         
-
 
 class OneSampleDifferenceTTest:
 
