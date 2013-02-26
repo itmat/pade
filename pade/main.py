@@ -12,17 +12,13 @@
 # External imports
 
 import argparse
-import collections
 import errno
 import jinja2
 import logging
-import numpy.ma as ma
 import numpy as np
 import h5py
 from numpy.lib.recfunctions import append_fields
 import os
-import shutil
-from itertools import combinations, product
 
 from pade.common import *
 from pade.performance import *
@@ -560,7 +556,6 @@ def new_sample_indexes(db):
     else:
         raise UsageException("Invalid sampling method")
 
-
 def print_profile(db):
 
     walked = walk_profile()
@@ -706,29 +701,23 @@ def add_model_args(p):
     grp.add_argument(
         '--block',
         '-b',
-        help="""Specify a variable to use for blocking.""",
+        help="""Specify a variable to use for blocking. You can specify this multiple times if there are multiple blocking variables.""",
         action='append')
     
     grp.add_argument(
         '--condition',
         '-c',
-        help="""Specify a variable that represents an experimental condition.""",
+        help="""Specify a variable that represents an experimental condition. Currently we only support one test condition.""",
         action='append')
 
     grp.add_argument(
         '--full-model', '-M',
-
-        help="""Specify the 'full' model. Required if there is more than one
-class. For example, if you have factors 'batch' and 'treated', you could use
- 'treated' or 'batch * treated'."""),
+        help="""Specify the 'full' model as an expression, like 'batch * treated'""")
 
     grp.add_argument(
         '--reduced-model', '-m',
-        help="""Specify the 'reduced' model. The format for the argument is the
- same as for --full-model."""),
+        help="""Specify the 'reduced' model as an expression, like 'batch'.""")
     
-    
-
 def add_fdr_args(p):
     grp = p.add_argument_group(
         title="confidence estimation arguments",
