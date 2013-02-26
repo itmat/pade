@@ -555,7 +555,7 @@ def random_ordering(full, reduced):
         row.extend(grp)
     return row
 
-def random_orderings(full, reduced, R):
+def random_orderings(full, block_layout, R):
     """Get an iterator over at most R random index shuffles.
 
     :param full: the :term:`layout`
@@ -575,13 +575,13 @@ def random_orderings(full, reduced, R):
     # The total number of orderings of indexes within the groups of
     # the reduced layout that result in a distinct assignment of
     # indexes into the groups defined by the full layout.
-    N = num_orderings(full, reduced)
+    N = num_orderings(full, block_layout)
     
     # If the number of orderings requested is greater than the number
     # of distinct orderings that actually exist, just return all of
     # them.
     if R >= N:
-        for arr in all_orderings(full, reduced):
+        for arr in all_orderings(full, block_layout):
             yield arr
 
     # Otherwise repeatedly find a random ordering, and if it's not one
@@ -589,7 +589,7 @@ def random_orderings(full, reduced, R):
     else:
         while len(orderings) < R:
 
-            arr = random_ordering(full, reduced)
+            arr = random_ordering(full, block_layout)
             key = tuple(arr)
 
             if key not in orderings:
