@@ -520,29 +520,20 @@ def all_orderings_within_group(items, sizes):
                 items.difference(c), sizes[1:]):
                 yield c + arr
 
-def all_orderings(full, reduced):
+def all_orderings(condition_layout, block_layout):
     
-    sizes = map(len, full)
-
-    p = 0
-    q = 0
 
     grouped = []
-    for i, grp in enumerate(reduced):
+    for i, block in enumerate(block_layout):
 
-        while sum(sizes[p : q]) < len(grp):
-            q += 1
-
-        if sum(sizes[p : q]) > len(grp):
-            raise Exception("Bad layout")
-
-        grouped.append(all_orderings_within_group(set(grp), sizes[p : q]))
-        p = q
+        cond_groups = intersect_layouts([ block ], condition_layout )
+        sizes = map(len, cond_groups)
+        grouped.append(all_orderings_within_group(set(block), sizes))
 
     for prod in product(*grouped):
         row = []
-        for grp in prod:
-            row.extend(grp)
+        for block in prod:
+            row.extend(block)
         yield row
 
 def random_ordering(full, reduced):
