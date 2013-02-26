@@ -27,7 +27,7 @@ class StatTest(unittest.TestCase):
         expected = 9.26470588235
         ftest = Ftest(
             layout_full=[range(i, 18, 3) for i in range(3)],
-            layout_reduced=[range(18)])
+            block_layout=[range(18)])
         self.assertAlmostEqual(expected, ftest(self.ftest_in))
 
         a2 = np.concatenate((self.ftest_in,
@@ -45,7 +45,7 @@ class StatTest(unittest.TestCase):
         expected = 9.26470588235
         ftest = Ftest(
             layout_full=[range(i, 18, 3) for i in range(3)],
-            layout_reduced=[range(18)],
+            block_layout=[range(18)],
             alphas=alphas)
 
         self.assertAlmostEqual(expected, ftest(self.ftest_in)[0])

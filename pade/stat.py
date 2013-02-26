@@ -185,7 +185,7 @@ class Ftest:
     array([ 3.6,  1. ,  2.5])
 
     """
-    def __init__(self, layout_full, layout_reduced, alphas=None):
+    def __init__(self, layout_full, block_layout, alphas=None):
 
         pair_lens = [len(pair) for pair in layout_full]
         if not all([n > 1 for n in pair_lens]):
@@ -193,19 +193,20 @@ class Ftest:
                 """I can't use an FTest with the specified full model, because some of the groups contain only one sample.""")
 
         self.layout_full = layout_full
-        self.layout_reduced = layout_reduced
+        self.block_layout = block_layout
         self.alphas = alphas
 
     def __call__(self, data):
+
         # Degrees of freedom
-        p_red  = len(self.layout_reduced)
+        p_red  = len(self.block_layout)
         p_full = len(self.layout_full)
-        n      = sum(map(len, self.layout_reduced))
+        n      = sum(map(len, self.block_layout))
 
         # Means and residual sum of squares for the reduced and full
         # model
         rss_full = group_rss(data, self.layout_full)
-        rss_red  = group_rss(data, self.layout_reduced)
+        rss_red  = group_rss(data, self.block_layout)
 
         numer = (rss_red - rss_full) / (p_full - p_red)
         denom = rss_full / (n - p_full)
@@ -213,7 +214,6 @@ class Ftest:
         if self.alphas is not None:
             denom = np.array([denom + x for x in self.alphas])
         return numer / denom
-
 
 
 def random_indexes(layout, R):
