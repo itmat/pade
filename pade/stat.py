@@ -444,7 +444,20 @@ def bins_custom(num_bins, stats):
 
 
 def num_orderings(condition_layout, block_layout=None):
+    """Return the number of orderings for the pair of layouts.
 
+    Returns the number of distinct permutations of the indexes that
+    are valid within the given block layout and result in distinct
+    labelling of samples with conditions.
+
+    :param condition_layout: 
+      Layout grouping the samples by condition.
+
+    :param block_layout:
+      Optional layout that groups the samples together by blocking
+      variables.
+
+      """
     # If there is no block layout, just find the number of
     # orderings of indexes in the full layout.
     if block_layout is None or len(block_layout) == 0:
@@ -481,8 +494,8 @@ def num_orderings(condition_layout, block_layout=None):
 
 
 def all_orderings_within_group(items, sizes):
-
-    """
+    """Return all combinations of permutations of the given items within
+    groups that have the given sizes.
 
     One index, one group of size one:
 
@@ -521,8 +534,20 @@ def all_orderings_within_group(items, sizes):
                 yield c + arr
 
 def all_orderings(condition_layout, block_layout):
-    
+    """Return all valid orderings based on the given layouts.
 
+    :param condition_layout: 
+      Layout grouping the samples by condition.
+
+    :param block_layout:
+      Optional layout that groups the samples together by blocking
+      variables.
+
+    Each ordering returned has a distinct assignment of the indexes
+    into the groups defined by condition_layout. In addition each
+    ordering preserves the grouping defined by block layout.
+      
+    """
     grouped = []
     for i, block in enumerate(block_layout):
 
@@ -536,9 +561,13 @@ def all_orderings(condition_layout, block_layout):
             row.extend(block)
         yield row
 
-def random_ordering(full, reduced):
+def random_ordering(layout):
+    """Return a randomized ordering of the indexes within each group of
+    the given layout.
+
+    """
     row = []
-    for grp in reduced:
+    for grp in layout:
         grp = np.copy(grp)
         np.random.shuffle(grp)
         row.extend(grp)
@@ -580,7 +609,7 @@ def random_orderings(condition_layout, block_layout, R):
     else:
         while len(orderings) < R:
 
-            arr = random_ordering(full, block_layout)
+            arr = random_ordering(block_layout)
             key = tuple(arr)
 
             if key not in orderings:
