@@ -22,6 +22,9 @@ class UnsupportedLayoutException(Exception):
     """Thrown when a statistic is used with a layout that it can't support."""
     pass
 
+class InvalidLayoutException(Exception):
+    """Thrown when a layout is supplied that is invalid in some way."""
+
 def apply_layout(data, layout):
     """Splits data into groups based on layout.
 
@@ -456,16 +459,17 @@ def num_orderings(full, reduced=None):
         r += 1
 
     if size > len(reduced[0]):
-        raise Exception("The layout is invalid")
+        raise InvalidLayoutException("The layout is invalid")
 
     num_arr_first = num_orderings(full[ : r])
     num_arr_rest  = num_orderings(full[r : ], reduced[1 : ])
     return num_arr_first * num_arr_rest
 
+
 def all_orderings_within_group(items, sizes):
 
     if len(items) != sum(sizes):
-        raise Exception("Layout is bad")
+        raise InvalidLayoutException("Layout is bad")
 
     for c in map(list, combinations(items, sizes[0])):
         if len(sizes) == 1:
