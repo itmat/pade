@@ -1,4 +1,8 @@
 import collections
+import logging
+
+from bisect import bisect
+
 from pade.performance import *
 
 Accumulator = collections.namedtuple(
@@ -250,3 +254,18 @@ def assign_scores_to_features(stats, bins, scores):
     return res
 
 
+def adjust_num_diff(V0, R, num_ids):
+    V = np.zeros((6,) + np.shape(V0))
+    V[0] = V0
+    for i in range(1, 6):
+        V[i] = V[0] - V[0] / num_ids * (R - V[i - 1])
+    return V[5]
+
+def ensure_scores_increase(scores):
+    """Returns a copy of the given ndarray with monotonically increasing values.
+
+    """
+    res = np.copy(scores)
+    for i in range(1, len(res)):
+        res[i] = max(res[i], res[i - 1])
+    return res

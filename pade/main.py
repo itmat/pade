@@ -24,8 +24,6 @@ import os
 import shutil
 from itertools import combinations, product
 
-from bisect import bisect
-
 from pade.common import *
 from pade.performance import *
 from pade.schema import *
@@ -46,18 +44,6 @@ DEFAULT_TUNING_PARAMS=[0.001, 0.01, 0.1, 1, 3, 10, 30, 100, 300, 1000, 3000]
 class UsageException(Exception):
     """Thrown when the user gave invalid parameters."""
     pass
-
-
-
-def ensure_scores_increase(scores):
-    """Returns a copy of the given ndarray with monotonically increasing values.
-
-    """
-    res = np.copy(scores)
-    for i in range(1, len(res)):
-        res[i] = max(res[i], res[i - 1])
-    return res
-
 
 @profiled
 def predicted_values(db):
@@ -400,13 +386,13 @@ def run_job(db, equalize_means_ids):
 
     logging.info("Creating {num_bins} bins based on values of raw stats".format(
             num_bins=db.num_bins))
-    db.bins = pade.stat.bins_uniform(db.num_bins, raw_stats)
+    db.bins = pade.conf.bins_uniform(db.num_bins, raw_stats)
 
     if db.sample_from == 'residuals':
         logging.info("Sampling from residuals")
         prediction = predicted_values(db)
         diffs      = db.table - prediction
-        db.bin_to_mean_perm_count = pade.stat.bootstrap(
+        db.bin_to_mean_perm_count = pade.conf.bootstrap(
             prediction,
             stat, 
             indexes=db.sample_indexes,
@@ -437,14 +423,14 @@ def run_job(db, equalize_means_ids):
                                  "ids given that don't exist in the data: " +
                                  str(ids))
 
-            db.bin_to_mean_perm_count = pade.stat.bootstrap(
+            db.bin_to_mean_perm_count = pade.conf.bootstrap(
                 data,
                 stat, 
                 indexes=db.sample_indexes,
                 bins=db.bins)
 
         else:
-            db.bin_to_mean_perm_count = pade.stat.bootstrap(
+            db.bin_to_mean_perm_count = pade.conf.bootstrap(
                 db.table,
                 stat, 
                 indexes=db.sample_indexes,
@@ -452,7 +438,7 @@ def run_job(db, equalize_means_ids):
 
     logging.info("Done bootstrapping, now computing confidence scores")
     db.raw_stats    = raw_stats
-    db.bin_to_unperm_count   = pade.stat.cumulative_hist(db.raw_stats, db.bins)
+    db.bin_to_unperm_count   = pade.conf.cumulative_hist(db.raw_stats, db.bins)
     db.bin_to_score = confidence_scores(
         db.bin_to_unperm_count, db.bin_to_mean_perm_count, np.shape(raw_stats)[-1])
     db.feature_to_score = assign_scores_to_features(
