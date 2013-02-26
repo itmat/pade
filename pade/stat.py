@@ -685,26 +685,42 @@ class MeansRatio:
         
 
 class OneSampleDifferenceTTest:
+    """A one-sample t-test where the input is given as pairs.
 
-    def __init__(self, layout_reduced, alphas=None):
+    """
+    name = "OneSampleDifferenceTTest"
 
-        self.alphas = alphas
-        self.name   = "OneSampleDifferenceTTest"
+    def __init__(self, condition_layout, block_layout, alphas=None):
 
-        if not layout_is_paired(layout_reduced):
-            raise Exception(
-                "The reduced layout " + str(layout_reduced) + " " +
+        if not layout_is_paired(block_layout):
+            raise UnsupportedLayoutException(
+                "The block layout " + str(block_layout) + " " +
                 "is invalid for a one-sample difference t-test. " +
-                "Each group must have exactly two items in it")
-                        
-        self.layout_reduced = layout_reduced        
-        self.child = OneSampleTTest(alphas=self.alphas)
+                "Each block must be a pair, with exactly two items in it")
+        
+        if len(condition_layout) != 2:
+            raise UnsupportedLayoutException(
+                "The condition layout " + str(condition_layout) + " " +
+                "is invalid for a one-sample difference t-test. " +
+                "There must be two conditions, and you have " + 
+                str(len(condition_layout)) + ".")
+
+        self.block_layout = block_layout
+        self.condition_layout = condition_layout
+        self.child = OneSampleTTest(alphas)
 
     def __call__(self, data):
         
-        pairs = self.layout_reduced
-        idxs_a = [p[0] for p in pairs]
-        idxs_b = [p[1] for p in pairs]
+        pairs = map(set, self.block_layout)
+        conds = map(set, self.condition_layout)
+
+        idxs_a = []
+        idxs_b = []
+
+        for s in pairs:
+            idxs_a.extend(s.intersection(conds[0]))
+            idxs_b.extend(s.intersection(conds[1]))
+
         a = data[..., idxs_a]
         b = data[..., idxs_b]
 

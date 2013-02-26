@@ -247,9 +247,10 @@ class StatTest(unittest.TestCase):
 
         table = np.vstack((row1, row2))
 
-        reduced_layout = np.arange(8).reshape((4, 2))
-
-        test = OneSampleDifferenceTTest(reduced_layout)
+        condition_layout = [ [0, 2, 4, 6], [1, 3, 5, 7] ]
+        block_layout = [ [0, 1], [2, 3], [4, 5], [6, 7] ]
+        
+        test = OneSampleDifferenceTTest(condition_layout, block_layout)
         expected = np.array([4.47213595, 0.56568542])
 
         np.testing.assert_almost_equal(test(row1), expected[0])
