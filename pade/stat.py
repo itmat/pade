@@ -34,6 +34,14 @@ def apply_layout(data, layout):
     >>> layout = [ [0, 1], [2, 3] ]
     >>> apply_layout(data, layout) # doctest: +NORMALIZE_WHITESPACE
     [array([9, 8]), array([7, 6])]
+
+    2d data:
+    
+    >>> data = np.array([[9, 8, 7, 6], [5, 4, 3, 2]])
+    >>> layout = [ [0, 1], [2, 3] ]
+    >>> apply_layout(data, layout) # doctest: +NORMALIZE_WHITESPACE
+    [array([[9, 8], [5, 4]]), array([[7, 6], [3, 2]])]
+
     """
     return [ data[..., list(idxs)] for idxs in layout]
 
@@ -189,16 +197,6 @@ class Ftest:
         self.alphas = alphas
 
     def __call__(self, data):
-        """Compute the f-test for the given ndarray.
-
-        Input must have 2 or more dimensions. Axis 0 must be sample,
-        axis 1 must be condition. Operations are vectorized over any
-        subsequent axes. So, for example, an input array with shape
-        (3, 2) would represent 1 feature for 2 conditions, each with
-        at most 3 samples. An input array with shape (5, 3, 2) would
-        be 5 features for 3 samples of 2 conditions.
-
-        """
         # Degrees of freedom
         p_red  = len(self.layout_reduced)
         p_full = len(self.layout_full)
@@ -468,6 +466,33 @@ def num_orderings(full, reduced=None):
 
 def all_orderings_within_group(items, sizes):
 
+    """
+
+    One index, one group of size one:
+
+    >>> list(all_orderings_within_group([0], [1]))
+    [[0]]
+
+    Two indexes, one group of size two:
+
+    >>> list(all_orderings_within_group([0, 1], [2]))
+    [[0, 1]]
+
+    Two indexes, two groups of size one:
+    
+    >>> list(all_orderings_within_group([0, 1], [1, 1]))
+    [[0, 1], [1, 0]]
+
+    >>> list(all_orderings_within_group([0, 1, 2, 3], [2, 2])) # doctest: +NORMALIZE_WHITESPACE
+    [[0, 1, 2, 3], 
+     [0, 2, 1, 3],
+     [0, 3, 1, 2],
+     [1, 2, 0, 3],
+     [1, 3, 0, 2],
+     [2, 3, 0, 1]]
+    
+    """
+    items = set(items)
     if len(items) != sum(sizes):
         raise InvalidLayoutException("Layout is bad")
 
@@ -478,7 +503,6 @@ def all_orderings_within_group(items, sizes):
             for arr in all_orderings_within_group(
                 items.difference(c), sizes[1:]):
                 yield c + arr
-
 
 def all_orderings(full, reduced):
     
