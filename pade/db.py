@@ -33,7 +33,6 @@ class DB:
         self.condition_variables = None
         self.tuning_params = None
         self.equalize_means = None
-        self.is_paired = None
 
         # Results
         self.bins = None
@@ -80,7 +79,6 @@ class DB:
         file.attrs['sample_method'] = self.sample_method
         file.attrs['condition_variables'] = self.condition_variables
         file.attrs['block_variables'] = self.block_variables
-        file.attrs['is_paired'] = self.is_paired
 
         self.bin_to_mean_perm_count = file.create_dataset("bin_to_mean_perm_count", data=self.bin_to_mean_perm_count)
         self.bin_to_unperm_count   = file.create_dataset("bin_to_unperm_count", data=self.bin_to_unperm_count)
@@ -188,8 +186,6 @@ class DB:
         self.condition_variables = list(file.attrs['condition_variables'])
         self.block_variables = list(file.attrs['block_variables'])
 
-        self.is_paired = file.attrs['is_paired']
-        
         file.close()
         logging.info("Done loading results")
 
