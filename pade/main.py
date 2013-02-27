@@ -61,6 +61,7 @@ def summarize_by_conf_level(db):
 
     logging.info("Summarizing the results")
 
+    db.summary_bins = np.arange(db.settings.min_conf, 1.0, db.settings.conf_interval)
     db.best_param_idxs = np.zeros(len(db.summary_bins))
     db.summary_counts = np.zeros(len(db.summary_bins))
 
@@ -81,7 +82,7 @@ Confidence |   Num.   | Tuning
         print "{bin:10.1%} | {count:8d} | {param:0.4f}".format(
             bin=db.summary_bins[i],
             count=int(db.summary_counts[i]),
-            param=db.tuning_params[db.best_param_idxs[i]])
+            param=db.settings.tuning_params[db.best_param_idxs[i]])
 
     
 def compute_coeffs(db):
@@ -116,8 +117,8 @@ def compute_fold_change(db):
     """
     logging.info("Computing fold change")
     
-    nuisance_factors = set(db.block_variables)
-    test_factors     = db.condition_variables
+    nuisance_factors = set(db.settings.block_variables)
+    test_factors     = db.settings.condition_variables
 
     if len(test_factors) > 1:
         raise UsageException(
@@ -230,13 +231,13 @@ Generating report for result database {db}.
 
 def stat_for_name(db):
     """The statistic used for this job."""
-    name = db.stat
+    name = db.settings.stat
 
-    if db.is_paired:
+    if name == 'one_sample_t_test':
         return pade.stat.OneSampleDifferenceTTest(
             block_layout=db.block_layout,
             condition_layout=db.condition_layout,
-            alphas=db.tuning_params)
+            alphas=db.settings.tuning_params)
 
     elif name == 'f_test':
 
@@ -250,13 +251,13 @@ a paired layout. If this is the case, please use the --paired option.
         return pade.stat.Ftest(
             condition_layout=db.condition_layout,
             block_layout=db.block_layout,
-            alphas=db.tuning_params)
+            alphas=db.settings.tuning_params)
 
     elif name == 'means_ratio':
         return pade.stat.MeansRatio(
             condition_layout=db.condition_layout,
             block_layout=db.block_layout,
-            alphas=db.tuning_params)
+            alphas=db.settings.tuning_params)
 
 
 def import_table(db, path):
@@ -299,6 +300,8 @@ def import_table(db, path):
 
 def args_to_db(args):
 
+    settings = pade.db.Settings()
+
     db = DB(path=args.db)
 
     db.schema_path = args.schema
@@ -308,21 +311,14 @@ def args_to_db(args):
     except IOError as e:
         raise UsageException("Couldn't load schema: " + e.filename + ": " + e.strerror)
 
-    # Tuning params
-    if args.tuning_param is None or len(args.tuning_param) == 0 :
-        db.tuning_params = np.array(DEFAULT_TUNING_PARAMS)
-    else:
-        db.tuning_params = np.array(args.tuning_param)
-
     # Num bins and samples
-    db.num_bins = args.num_bins
-    db.num_samples = args.num_samples
+    settings.num_bins = args.num_bins
+    settings.num_samples = args.num_samples
 
     logging.info("Creating db from args " + str(args))
-    db.is_paired = args.paired
 
     # Stat name
-    if db.is_paired:
+    if args.paired:
         logging.info("You've given the --paired option, so I'll use a one-sample t-test.")
         stat_name = 'one_sample_t_test'
     else:
@@ -336,8 +332,8 @@ def args_to_db(args):
     else:
         equalize_means = args.equalize_means
 
-    db.stat = stat_name
-    db.equalize_means = equalize_means
+    settings.stat = stat_name
+    settings.equalize_means = equalize_means
     
     blocks     = args.block     if args.block     is not None else []
     conditions = args.condition if args.condition is not None else []
@@ -357,13 +353,21 @@ def args_to_db(args):
     else:
         raise Exception("Since you have multiple factors, please specify a full model")
 
+    # Tuning params
+    if args.tuning_param is None or len(args.tuning_param) == 0 :
+        settings.tuning_params = np.array(DEFAULT_TUNING_PARAMS)
+    else:
+        settings.tuning_params = np.array(args.tuning_param)
 
-    db.condition_variables = conditions
-    db.block_variables = blocks
-    db.sample_from = args.sample_from
-    db.sample_method = args.sample_method
-    db.min_conf=args.min_conf
-    db.summary_bins = np.arange(args.min_conf, 1.0, args.conf_interval)
+    settings.condition_variables = conditions
+    settings.block_variables = blocks
+    settings.sample_from = args.sample_from
+    settings.sample_method = args.sample_method
+    settings.min_conf=args.min_conf
+    settings.min_conf = args.min_conf
+    settings.conf_interval = args.conf_interval
+
+    db.settings = settings
 
     return db
 
@@ -377,10 +381,10 @@ def run_job(db, equalize_means_ids):
     logging.debug("Shape of raw stats is " + str(np.shape(raw_stats)))
 
     logging.info("Creating {num_bins} bins based on values of raw stats".format(
-            num_bins=db.num_bins))
-    db.bins = pade.conf.bins_uniform(db.num_bins, raw_stats)
+            num_bins=db.settings.num_bins))
+    db.bins = pade.conf.bins_uniform(db.settings.num_bins, raw_stats)
 
-    if db.sample_from == 'residuals':
+    if db.settings.sample_from == 'residuals':
         logging.info("Sampling from residuals")
         prediction = predicted_values(db)
         diffs      = db.table - prediction
@@ -395,7 +399,7 @@ def run_job(db, equalize_means_ids):
         logging.info("Sampling from raw data")
         # Shift all values in the data by the means of the groups from
         # the full model, so that the mean of each group is 0.
-        if db.equalize_means:
+        if db.settings.equalize_means:
             shifted = residuals(db.table, db.full_layout)
             data = np.zeros_like(db.table)
             if equalize_means_ids is None:
@@ -460,12 +464,12 @@ def save_text_output(db, filename):
         
         # Best stat and all stats
         row.append(db.raw_stats[idxs[i], i])
-        for j in range(len(db.tuning_params)):
+        for j in range(len(db.settings.tuning_params)):
             row.append(db.raw_stats[j, i])
         
         # Best score and all scores
         row.append(db.feature_to_score[idxs[i], i])
-        for j in range(len(db.tuning_params)):
+        for j in range(len(db.settings.tuning_params)):
             row.append(db.feature_to_score[j, i])
         row.extend(db.group_means[i])
         row.extend(db.coeff_values[i])
@@ -480,11 +484,11 @@ def save_text_output(db, filename):
 
     add_col(schema.feature_id_column_names[0], object, "%s")
     add_col('best_stat', float, "%f")
-    for i, alpha in enumerate(db.tuning_params):
+    for i, alpha in enumerate(db.settings.tuning_params):
         add_col('stat_' + str(alpha), float, "%f")
 
     add_col('best_score', float, "%f")
-    for i, alpha in enumerate(db.tuning_params):
+    for i, alpha in enumerate(db.settings.tuning_params):
         add_col('score_' + str(alpha), float, "%f")
 
     for name in db.group_names:
@@ -526,8 +530,8 @@ def get_group_means(schema, data, factors):
 def new_sample_indexes(db):
     """Create array of sample indexes and store in db."""
 
-    method  = (db.sample_method, db.sample_from)
-    R       = db.num_samples
+    method  = (db.settings.sample_method, db.settings.sample_from)
+    R       = db.settings.num_samples
 
     if method == ('perm', 'raw'):
         logging.info("Creating max of {0} random permutations".format(R))
@@ -535,7 +539,7 @@ def new_sample_indexes(db):
 
     elif method == ('boot', 'raw'):
         logging.info("Bootstrapping raw values, within groups defined by '" + 
-                     str(db.block_variables) + "'")
+                     str(db.settings.block_variables) + "'")
         return random_indexes(db.block_layout, R)
         
     elif method == ('boot', 'residuals'):

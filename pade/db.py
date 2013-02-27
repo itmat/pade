@@ -9,20 +9,9 @@ import numpy as np
 
 TableWithHeader = collections.namedtuple('TableWithHeader', ['header', 'table'])
 
-class DB:
+class Settings:
 
-    def __init__(self, 
-                 schema=None,
-                 schema_path=None,
-                 path=None):
-
-        # This will be populated lazily by the table and feature_ids
-        # properties
-        self.table       = None
-        self.feature_ids = None
-        self.schema_path = schema_path
-        self.path = path
-
+    def __init__(self):
         # Settings
         self.stat_name = None
         self.num_bins = None
@@ -33,6 +22,24 @@ class DB:
         self.condition_variables = None
         self.tuning_params = None
         self.equalize_means = None
+        self.min_conf = None
+        self.conf_interval = None
+
+class DB:
+
+    def __init__(self, 
+                 schema=None,
+                 schema_path=None,
+                 path=None):
+
+        self.settings = None
+
+        # This will be populated lazily by the table and feature_ids
+        # properties
+        self.table       = None
+        self.feature_ids = None
+        self.schema_path = schema_path
+        self.path = path
 
         # Results
         self.bins = None
@@ -41,7 +48,6 @@ class DB:
         self.bin_to_score = None
         self.feature_to_score = None
         self.raw_stats = None
-        self.summary_bins = None
         self.summary_counts = None
         self.best_param_idxs = None
         self.sample_indexes = None
@@ -51,6 +57,34 @@ class DB:
 
         self.file = None
         self.schema = schema
+
+    def save_settings(self):
+        file = self.file
+        s = self.settings
+        self.tuning_params = file.create_dataset("tuning_params", data=s.tuning_params)
+        file.attrs['stat_name'] = s.stat
+        file.attrs['num_bins'] = s.num_bins
+        file.attrs['num_samples'] = s.num_samples
+        file.attrs['sample_from'] = s.sample_from
+        file.attrs['sample_method'] = s.sample_method
+        file.attrs['condition_variables'] = s.condition_variables
+        file.attrs['block_variables'] = s.block_variables
+        file.attrs['min_conf'] = s.min_conf
+        file.attrs['conf_interval'] = s.conf_interval
+
+    def load_settings(self):
+        s = Settings()
+        file = self.file
+        s.stat_name = file.attrs['stat_name']
+        s.num_bins = file.attrs['num_bins']
+        s.num_samples = file.attrs['num_samples']
+        s.sample_from = file.attrs['sample_from']
+        s.sample_method = file.attrs['sample_method']
+        s.condition_variables = list(file.attrs['condition_variables'])
+        s.block_variables = list(file.attrs['block_variables'])
+        s.min_conf = file.attrs['min_conf']
+        s.conf_interval = file.attrs['conf_interval']
+        self.settings = s
 
     def save(self):
         logging.info("Saving job results to " + self.path)
@@ -70,15 +104,9 @@ class DB:
         self.bins = file.create_dataset("bins", data=self.bins)
 
         # Settings:
-        self.tuning_params = file.create_dataset("tuning_params", data=self.tuning_params)
+        self.save_settings()
+
         file.attrs['schema'] = str(schema_str.getvalue())
-        file.attrs['stat_name'] = self.stat
-        file.attrs['num_bins'] = self.num_bins
-        file.attrs['num_samples'] = self.num_samples
-        file.attrs['sample_from'] = self.sample_from
-        file.attrs['sample_method'] = self.sample_method
-        file.attrs['condition_variables'] = self.condition_variables
-        file.attrs['block_variables'] = self.block_variables
 
         self.bin_to_mean_perm_count = file.create_dataset("bin_to_mean_perm_count", data=self.bin_to_mean_perm_count)
         self.bin_to_unperm_count   = file.create_dataset("bin_to_unperm_count", data=self.bin_to_unperm_count)
@@ -148,6 +176,8 @@ class DB:
 
         self.file = file
 
+        self.load_settings()
+
         self.table = file['table'][...]
         self.feature_ids = file['feature_ids'][...]
         self.bins = file['bins'][...]
@@ -178,13 +208,6 @@ class DB:
 
         schema_str = StringIO(file.attrs['schema'])
         self.schema = Schema.load(schema_str)
-        self.stat_name = file.attrs['stat_name']
-        self.num_bins = file.attrs['num_bins']
-        self.num_samples = file.attrs['num_samples']
-        self.sample_from = file.attrs['sample_from']
-        self.sample_method = file.attrs['sample_method']
-        self.condition_variables = list(file.attrs['condition_variables'])
-        self.block_variables = list(file.attrs['block_variables'])
 
         file.close()
         logging.info("Done loading results")
@@ -197,20 +220,20 @@ class DB:
 
     @property
     def full_model(self):
-        return Model(self.schema, "*".join(self.block_variables + self.condition_variables))
+        return Model(self.schema, "*".join(self.settings.block_variables + self.settings.condition_variables))
 
     @property
     def reduced_model(self):
-        return Model(self.schema, "*".join(self.block_variables))
+        return Model(self.schema, "*".join(self.settings.block_variables))
 
     @property
     def condition_layout(self):
-        return self.layout(self.condition_variables)
+        return self.layout(self.settings.condition_variables)
 
     @property
     def block_layout(self):
-        return self.layout(self.block_variables)
+        return self.layout(self.settings.block_variables)
 
     @property
     def full_layout(self):
-        return self.layout(self.block_variables + self.condition_variables)
+        return self.layout(self.settings.block_variables + self.settings.condition_variables)
