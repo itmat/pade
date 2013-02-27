@@ -212,16 +212,16 @@ def details(conf_level):
         conf_level=conf_level,
         min_score=score,
         indexes=idxs,
-        group_names=db.group_names,
-        coeff_names=db.coeff_names,
-        fold_change_group_names=db.fold_change_group_names,
+        group_names=db.group_means.header,
+        coeff_names=db.coeff_values.header,
+        fold_change_group_names=db.fold_change.header,
         stat_name=db.stat_name,
         scores=scores[idxs],
         stats=scores[idxs],
-        means=db.group_means[idxs],
-        coeffs=db.coeff_values[idxs],
+        means=db.group_means.table[idxs],
+        coeffs=db.coeff_values.table[idxs],
         feature_ids=db.feature_ids[idxs],
-        fold_change=db.fold_change[idxs],
+        fold_change=db.fold_change.table[idxs],
         page_num=page_num)
 
 @app.route("/stat_dist.html")

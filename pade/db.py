@@ -1,9 +1,13 @@
 import logging
 import h5py
+import collections
+
 from StringIO import StringIO
 from pade.schema import Schema
 from pade.model import Model
 import numpy as np
+
+TableWithHeader = collections.namedtuple('TableWithHeader', ['header', 'table'])
 
 class DB:
 
@@ -29,9 +33,6 @@ class DB:
         self.reduced_model = None
         self.tuning_params = None
         self.equalize_means = None
-        self.group_names = None
-        self.fold_change_group_names = None
-        self.coeff_names  = None
         self.is_paired = None
 
         # Results
@@ -55,7 +56,7 @@ class DB:
     def save(self):
         logging.info("Saving job results to " + self.path)
         file = h5py.File(self.path, 'r+')
-
+        self.file = file
         # Saving feature ids is tricky because they are strings
         dt = h5py.special_dtype(vlen=str)
         ids = self.feature_ids
@@ -94,14 +95,9 @@ class DB:
 
         self.sample_indexes = file.create_dataset("sample_indexes", data=self.sample_indexes)
 
-        self.group_means = file.create_dataset("group_means", data=self.group_means)
-        self.group_means.attrs['headers'] = self.group_names
-
-        self.coeff_values = file.create_dataset("coeff_values", data=self.coeff_values)
-        self.coeff_values.attrs['headers'] = self.coeff_names
-
-        self.fold_change = file.create_dataset("fold_change", data=self.fold_change)
-        self.fold_change.attrs['headers'] = self.fold_change_group_names
+        self.save_table(self.group_means, 'group_means')
+        self.save_table(self.fold_change, 'fold_change')
+        self.save_table(self.coeff_values, 'coeff_values')
 
         self.file = file
         self.compute_orderings()
@@ -123,18 +119,26 @@ class DB:
 
         grp['score_original'] = by_score_original
 
-        by_foldchange_original = np.zeros(np.shape(self.fold_change), int)
-        foldchange = self.fold_change[...]
+        by_foldchange_original = np.zeros(np.shape(self.fold_change.table), int)
+        foldchange = self.fold_change.table[...]
         rev_foldchange = 0.0 - foldchange
-        for i in range(len(self.fold_change_group_names)):
+        for i in range(len(self.fold_change.header)):
             keys = (original, rev_foldchange[..., i])
 
             by_foldchange_original[..., i] = np.lexsort(keys)
 
         grp['foldchange_original'] = by_foldchange_original
 
-
+    def save_table(self, table, name):
+        self.file.create_dataset(name, data=table.table)
+        self.file[name].attrs['headers'] = table.header        
     
+    def load_table(self, name):
+        ds = self.file[name]
+        if ds is None:
+            raise Exception("No dataset called " + str(name)) 
+        return TableWithHeader(ds.attrs['headers'], ds[...])
+
     def load(self):
 
         logging.info("Loading job results from " + self.path)
@@ -143,6 +147,8 @@ class DB:
             file = h5py.File(self.path, 'r')
         except IOError as e:
             raise IOError("While trying to load database from " + self.path, e)
+
+        self.file = file
 
         self.table = file['table'][...]
         self.feature_ids = file['feature_ids'][...]
@@ -164,12 +170,9 @@ class DB:
         self.tuning_params = file['tuning_params'][...]
 
         # Group means, coefficients, and fold change, with the header information
-        self.group_means             = file['group_means'][...]
-        self.coeff_values            = file['coeff_values'][...]
-        self.fold_change             = file['fold_change'][...]
-        self.group_names             = file['group_means'].attrs['headers']
-        self.fold_change_group_names = file['fold_change'].attrs['headers']
-        self.coeff_names             = file['coeff_values'].attrs['headers']
+        self.group_means  = self.load_table('group_means')
+        self.coeff_values = self.load_table('coeff_values')
+        self.fold_change  = self.load_table('fold_change')
 
         # Orderings
         self.ordering_by_score_original      = file['orderings']['score_original'][...]

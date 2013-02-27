@@ -99,7 +99,7 @@ def compute_coeffs(db):
     fitted = db.full_model.fit(db.table)
     names  = [assignment_name(a) for a in fitted.labels]    
     values = fitted.params
-    return (names, values)
+    return pade.db.TableWithHeader(names, values)
 
 
 def compute_fold_change(db):
@@ -156,7 +156,7 @@ def compute_fold_change(db):
     for i in range(len(fold_changes)):
         result[..., i] = fold_changes[i]
 
-    return (names, result)
+    return pade.db.TableWithHeader(names, result)
 
 
 def compute_means(db):
@@ -176,7 +176,7 @@ def compute_means(db):
     names = [assignment_name(a) 
              for a in db.schema.possible_assignments(factors)]
     values = get_group_means(db.schema, db.table, factors)
-    return (names, values)
+    return pade.db.TableWithHeader(names, values)
     
     
 def do_run(args):
@@ -189,9 +189,9 @@ Analyzing {filename}, which is described by the schema {schema}.
     db.sample_indexes = new_sample_indexes(db)
     run_job(db, args.equalize_means_ids)
 
-    (db.group_names, db.group_means) = compute_means(db)
-    (db.coeff_names, db.coeff_values) = compute_coeffs(db)
-    (db.fold_change_group_names, db.fold_change) = compute_fold_change(db)
+    db.group_means  = compute_means(db)
+    db.coeff_values = compute_coeffs(db)
+    db.fold_change  = compute_fold_change(db)
 
     summarize_by_conf_level(db)
     print_summary(db)
