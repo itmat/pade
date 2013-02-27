@@ -704,11 +704,11 @@ def add_model_args(p):
 
     grp.add_argument(
         '--full-model', '-M',
-        help="""Specify the 'full' model as an expression, like 'batch * treated'""")
+        help=argparse.SUPPRESS) #"""Specify the 'full' model as an expression, like 'batch * treated'"""
 
     grp.add_argument(
         '--reduced-model', '-m',
-        help="""Specify the 'reduced' model as an expression, like 'batch'.""")
+        help=argparse.SUPPRESS) #"""Specify the 'reduced' model as an expression, like 'batch'."""
     
 def add_fdr_args(p):
     grp = p.add_argument_group(
@@ -719,18 +719,19 @@ def add_fdr_args(p):
 #        choices=['f', 't', 'f_sqrt'],
         choices=['f_test', 'one_sample_t_test', 'means_ratio'],
         default='f_test',
-        help="The statistic to use. Only f-test is implemented at the moment, so this option has no effect.")
+        help="The statistic to use.")
 
     grp.add_argument(
         '--tuning-param',
         type=float,
-        action='append')
+        action='append',
+        help="""For statistics that take some type of tuning parameter, you may optionally specify that parameter with this option. Specify it more than once and I'll search over all the tuning params and use the one that gives the highest power at each confidence level.""")
 
     grp.add_argument(
         '--paired', 
         action='store_true',
         default=False,
-        help="Indicates that the input is paired")
+        help="Indicates that the input is paired. Synonym for '--stat one_sample_t_test'.")
 
     grp.add_argument(
         '--num-samples', '-R',
