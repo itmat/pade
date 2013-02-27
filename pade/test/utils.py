@@ -41,6 +41,7 @@ def sample_db(infile, factor_map):
 
         db = DB(
             schema_path=schema_path,
+            schema=schema,
             path=db_path)
         import_table(db, infile)
         yield db
