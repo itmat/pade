@@ -72,7 +72,22 @@ def measurement_scatter(feature_num):
     ax.legend(loc='upper_right')
     return figure_response(fig)
 
-@app.route("/measurement_bars/<feature_num>")
+@app.route("/mean_vs_std")
+def mean_vs_std():
+    db = app.db
+    means = np.mean(db.table, axis=-1)
+    std   = np.std(db.table, axis=-1)
+    fig = plt.figure()
+    ax = fig.add_subplot(
+        111,
+        title='Mean vs standard deviation',
+        xlabel='Mean',
+        ylabel='Standard deviation')
+
+    ax.scatter(means, std)
+    return figure_response(fig)
+
+@app.route("/features/<feature_num>/measurement_bars")
 def measurement_bars(feature_num):
     
     feature_num = int(feature_num)
