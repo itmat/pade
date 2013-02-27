@@ -110,8 +110,14 @@ def rss(data, layout=None):
         rs = r ** 2
         return np.sum(rs, axis=-1)
 
+class LayoutPairTest(object):
+    def __init__(self, condition_layout, block_layout):
+        self.condition_layout = condition_layout
+        self.block_layout = block_layout
+    
+    
 
-class Ftest:
+class Ftest(LayoutPairTest):
     """Computes the F-test.
 
     Some sample data
@@ -148,13 +154,15 @@ class Ftest:
 
     def __init__(self, condition_layout, block_layout, alphas=None):
 
+        super(Ftest, self).__init__(condition_layout, block_layout)
+
+
         full_layout = intersect_layouts(block_layout, condition_layout)
         if min(map(len, full_layout)) < 2:
             raise UnsupportedLayoutException(
                 """I can't use an FTest with the specified layouts, because the intersection between those layouts results in some groups that contain fewer than two samples.""")
 
         self.layout_full = full_layout
-        self.block_layout = block_layout
         self.alphas = alphas
 
     def __call__(self, data):
@@ -193,7 +201,7 @@ class OneSampleTTest:
         return np.abs(numer / denom)
 
 
-class MeansRatio:
+class MeansRatio(LayoutPairTest):
 
     """Means ratio statistic.
 
@@ -224,6 +232,8 @@ class MeansRatio:
     name = "means ratio"
 
     def __init__(self, condition_layout, block_layout, alphas=None, symmetric=True):
+
+        super(MeansRatio, self).__init__(condition_layout, block_layout)
         conditions = len(condition_layout)
         blocks     = len(block_layout)
 
@@ -233,8 +243,6 @@ class MeansRatio:
                     conditions=conditions,
                     blocks=blocks))
 
-        self.condition_layout  = as_layout(condition_layout)
-        self.block_layout      = as_layout(block_layout)
         self.alphas            = alphas
         self.symmetric         = symmetric
 
@@ -280,7 +288,7 @@ class MeansRatio:
         return ratio
         
 
-class OneSampleDifferenceTTest:
+class OneSampleDifferenceTTest(LayoutPairTest):
     """A one-sample t-test where the input is given as pairs.
 
     Input with two features (one on each row), eight samples
@@ -316,6 +324,7 @@ class OneSampleDifferenceTTest:
     name = "OneSampleDifferenceTTest"
 
     def __init__(self, condition_layout, block_layout, alphas=None):
+        super(OneSampleDifferenceTTest, self).__init__(condition_layout, block_layout)
 
         if not layout_is_paired(block_layout):
             raise UnsupportedLayoutException(
@@ -330,8 +339,6 @@ class OneSampleDifferenceTTest:
                 "There must be two conditions, and you have " + 
                 str(len(condition_layout)) + ".")
 
-        self.block_layout     = as_layout(block_layout)
-        self.condition_layout = as_layout(condition_layout)
         self.child = OneSampleTTest(alphas)
 
     def __call__(self, data):
@@ -348,7 +355,7 @@ class OneSampleDifferenceTTest:
             # indexes, and grab the corresponding values from the
             # data.
             layout = intersect_layouts(self.block_layout, [ conds[i] ])
-            idxs = list(itertools.chain(*idxs))
+            idxs = list(itertools.chain(*layout))
             values.append(data[..., idxs])
 
         # Now just get the differences between the two sets of values
