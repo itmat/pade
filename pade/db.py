@@ -63,8 +63,23 @@ class DB:
         for i, fid in enumerate(ids):
             self.feature_ids[i] = fid
 
+        schema_str = StringIO()
+        self.schema.save(schema_str)
+
         self.table = file.create_dataset("table", data=self.table)
         self.bins = file.create_dataset("bins", data=self.bins)
+
+        # Settings:
+        self.tuning_params = file.create_dataset("tuning_params", data=self.tuning_params)
+        file.attrs['schema'] = str(schema_str.getvalue())
+        file.attrs['stat_name'] = self.stat
+        file.attrs['num_bins'] = self.num_bins
+        file.attrs['num_samples'] = self.num_samples
+        file.attrs['sample_from'] = self.sample_from
+        file.attrs['sample_method'] = self.sample_method
+        file.attrs['full_model'] = str(self.full_model.expr)
+        file.attrs['reduced_model'] = str(self.reduced_model.expr)
+        file.attrs['is_paired'] = self.is_paired
 
         self.bin_to_mean_perm_count = file.create_dataset("bin_to_mean_perm_count", data=self.bin_to_mean_perm_count)
         self.bin_to_unperm_count   = file.create_dataset("bin_to_unperm_count", data=self.bin_to_unperm_count)
@@ -75,25 +90,15 @@ class DB:
         self.summary_counts = file.create_dataset("summary_counts", data=self.summary_counts)
         self.sample_indexes = file.create_dataset("sample_indexes", data=self.sample_indexes)
         self.best_param_idxs = file.create_dataset("best_param_idxs", data=self.best_param_idxs)
-        self.tuning_params = file.create_dataset("tuning_params", data=self.tuning_params)
-        self.group_means = file.create_dataset("group_means", data=self.group_means)
-        self.coeff_values = file.create_dataset("coeff_values", data=self.coeff_values)
-        self.fold_change = file.create_dataset("fold_change", data=self.fold_change)
 
-        schema_str = StringIO()
-        self.schema.save(schema_str)
-        file.attrs['schema'] = str(schema_str.getvalue())
-        file.attrs['stat_name'] = self.stat
-        file.attrs['num_bins'] = self.num_bins
-        file.attrs['num_samples'] = self.num_samples
-        file.attrs['sample_from'] = self.sample_from
-        file.attrs['sample_method'] = self.sample_method
-        file.attrs['full_model'] = str(self.full_model.expr)
-        file.attrs['reduced_model'] = str(self.reduced_model.expr)
-        file.attrs['fold_change_group_names'] = self.fold_change_group_names
-        file.attrs['group_names'] = self.group_names
-        file.attrs['coeff_names'] = self.coeff_names
-        file.attrs['is_paired'] = self.is_paired
+        self.group_means = file.create_dataset("group_means", data=self.group_means)
+        self.group_means.attrs['headers'] = self.group_names
+
+        self.coeff_values = file.create_dataset("coeff_values", data=self.coeff_values)
+        self.coeff_values.attrs['headers'] = self.coeff_names
+
+        self.fold_change = file.create_dataset("fold_change", data=self.fold_change)
+        self.fold_change.attrs['headers'] = self.fold_change_group_names
 
         self.file = file
         self.compute_orderings()
@@ -167,9 +172,11 @@ class DB:
         self.sample_method = file.attrs['sample_method']
         self.full_model = Model(self.schema, file.attrs['full_model'])
         self.reduced_model = Model(self.schema, file.attrs['reduced_model'])
-        self.group_names = file.attrs['group_names']
-        self.fold_change_group_names = file.attrs['fold_change_group_names']
-        self.coeff_names = file.attrs['coeff_names']
+
+        self.group_names             = file['group_means'].attrs['headers']
+        self.fold_change_group_names = file['fold_change'].attrs['headers']
+        self.coeff_names             = file['coeff_values'].attrs['headers']
+
         self.is_paired = file.attrs['is_paired']
         
         file.close()

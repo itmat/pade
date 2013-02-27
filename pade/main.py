@@ -34,11 +34,6 @@ from pade.conf import *
 REAL_PATH = os.path.realpath(__file__)
 DEFAULT_TUNING_PARAMS=[0.001, 0.01, 0.1, 1, 3, 10, 30, 100, 300, 1000, 3000]
 
-##############################################################################
-###
-### Exceptions
-###
-
 class UsageException(Exception):
     """Thrown when the user gave invalid parameters."""
     pass
@@ -137,7 +132,6 @@ def compute_fold_change(db):
     get_means = lambda a: np.mean(data[:, db.schema.indexes_with_assignments(a)], axis=-1)
 
     alpha = scipy.stats.scoreatpercentile(db.table.flatten(), 1.0)
-    print "Using alpha of ", alpha
 
     for na in nuisance_assignments:
         test_assignments = db.schema.possible_assignments(test_factors)

@@ -205,6 +205,9 @@ is_sample are false will simply be ignored.
         """
         doc = yaml.load(stream)
 
+        if doc is None:
+            raise Exception("Didn't find a YAML schema document in " + str(stream))
+
         col_names = doc['headers']
 
         # Build the arrays of column names, feature id booleans, and
