@@ -6,7 +6,6 @@ export PYTHONPATH=../../
 # Path to pade executable
 PADE=../../bin/pade
 
-# Path to db file created by "pade run"
 DB=pade_db.h5
 
 # Don't be verbose. Change to -v to be verbose, or -d to turn on
@@ -18,7 +17,7 @@ all : server
 db : $(DB)
 
 pade_db.h5 : 
-	$(PADE) run $(VERBOSITY) --condition treated --block pig sample_data_paired.txt --db $(DB) --stat means_ratio
+	$(PADE) run --condition treated --block pig sample_data_paired.txt --stat means_ratio
 
 server : $(DB)
 	$(PADE) server --db $<

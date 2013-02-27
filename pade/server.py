@@ -4,15 +4,18 @@
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from pade.conf import cumulative_hist
+
 import numpy as np
-from flask import Flask, render_template, make_response, request
-from pade.db import DB
 import argparse
 import logging 
 import StringIO
-from pade.common import *
+import pade.conf
 from bisect import bisect
+from flask import Flask, render_template, make_response, request
+from pade.common import *
+from pade.db import DB
+from pade.conf import cumulative_hist
+
 
 class PadeApp(Flask):
 
@@ -61,7 +64,10 @@ def measurement_scatter(feature_num):
         x = [i for j in y]
         ax.scatter(x, y)
 
-    plt.xticks(np.arange(len(names)), names)
+    plt.xticks(np.arange(len(names)), 
+               names,
+               rotation=70
+               )
 
     ax.legend(loc='upper_right')
     return figure_response(fig)
@@ -75,14 +81,18 @@ def measurement_bars(feature_num):
     schema = db.schema
     model = db.full_model
     measurements = db.table[feature_num]
-    
+
+    variables = model.expr.variables
+    if 'variable' in request.args:
+        variables = [ request.args.get('variable') ]
+
     fig = plt.figure()
     ax = fig.add_subplot(
         111,
-        title='Measurements for ' + db.feature_ids[feature_num],
+        title='Measurements for ' + db.feature_ids[feature_num] + " by " + ", ".join(variables),
         ylabel='Measurement')
-
-    assignments = schema.possible_assignments(model.expr.variables)
+    
+    assignments = schema.possible_assignments(variables)
 
     x = np.arange(len(assignments))
     width = 0.8
@@ -93,7 +103,7 @@ def measurement_bars(feature_num):
     y = [ np.mean(measurements[g]) for g in grps]
     err = [ np.std(measurements[g]) for g in grps]
     ax.bar(x, y, yerr=err, color='y')
-    plt.xticks(x+width/2., names)
+    plt.xticks(x+width/2., names, rotation=70)
 
     return figure_response(fig)
 
@@ -115,7 +125,7 @@ def feature(feature_num):
     unperm_count=np.array([ db.bin_to_unperm_count[i, bins[i]] for i in range(len(params))])
     mean_perm_count=np.array([ db.bin_to_mean_perm_count[i, bins[i]] for i in range(len(params))])
 
-    adjusted=np.array(adjust_num_diff(mean_perm_count, unperm_count, len(db.table)))
+    adjusted=np.array(pade.conf.adjust_num_diff(mean_perm_count, unperm_count, len(db.table)))
 
     new_scores = (unperm_count - adjusted) / unperm_count
 

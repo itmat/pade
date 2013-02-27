@@ -206,7 +206,7 @@ Analyzing {filename}, which is described by the schema {schema}.
 The results for the job are saved in {path}. To generate a text
 report, run:
 
-  pade report --text --db {path}
+  pade report --db {path}
 
 To launch a small web server to generate the HTML reports, run:
 
@@ -231,17 +231,9 @@ Generating report for result database {db}.
 """.format(db=db.path)
 
     db.load()
-
-    makedirs(args.report_directory)
-    with chdir(args.report_directory):
-        if args.text:
-            save_text_output(db)
-            print "Saved text report to ", os.path.join(args.report_directory, "results.txt")
-        #print_profile(db)
-
-    print """
-Reports are available in {loc}.
-""".format(loc=args.report_directory)
+    filename = args.output
+    save_text_output(db, filename=filename)
+    print "Saved text report to ", filename
 
 def stat_for_name(db):
     """The statistic used for this job."""
@@ -453,7 +445,7 @@ def run_job(db, equalize_means_ids):
     return db
 
 
-def save_text_output(db):
+def save_text_output(db, filename):
 
     (num_rows, num_cols) = db.table.shape
     num_cols += 2
@@ -514,7 +506,7 @@ def save_text_output(db):
 
     logging.info("Writing table")
     table = np.array(table, dtype)
-    with open("results.txt", "w") as out:
+    with open(filename, "w") as out:
         out.write("\t".join(c.name for c in cols) + "\n")
         np.savetxt(out, table, 
                    fmt=[c.format for c in cols],
@@ -692,16 +684,6 @@ I have generated a schema for your input file, with factors {factors}, and saved
 Once you have finished the schema, you will need to run "pade run" to do the analysis. See "pade run -h" for its usage.
 """).format(factors=schema.factors.keys(),
             filename=args.schema)
-
-def add_reporting_args(p):
-    grp = p.add_argument_group(
-        title="reporting arguments")
-    grp.add_argument(
-        '--rows-per-pade',
-        type=int,
-        default=100,
-        help="Number of rows to display on each pade of the report"),
-
 
 def add_model_args(p):
     grp = p.add_argument_group(
@@ -886,19 +868,14 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
         help="Path to the db file to read results from",
         default="pade_db.h5")
     report_parser.add_argument(
-        '--report-directory',
-        default='pade_report',
-        help="The directory to write the report to")
-    report_parser.add_argument(
-        '--text',
-        action='store_true',
-        help="Indicates that text reports should be produced")
-    report_parser.add_argument(
         '--html',
         action='store_true',
         help="Indicates that HTML reports should be produced")
 
-    add_reporting_args(report_parser)
+    report_parser.add_argument(
+        '--output', '-o',
+        default="pade_report.txt",
+        help="""Location to write report to""")
 
     server_parser = subparsers.add_parser(
         'server',
