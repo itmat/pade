@@ -126,9 +126,9 @@ class Ftest(LayoutPairTest):
     >>> b = np.array([2., 1.,  1., 1.])
     >>> c = np.array([3., 1., 10., 4.])
 
-    The full layout has the first two columns in one group and the
-    second two in another. The reduced layout has all columns in one
-    group.
+    The condition layout has the first two columns in one group and
+    the second two in another. There is no blocking, so the block
+    layout has all columns in one group.
 
     >>> condition_layout = [[0, 1], [2, 3]]
     >>> block_layout     = [[0, 1, 2, 3]]
@@ -155,7 +155,6 @@ class Ftest(LayoutPairTest):
     def __init__(self, condition_layout, block_layout, alphas=None):
 
         super(Ftest, self).__init__(condition_layout, block_layout)
-
 
         full_layout = intersect_layouts(block_layout, condition_layout)
         if min(map(len, full_layout)) < 2:
@@ -243,8 +242,8 @@ class MeansRatio(LayoutPairTest):
                     conditions=conditions,
                     blocks=blocks))
 
-        self.alphas            = alphas
-        self.symmetric         = symmetric
+        self.alphas    = alphas
+        self.symmetric = symmetric
 
 
     def __call__(self, data):
