@@ -10,8 +10,9 @@ import numbers
 import numpy as np
 import numpy.ma as ma
 import scipy.stats
-
+import itertools
 import collections
+
 from pade.performance import profiling, profiled
 from pade.common import *
 from pade.layout import *
@@ -329,27 +330,29 @@ class OneSampleDifferenceTTest:
                 "There must be two conditions, and you have " + 
                 str(len(condition_layout)) + ".")
 
-        self.block_layout = block_layout
-        self.condition_layout = condition_layout
+        self.block_layout     = as_layout(block_layout)
+        self.condition_layout = as_layout(condition_layout)
         self.child = OneSampleTTest(alphas)
 
     def __call__(self, data):
         
-        pairs = map(set, self.block_layout)
-        conds = map(set, self.condition_layout)
+        pairs = self.block_layout
+        conds = self.condition_layout
+        values = []
 
-        idxs_a = []
-        idxs_b = []
+        for i in [ 0, 1 ]:
+            # Make a new layout that is just the item for each pair
+            # from condition i. layout will be a list of sets, each
+            # with just one index, since there is only one item from
+            # each pair with condition i. So flatten it into a list of
+            # indexes, and grab the corresponding values from the
+            # data.
+            layout = intersect_layouts(self.block_layout, [ conds[i] ])
+            idxs = list(itertools.chain(*idxs))
+            values.append(data[..., idxs])
 
-        for s in pairs:
-            idxs_a.extend(s.intersection(conds[0]))
-            idxs_b.extend(s.intersection(conds[1]))
+        # Now just get the differences between the two sets of values
+        # and call the child statistic on those values.
+        return self.child(values[0] - values[1])
 
-        a = data[..., idxs_a]
-        b = data[..., idxs_b]
-
-        diffs = data[..., idxs_a] - data[..., idxs_b]
-
-        res = self.child(diffs)
-        return res
         
