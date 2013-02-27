@@ -12,13 +12,22 @@ import numbers
 from itertools import combinations, product
 from scipy.misc import comb
 
+class InvalidLayoutException(Exception):
+    """Thrown when a layout is supplied that is invalid in some way."""
+
+
+
 def as_layout(layout):
     res = []
-    for group in layout:
-        if not all([ isinstance(x, (int, long)) for x in group]):
-            raise InvalidLayoutException(str(layout))
 
-    return map(set, layout) 
+    try:
+        for group in layout:
+            if not all([ isinstance(x, (int, long)) for x in group]):
+                raise InvalidLayoutException(str(layout))
+    except TypeError as e:
+        raise InvalidLayoutException("Invalid layout " + str(layout), e)
+
+    return map(set, layout)
 
 def intersect_layouts(layout0, layout1):
 

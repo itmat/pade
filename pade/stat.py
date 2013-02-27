@@ -20,9 +20,6 @@ class UnsupportedLayoutException(Exception):
     """Thrown when a statistic is used with a layout that it can't support."""
     pass
 
-class InvalidLayoutException(Exception):
-    """Thrown when a layout is supplied that is invalid in some way."""
-
 
 def group_means(data, layout):
     """Get the means for each group defined by layout.
@@ -94,7 +91,7 @@ def rss(data, layout=None):
       An n-dimensional array.
 
     :param layout:
-      If provided, the means will be calculated based on the grouping
+      If provided, the means will becalculated based on the grouping
       given by the layout applied to the last axis of data. Otherwise,
       no grouping will be used.
 
@@ -235,8 +232,8 @@ class MeansRatio:
                     conditions=conditions,
                     blocks=blocks))
 
-        self.condition_layout  = map(set, condition_layout)
-        self.block_layout      = map(set, block_layout)
+        self.condition_layout  = as_layout(condition_layout)
+        self.block_layout      = as_layout(block_layout)
         self.alphas            = alphas
         self.symmetric         = symmetric
 
@@ -249,8 +246,8 @@ class MeansRatio:
         # Build two new layouts. c0 is a list of lists of indexes into
         # the data that represent condition 0 for each block. c1 is
         # the same for data that represent condition 1 for each block.
-        c0_blocks = [ conds[0].intersection(x) for x in blocks ]
-        c1_blocks = [ conds[1].intersection(x) for x in blocks ]
+        c0_blocks = intersect_layouts(blocks, [ conds[0] ])
+        c1_blocks = intersect_layouts(blocks, [ conds[1] ])
 
         # Get the mean for each block for both conditions.
         means = np.array([group_means(data, c0_blocks),
