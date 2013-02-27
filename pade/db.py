@@ -86,10 +86,13 @@ class DB:
         self.bin_to_score = file.create_dataset("bin_to_score", data=self.bin_to_score)
         self.feature_to_score = file.create_dataset("feature_to_score", data=self.feature_to_score)
         self.raw_stats = file.create_dataset("raw_stats", data=self.raw_stats)
-        self.summary_bins = file.create_dataset("summary_bins", data=self.summary_bins)
-        self.summary_counts = file.create_dataset("summary_counts", data=self.summary_counts)
+
+        summary = file.create_group('summary')
+        summary['bins']            = self.summary_bins
+        summary['counts']          = self.summary_counts
+        summary['best_param_idxs'] = self.best_param_idxs
+
         self.sample_indexes = file.create_dataset("sample_indexes", data=self.sample_indexes)
-        self.best_param_idxs = file.create_dataset("best_param_idxs", data=self.best_param_idxs)
 
         self.group_means = file.create_dataset("group_means", data=self.group_means)
         self.group_means.attrs['headers'] = self.group_names
@@ -150,16 +153,25 @@ class DB:
 
         self.feature_to_score = file['feature_to_score'][...]
         self.raw_stats = file['raw_stats'][...]
-        self.summary_bins = file['summary_bins'][...]
-        self.summary_counts = file['summary_counts'][...]
+
+        # Summary counts by bin, based on optimal tuning params at each level
+        self.summary_bins    = file['summary']['bins'][...]
+        self.summary_counts  = file['summary']['counts'][...]
+        self.best_param_idxs = file['summary']['best_param_idxs'][...]
+
         self.sample_indexes = file['sample_indexes'][...]
-        self.best_param_idxs = file['best_param_idxs'][...]
+
         self.tuning_params = file['tuning_params'][...]
 
-        self.group_means  = file['group_means'][...]
-        self.coeff_values = file['coeff_values'][...]
-        self.fold_change  = file['fold_change'][...]
+        # Group means, coefficients, and fold change, with the header information
+        self.group_means             = file['group_means'][...]
+        self.coeff_values            = file['coeff_values'][...]
+        self.fold_change             = file['fold_change'][...]
+        self.group_names             = file['group_means'].attrs['headers']
+        self.fold_change_group_names = file['fold_change'].attrs['headers']
+        self.coeff_names             = file['coeff_values'].attrs['headers']
 
+        # Orderings
         self.ordering_by_score_original      = file['orderings']['score_original'][...]
         self.ordering_by_foldchange_original = file['orderings']['foldchange_original'][...]
 
@@ -172,10 +184,6 @@ class DB:
         self.sample_method = file.attrs['sample_method']
         self.full_model = Model(self.schema, file.attrs['full_model'])
         self.reduced_model = Model(self.schema, file.attrs['reduced_model'])
-
-        self.group_names             = file['group_means'].attrs['headers']
-        self.fold_change_group_names = file['fold_change'].attrs['headers']
-        self.coeff_names             = file['coeff_values'].attrs['headers']
 
         self.is_paired = file.attrs['is_paired']
         
