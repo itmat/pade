@@ -79,12 +79,13 @@ def residuals(data, layout):
 
     """
     means = group_means(data, layout)
-    diffs = np.zeros_like(data)
-    for i, idxs in enumerate(layout):
-        these_data  = data[..., idxs]
-        these_means = means[..., i].reshape(np.shape(these_data)[:-1] + (1,))
-        diffs[..., idxs] = these_data - these_means
-    return diffs
+    diffs = []
+    groups = apply_layout(data, layout)
+    
+    for i, group in enumerate(groups):
+        these_means = means[..., i].reshape(np.shape(group)[:-1] + (1,))
+        diffs.append(group - these_means)
+    return np.concatenate(diffs, axis=-1)
 
 def rss(data, layout=None):
     """Return the residual sum of squares for the data and optional layout.
