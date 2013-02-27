@@ -1,6 +1,24 @@
+"""Code for grouping samples together.
+
+A layout is simply a list of sets of numbers. Each number represents a
+a column number in the (feature x sample) table. Each set represents a
+group of samples that share the same value of some attribute. So the
+whole layout represents some grouping of samples.
+
+"""
+
 import numpy as np
+import numbers
 from itertools import combinations, product
 from scipy.misc import comb
+
+def as_layout(layout):
+    res = []
+    for group in layout:
+        if not all([ isinstance(x, (int, long)) for x in group]):
+            raise InvalidLayoutException(str(layout))
+
+    return map(set, layout) 
 
 def intersect_layouts(layout0, layout1):
 
@@ -14,8 +32,8 @@ def intersect_layouts(layout0, layout1):
 
     """
     layout = []
-    for a in map(set, layout0):
-        for b in map(set, layout1):
+    for a in as_layout(layout0):
+        for b in as_layout(layout1):
             c = a.intersection(b)
             if len(c) > 0:
                 layout.append(list(c))
@@ -165,7 +183,7 @@ def all_orderings(condition_layout, block_layout):
       
     """
     grouped = []
-    for i, block in enumerate(block_layout):
+    for i, block in enumerate(as_layout(block_layout)):
 
         cond_groups = intersect_layouts([ block ], condition_layout )
         sizes = map(len, cond_groups)
