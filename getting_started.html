@@ -175,45 +175,25 @@ gender and whether or not it was treated:</p>
 <h3>Running the analysis<a class="headerlink" href="#running-the-analysis" title="Permalink to this headline">¶</a></h3>
 <p>Once you have created the schema file, you are ready to run the
 analysis, using <tt class="docutils literal"><span class="pre">pade</span> <span class="pre">run</span></tt>. You&#8217;ll need to specify a couple options,
-most importantly <tt class="docutils literal"><span class="pre">--full-model</span></tt> and optionally <tt class="docutils literal"><span class="pre">--reduced-model</span></tt>.</p>
-<div class="section" id="full-model">
-<h4>Full model<a class="headerlink" href="#full-model" title="Permalink to this headline">¶</a></h4>
-<p><tt class="docutils literal"><span class="pre">--full-model</span></tt> allows you to specify a formula that indicates which
-variables should be considered, and whether or not you want to compute
-coefficients for interactions between those variables. If you just
-have one factor, or if you want to ignore all but one factor, you
-would just provide something like <tt class="docutils literal"><span class="pre">--full-model</span> <span class="pre">treated</span></tt>. If you
-want to consider two variables, say &#8220;treated&#8221; and &#8220;gender&#8221;, and you
-want to look for interaction effects, you would use:</p>
-<div class="highlight-python"><pre>--full-model "treated * gender"</pre>
-</div>
-<p>If you only want to consider main effects (not interactions), you would use:</p>
-<blockquote>
-<div>&#8211;full-model &#8220;treated + gender&#8221;</div></blockquote>
-</div>
-<div class="section" id="reduced-model">
-<h4>Reduced model<a class="headerlink" href="#reduced-model" title="Permalink to this headline">¶</a></h4>
-<p>If you have more than one variable in the full model, you may specify
-a reduced model, which must be a subset of the variables in the full
-model. The null hypothesis tested by Pade is that the variables in the
-reduced model describe the data as well as the variables in the full model.</p>
-<div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">That&#8217;s a terrible description...</p>
-</div>
-<p>For example, if your full model is &#8220;treated * gender&#8221; and you want to
-consider the effects of treatment only, then your reduced model would
-simply be &#8220;gender&#8221;. If your full model is &#8220;treated&#8221; (without
-considering gender at all), you would not provide a reduced model.</p>
-<div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">This could use work.</p>
+most importantly <tt class="docutils literal"><span class="pre">--condition</span></tt> and optionally <tt class="docutils literal"><span class="pre">--block</span></tt>.</p>
+<div class="section" id="condition-and-block">
+<h4>Condition and Block<a class="headerlink" href="#condition-and-block" title="Permalink to this headline">¶</a></h4>
+<p><tt class="docutils literal"><span class="pre">--condition</span></tt> allows you to specify the factor the represents the
+experimental condition that you want to test for differential
+effects. <tt class="docutils literal"><span class="pre">--block</span></tt> allows you to optionally specify &#8220;nuisance
+variables&#8221;. If you specify one or more blocking factors, permutations
+will be restricted by those factors, so that for every permutation,
+the labelling of those blocking factors does not change for any sample.</p>
+<p>For example, if you have factors &#8220;gender&#8221; and &#8220;treated&#8221;, and you want
+to test for differential effects due to treatment within each value of
+gender, you would run:</p>
+<div class="highlight-python"><pre>--condition treated --block gender</pre>
 </div>
 </div>
 <div class="section" id="default-settings">
 <h4>Default settings<a class="headerlink" href="#default-settings" title="Permalink to this headline">¶</a></h4>
 <p>The simplest Pade job for our 4-class sample input would be something like:</p>
-<div class="highlight-python"><pre>pade run --full-model "treated * gender" --reduced-model gender sample_data/sample_data_4_class.txt</pre>
+<div class="highlight-python"><pre>pade run --condition treated --block gender sample_data/sample_data_4_class.txt</pre>
 </div>
 <p>This should take less than a minute. Note that you need to provide the
 input file on the command line.</p>
@@ -233,6 +213,17 @@ permutation test) with <tt class="docutils literal"><span class="pre">--num-samp
 showing the distribution of the confidence levels. You can make it be
 more verbose with the <tt class="docutils literal"><span class="pre">--verbose</span></tt> or <tt class="docutils literal"><span class="pre">-v</span></tt> option. It will print
 even more debugging-level output if you give it <tt class="docutils literal"><span class="pre">--debug</span></tt> or <tt class="docutils literal"><span class="pre">-d</span></tt>.</p>
+<p>You can change the statistic pade uses with the &#8216;&#8211;stat&#8217;
+option. Currently we support the following statistics:</p>
+<dl class="docutils">
+<dt>f_test:</dt>
+<dd>F-test. Can only be used where each group has two or more samples.</dd>
+<dt>one_sample_t_test:</dt>
+<dd>Single sample t-test, for paired input only.</dd>
+<dt>means_ratio:</dt>
+<dd>Ratio of means. Can only be used when there are two conditions. Can
+be used with or without blocking. Works with paired data also.</dd>
+</dl>
 </div>
 </div>
 <div class="section" id="viewing-reports">
@@ -270,8 +261,7 @@ a browser to look at the reports.</p>
 <li><a class="reference internal" href="#input-files">Input files</a></li>
 <li><a class="reference internal" href="#creating-the-schema">Creating the schema</a></li>
 <li><a class="reference internal" href="#running-the-analysis">Running the analysis</a><ul>
-<li><a class="reference internal" href="#full-model">Full model</a></li>
-<li><a class="reference internal" href="#reduced-model">Reduced model</a></li>
+<li><a class="reference internal" href="#condition-and-block">Condition and Block</a></li>
 <li><a class="reference internal" href="#default-settings">Default settings</a></li>
 <li><a class="reference internal" href="#interesting-options">Interesting options</a></li>
 </ul>

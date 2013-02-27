@@ -1,0 +1,322 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pade.model &mdash; PaGE 6.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '6.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="PaGE 6.0 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">PaGE 6.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for pade.model</h1><div class="highlight"><pre>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">namedtuple</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">combinations</span><span class="p">,</span> <span class="n">product</span>
+<span class="kn">import</span> <span class="nn">StringIO</span>
+<span class="kn">import</span> <span class="nn">tokenize</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+
+<div class="viewcode-block" id="ModelExpressionException"><a class="viewcode-back" href="../../api.html#pade.model.ModelExpressionException">[docs]</a><span class="k">class</span> <span class="nc">ModelExpressionException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Thrown when a model expression is invalid.&quot;&quot;&quot;</span>
+    <span class="k">pass</span>
+
+</div>
+<span class="n">DummyVarTable</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span>
+    <span class="s">&quot;DummyVarTable&quot;</span><span class="p">,</span>
+    <span class="p">[</span><span class="s">&quot;names&quot;</span><span class="p">,</span> <span class="s">&quot;rows&quot;</span><span class="p">])</span>
+
+<span class="n">DummyVarAssignment</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span>
+    <span class="s">&quot;DummyVarAssignment&quot;</span><span class="p">,</span>
+    <span class="p">[</span><span class="s">&quot;factor_values&quot;</span><span class="p">,</span>
+     <span class="s">&quot;bits&quot;</span><span class="p">,</span>
+     <span class="s">&quot;indexes&quot;</span><span class="p">])</span>
+
+<span class="n">FittedModel</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span>
+    <span class="s">&quot;FittedModel&quot;</span><span class="p">,</span>
+    <span class="p">[</span><span class="s">&quot;labels&quot;</span><span class="p">,</span>
+     <span class="s">&quot;x&quot;</span><span class="p">,</span>
+     <span class="s">&quot;y_indexes&quot;</span><span class="p">,</span>
+     <span class="s">&quot;params&quot;</span><span class="p">])</span>
+
+
+<span class="k">class</span> <span class="nc">ModelExpression</span><span class="p">:</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
+                 <span class="n">operator</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                 <span class="n">variables</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="n">variables</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">variables</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c"># If we have two or mor vars, make sure we have a valid operator</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">variables</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">operator</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;Operator must be supplied for two or more variables&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">operator</span> <span class="ow">not</span> <span class="ow">in</span> <span class="s">&quot;+*&quot;</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;Operator must be &#39;+&#39; or &#39;*&#39;&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">operator</span> <span class="o">=</span> <span class="n">operator</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">variables</span> <span class="o">=</span> <span class="n">variables</span>
+
+        
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">string</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Parse a model from a string.</span>
+
+<span class="sd">        string can either be &quot;VARIABLE&quot;, &quot;VARIABLE * VARIABLE&quot;, or</span>
+<span class="sd">        &quot;VARIABLE + VARIABLE&quot;. We may support more complex models</span>
+<span class="sd">        later on.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">string</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">string</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">==</span> <span class="s">&#39;&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">ModelExpression</span><span class="p">()</span>
+
+        <span class="n">operator</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="n">variables</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="n">io</span> <span class="o">=</span> <span class="n">StringIO</span><span class="o">.</span><span class="n">StringIO</span><span class="p">(</span><span class="n">string</span><span class="p">)</span>
+        <span class="n">toks</span> <span class="o">=</span> <span class="n">tokenize</span><span class="o">.</span><span class="n">generate_tokens</span><span class="p">(</span><span class="k">lambda</span> <span class="p">:</span> <span class="n">io</span><span class="o">.</span><span class="n">readline</span><span class="p">())</span>
+
+        <span class="c"># First token should always be a variable</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">toks</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
+        <span class="p">(</span><span class="n">tok_type</span><span class="p">,</span> <span class="n">tok</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span> <span class="o">=</span> <span class="n">t</span>
+        <span class="k">if</span> <span class="n">tok_type</span> <span class="o">!=</span> <span class="n">tokenize</span><span class="o">.</span><span class="n">NAME</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ModelExpressionException</span><span class="p">(</span><span class="s">&quot;Unexpected token &quot;</span> <span class="o">+</span> <span class="n">tok</span><span class="p">)</span>
+        <span class="n">variables</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tok</span><span class="p">)</span>
+
+        <span class="c"># Second token should be either the end marker or + or *</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">toks</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
+        <span class="p">(</span><span class="n">tok_type</span><span class="p">,</span> <span class="n">tok</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span> <span class="o">=</span> <span class="n">t</span>
+        <span class="k">if</span> <span class="n">tok_type</span> <span class="o">==</span> <span class="n">tokenize</span><span class="o">.</span><span class="n">ENDMARKER</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">ModelExpression</span><span class="p">(</span><span class="n">variables</span><span class="o">=</span><span class="n">variables</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">tok_type</span> <span class="o">==</span> <span class="n">tokenize</span><span class="o">.</span><span class="n">OP</span><span class="p">:</span>
+            <span class="n">operator</span> <span class="o">=</span> <span class="n">tok</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ModelExpressionException</span><span class="p">(</span><span class="s">&quot;Unexpected token &quot;</span> <span class="o">+</span> <span class="n">tok</span><span class="p">)</span>
+
+        <span class="n">t</span> <span class="o">=</span> <span class="n">toks</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
+        <span class="p">(</span><span class="n">tok_type</span><span class="p">,</span> <span class="n">tok</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span> <span class="o">=</span> <span class="n">t</span>
+        <span class="k">if</span> <span class="n">tok_type</span> <span class="o">!=</span> <span class="n">tokenize</span><span class="o">.</span><span class="n">NAME</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ModelExpressionException</span><span class="p">(</span><span class="s">&quot;Unexpected token &quot;</span> <span class="o">+</span> <span class="n">tok</span><span class="p">)</span>
+        <span class="n">variables</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tok</span><span class="p">)</span>
+
+        <span class="n">t</span> <span class="o">=</span> <span class="n">toks</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
+        <span class="p">(</span><span class="n">tok_type</span><span class="p">,</span> <span class="n">tok</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span> <span class="o">=</span> <span class="n">t</span>
+        <span class="k">if</span> <span class="n">tok_type</span> <span class="o">!=</span> <span class="n">tokenize</span><span class="o">.</span><span class="n">ENDMARKER</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ModelExpressionException</span><span class="p">(</span><span class="s">&quot;Expected end of expression, got &quot;</span> <span class="o">+</span> <span class="n">tok</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">variables</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">ModelExpression</span><span class="p">(</span><span class="n">operator</span><span class="o">=</span><span class="n">operator</span><span class="p">,</span> <span class="n">variables</span><span class="o">=</span><span class="n">variables</span><span class="p">)</span>
+
+
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s">&quot;&quot;</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">op</span> <span class="o">=</span> <span class="s">&quot; &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">operator</span> <span class="o">+</span> <span class="s">&quot; &quot;</span>
+            <span class="k">return</span> <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">Model</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">schema</span><span class="p">,</span> <span class="n">expr</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">schema</span> <span class="o">=</span> <span class="n">schema</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">expr</span> <span class="o">=</span> <span class="n">ModelExpression</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">validate_model</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">validate_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Validate the model against the given schema.</span>
+
+<span class="sd">        Raises an exception if the model refers to any variables that are</span>
+<span class="sd">        not defined in schema.</span>
+<span class="sd">        </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">for</span> <span class="n">factor</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">expr</span><span class="o">.</span><span class="n">variables</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">factor</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">factors</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;Factor &#39;&quot;</span> <span class="o">+</span> <span class="n">factor</span> <span class="o">+</span> <span class="s">&quot;&#39; is not defined in the schema. Valid factors are &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">factors</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">layout</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">indexes_with_assignments</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">s</span><span class="o">.</span><span class="n">possible_assignments</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">expr</span><span class="o">.</span><span class="n">variables</span><span class="p">)]</span>
+
+
+    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Computing coefficients using least squares for &quot;</span> <span class="o">+</span>
+                 <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">))</span> <span class="o">+</span> <span class="s">&quot; rows&quot;</span><span class="p">)</span>
+
+        <span class="n">effect_level</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">expr</span><span class="o">.</span><span class="n">operator</span> <span class="o">==</span> <span class="s">&#39;+&#39;</span> <span class="k">else</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">expr</span><span class="o">.</span><span class="n">variables</span><span class="p">)</span>
+
+        <span class="n">dummies</span> <span class="o">=</span> <span class="n">dummy_vars</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="n">effect_level</span><span class="p">,</span> <span class="n">factors</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">expr</span><span class="o">.</span><span class="n">variables</span><span class="p">)</span>
+
+        <span class="n">x</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">indexes</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">dummies</span><span class="o">.</span><span class="n">rows</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">row</span><span class="o">.</span><span class="n">indexes</span><span class="p">:</span>
+                <span class="n">x</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">bits</span><span class="p">)</span>
+                <span class="n">indexes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">sample_name_index</span><span class="p">[</span><span class="n">index</span><span class="p">])</span>
+
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span>
+
+        <span class="n">num_vars</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">shape</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="n">num_vars</span><span class="p">))</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">indexes</span><span class="p">]</span>
+            <span class="p">(</span><span class="n">coeffs</span><span class="p">,</span> <span class="n">residuals</span><span class="p">,</span> <span class="n">rank</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">lstsq</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+            <span class="n">result</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">coeffs</span>
+
+        <span class="k">return</span> <span class="n">FittedModel</span><span class="p">(</span><span class="n">dummies</span><span class="o">.</span><span class="n">names</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">indexes</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="dummy_vars"><a class="viewcode-back" href="../../api.html#pade.model.dummy_vars">[docs]</a><span class="k">def</span> <span class="nf">dummy_vars</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">factors</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    level=0 is intercept only</span>
+<span class="sd">    level=1 is intercept plus main effects</span>
+<span class="sd">    level=2 is intercept, main effects, interactions between two variables</span>
+<span class="sd">    ...</span>
+<span class="sd">    level=n is intercept, main effects, interactions between n variables</span>
+
+<span class="sd">    &quot;&quot;&quot;</span> 
+    <span class="n">factors</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">_check_factors</span><span class="p">(</span><span class="n">factors</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">level</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">dummy_vars</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">factors</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">factors</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">level</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">names</span> <span class="o">=</span> <span class="p">({},)</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">schema</span><span class="o">.</span><span class="n">possible_assignments</span><span class="p">(</span><span class="n">factors</span><span class="p">):</span>
+            <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">DummyVarAssignment</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">values</span><span class="p">(),</span> <span class="p">(</span><span class="bp">True</span><span class="p">,),</span> <span class="n">schema</span><span class="o">.</span><span class="n">samples_with_assignments</span><span class="p">(</span><span class="n">a</span><span class="p">)))</span>
+        <span class="k">return</span> <span class="n">DummyVarTable</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="n">rows</span><span class="p">)</span>
+
+    <span class="n">res</span> <span class="o">=</span> <span class="n">dummy_vars</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">factors</span><span class="p">,</span> <span class="n">level</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">col_names</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">names</span><span class="p">)</span>
+    <span class="n">rows</span>      <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">rows</span><span class="p">)</span>
+
+    <span class="c"># Get col names</span>
+    <span class="k">for</span> <span class="n">interacting</span> <span class="ow">in</span> <span class="n">combinations</span><span class="p">(</span><span class="n">factors</span><span class="p">,</span> <span class="n">level</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">schema</span><span class="o">.</span><span class="n">factor_combinations</span><span class="p">(</span><span class="n">interacting</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">schema</span><span class="o">.</span><span class="n">has_baseline</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">interacting</span><span class="p">,</span> <span class="n">a</span><span class="p">))):</span>
+                <span class="k">continue</span>
+            <span class="n">col_names</span> <span class="o">+=</span> <span class="p">({</span> <span class="n">interacting</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="p">:</span> <span class="n">a</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">interacting</span><span class="p">))</span> <span class="p">},)</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">dummy</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">rows</span><span class="p">):</span>
+        <span class="p">(</span><span class="n">factor_values</span><span class="p">,</span> <span class="n">bits</span><span class="p">,</span> <span class="n">indexes</span><span class="p">)</span> <span class="o">=</span> <span class="n">dummy</span>
+
+        <span class="c"># For each subset of factors of size level</span>
+        <span class="k">for</span> <span class="n">interacting</span> <span class="ow">in</span> <span class="n">combinations</span><span class="p">(</span><span class="n">factors</span><span class="p">,</span> <span class="n">level</span><span class="p">):</span>
+
+            <span class="n">my_vals</span> <span class="o">=</span> <span class="p">()</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">factors</span><span class="p">)):</span>
+                <span class="k">if</span> <span class="n">factors</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="ow">in</span> <span class="n">interacting</span><span class="p">:</span>
+                    <span class="n">my_vals</span> <span class="o">+=</span> <span class="p">(</span><span class="n">factor_values</span><span class="p">[</span><span class="n">j</span><span class="p">],)</span>
+
+            <span class="c"># For each possible assignment of values to these factors</span>
+            <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">schema</span><span class="o">.</span><span class="n">factor_combinations</span><span class="p">(</span><span class="n">interacting</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">schema</span><span class="o">.</span><span class="n">has_baseline</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">interacting</span><span class="p">,</span> <span class="n">a</span><span class="p">))):</span>
+                    <span class="k">continue</span>
+
+                <span class="c"># Test if this row of the result table has all the</span>
+                <span class="c"># values in this assignment</span>
+                <span class="n">matches</span> <span class="o">=</span> <span class="n">my_vals</span> <span class="o">==</span> <span class="n">a</span>
+                <span class="n">bits</span> <span class="o">=</span> <span class="n">bits</span> <span class="o">+</span> <span class="p">(</span><span class="n">matches</span><span class="p">,)</span>
+
+        <span class="n">rows</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">DummyVarAssignment</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">factor_values</span><span class="p">),</span> <span class="n">bits</span><span class="p">,</span> <span class="n">indexes</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">DummyVarTable</span><span class="p">(</span><span class="n">col_names</span><span class="p">,</span> <span class="n">rows</span><span class="p">)</span>
+</pre></div></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">PaGE 6.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, University of Pennsylvania.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.2.
+    </div>
+  </body>
+</html>

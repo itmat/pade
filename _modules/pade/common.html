@@ -129,7 +129,24 @@
     <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
             <span class="k">raise</span> <span class="n">e</span>
-</pre></div></div>
+</div>
+<span class="k">def</span> <span class="nf">assignment_name</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s">&quot;intercept&quot;</span>
+    
+    <span class="n">parts</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;{0}={1}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">a</span><span class="o">.</span><span class="n">items</span><span class="p">()]</span>
+
+    <span class="k">return</span> <span class="s">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">adjust_num_diff</span><span class="p">(</span><span class="n">V0</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">num_ids</span><span class="p">):</span>
+    <span class="n">V</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">6</span><span class="p">,)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">V0</span><span class="p">))</span>
+    <span class="n">V</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">V0</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">6</span><span class="p">):</span>
+        <span class="n">V</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">V</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">V</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">num_ids</span> <span class="o">*</span> <span class="p">(</span><span class="n">R</span> <span class="o">-</span> <span class="n">V</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">V</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
+</pre></div>
 
           </div>
         </div>

@@ -102,6 +102,198 @@ created or if it already existed.</p>
 </dd></dl>
 
 </div>
+<div class="section" id="module-pade.db">
+<span id="pade-db"></span><h2>pade.db<a class="headerlink" href="#module-pade.db" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-pade.main">
+<span id="pade-main"></span><h2>pade.main<a class="headerlink" href="#module-pade.main" title="Permalink to this headline">¶</a></h2>
+<p>The main program for pade.</p>
+<dl class="exception">
+<dt id="pade.main.UsageException">
+<em class="property">exception </em><tt class="descclassname">pade.main.</tt><tt class="descname">UsageException</tt><a class="reference internal" href="_modules/pade/main.html#UsageException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.main.UsageException" title="Permalink to this definition">¶</a></dt>
+<dd><p>Thrown when the user gave invalid parameters.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pade.main.compute_coeffs">
+<tt class="descclassname">pade.main.</tt><tt class="descname">compute_coeffs</tt><big>(</big><em>db</em><big>)</big><a class="reference internal" href="_modules/pade/main.html#compute_coeffs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.main.compute_coeffs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the coefficients for the full model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>db</strong> &#8211; The page.db.DB</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A (names, values) tuple where values is a (feature x coeff)
+array giving the value of each coefficient for each feature, and
+names is the list of names of the coefficients.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pade.main.compute_fold_change">
+<tt class="descclassname">pade.main.</tt><tt class="descname">compute_fold_change</tt><big>(</big><em>db</em><big>)</big><a class="reference internal" href="_modules/pade/main.html#compute_fold_change"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.main.compute_fold_change" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute fold change.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>db</strong> &#8211; The pade.db.DB</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A (names, values) tuple where values is a (feature x group)
+array giving the fold change for each group for each feature,
+and names is the list of names for the groups.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pade.main.compute_means">
+<tt class="descclassname">pade.main.</tt><tt class="descname">compute_means</tt><big>(</big><em>db</em><big>)</big><a class="reference internal" href="_modules/pade/main.html#compute_means"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.main.compute_means" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the means for each group in the full model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>db</strong> &#8211; The pade.db.DB</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A (names, values) tuple where values is a (feature x group)
+ndarray that gives the mean for each group for each feature. The
+groups are based on the &#8216;full model&#8217; (combination of condition
+variables and blocking variables)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pade.main.get_arguments">
+<tt class="descclassname">pade.main.</tt><tt class="descname">get_arguments</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/pade/main.html#get_arguments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.main.get_arguments" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse the command line options and return an argparse args
+object.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pade.main.init_schema">
+<tt class="descclassname">pade.main.</tt><tt class="descname">init_schema</tt><big>(</big><em>infile=None</em><big>)</big><a class="reference internal" href="_modules/pade/main.html#init_schema"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.main.init_schema" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a new schema based on the given infile.</p>
+<p>Does not save it or make any changes to the state of the file
+system.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pade.main.new_sample_indexes">
+<tt class="descclassname">pade.main.</tt><tt class="descname">new_sample_indexes</tt><big>(</big><em>db</em><big>)</big><a class="reference internal" href="_modules/pade/main.html#new_sample_indexes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.main.new_sample_indexes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create array of sample indexes and store in db.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pade.main.stat_for_name">
+<tt class="descclassname">pade.main.</tt><tt class="descname">stat_for_name</tt><big>(</big><em>db</em><big>)</big><a class="reference internal" href="_modules/pade/main.html#stat_for_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.main.stat_for_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>The statistic used for this job.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pade.main.summarize_by_conf_level">
+<tt class="descclassname">pade.main.</tt><tt class="descname">summarize_by_conf_level</tt><big>(</big><em>db</em><big>)</big><a class="reference internal" href="_modules/pade/main.html#summarize_by_conf_level"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.main.summarize_by_conf_level" title="Permalink to this definition">¶</a></dt>
+<dd><p>Modify db to summarize the counts by conf level</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-pade.model">
+<span id="pade-model"></span><h2>pade.model<a class="headerlink" href="#module-pade.model" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="pade.model.DummyVarAssignment">
+<em class="property">class </em><tt class="descclassname">pade.model.</tt><tt class="descname">DummyVarAssignment</tt><a class="headerlink" href="#pade.model.DummyVarAssignment" title="Permalink to this definition">¶</a></dt>
+<dd><p>DummyVarAssignment(factor_values, bits, indexes)</p>
+<dl class="attribute">
+<dt id="pade.model.DummyVarAssignment.bits">
+<tt class="descname">bits</tt><a class="headerlink" href="#pade.model.DummyVarAssignment.bits" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pade.model.DummyVarAssignment.factor_values">
+<tt class="descname">factor_values</tt><a class="headerlink" href="#pade.model.DummyVarAssignment.factor_values" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pade.model.DummyVarAssignment.indexes">
+<tt class="descname">indexes</tt><a class="headerlink" href="#pade.model.DummyVarAssignment.indexes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 2</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pade.model.DummyVarTable">
+<em class="property">class </em><tt class="descclassname">pade.model.</tt><tt class="descname">DummyVarTable</tt><a class="headerlink" href="#pade.model.DummyVarTable" title="Permalink to this definition">¶</a></dt>
+<dd><p>DummyVarTable(names, rows)</p>
+<dl class="attribute">
+<dt id="pade.model.DummyVarTable.names">
+<tt class="descname">names</tt><a class="headerlink" href="#pade.model.DummyVarTable.names" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pade.model.DummyVarTable.rows">
+<tt class="descname">rows</tt><a class="headerlink" href="#pade.model.DummyVarTable.rows" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pade.model.FittedModel">
+<em class="property">class </em><tt class="descclassname">pade.model.</tt><tt class="descname">FittedModel</tt><a class="headerlink" href="#pade.model.FittedModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>FittedModel(labels, x, y_indexes, params)</p>
+<dl class="attribute">
+<dt id="pade.model.FittedModel.labels">
+<tt class="descname">labels</tt><a class="headerlink" href="#pade.model.FittedModel.labels" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pade.model.FittedModel.params">
+<tt class="descname">params</tt><a class="headerlink" href="#pade.model.FittedModel.params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 3</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pade.model.FittedModel.x">
+<tt class="descname">x</tt><a class="headerlink" href="#pade.model.FittedModel.x" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pade.model.FittedModel.y_indexes">
+<tt class="descname">y_indexes</tt><a class="headerlink" href="#pade.model.FittedModel.y_indexes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 2</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="exception">
+<dt id="pade.model.ModelExpressionException">
+<em class="property">exception </em><tt class="descclassname">pade.model.</tt><tt class="descname">ModelExpressionException</tt><a class="reference internal" href="_modules/pade/model.html#ModelExpressionException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.model.ModelExpressionException" title="Permalink to this definition">¶</a></dt>
+<dd><p>Thrown when a model expression is invalid.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pade.model.dummy_vars">
+<tt class="descclassname">pade.model.</tt><tt class="descname">dummy_vars</tt><big>(</big><em>schema</em>, <em>factors=None</em>, <em>level=None</em><big>)</big><a class="reference internal" href="_modules/pade/model.html#dummy_vars"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.model.dummy_vars" title="Permalink to this definition">¶</a></dt>
+<dd><p>level=0 is intercept only
+level=1 is intercept plus main effects
+level=2 is intercept, main effects, interactions between two variables
+...
+level=n is intercept, main effects, interactions between n variables</p>
+</dd></dl>
+
+</div>
 <div class="section" id="module-pade.schema">
 <span id="pade-schema"></span><h2>pade.schema<a class="headerlink" href="#module-pade.schema" title="Permalink to this headline">¶</a></h2>
 <p>Describes a PaGE input file.</p>
@@ -245,151 +437,149 @@ sample.</p>
 <span id="pade-stat"></span><h2>pade.stat<a class="headerlink" href="#module-pade.stat" title="Permalink to this headline">¶</a></h2>
 <p>Low-level statistical methods.</p>
 <p>This module should be general-purpose, and not have any dependencies
-on the data model used in Pade or the workflow. The idea is that we
-may use these functions outside of the standard Pade workflow.</p>
+on the data model used in PADE or the workflow. The idea is that we
+may use these functions outside of the standard PADE workflow.</p>
 <dl class="class">
-<dt id="pade.stat.Accumulator">
-<em class="property">class </em><tt class="descclassname">pade.stat.</tt><tt class="descname">Accumulator</tt><a class="headerlink" href="#pade.stat.Accumulator" title="Permalink to this definition">¶</a></dt>
-<dd><p>Accumulator(initializer, reduce_fn, finalize_fn)</p>
-<dl class="attribute">
-<dt id="pade.stat.Accumulator.finalize_fn">
-<tt class="descname">finalize_fn</tt><a class="headerlink" href="#pade.stat.Accumulator.finalize_fn" title="Permalink to this definition">¶</a></dt>
-<dd><p>Alias for field number 2</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="pade.stat.Accumulator.initializer">
-<tt class="descname">initializer</tt><a class="headerlink" href="#pade.stat.Accumulator.initializer" title="Permalink to this definition">¶</a></dt>
-<dd><p>Alias for field number 0</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="pade.stat.Accumulator.reduce_fn">
-<tt class="descname">reduce_fn</tt><a class="headerlink" href="#pade.stat.Accumulator.reduce_fn" title="Permalink to this definition">¶</a></dt>
-<dd><p>Alias for field number 1</p>
-</dd></dl>
-
+<dt id="pade.stat.Ftest">
+<em class="property">class </em><tt class="descclassname">pade.stat.</tt><tt class="descname">Ftest</tt><big>(</big><em>condition_layout</em>, <em>block_layout</em>, <em>alphas=None</em><big>)</big><a class="reference internal" href="_modules/pade/stat.html#Ftest"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.Ftest" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the F-test.</p>
+<p>Some sample data</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">2.</span><span class="p">,</span>  <span class="mf">3.</span><span class="p">,</span> <span class="mf">6.</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">2.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span>  <span class="mf">1.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">3.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="mf">10.</span><span class="p">,</span> <span class="mf">4.</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>The condition layout has the first two columns in one group and
+the second two in another. There is no blocking, so the block
+layout has all columns in one group.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">condition_layout</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">block_layout</span>     <span class="o">=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]]</span>
+</pre></div>
+</div>
+<p>Construct one ftest based on our layouts</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">ftest</span> <span class="o">=</span> <span class="n">Ftest</span><span class="p">(</span><span class="n">condition_layout</span><span class="p">,</span> <span class="n">block_layout</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Test one row</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="nb">round</span><span class="p">(</span><span class="n">ftest</span><span class="p">(</span><span class="n">a</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
+<span class="go">3.6</span>
+</pre></div>
+</div>
+<p>Test multiple rows at once</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ftest</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+<span class="go">array([ 3.6,  1. ,  2.5])</span>
+</pre></div>
+</div>
 </dd></dl>
 
 <dl class="class">
-<dt id="pade.stat.FtestSqrt">
-<em class="property">class </em><tt class="descclassname">pade.stat.</tt><tt class="descname">FtestSqrt</tt><big>(</big><em>layout_full</em>, <em>layout_reduced</em><big>)</big><a class="reference internal" href="_modules/pade/stat.html#FtestSqrt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.FtestSqrt" title="Permalink to this definition">¶</a></dt>
-<dd><p>Statistic that gives the square root of the f-test.</p>
-<p>This is a simple wrapper around the Ftest that returns its square
-root. You can use this to simulate a t-test between two groups.</p>
+<dt id="pade.stat.MeansRatio">
+<em class="property">class </em><tt class="descclassname">pade.stat.</tt><tt class="descname">MeansRatio</tt><big>(</big><em>condition_layout</em>, <em>block_layout</em>, <em>alphas=None</em>, <em>symmetric=True</em><big>)</big><a class="reference internal" href="_modules/pade/stat.html#MeansRatio"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.MeansRatio" title="Permalink to this definition">¶</a></dt>
+<dd><p>Means ratio statistic.</p>
+<p>Supports layouts where there are two experimental conditions, with
+or without blocking.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>condition_layout</strong> &#8211; A layout that groups the sample indexes together into groups
+that have the same experimental condition. MeansRatio only
+supports designs where there are exactly two conditions, so
+len(condition_layout) must be 2.</li>
+<li><strong>block_layout</strong> &#8211; If the input has blocking variables, then block layout
+should be a layout that groups the sample indexes together
+by block.</li>
+<li><strong>alphas</strong> &#8211; Optional array of &#8220;tuning parameters&#8221;.</li>
+<li><strong>symmetric</strong> &#8211; If true, gives the inverse of the ratio when the ratio is less
+than 1. Use this when it does not matter which condition is
+greater than the other one.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="class">
-<dt id="pade.stat.Ttest">
-<em class="property">class </em><tt class="descclassname">pade.stat.</tt><tt class="descname">Ttest</tt><big>(</big><em>alpha</em><big>)</big><a class="reference internal" href="_modules/pade/stat.html#Ttest"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.Ttest" title="Permalink to this definition">¶</a></dt>
-<dd><p class="deprecated">
-<span class="versionmodified">Deprecated since version 1.0.</span></p>
-<p>This is the original Ttest implementation, but it probably doesn&#8217;t
-actually work with the current Pade, since it expects a statistic
-that takes <em>all</em> the groups and returns <em>one</em> statistic per
-feature. We may restore this in the future.</p>
-<dl class="classmethod">
-<dt id="pade.stat.Ttest.find_default_alpha">
-<em class="property">classmethod </em><tt class="descname">find_default_alpha</tt><big>(</big><em>table</em><big>)</big><a class="reference internal" href="_modules/pade/stat.html#Ttest.find_default_alpha"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.Ttest.find_default_alpha" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return a default value for alpha.</p>
-<p>Table should be an ndarray, with shape (conditions, samples, features).</p>
+<dt id="pade.stat.OneSampleDifferenceTTest">
+<em class="property">class </em><tt class="descclassname">pade.stat.</tt><tt class="descname">OneSampleDifferenceTTest</tt><big>(</big><em>condition_layout</em>, <em>block_layout</em>, <em>alphas=None</em><big>)</big><a class="reference internal" href="_modules/pade/stat.html#OneSampleDifferenceTTest"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.OneSampleDifferenceTTest" title="Permalink to this definition">¶</a></dt>
+<dd><p>A one-sample t-test where the input is given as pairs.</p>
+<p>Input with two features (one on each row), eight samples
+arranged as four pairs.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">table</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">3</span><span class="p">]])</span>
+</pre></div>
+</div>
+<p>Pairs are grouped together. Assume we have two conditions, the
+even numbered samples are one condition and the odd numbered ones
+are the other</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">block_layout</span>     <span class="o">=</span> <span class="p">[</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span> <span class="p">[</span><span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">]</span> <span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">condition_layout</span> <span class="o">=</span> <span class="p">[</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">7</span><span class="p">]</span> <span class="p">]</span>
+</pre></div>
+</div>
+<p>Construct the test function with the condition and block layouts.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">test</span> <span class="o">=</span> <span class="n">OneSampleDifferenceTTest</span><span class="p">(</span><span class="n">condition_layout</span><span class="p">,</span> <span class="n">block_layout</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Apply it to 1d input (the first feature in the table):</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="nb">round</span><span class="p">(</span><span class="n">test</span><span class="p">(</span><span class="n">table</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="mi">7</span><span class="p">)</span>
+<span class="go">4.472136</span>
+</pre></div>
+</div>
+<p>Now 2d input (both features in the table):</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">results</span> <span class="o">=</span> <span class="n">test</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="nb">round</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">7</span><span class="p">)</span>
+<span class="go">4.472136</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="nb">round</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">7</span><span class="p">)</span>
+<span class="go">0.5656854</span>
+</pre></div>
+</div>
 </dd></dl>
 
-</dd></dl>
-
-<dl class="function">
-<dt id="pade.stat.bins_custom">
-<tt class="descclassname">pade.stat.</tt><tt class="descname">bins_custom</tt><big>(</big><em>num_bins</em>, <em>stats</em><big>)</big><a class="reference internal" href="_modules/pade/stat.html#bins_custom"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.bins_custom" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get an array of bin edges based on the actual computed
-statistic values. stats is an array of length n. Returns an array
-of length num_bins + 1, where bins[m, n] and bins[m + 1, n] define
-a bin in which to count features for condition n. There is a bin
-edge for negative and positive infinity, and one for each
-statistic value.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="pade.stat.bins_uniform">
-<tt class="descclassname">pade.stat.</tt><tt class="descname">bins_uniform</tt><big>(</big><em>num_bins</em>, <em>stats</em><big>)</big><a class="reference internal" href="_modules/pade/stat.html#bins_uniform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.bins_uniform" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns a set of evenly sized bins for the given stats.</p>
-<p>Stats should be an array of statistic values, and num_bins should
-be an integer. Returns an array of bin edges, of size num_bins +
-1. The bins are evenly spaced between the smallest and largest
-value in stats.</p>
-<p>Note that this may not be the best method for binning the
-statistics, especially if the distribution is heavily skewed
-towards one end.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="pade.stat.cumulative_hist">
-<tt class="descclassname">pade.stat.</tt><tt class="descname">cumulative_hist</tt><big>(</big><em>values</em>, <em>bins</em><big>)</big><a class="reference internal" href="_modules/pade/stat.html#cumulative_hist"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.cumulative_hist" title="Permalink to this definition">¶</a></dt>
-<dd><p>Create a cumulative histogram for values using the given bins.</p>
-<p>The shape of values and bins must be the same except for the last
-dimension.  So np.shape(values)[:-1] must equal
-np.shape(bins[:-1]). The last dimension of values is simply a
-listing of values. The last dimension of bins is the list of bin
-edges for the histogram.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="pade.stat.cumulative_hist_shape">
-<tt class="descclassname">pade.stat.</tt><tt class="descname">cumulative_hist_shape</tt><big>(</big><em>bins</em><big>)</big><a class="reference internal" href="_modules/pade/stat.html#cumulative_hist_shape"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.cumulative_hist_shape" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the shape of the histogram with the given bins.</p>
-<p>The shape is similar to that of bins, except the last dimension
-has one less element.</p>
+<dl class="exception">
+<dt id="pade.stat.UnsupportedLayoutException">
+<em class="property">exception </em><tt class="descclassname">pade.stat.</tt><tt class="descname">UnsupportedLayoutException</tt><a class="reference internal" href="_modules/pade/stat.html#UnsupportedLayoutException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.UnsupportedLayoutException" title="Permalink to this definition">¶</a></dt>
+<dd><p>Thrown when a statistic is used with a layout that it can&#8217;t support.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="pade.stat.group_means">
 <tt class="descclassname">pade.stat.</tt><tt class="descname">group_means</tt><big>(</big><em>data</em>, <em>layout</em><big>)</big><a class="reference internal" href="_modules/pade/stat.html#group_means"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.group_means" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get the means for each group defined by layout.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="pade.stat.group_rss">
-<tt class="descclassname">pade.stat.</tt><tt class="descname">group_rss</tt><big>(</big><em>data</em>, <em>layout</em><big>)</big><a class="reference internal" href="_modules/pade/stat.html#group_rss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.group_rss" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return the residual sum of squares for the data with the layout.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">group_rss</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">6</span><span class="p">],</span> <span class="nb">float</span><span class="p">),</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]])</span>
-<span class="go">5.0</span>
+<p>Groups data according to the given layout and returns a new
+ndarray with the same number of dimensions as data, but with the
+last dimension replaced by the means according to the specified
+grouping.</p>
+<p>One dimensional input:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">group_means</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">]),</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]])</span>
+<span class="go">array([-2.,  5.])</span>
 </pre></div>
 </div>
-</dd></dl>
-
-<dl class="function">
-<dt id="pade.stat.random_indexes">
-<tt class="descclassname">pade.stat.</tt><tt class="descname">random_indexes</tt><big>(</big><em>layout</em>, <em>R</em><big>)</big><a class="reference internal" href="_modules/pade/stat.html#random_indexes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.random_indexes" title="Permalink to this definition">¶</a></dt>
-<dd><p>Generates R samplings of indexes based on the given layout.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">indexes</span> <span class="o">=</span> <span class="n">random_indexes</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]],</span> <span class="mi">10</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">indexes</span><span class="p">)</span>
-<span class="go">(10, 4)</span>
+<p>Two dimensional input:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">],</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">40</span><span class="p">]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">layout</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">group_means</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">layout</span><span class="p">)</span> 
+<span class="go">array([[ -2.,  5.],</span>
+<span class="go">       [ 11., 35.]])</span>
 </pre></div>
 </div>
-</dd></dl>
-
-<dl class="function">
-<dt id="pade.stat.random_orderings">
-<tt class="descclassname">pade.stat.</tt><tt class="descname">random_orderings</tt><big>(</big><em>full</em>, <em>reduced</em>, <em>R</em><big>)</big><a class="reference internal" href="_modules/pade/stat.html#random_orderings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.random_orderings" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get an iterator over at most R random index shuffles.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>full</strong> &#8211; the <em class="xref std std-term">layout</em></li>
-<li><strong>reduced</strong> &#8211; the reduced <em class="xref std std-term">layout</em></li>
-<li><strong>R</strong> &#8211; the maximum number of orderings to return</li>
+<li><strong>data</strong> &#8211; An ndarray. Any number of dimensions is allowed.</li>
+<li><strong>layout</strong> &#8211; A <em class="xref std std-term">layout</em> describing the data.</li>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">iterator over random orderings of indexes</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">An ndarray giving the means for each group obtained by
+applying the given layout to the given data.</p>
 </td>
 </tr>
 </tbody>
 </table>
-<p>Each item in the resulting iterator will be an ndarray of the
-indexes in the given layouts. The indexes within each group of the
-reduced layout will be shuffled.</p>
 </dd></dl>
 
 <dl class="function">
@@ -400,58 +590,51 @@ reduced layout will be shuffled.</p>
 <span class="go">array([-0.5,  0.5, -1.5,  1.5])</span>
 </pre></div>
 </div>
-</dd></dl>
-
-<dl class="function">
-<dt id="pade.stat.rss">
-<tt class="descclassname">pade.stat.</tt><tt class="descname">rss</tt><big>(</big><em>data</em><big>)</big><a class="reference internal" href="_modules/pade/stat.html#rss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.rss" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return a tuple of the mean and residual sum of squares.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>data</strong> &#8211; An n-dimensional array.</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data</strong> &#8211; An ndarray. Any number of dimensions is allowed.</li>
+<li><strong>layout</strong> &#8211; A <em class="xref std std-term">layout</em> describing the data.</li>
+</ul>
+</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The means and residual sum of squares over the last axis.</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">The residuals obtained by subtracting the means of the</p>
+</td>
 </tr>
 </tbody>
 </table>
+<p>groups defined by the layout from the values in data.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pade.stat.rss">
+<tt class="descclassname">pade.stat.</tt><tt class="descname">rss</tt><big>(</big><em>data</em>, <em>layout=None</em><big>)</big><a class="reference internal" href="_modules/pade/stat.html#rss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.rss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the residual sum of squares for the data and optional layout.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>data</strong> &#8211; An n-dimensional array.</li>
+<li><strong>layout</strong> &#8211; If provided, the means will becalculated based on the grouping
+given by the layout applied to the last axis of data. Otherwise,
+no grouping will be used.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">rss</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">6</span><span class="p">],</span> <span class="nb">float</span><span class="p">),</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]])</span>
+<span class="go">5.0</span>
+</pre></div>
+</div>
 </dd></dl>
 
 </div>
-<div class="section" id="module-pade.performance">
-<span id="pade-performance"></span><h2>pade.performance<a class="headerlink" href="#module-pade.performance" title="Permalink to this headline">¶</a></h2>
-<p>Utilities for measuring performance of PaGE.</p>
-<dl class="exception">
-<dt id="pade.performance.ProfileStackException">
-<em class="property">exception </em><tt class="descclassname">pade.performance.</tt><tt class="descname">ProfileStackException</tt><a class="reference internal" href="_modules/pade/performance.html#ProfileStackException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.performance.ProfileStackException" title="Permalink to this definition">¶</a></dt>
-<dd><p>Thrown when the profile stack is corrupt.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="pade.performance.maxrss">
-<tt class="descclassname">pade.performance.</tt><tt class="descname">maxrss</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/pade/performance.html#maxrss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.performance.maxrss" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return the current maximum RSS allocation in GB.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="pade.performance.profiled">
-<tt class="descclassname">pade.performance.</tt><tt class="descname">profiled</tt><big>(</big><em>method</em><big>)</big><a class="reference internal" href="_modules/pade/performance.html#profiled"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.performance.profiled" title="Permalink to this definition">¶</a></dt>
-<dd><p>Decorator for profiling a function.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="pade.performance.profiling">
-<tt class="descclassname">pade.performance.</tt><tt class="descname">profiling</tt><big>(</big><em>*args</em>, <em>**kwds</em><big>)</big><a class="reference internal" href="_modules/pade/performance.html#profiling"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.performance.profiling" title="Permalink to this definition">¶</a></dt>
-<dd><p>Context manager for capturing performance metrics of a block.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="pade.performance.walk_profile">
-<tt class="descclassname">pade.performance.</tt><tt class="descname">walk_profile</tt><big>(</big><em>profile_log=</em><span class="optional">[</span><span class="optional">]</span><big>)</big><a class="reference internal" href="_modules/pade/performance.html#walk_profile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.performance.walk_profile" title="Permalink to this definition">¶</a></dt>
-<dd><p>Analyze the given list of events and return a table.</p>
-</dd></dl>
-
+<div class="section" id="module-pade.server">
+<span id="pade-server"></span><h2>pade.server<a class="headerlink" href="#module-pade.server" title="Permalink to this headline">¶</a></h2>
 </div>
 </div>
 
@@ -465,9 +648,12 @@ reduced layout will be shuffled.</p>
   <ul>
 <li><a class="reference internal" href="#">API Documentation</a><ul>
 <li><a class="reference internal" href="#module-pade.common">pade.common</a></li>
+<li><a class="reference internal" href="#module-pade.db">pade.db</a></li>
+<li><a class="reference internal" href="#module-pade.main">pade.main</a></li>
+<li><a class="reference internal" href="#module-pade.model">pade.model</a></li>
 <li><a class="reference internal" href="#module-pade.schema">pade.schema</a></li>
 <li><a class="reference internal" href="#module-pade.stat">pade.stat</a></li>
-<li><a class="reference internal" href="#module-pade.performance">pade.performance</a></li>
+<li><a class="reference internal" href="#module-pade.server">pade.server</a></li>
 </ul>
 </li>
 </ul>
