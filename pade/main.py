@@ -116,13 +116,12 @@ def compute_fold_change(db):
     """
     logging.info("Computing fold change")
     
-    full_factors     = set(db.full_model.expr.variables)
-    nuisance_factors = set(db.reduced_model.expr.variables)
-    test_factors     = full_factors.difference(nuisance_factors)
+    nuisance_factors = set(db.block_variables)
+    test_factors     = db.condition_variables
 
     if len(test_factors) > 1:
         raise UsageException(
-            """Your full model must have exactly one more variable than the reduced model. We will change this soon.""")
+            """You can only have one condition variable. We will change this soon.""")
 
     nuisance_assignments = db.schema.possible_assignments(nuisance_factors)
     fold_changes = []
@@ -344,22 +343,23 @@ def args_to_db(args):
     conditions = args.condition if args.condition is not None else []
 
     if len(blocks) > 0 or len(conditions) > 0:
-        full_model = " * ".join(blocks + conditions)
-        reduced_model = " * ".join(blocks)
+        pass
         
     elif args.full_model is not None:
-        full_model    = args.full_model
-        reduced_model = args.reduced_model
+        full_model    = Model(schema, args.full_model)
+        reduced_model = Model(schema, args.reduced_model)
+        blocks     = set(reduced_model.expr.variables)
+        conditions = set(full_model.expr.variables).difference(block_vars)
 
     elif len(factors) == 1:
-        full_model = db.schema.factors[0]
-        reduced_model = None
+        conditions = factors
     
     else:
         raise Exception("Since you have multiple factors, please specify a full model")
 
-    db.full_model    = Model(db.schema, full_model)
-    db.reduced_model = Model(db.schema, reduced_model)
+
+    db.condition_variables = conditions
+    db.block_variables = blocks
     db.sample_from = args.sample_from
     db.sample_method = args.sample_method
     db.min_conf=args.min_conf
@@ -527,8 +527,6 @@ def new_sample_indexes(db):
     """Create array of sample indexes and store in db."""
 
     method  = (db.sample_method, db.sample_from)
-    full    = db.full_model
-    reduced = db.reduced_model
     R       = db.num_samples
 
     if method == ('perm', 'raw'):
@@ -537,7 +535,7 @@ def new_sample_indexes(db):
 
     elif method == ('boot', 'raw'):
         logging.info("Bootstrapping raw values, within groups defined by '" + 
-                     str(reduced.expr) + "'")
+                     str(db.block_variables) + "'")
         return random_indexes(db.block_layout, R)
         
     elif method == ('boot', 'residuals'):

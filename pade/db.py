@@ -29,8 +29,8 @@ class DB:
         self.num_samples = None
         self.sample_from = None
         self.sample_method = None
-        self.full_model    = None
-        self.reduced_model = None
+        self.block_variables    = None
+        self.condition_variables = None
         self.tuning_params = None
         self.equalize_means = None
         self.is_paired = None
@@ -78,8 +78,8 @@ class DB:
         file.attrs['num_samples'] = self.num_samples
         file.attrs['sample_from'] = self.sample_from
         file.attrs['sample_method'] = self.sample_method
-        file.attrs['full_model'] = str(self.full_model.expr)
-        file.attrs['reduced_model'] = str(self.reduced_model.expr)
+        file.attrs['condition_variables'] = self.condition_variables
+        file.attrs['block_variables'] = self.block_variables
         file.attrs['is_paired'] = self.is_paired
 
         self.bin_to_mean_perm_count = file.create_dataset("bin_to_mean_perm_count", data=self.bin_to_mean_perm_count)
@@ -185,8 +185,8 @@ class DB:
         self.num_samples = file.attrs['num_samples']
         self.sample_from = file.attrs['sample_from']
         self.sample_method = file.attrs['sample_method']
-        self.full_model = Model(self.schema, file.attrs['full_model'])
-        self.reduced_model = Model(self.schema, file.attrs['reduced_model'])
+        self.condition_variables = list(file.attrs['condition_variables'])
+        self.block_variables = list(file.attrs['block_variables'])
 
         self.is_paired = file.attrs['is_paired']
         
@@ -200,23 +200,21 @@ class DB:
                 for a in s.possible_assignments(variables)]
 
     @property
-    def block_variables(self):
-        return set(self.reduced_model.expr.variables)
+    def full_model(self):
+        return Model(self.schema, "*".join(self.block_variables + self.condition_variables))
 
     @property
-    def condition_variables(self):
-        block = self.block_variables
-        full  = set(self.full_model.expr.variables)
-        return full.difference(block)
-
-    @property
-    def block_layout(self):
-        return self.layout(self.block_variables)
+    def reduced_model(self):
+        return Model(self.schema, "*".join(self.block_variables))
 
     @property
     def condition_layout(self):
         return self.layout(self.condition_variables)
 
     @property
+    def block_layout(self):
+        return self.layout(self.block_variables)
+
+    @property
     def full_layout(self):
-        return self.layout(self.full_model.expr.variables)
+        return self.layout(self.block_variables + self.condition_variables)
