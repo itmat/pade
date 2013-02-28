@@ -31,7 +31,9 @@ perf : perf_report/stats.*
 	python ./pade/tools/perlvspython.py report $^
 
 site :
-	cd doc; make html
+	rm -rf doc/generated
+	sphinx-apidoc pade -o doc/generated
+	cd doc; make clean html
 
 deploy_site:
 

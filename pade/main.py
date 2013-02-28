@@ -184,8 +184,15 @@ def do_run(args):
 Analyzing {filename}, which is described by the schema {schema}.
 """.format(filename=args.infile.name,
            schema=args.schema)
-    db = args_to_db(args)
+
+
+    db = DB(path=args.db)
+    db.settings = args_to_settings(args)
+    db.schema_path = args.schema
+    db.schema = load_schema(args.schema)
+
     import_table(db, args.infile.name)
+
     db.sample_indexes = new_sample_indexes(db)
     run_job(db, args.equalize_means_ids)
 
@@ -298,57 +305,48 @@ def import_table(db, path):
     db.table = table
     db.feature_ids = ids
 
-def args_to_db(args):
+
+def args_to_settings(args):
 
     settings = pade.db.Settings()
 
-    db = DB(path=args.db)
-
-    db.schema_path = args.schema
-    try:
-        with open(args.schema) as f:
-            db.schema = Schema.load(f)
-    except IOError as e:
-        raise UsageException("Couldn't load schema: " + e.filename + ": " + e.strerror)
-
-    # Num bins and samples
+    # Easy settings
     settings.num_bins = args.num_bins
     settings.num_samples = args.num_samples
+    settings.sample_from = args.sample_from
+    settings.sample_method = args.sample_method
+    settings.min_conf = args.min_conf
+    settings.conf_interval = args.conf_interval
 
-    logging.info("Creating db from args " + str(args))
-
-    # Stat name
+    # If they said paired, override the choice of stat
     if args.paired:
         logging.info("You've given the --paired option, so I'll use a one-sample t-test.")
-        stat_name = 'one_sample_t_test'
+        settings.stat = 'one_sample_t_test'
     else:
-        stat_name = args.stat
+        settings.stat = args.stat
 
-    # Equalize means
-    if stat_name in set(['one_sample_t_test', 'means_ratio']):
-        logging.info("We're using stat " + stat_name + ", so I won't equalize means")
-        equalize_means = False
-
+    # If they chose one_sample_t_test or means_ratio, we can't
+    # equalize the means.
+    if settings.stat in set(['one_sample_t_test', 'means_ratio']):
+        logging.info("We're using stat " + settings.stat + ", so I won't equalize means")
+        settings.equalize_means = False
     else:
-        equalize_means = args.equalize_means
+        settings.equalize_means = args.equalize_means
 
-    settings.stat = stat_name
-    settings.equalize_means = equalize_means
-    
-    blocks     = args.block     if args.block     is not None else []
-    conditions = args.condition if args.condition is not None else []
-
-    if len(blocks) > 0 or len(conditions) > 0:
-        pass
+    # Block and condition variables
+    if len(args.block) > 0 or len(args.condition) > 0:
+        settings.block_variables = args.block
+        settings.condition_variables = args.condition
         
     elif args.full_model is not None:
         full_model    = Model(schema, args.full_model)
         reduced_model = Model(schema, args.reduced_model)
-        blocks     = set(reduced_model.expr.variables)
-        conditions = set(full_model.expr.variables).difference(block_vars)
+        settings.block_variables     = set(reduced_model.expr.variables)
+        settings.condition_variables = set(full_model.expr.variables).difference(block_vars)
 
     elif len(factors) == 1:
-        conditions = factors
+        settings.condition_variables = factors
+        settings.block_variables = []
     
     else:
         raise Exception("Since you have multiple factors, please specify a full model")
@@ -359,17 +357,14 @@ def args_to_db(args):
     else:
         settings.tuning_params = np.array(args.tuning_param)
 
-    settings.condition_variables = conditions
-    settings.block_variables = blocks
-    settings.sample_from = args.sample_from
-    settings.sample_method = args.sample_method
-    settings.min_conf=args.min_conf
-    settings.min_conf = args.min_conf
-    settings.conf_interval = args.conf_interval
+    return settings
 
-    db.settings = settings
-
-    return db
+def load_schema(path):
+    try:
+        with open(path) as f:
+            return Schema.load(f)
+    except IOError as e:
+        raise UsageException("Couldn't load schema: " + e.filename + ": " + e.strerror)    
 
 @profiled
 def run_job(db, equalize_means_ids):
@@ -689,12 +684,14 @@ def add_model_args(p):
     grp.add_argument(
         '--block',
         '-b',
+        default=[],
         help="""Specify a variable to use for blocking. You can specify this multiple times if there are multiple blocking variables.""",
         action='append')
     
     grp.add_argument(
         '--condition',
         '-c',
+        default=[],
         help="""Specify a variable that represents an experimental condition. Currently we only support one test condition.""",
         action='append')
 
