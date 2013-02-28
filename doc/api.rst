@@ -1,6 +1,10 @@
 API Documentation
 =================
 
+.. autosummary:
+   pade.layout
+   pade.db
+
 pade.common
 -----------
 
@@ -11,6 +15,12 @@ pade.db
 -----------
 
 .. automodule:: pade.db
+   :members:
+
+pade.layout
+-----------
+
+.. automodule:: pade.layout
    :members:
 
 pade.main

@@ -68,12 +68,15 @@ def residuals(data, layout):
     >>> residuals(np.array([1, 2, 3, 6], float), [[0, 1], [2, 3]])
     array([-0.5,  0.5, -1.5,  1.5])
 
-    :param data: An ndarray. Any number of dimensions is allowed.
+    :param data: 
+      An ndarray. Any number of dimensions is allowed.
 
-    :param layout: A :term:`layout` describing the data.
+    :param layout:
+      A :term:`layout` describing the data.
 
-    :return: The residuals obtained by subtracting the means of the
-    groups defined by the layout from the values in data.
+    :return: 
+      The residuals obtained by subtracting the means of the groups
+      defined by the layout from the values in data.
 
     """
     means = group_means(data, layout)
