@@ -59,9 +59,10 @@ class DB:
         self.schema = schema
 
     def save_settings(self):
+        
         file = self.file
         s = self.settings
-        self.tuning_params = file.create_dataset("tuning_params", data=s.tuning_params)
+        file.create_dataset("tuning_params", data=s.tuning_params)
         file.attrs['stat_name'] = s.stat
         file.attrs['num_bins'] = s.num_bins
         file.attrs['num_samples'] = s.num_samples
@@ -84,6 +85,7 @@ class DB:
         s.block_variables = list(file.attrs['block_variables'])
         s.min_conf = file.attrs['min_conf']
         s.conf_interval = file.attrs['conf_interval']
+        s.tuning_params = file['tuning_params'][...]
         self.settings = s
 
     def save(self):
@@ -139,7 +141,7 @@ class DB:
         rev_stats = 0.0 - stats
 
         by_score_original = np.zeros(np.shape(self.raw_stats), int)
-        for i in range(len(self.tuning_params)):
+        for i in range(len(self.settings.tuning_params)):
             by_score_original[i] = np.lexsort(
                 (original, rev_stats[i]))
 
@@ -194,8 +196,6 @@ class DB:
         self.best_param_idxs = file['summary']['best_param_idxs'][...]
 
         self.sample_indexes = file['sample_indexes'][...]
-
-        self.tuning_params = file['tuning_params'][...]
 
         # Group means, coefficients, and fold change, with the header information
         self.group_means  = self.load_table('group_means')

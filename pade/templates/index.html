@@ -2,10 +2,64 @@
 {% block title %}Index{% endblock %}
 {% block content %}
 
-    <h2>Model</h2>
+    <h2>Job settings</h2>
 
-    <p>Full model: {{ db.full_model.expr }}</p>
-    <p>Reduced model: {{ db.reduced_model.expr }}</p>
+    <table>
+      <tr>
+        <td>Statistic:</td>
+        <td>{{ db.settings.stat_name }}</td>
+      </tr>
+
+      <tr>
+        <td>Number of bins:</td>
+        <td>{{ db.settings.num_bins }}</td>
+      </tr>
+
+      <tr>
+        <td>Number of samples:</td>
+        <td>{{ db.settings.num_samples }}</td>
+      </tr>
+
+
+      <tr>
+        <td>Sample from residuals:</td>
+        <td>{{ db.settings.sample_from_residuals }}</td>
+      </tr>
+      <tr>
+        <td>Sample with replacement:</td>
+        <td>{{ db.settings.sample_with_replacement }}</td>
+      </tr>
+
+      <tr>
+        <td>Condition variables</td>
+        <td>{{ db.settings.condition_variables|join(', ') }}</td>
+      </tr>
+
+      <tr>
+        <td>Block variables</td>
+        <td>{{ db.settings.block_variables|join(', ') }}</td>
+      </tr>
+
+      <tr>
+        <td>Tuning params</td>
+        <td>{{ db.settings.tuning_params|join(', ') }}</td>
+      </tr>
+
+      <tr>
+        <td>Equalize means</td>
+        <td>{{ db.settings.equalize_means }}</td>
+      </tr>
+
+      <tr>
+        <td>Minimum confidence</td>
+        <td>{{ db.settings.min_conf }}</td>
+      </tr>
+      <tr>
+        <td>Confidence interval</td>
+        <td>{{ db.settings.conf_interval }}</td>
+      </tr>
+
+    </table>
 
     <h2>Num. features by confidence level</h2>
 
