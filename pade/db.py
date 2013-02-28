@@ -1,3 +1,5 @@
+"""Handles job state persistence."""
+
 import logging
 import h5py
 import collections
@@ -10,6 +12,8 @@ import numpy as np
 TableWithHeader = collections.namedtuple('TableWithHeader', ['header', 'table'])
 
 class Settings:
+
+    """The settings that control how the job is run."""
 
     def __init__(self):
         # Settings
@@ -26,6 +30,8 @@ class Settings:
         self.conf_interval = None
 
 class DB:
+
+    """Interface for the HDF5 file that we use to persist the job state."""
 
     def __init__(self, 
                  schema=None,
