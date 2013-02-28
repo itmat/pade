@@ -27,7 +27,7 @@ from pade.schema import *
 from pade.model import *
 import pade.stat
 from pade.stat import random_indexes, random_orderings, residuals, group_means, layout_is_paired
-from pade.db import DB, import_table
+from pade.db import DB
 from pade.conf import *
 
 
@@ -212,7 +212,7 @@ Analyzing {filename}, which is described by the schema {schema}.
     db.schema_path = args.schema
     db.schema = load_schema(args.schema)
 
-    import_table(db, args.infile.name)
+    db.input.import_table(args.infile.name)
 
     db.sample_indexes = new_sample_indexes(db)
 

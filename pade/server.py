@@ -45,7 +45,7 @@ def measurement_scatter(feature_num):
     db = app.db
     schema = db.schema
     model = db.full_model
-    measurements = db.table[feature_num]
+    measurements = db.input.table[feature_num]
     
     fig = plt.figure()
     ax = fig.add_subplot(
@@ -75,8 +75,8 @@ def measurement_scatter(feature_num):
 @app.route("/mean_vs_std")
 def mean_vs_std():
     db = app.db
-    means = np.mean(db.table, axis=-1)
-    std   = np.std(db.table, axis=-1)
+    means = np.mean(db.input.table, axis=-1)
+    std   = np.std(db.input.table, axis=-1)
     fig = plt.figure()
     ax = fig.add_subplot(
         111,
@@ -95,7 +95,7 @@ def measurement_bars(feature_num):
     db = app.db
     schema = db.schema
     model = db.full_model
-    measurements = db.table[feature_num]
+    measurements = db.input.table[feature_num]
 
     variables = model.expr.variables
     if 'variable' in request.args:
@@ -104,7 +104,7 @@ def measurement_bars(feature_num):
     fig = plt.figure()
     ax = fig.add_subplot(
         111,
-        title='Measurements for ' + db.feature_ids[feature_num] + " by " + ", ".join(variables),
+        title='Measurements for ' + db.input.feature_ids[feature_num] + " by " + ", ".join(variables),
         ylabel='Measurement')
     
     assignments = schema.possible_assignments(variables)
@@ -134,13 +134,13 @@ def feature(feature_num):
 
     stats=db.raw_stats[..., feature_num]
 
-    params = db.tuning_params
+    params = db.settings.tuning_params
 
     bins = np.array([ bisect(db.bins[i], stats[i]) - 1 for i in range(len(params)) ])
     unperm_count=np.array([ db.bin_to_unperm_count[i, bins[i]] for i in range(len(params))])
     mean_perm_count=np.array([ db.bin_to_mean_perm_count[i, bins[i]] for i in range(len(params))])
 
-    adjusted=np.array(pade.conf.adjust_num_diff(mean_perm_count, unperm_count, len(db.table)))
+    adjusted=np.array(pade.conf.adjust_num_diff(mean_perm_count, unperm_count, len(db.input.table)))
 
     new_scores = (unperm_count - adjusted) / unperm_count
 
@@ -149,13 +149,13 @@ def feature(feature_num):
     return render_template(
         "feature.html",
         feature_num=feature_num,
-        feature_id=db.feature_ids[feature_num],
-        measurements=db.table[feature_num],
+        feature_id=db.input.feature_ids[feature_num],
+        measurements=db.input.table[feature_num],
         sample_names=db.schema.sample_column_names,
         factors=db.schema.factors,
         factor_values=factor_values,
         layout=db.full_model.layout,
-        tuning_params=db.tuning_params,
+        tuning_params=db.settings.tuning_params,
         stats=stats,
         bins=bins,
         num_bins=len(db.bins[0]),
@@ -186,11 +186,11 @@ def details(conf_level):
 
     rows_per_page = 50
 
-    orig_idxs = np.arange(len(db.feature_ids))
+    orig_idxs = np.arange(len(db.input.feature_ids))
     all_idxs = None
     order_name = request.args.get('order')
     if order_name is None:
-        all_idxs      = np.arange(len(db.feature_ids))
+        all_idxs      = np.arange(len(db.input.feature_ids))
     elif order_name == 'score_original':
         all_idxs = db.ordering_by_score_original[alpha_idx]
     elif order_name == 'foldchange_original':
@@ -215,12 +215,12 @@ def details(conf_level):
         group_names=db.group_means.header,
         coeff_names=db.coeff_values.header,
         fold_change_group_names=db.fold_change.header,
-        stat_name=db.stat_name,
+        stat_name=db.settings.stat_name,
         scores=scores[idxs],
         stats=scores[idxs],
         means=db.group_means.table[idxs],
         coeffs=db.coeff_values.table[idxs],
-        feature_ids=db.feature_ids[idxs],
+        feature_ids=db.input.feature_ids[idxs],
         fold_change=db.fold_change.table[idxs],
         page_num=page_num)
 
@@ -268,7 +268,7 @@ def bin_to_score_plot():
         xlabel="Statistic value",
         ylabel="Confidence")
 
-    for i, param in enumerate(app.db.tuning_params):
+    for i, param in enumerate(app.db.settings.tuning_params):
         ax.plot(app.db.bins[i, :-1], data[i], label=str(param))
 
     if request.args.get('semilogx') == 'True':
@@ -280,7 +280,7 @@ def bin_to_score_plot():
 @app.route("/bin_to_features.png")
 def bin_to_features_plot():
 
-    params = app.db.tuning_params
+    params = app.db.settings.tuning_params
     if 'tuning_param_idx' in request.args:
         params = [ params[int(request.args.get('tuning_param_idx'))] ]
 
@@ -323,7 +323,7 @@ def score_dist_by_tuning_param():
     lines = []
     labels = []
 
-    params = app.db.tuning_params
+    params = app.db.settings.tuning_params
     if 'tuning_param_idx' in request.args:
         params = [ int(request.args.get('tuning_param_idx')) ]
 

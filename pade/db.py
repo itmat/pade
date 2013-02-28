@@ -19,6 +19,55 @@ class Input(object):
         self.table = None
         self.feature_ids = None
 
+
+    def import_table(self, path):
+        """Load the given input file into memory.
+
+        :param path:
+          Path to an input file, which must be a tab-delimited file
+          with a header line.
+        
+        """
+        logging.info("Loading table from " + path)
+        logging.info("Counting rows and columns in input file")
+
+        with open(path) as fh:
+
+            headers = fh.next().rstrip().split("\t")
+            num_cols = len(headers) - 1
+            num_rows = 0
+            for line in fh:
+                num_rows += 1
+
+        logging.info(
+            "Input has {features} features and {samples} samples".format(
+                features=num_rows,
+                samples=num_cols))
+
+        logging.info("Creating raw data table")
+
+        table = np.zeros((num_rows, num_cols), float)
+        log_interval = int(num_rows / 10)
+        table = np.zeros((num_rows, num_cols))
+        ids = []
+
+        with open(path) as fh:
+
+            headers = fh.next().rstrip().split("\t")
+
+            for i, line in enumerate(fh):
+                row = line.rstrip().split("\t")
+                ids.append(row[0])
+                table[i] = [float(x) for x in row[1:]]
+                if (i % log_interval) == log_interval - 1:
+                    logging.debug("Copied {0} rows".format(i + 1))
+
+        self.table = table
+        self.feature_ids = ids
+
+    
+
+
 class Settings:
 
     """The settings that control how the job is run."""
@@ -116,43 +165,42 @@ class DB:
 
     def save(self):
         logging.info("Saving job results to " + self.path)
-        file = h5py.File(self.path, 'r+')
-        self.file = file
+        f = h5py.File(self.path, 'w')
+        self.file = f
 
         self.save_input()
 
         schema_str = StringIO()
         self.schema.save(schema_str)
 
-        self.bins = file.create_dataset("bins", data=self.bins)
+        self.bins = f.create_dataset("bins", data=self.bins)
 
         # Settings:
         self.save_settings()
 
-        file.attrs['schema'] = str(schema_str.getvalue())
+        f.attrs['schema'] = str(schema_str.getvalue())
 
-        self.bin_to_mean_perm_count = file.create_dataset("bin_to_mean_perm_count", data=self.bin_to_mean_perm_count)
-        self.bin_to_unperm_count   = file.create_dataset("bin_to_unperm_count", data=self.bin_to_unperm_count)
-        self.bin_to_score = file.create_dataset("bin_to_score", data=self.bin_to_score)
-        self.feature_to_score = file.create_dataset("feature_to_score", data=self.feature_to_score)
-        self.raw_stats = file.create_dataset("raw_stats", data=self.raw_stats)
+        self.bin_to_mean_perm_count = f.create_dataset("bin_to_mean_perm_count", data=self.bin_to_mean_perm_count)
+        self.bin_to_unperm_count   = f.create_dataset("bin_to_unperm_count", data=self.bin_to_unperm_count)
+        self.bin_to_score = f.create_dataset("bin_to_score", data=self.bin_to_score)
+        self.feature_to_score = f.create_dataset("feature_to_score", data=self.feature_to_score)
+        self.raw_stats = f.create_dataset("raw_stats", data=self.raw_stats)
 
-        summary = file.create_group('summary')
+        summary = f.create_group('summary')
         summary['bins']            = self.summary_bins
         summary['counts']          = self.summary_counts
         summary['best_param_idxs'] = self.best_param_idxs
 
-        self.sample_indexes = file.create_dataset("sample_indexes", data=self.sample_indexes)
+        self.sample_indexes = f.create_dataset("sample_indexes", data=self.sample_indexes)
 
         self.save_table(self.group_means, 'group_means')
         self.save_table(self.fold_change, 'fold_change')
         self.save_table(self.coeff_values, 'coeff_values')
 
-        self.file = file
         self.compute_orderings()
         self.file = None
 
-        file.close()
+        f.close()
 
     def compute_orderings(self):
 
@@ -189,8 +237,8 @@ class DB:
         return TableWithHeader(ds.attrs['headers'], ds[...])
 
     def load_input(self):
-        self.input.table = file['table'][...]
-        self.input.feature_ids = file['feature_ids'][...]
+        self.input.table = self.file['table'][...]
+        self.input.feature_ids = self.file['feature_ids'][...]
 
 
     def load(self):
@@ -261,44 +309,4 @@ class DB:
     @property
     def full_layout(self):
         return self.layout(self.settings.block_variables + self.settings.condition_variables)
-
-def import_table(db, path):
-    logging.info("Loading table from " + path)
-    logging.info("Counting rows and columns in input file")
-
-    with open(path) as fh:
-
-        headers = fh.next().rstrip().split("\t")
-        num_cols = len(headers) - 1
-        num_rows = 0
-        for line in fh:
-            num_rows += 1
-        
-    logging.info(
-        "Input has {features} features and {samples} samples".format(
-            features=num_rows,
-            samples=num_cols))
-
-    logging.info("Creating raw data table")
-
-    table = np.zeros((num_rows, num_cols), float)
-    log_interval = int(num_rows / 10)
-    file = h5py.File(db.path, 'w')
-    table = np.zeros((num_rows, num_cols))
-    ids = []
-        
-    with open(path) as fh:
-
-        headers = fh.next().rstrip().split("\t")
-
-        for i, line in enumerate(fh):
-            row = line.rstrip().split("\t")
-            ids.append(row[0])
-            table[i] = [float(x) for x in row[1:]]
-            if (i % log_interval) == log_interval - 1:
-                logging.debug("Copied {0} rows".format(i + 1))
-
-    db.input.table = table
-    db.input.feature_ids = ids
-
 
