@@ -27,7 +27,7 @@ from pade.schema import *
 from pade.model import *
 import pade.stat
 from pade.stat import random_indexes, random_orderings, residuals, group_means, layout_is_paired
-from pade.db import DB
+from pade.db import DB, import_table
 from pade.conf import *
 
 
@@ -47,7 +47,7 @@ def predicted_values(db):
     defined by the reduced model.
 
     """
-    data = db.table
+    data = db.input.table
     prediction = np.zeros_like(data)
 
     for grp in db.block_layout:
@@ -101,7 +101,7 @@ def compute_coeffs(db):
 
 
     """
-    fitted = db.full_model.fit(db.table)
+    fitted = db.full_model.fit(db.input.table)
     names  = [assignment_name(a) for a in fitted.labels]    
     values = fitted.params
     return pade.db.TableWithHeader(names, values)
@@ -131,10 +131,10 @@ def compute_fold_change(db):
     fold_changes = []
     names = []
 
-    data = db.table
+    data = db.input.table
     get_means = lambda a: np.mean(data[:, db.schema.indexes_with_assignments(a)], axis=-1)
 
-    alpha = scipy.stats.scoreatpercentile(db.table.flatten(), 1.0)
+    alpha = scipy.stats.scoreatpercentile(db.input.table.flatten(), 1.0)
 
     for na in nuisance_assignments:
         test_assignments = db.schema.possible_assignments(test_factors)
@@ -176,7 +176,7 @@ def compute_means(db):
     factors = db.settings.block_variables + db.settings.condition_variables
     names = [assignment_name(a) 
              for a in db.schema.possible_assignments(factors)]
-    values = get_group_means(db.schema, db.table, factors)
+    values = get_group_means(db.schema, db.input.table, factors)
     return pade.db.TableWithHeader(names, values)
 
 
@@ -349,7 +349,7 @@ def run_job(db, equalize_means_ids):
     stat = get_stat_fn(db)
 
     logging.info("Computing {stat} statistics on raw data".format(stat=stat.name))
-    raw_stats = stat(db.table)
+    raw_stats = stat(db.input.table)
     logging.debug("Shape of raw stats is " + str(np.shape(raw_stats)))
 
     logging.info("Creating {num_bins} bins based on values of raw stats".format(
@@ -359,7 +359,7 @@ def run_job(db, equalize_means_ids):
     if db.settings.sample_from_residuals:
         logging.info("Sampling from residuals")
         prediction = predicted_values(db)
-        diffs      = db.table - prediction
+        diffs      = db.input.table - prediction
         db.bin_to_mean_perm_count = pade.conf.bootstrap(
             prediction,
             stat, 
@@ -372,19 +372,19 @@ def run_job(db, equalize_means_ids):
         # Shift all values in the data by the means of the groups from
         # the full model, so that the mean of each group is 0.
         if db.settings.equalize_means:
-            shifted = residuals(db.table, db.full_layout)
-            data = np.zeros_like(db.table)
+            shifted = residuals(db.input.table, db.full_layout)
+            data = np.zeros_like(db.input.table)
             if equalize_means_ids is None:
                 data = shifted
             else:
                 ids = set([line.rstrip() for line in equalize_means_ids])
                 count = len(ids)
-                for i, fid in enumerate(db.feature_ids):
+                for i, fid in enumerate(db.input.feature_ids):
                     if fid in ids:
                         data[i] = shifted[i]
                         ids.remove(fid)
                     else:
-                        data[i] = db.table[i]
+                        data[i] = db.input.table[i]
                 logging.info("Equalized means for " + str(count - len(ids)) + " features")
                 if len(ids) > 0:
                     logging.warn("There were " + str(len(ids)) + " feature " +
@@ -399,7 +399,7 @@ def run_job(db, equalize_means_ids):
 
         else:
             db.bin_to_mean_perm_count = pade.conf.bootstrap(
-                db.table,
+                db.input.table,
                 stat, 
                 indexes=db.sample_indexes,
                 bins=db.bins)            
@@ -417,7 +417,7 @@ def run_job(db, equalize_means_ids):
 
 def save_text_output(db, filename):
 
-    (num_rows, num_cols) = db.table.shape
+    (num_rows, num_cols) = db.input.table.shape
     num_cols += 2
     table = np.zeros((num_rows, num_cols))
 
@@ -428,11 +428,11 @@ def save_text_output(db, filename):
     # For each row in the data, add feature id, stat, score, group
     # means, and raw values.
     logging.info("Building internal results table")
-    for i in range(len(db.table)):
+    for i in range(len(db.input.table)):
         row = []
 
         # Feature id
-        row.append(db.feature_ids[i])
+        row.append(db.input.feature_ids[i])
         
         # Best stat and all stats
         row.append(db.raw_stats[idxs[i], i])
@@ -445,7 +445,7 @@ def save_text_output(db, filename):
             row.append(db.feature_to_score[j, i])
         row.extend(db.group_means[i])
         row.extend(db.coeff_values[i])
-        row.extend(db.table[i])
+        row.extend(db.input.table[i])
         table.append(tuple(row))
     schema = db.schema
 
@@ -535,8 +535,8 @@ def print_profile(db):
     fmt += ["%d", "%d", "%s", "%f", "%f", "%f", "%f", "%f", "%f"]
     fmt += ["%d", "%d"]
 
-    features = [ len(db.table) for row in walked ]
-    samples  = [ len(db.table[0]) for row in walked ]
+    features = [ len(db.input.table) for row in walked ]
+    samples  = [ len(db.input.table[0]) for row in walked ]
 
     walked = append_fields(walked, names='features', data=features)
     walked = append_fields(walked, names='samples', data=samples)

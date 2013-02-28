@@ -11,6 +11,14 @@ import numpy as np
 
 TableWithHeader = collections.namedtuple('TableWithHeader', ['header', 'table'])
 
+class Input(object):
+
+    """Raw(ish) input for the job."""
+    
+    def __init__(self):
+        self.table = None
+        self.feature_ids = None
+
 class Settings:
 
     """The settings that control how the job is run."""
@@ -42,8 +50,9 @@ class DB:
 
         # This will be populated lazily by the table and feature_ids
         # properties
-        self.table       = None
-        self.feature_ids = None
+
+        self.input = Input()
+
         self.schema_path = schema_path
         self.path = path
 
@@ -94,21 +103,27 @@ class DB:
         s.tuning_params = file['tuning_params'][...]
         self.settings = s
 
+    def save_input(self):
+        input = self.input
+        ids = input.feature_ids
+        file = self.file
+        # Saving feature ids is tricky because they are strings
+        dt = h5py.special_dtype(vlen=str)
+        input.table       = file.create_dataset("table", data=self.input.table)
+        input.feature_ids = file.create_dataset("feature_ids", (len(ids),), dt)
+        for i, fid in enumerate(ids):
+            input.feature_ids[i] = fid
+
     def save(self):
         logging.info("Saving job results to " + self.path)
         file = h5py.File(self.path, 'r+')
         self.file = file
-        # Saving feature ids is tricky because they are strings
-        dt = h5py.special_dtype(vlen=str)
-        ids = self.feature_ids
-        self.feature_ids = file.create_dataset("feature_ids", (len(ids),), dt)
-        for i, fid in enumerate(ids):
-            self.feature_ids[i] = fid
+
+        self.save_input()
 
         schema_str = StringIO()
         self.schema.save(schema_str)
 
-        self.table = file.create_dataset("table", data=self.table)
         self.bins = file.create_dataset("bins", data=self.bins)
 
         # Settings:
@@ -142,7 +157,7 @@ class DB:
     def compute_orderings(self):
 
         grp = self.file.create_group('orderings')
-        original = np.arange(len(self.feature_ids))
+        original = np.arange(len(self.input.feature_ids))
         stats = self.feature_to_score[...]
         rev_stats = 0.0 - stats
 
@@ -173,6 +188,11 @@ class DB:
             raise Exception("No dataset called " + str(name)) 
         return TableWithHeader(ds.attrs['headers'], ds[...])
 
+    def load_input(self):
+        self.input.table = file['table'][...]
+        self.input.feature_ids = file['feature_ids'][...]
+
+
     def load(self):
 
         logging.info("Loading job results from " + self.path)
@@ -185,9 +205,7 @@ class DB:
         self.file = file
 
         self.load_settings()
-
-        self.table = file['table'][...]
-        self.feature_ids = file['feature_ids'][...]
+        self.load_input()
         self.bins = file['bins'][...]
         self.bin_to_unperm_count    = file['bin_to_unperm_count'][...]
         self.bin_to_mean_perm_count = file['bin_to_mean_perm_count'][...]
@@ -280,7 +298,7 @@ def import_table(db, path):
             if (i % log_interval) == log_interval - 1:
                 logging.debug("Copied {0} rows".format(i + 1))
 
-    db.table = table
-    db.feature_ids = ids
+    db.input.table = table
+    db.input.feature_ids = ids
 
 
