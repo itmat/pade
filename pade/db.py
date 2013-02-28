@@ -16,8 +16,8 @@ class Settings:
         self.stat_name = None
         self.num_bins = None
         self.num_samples = None
-        self.sample_from = None
-        self.sample_method = None
+        self.sample_from_residuals = None
+        self.sample_with_replacement = None
         self.block_variables    = None
         self.condition_variables = None
         self.tuning_params = None
@@ -65,8 +65,8 @@ class DB:
         file.attrs['stat_name'] = s.stat
         file.attrs['num_bins'] = s.num_bins
         file.attrs['num_samples'] = s.num_samples
-        file.attrs['sample_from'] = s.sample_from
-        file.attrs['sample_method'] = s.sample_method
+        file.attrs['sample_from_residuals'] = s.sample_from_residuals
+        file.attrs['sample_with_replacement'] = s.sample_with_replacement
         file.attrs['condition_variables'] = s.condition_variables
         file.attrs['block_variables'] = s.block_variables
         file.attrs['min_conf'] = s.min_conf
@@ -78,8 +78,8 @@ class DB:
         s.stat_name = file.attrs['stat_name']
         s.num_bins = file.attrs['num_bins']
         s.num_samples = file.attrs['num_samples']
-        s.sample_from = file.attrs['sample_from']
-        s.sample_method = file.attrs['sample_method']
+        s.sample_from_residuals = file.attrs['sample_from_residuals']
+        s.sample_with_replacement = file.attrs['sample_with_replacement']
         s.condition_variables = list(file.attrs['condition_variables'])
         s.block_variables = list(file.attrs['block_variables'])
         s.min_conf = file.attrs['min_conf']

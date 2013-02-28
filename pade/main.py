@@ -191,6 +191,7 @@ Analyzing {filename}, which is described by the schema {schema}.
     import_table(db, args.infile.name)
 
     db.sample_indexes = new_sample_indexes(db)
+
     run_job(db, args.equalize_means_ids)
 
     db.group_means  = compute_means(db)
@@ -303,8 +304,8 @@ def args_to_settings(args):
     # Easy settings
     settings.num_bins = args.num_bins
     settings.num_samples = args.num_samples
-    settings.sample_from = args.sample_from
-    settings.sample_method = args.sample_method
+    settings.sample_from_residuals = args.sample_from_residuals
+    settings.sample_with_replacement = args.sample_with_replacement
     settings.min_conf = args.min_conf
     settings.conf_interval = args.conf_interval
 
@@ -369,7 +370,7 @@ def run_job(db, equalize_means_ids):
             num_bins=db.settings.num_bins))
     db.bins = pade.conf.bins_uniform(db.settings.num_bins, raw_stats)
 
-    if db.settings.sample_from == 'residuals':
+    if db.settings.sample_from_residuals:
         logging.info("Sampling from residuals")
         prediction = predicted_values(db)
         diffs      = db.table - prediction
@@ -512,32 +513,29 @@ def get_group_means(schema, data, factors):
     return result
 
 
-def new_sample_indexes(db):
-    """Create array of sample indexes and store in db."""
+def new_sample_indexes(job):
 
-    method  = (db.settings.sample_method, db.settings.sample_from)
-    R       = db.settings.num_samples
+    """Create array of sample indexes."""
 
-    if method == ('perm', 'raw'):
-        logging.info("Creating max of {0} random permutations".format(R))
-        return list(random_orderings(db.condition_layout, db.block_layout, R))
+    R  = job.settings.num_samples
 
-    elif method == ('boot', 'raw'):
-        logging.info("Bootstrapping raw values, within groups defined by '" + 
-                     str(db.settings.block_variables) + "'")
-        return random_indexes(db.block_layout, R)
-        
-    elif method == ('boot', 'residuals'):
-        logging.info("Bootstrapping using samples constructed from residuals, not using groups")
-        return random_indexes(
-            [ sorted(db.schema.sample_name_index.values()) ], R)
+    if job.settings.sample_with_replacement:
+        if job.settings.sample_from_residuals:
+            logging.info("Bootstrapping using samples constructed from " +
+                         "residuals, not using groups")
+            layout = [ sorted(job.schema.sample_name_index.values()) ]
+        else:
+            logging.info("Bootstrapping raw values, within groups defined by" + 
+                         "'" + str(job.settings.block_variables) + "'")
+            layout = job.block_layout
 
-    # Paired design
-    elif method == ('raw', 'diffs'):
-        return list(random_orderings(db.condition_layout, db.block_layout, R))
+        return random_indexes(layout, R)
 
     else:
-        raise UsageException("Invalid sampling method")
+        logging.info("Creating max of {0} random permutations".format(R))
+        return list(random_orderings(job.condition_layout, job.block_layout, R))
+
+
 
 def print_profile(db):
 
@@ -723,10 +721,10 @@ def add_fdr_args(p):
         help="The number of samples to use if bootstrapping, or the maximum number of permutations to use if doing permutation test.")
 
     grp.add_argument(
-        '--sample-from',
-        choices=['raw', 'residuals'],
-        default='raw',
-        help='Indicate whether to do bootstrapping based on samples from the raw data or sampled residuals')
+        '--sample-with-replacement',
+        action='store_true',
+        default=False,
+        help="""Use sampling with replacement (bootstrapping) rather than permutation""")
 
     grp.add_argument(
         '--num-bins',
@@ -735,10 +733,10 @@ def add_fdr_args(p):
         help="Number of bins to divide the statistic space into. You probably don't need to change this.")
 
     grp.add_argument(
-        '--sample-method',
-        default='perm',
-        choices=['perm', 'boot'],
-        help="""Whether to use a permutation test or bootstrapping to estimate confidence levels."""),
+        '--sample-from-residuals',
+        default=False,
+        action='store_true',
+        help="""Sample from residuals rather than raw data.""")
 
     grp.add_argument(
         '--min-conf',
