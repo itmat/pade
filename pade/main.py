@@ -84,6 +84,10 @@ Confidence |   Num.   | Tuning
             count=int(db.summary_counts[i]),
             param=db.settings.tuning_params[db.best_param_idxs[i]])
 
+########################################################################
+#
+# Computing coefficients, fold change, and means
+#
     
 def compute_coeffs(db):
     """Calculate the coefficients for the full model.
@@ -174,14 +178,34 @@ def compute_means(db):
              for a in db.schema.possible_assignments(factors)]
     values = get_group_means(db.schema, db.table, factors)
     return pade.db.TableWithHeader(names, values)
+
+
+########################################################################
+#
+# Handlers for command-line actions
+#
     
-    
+@profiled
+def do_setup(args):
+    schema = init_job(
+        infile=args.infile,
+        schema_path=args.schema,
+        factors={f : None for f in args.factor},
+        force=args.force)
+
+    print fix_newlines("""
+I have generated a schema for your input file, with factors {factors}, and saved it to "{filename}". You should now edit that file to set the factors for each sample. The file contains instructions on how to edit it.
+
+Once you have finished the schema, you will need to run "pade run" to do the analysis. See "pade run -h" for its usage.
+""").format(factors=schema.factors.keys(),
+            filename=args.schema)
+
+
 def do_run(args):
     print """
 Analyzing {filename}, which is described by the schema {schema}.
 """.format(filename=args.infile.name,
            schema=args.schema)
-
 
     db = DB(path=args.db)
     db.settings = args_to_settings(args)
@@ -234,11 +258,12 @@ Generating report for result database {db}.
     save_text_output(db, filename=filename)
     print "Saved text report to ", filename
 
+
 def get_stat_fn(db):
     """The statistic used for this job."""
     name = db.settings.stat
 
-    if name == 'onesampledifferencettest':
+    if name == 'one_sample_t_test':
         constructor = pade.stat.OneSampleDifferenceTTest
     elif name == 'f_test':
         constructor = pade.stat.Ftest
@@ -256,45 +281,6 @@ a paired layout. If this is the case, please use the --paired option.
         condition_layout=db.condition_layout,
         block_layout=db.block_layout,
         alphas=db.settings.tuning_params)
-
-
-def import_table(db, path):
-    logging.info("Loading table from " + path)
-    logging.info("Counting rows and columns in input file")
-    with open(path) as fh:
-
-        headers = fh.next().rstrip().split("\t")
-        num_cols = len(headers) - 1
-        num_rows = 0
-        for line in fh:
-            num_rows += 1
-        
-    logging.info(
-        "Input has {features} features and {samples} samples".format(
-            features=num_rows,
-            samples=num_cols))
-
-    logging.info("Creating raw data table")
-
-    table = np.zeros((num_rows, num_cols), float)
-    log_interval = int(num_rows / 10)
-    file = h5py.File(db.path, 'w')
-    table = np.zeros((num_rows, num_cols))
-    ids = []
-        
-    with open(path) as fh:
-
-        headers = fh.next().rstrip().split("\t")
-
-        for i, line in enumerate(fh):
-            row = line.rstrip().split("\t")
-            ids.append(row[0])
-            table[i] = [float(x) for x in row[1:]]
-            if (i % log_interval) == log_interval - 1:
-                logging.debug("Copied {0} rows".format(i + 1))
-
-    db.table = table
-    db.feature_ids = ids
 
 
 def args_to_settings(args):
@@ -535,8 +521,7 @@ def new_sample_indexes(job):
         logging.info("Creating max of {0} random permutations".format(R))
         return list(random_orderings(job.condition_layout, job.block_layout, R))
 
-
-
+    
 def print_profile(db):
 
     walked = walk_profile()
@@ -649,20 +634,12 @@ def init_job(infile, factors, schema_path=None, force=False):
 
     return schema
 
-@profiled
-def do_setup(args):
-    schema = init_job(
-        infile=args.infile,
-        schema_path=args.schema,
-        factors={f : None for f in args.factor},
-        force=args.force)
+########################################################################
+#
+# Parsing command line args
+#
 
-    print fix_newlines("""
-I have generated a schema for your input file, with factors {factors}, and saved it to "{filename}". You should now edit that file to set the factors for each sample. The file contains instructions on how to edit it.
 
-Once you have finished the schema, you will need to run "pade run" to do the analysis. See "pade run -h" for its usage.
-""").format(factors=schema.factors.keys(),
-            filename=args.schema)
 
 def add_model_args(p):
     grp = p.add_argument_group(

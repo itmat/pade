@@ -237,3 +237,44 @@ class DB:
     @property
     def full_layout(self):
         return self.layout(self.settings.block_variables + self.settings.condition_variables)
+
+def import_table(db, path):
+    logging.info("Loading table from " + path)
+    logging.info("Counting rows and columns in input file")
+
+    with open(path) as fh:
+
+        headers = fh.next().rstrip().split("\t")
+        num_cols = len(headers) - 1
+        num_rows = 0
+        for line in fh:
+            num_rows += 1
+        
+    logging.info(
+        "Input has {features} features and {samples} samples".format(
+            features=num_rows,
+            samples=num_cols))
+
+    logging.info("Creating raw data table")
+
+    table = np.zeros((num_rows, num_cols), float)
+    log_interval = int(num_rows / 10)
+    file = h5py.File(db.path, 'w')
+    table = np.zeros((num_rows, num_cols))
+    ids = []
+        
+    with open(path) as fh:
+
+        headers = fh.next().rstrip().split("\t")
+
+        for i, line in enumerate(fh):
+            row = line.rstrip().split("\t")
+            ids.append(row[0])
+            table[i] = [float(x) for x in row[1:]]
+            if (i % log_interval) == log_interval - 1:
+                logging.debug("Copied {0} rows".format(i + 1))
+
+    db.table = table
+    db.feature_ids = ids
+
+
