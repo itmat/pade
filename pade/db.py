@@ -86,6 +86,53 @@ class Settings:
         self.min_conf = None
         self.conf_interval = None
 
+def save_input(input, db):
+    ids = input.feature_ids
+    # Saving feature ids is tricky because they are strings
+    dt = h5py.special_dtype(vlen=str)
+    input.table       = db.create_dataset("table", data=input.table)
+    input.feature_ids = db.create_dataset("feature_ids", (len(ids),), dt)
+    for i, fid in enumerate(ids):
+        input.feature_ids[i] = fid
+
+
+
+def save_settings(settings, db):
+        
+    db.create_dataset("tuning_params", data=settings.tuning_params)
+    db.attrs['stat_name'] = settings.stat
+    db.attrs['num_bins'] = settings.num_bins
+    db.attrs['num_samples'] = settings.num_samples
+    db.attrs['sample_from_residuals'] = settings.sample_from_residuals
+    db.attrs['sample_with_replacement'] = settings.sample_with_replacement
+    db.attrs['condition_variables'] = settings.condition_variables
+    db.attrs['block_variables'] = settings.block_variables
+    db.attrs['min_conf'] = settings.min_conf
+    db.attrs['conf_interval'] = settings.conf_interval
+
+def load_input(self):
+    input = Input()
+    input.table = self.file['table'][...]
+    input.feature_ids = self.file['feature_ids'][...]
+    return input
+
+
+def load_settings(db):
+    s = Settings()
+    s.stat_name = db.attrs['stat_name']
+    s.num_bins = db.attrs['num_bins']
+    s.num_samples = db.attrs['num_samples']
+    s.sample_from_residuals = db.attrs['sample_from_residuals']
+    s.sample_with_replacement = db.attrs['sample_with_replacement']
+    s.condition_variables = list(db.attrs['condition_variables'])
+    s.block_variables = list(db.attrs['block_variables'])
+    s.min_conf = db.attrs['min_conf']
+    s.conf_interval = db.attrs['conf_interval']
+    s.tuning_params = db['tuning_params'][...]
+    return s
+
+
+
 class DB:
 
     """Interface for the HDF5 file that we use to persist the job state."""
@@ -96,9 +143,6 @@ class DB:
                  path=None):
 
         self.settings = None
-
-        # This will be populated lazily by the table and feature_ids
-        # properties
 
         self.input = Input()
 
@@ -122,61 +166,19 @@ class DB:
         self.file = None
         self.schema = schema
 
-    def save_settings(self):
-        
-        file = self.file
-        s = self.settings
-        file.create_dataset("tuning_params", data=s.tuning_params)
-        file.attrs['stat_name'] = s.stat
-        file.attrs['num_bins'] = s.num_bins
-        file.attrs['num_samples'] = s.num_samples
-        file.attrs['sample_from_residuals'] = s.sample_from_residuals
-        file.attrs['sample_with_replacement'] = s.sample_with_replacement
-        file.attrs['condition_variables'] = s.condition_variables
-        file.attrs['block_variables'] = s.block_variables
-        file.attrs['min_conf'] = s.min_conf
-        file.attrs['conf_interval'] = s.conf_interval
-
-    def load_settings(self):
-        s = Settings()
-        file = self.file
-        s.stat_name = file.attrs['stat_name']
-        s.num_bins = file.attrs['num_bins']
-        s.num_samples = file.attrs['num_samples']
-        s.sample_from_residuals = file.attrs['sample_from_residuals']
-        s.sample_with_replacement = file.attrs['sample_with_replacement']
-        s.condition_variables = list(file.attrs['condition_variables'])
-        s.block_variables = list(file.attrs['block_variables'])
-        s.min_conf = file.attrs['min_conf']
-        s.conf_interval = file.attrs['conf_interval']
-        s.tuning_params = file['tuning_params'][...]
-        self.settings = s
-
-    def save_input(self):
-        input = self.input
-        ids = input.feature_ids
-        file = self.file
-        # Saving feature ids is tricky because they are strings
-        dt = h5py.special_dtype(vlen=str)
-        input.table       = file.create_dataset("table", data=self.input.table)
-        input.feature_ids = file.create_dataset("feature_ids", (len(ids),), dt)
-        for i, fid in enumerate(ids):
-            input.feature_ids[i] = fid
 
     def save(self):
         logging.info("Saving job results to " + self.path)
         f = h5py.File(self.path, 'w')
         self.file = f
 
-        self.save_input()
+        save_input(self.input, self.file)
+        save_settings(self.settings, self.file)
 
         schema_str = StringIO()
         self.schema.save(schema_str)
 
         self.bins = f.create_dataset("bins", data=self.bins)
-
-        # Settings:
-        self.save_settings()
 
         f.attrs['schema'] = str(schema_str.getvalue())
 
@@ -236,11 +238,6 @@ class DB:
             raise Exception("No dataset called " + str(name)) 
         return TableWithHeader(ds.attrs['headers'], ds[...])
 
-    def load_input(self):
-        self.input.table = self.file['table'][...]
-        self.input.feature_ids = self.file['feature_ids'][...]
-
-
     def load(self):
 
         logging.info("Loading job results from " + self.path)
@@ -252,8 +249,8 @@ class DB:
 
         self.file = file
 
-        self.load_settings()
-        self.load_input()
+        self.settings = load_settings(self.file)
+        self.input    = load_input(self.file)
         self.bins = file['bins'][...]
         self.bin_to_unperm_count    = file['bin_to_unperm_count'][...]
         self.bin_to_mean_perm_count = file['bin_to_mean_perm_count'][...]
