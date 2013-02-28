@@ -61,15 +61,15 @@ def summarize_by_conf_level(db):
 
     logging.info("Summarizing the results")
 
-    db.summary_bins = np.arange(db.settings.min_conf, 1.0, db.settings.conf_interval)
-    db.best_param_idxs = np.zeros(len(db.summary_bins))
-    db.summary_counts = np.zeros(len(db.summary_bins))
+    db.results.summary_bins = np.arange(db.settings.min_conf, 1.0, db.settings.conf_interval)
+    db.results.best_param_idxs = np.zeros(len(db.results.summary_bins))
+    db.results.summary_counts = np.zeros(len(db.results.summary_bins))
 
-    for i, conf in enumerate(db.summary_bins):
-        idxs = db.feature_to_score > conf
+    for i, conf in enumerate(db.results.summary_bins):
+        idxs = db.results.feature_to_score > conf
         best = np.argmax(np.sum(idxs, axis=1))
-        db.best_param_idxs[i] = best
-        db.summary_counts[i]  = np.sum(idxs[best])
+        db.results.best_param_idxs[i] = best
+        db.results.summary_counts[i]  = np.sum(idxs[best])
 
 def print_summary(db):
     print """
@@ -78,11 +78,11 @@ Summary of features by confidence level:
 Confidence |   Num.   | Tuning
    Level   | Features | Param.
 -----------+----------+-------"""
-    for i in range(len(db.summary_counts) - 1):
+    for i in range(len(db.results.summary_counts) - 1):
         print "{bin:10.1%} | {count:8d} | {param:0.4f}".format(
-            bin=db.summary_bins[i],
-            count=int(db.summary_counts[i]),
-            param=db.settings.tuning_params[db.best_param_idxs[i]])
+            bin=db.results.summary_bins[i],
+            count=int(db.results.summary_counts[i]),
+            param=db.settings.tuning_params[db.results.best_param_idxs[i]])
 
 ########################################################################
 #
@@ -214,13 +214,13 @@ Analyzing {filename}, which is described by the schema {schema}.
 
     db.input.import_table(args.infile.name)
 
-    db.sample_indexes = new_sample_indexes(db)
+    db.results.sample_indexes = new_sample_indexes(db)
 
     run_job(db, args.equalize_means_ids)
 
-    db.group_means  = compute_means(db)
-    db.coeff_values = compute_coeffs(db)
-    db.fold_change  = compute_fold_change(db)
+    db.results.group_means  = compute_means(db)
+    db.results.coeff_values = compute_coeffs(db)
+    db.results.fold_change  = compute_fold_change(db)
 
     summarize_by_conf_level(db)
     print_summary(db)
@@ -354,18 +354,18 @@ def run_job(db, equalize_means_ids):
 
     logging.info("Creating {num_bins} bins based on values of raw stats".format(
             num_bins=db.settings.num_bins))
-    db.bins = pade.conf.bins_uniform(db.settings.num_bins, raw_stats)
+    db.results.bins = pade.conf.bins_uniform(db.settings.num_bins, raw_stats)
 
     if db.settings.sample_from_residuals:
         logging.info("Sampling from residuals")
         prediction = predicted_values(db)
         diffs      = db.input.table - prediction
-        db.bin_to_mean_perm_count = pade.conf.bootstrap(
+        db.results.bin_to_mean_perm_count = pade.conf.bootstrap(
             prediction,
             stat, 
-            indexes=db.sample_indexes,
+            indexes=db.results.sample_indexes,
             residuals=diffs,
-            bins=db.bins)
+            bins=db.results.bins)
 
     else:
         logging.info("Sampling from raw data")
@@ -391,26 +391,26 @@ def run_job(db, equalize_means_ids):
                                  "ids given that don't exist in the data: " +
                                  str(ids))
 
-            db.bin_to_mean_perm_count = pade.conf.bootstrap(
+            db.results.bin_to_mean_perm_count = pade.conf.bootstrap(
                 data,
                 stat, 
-                indexes=db.sample_indexes,
-                bins=db.bins)
+                indexes=db.results.sample_indexes,
+                bins=db.results.bins)
 
         else:
-            db.bin_to_mean_perm_count = pade.conf.bootstrap(
+            db.results.bin_to_mean_perm_count = pade.conf.bootstrap(
                 db.input.table,
                 stat, 
-                indexes=db.sample_indexes,
-                bins=db.bins)            
+                indexes=db.results.sample_indexes,
+                bins=db.results.bins)            
 
     logging.info("Done bootstrapping, now computing confidence scores")
-    db.raw_stats    = raw_stats
-    db.bin_to_unperm_count   = pade.conf.cumulative_hist(db.raw_stats, db.bins)
-    db.bin_to_score = confidence_scores(
-        db.bin_to_unperm_count, db.bin_to_mean_perm_count, np.shape(raw_stats)[-1])
-    db.feature_to_score = assign_scores_to_features(
-        db.raw_stats, db.bins, db.bin_to_score)
+    db.results.raw_stats    = raw_stats
+    db.results.bin_to_unperm_count   = pade.conf.cumulative_hist(db.results.raw_stats, db.results.bins)
+    db.results.bin_to_score = confidence_scores(
+        db.results.bin_to_unperm_count, db.results.bin_to_mean_perm_count, np.shape(raw_stats)[-1])
+    db.results.feature_to_score = assign_scores_to_features(
+        db.results.raw_stats, db.results.bins, db.results.bin_to_score)
 
     return db
 
@@ -422,7 +422,7 @@ def save_text_output(db, filename):
     table = np.zeros((num_rows, num_cols))
 
     # Best tuning param for each feature
-    idxs = np.argmax(db.feature_to_score, axis=0)
+    idxs = np.argmax(db.results.feature_to_score, axis=0)
     table = []
 
     # For each row in the data, add feature id, stat, score, group
@@ -435,16 +435,16 @@ def save_text_output(db, filename):
         row.append(db.input.feature_ids[i])
         
         # Best stat and all stats
-        row.append(db.raw_stats[idxs[i], i])
+        row.append(db.results.raw_stats[idxs[i], i])
         for j in range(len(db.settings.tuning_params)):
-            row.append(db.raw_stats[j, i])
+            row.append(db.results.raw_stats[j, i])
         
         # Best score and all scores
-        row.append(db.feature_to_score[idxs[i], i])
+        row.append(db.results.feature_to_score[idxs[i], i])
         for j in range(len(db.settings.tuning_params)):
-            row.append(db.feature_to_score[j, i])
-        row.extend(db.group_means[i])
-        row.extend(db.coeff_values[i])
+            row.append(db.results.feature_to_score[j, i])
+        row.extend(db.results.group_means[i])
+        row.extend(db.results.coeff_values[i])
         row.extend(db.input.table[i])
         table.append(tuple(row))
     schema = db.schema

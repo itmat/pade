@@ -132,19 +132,19 @@ def feature(feature_num):
         s : { f : schema.get_factor(s, f) for f in schema.factors }
         for s in schema.sample_column_names }
 
-    stats=db.raw_stats[..., feature_num]
+    stats=db.results.raw_stats[..., feature_num]
 
     params = db.settings.tuning_params
 
-    bins = np.array([ bisect(db.bins[i], stats[i]) - 1 for i in range(len(params)) ])
-    unperm_count=np.array([ db.bin_to_unperm_count[i, bins[i]] for i in range(len(params))])
-    mean_perm_count=np.array([ db.bin_to_mean_perm_count[i, bins[i]] for i in range(len(params))])
+    bins = np.array([ bisect(db.results.bins[i], stats[i]) - 1 for i in range(len(params)) ])
+    unperm_count=np.array([ db.results.bin_to_unperm_count[i, bins[i]] for i in range(len(params))])
+    mean_perm_count=np.array([ db.results.bin_to_mean_perm_count[i, bins[i]] for i in range(len(params))])
 
     adjusted=np.array(pade.conf.adjust_num_diff(mean_perm_count, unperm_count, len(db.input.table)))
 
     new_scores = (unperm_count - adjusted) / unperm_count
 
-    max_stat = db.bins[..., -2]
+    max_stat = db.results.bins[..., -2]
     print "Max stat", max_stat
     return render_template(
         "feature.html",
@@ -158,12 +158,12 @@ def feature(feature_num):
         tuning_params=db.settings.tuning_params,
         stats=stats,
         bins=bins,
-        num_bins=len(db.bins[0]),
+        num_bins=len(db.results.bins[0]),
         unperm_count=unperm_count,
         mean_perm_count=mean_perm_count,
         adjusted_perm_count=adjusted,
         max_stat=max_stat,
-        scores=db.feature_to_score[..., feature_num],
+        scores=db.results.feature_to_score[..., feature_num],
         new_scores=new_scores
         )
 
@@ -173,16 +173,16 @@ def details(conf_level):
 
     ### Process params
     conf_level = int(conf_level)
-    alpha_idx = db.best_param_idxs[conf_level]
+    alpha_idx = db.results.best_param_idxs[conf_level]
 
     page_num = 0
     if 'page' in request.args:
         page_num = int(request.args.get('page'))
 
 
-    scores = db.feature_to_score[alpha_idx]
-    stats = db.raw_stats[alpha_idx]
-    min_score = db.summary_bins[conf_level]
+    scores = db.results.feature_to_score[alpha_idx]
+    stats = db.results.raw_stats[alpha_idx]
+    min_score = db.results.summary_bins[conf_level]
 
     rows_per_page = 50
 
@@ -192,17 +192,17 @@ def details(conf_level):
     if order_name is None:
         all_idxs      = np.arange(len(db.input.feature_ids))
     elif order_name == 'score_original':
-        all_idxs = db.ordering_by_score_original[alpha_idx]
+        all_idxs = db.results.ordering_by_score_original[alpha_idx]
     elif order_name == 'foldchange_original':
         groupnum = int(request.args.get('groupnum'))
-        all_idxs = db.ordering_by_foldchange_original[..., groupnum]
+        all_idxs = db.results.ordering_by_foldchange_original[..., groupnum]
 
     filtered_idxs = all_idxs[scores[all_idxs] > min_score]
     start = page_num * rows_per_page
     end = start + rows_per_page
     idxs = filtered_idxs[ start : end ]
 
-    score=db.summary_bins[conf_level]
+    score=db.results.summary_bins[conf_level]
 
     num_pages = int(np.ceil(float(len(filtered_idxs)) / float(rows_per_page)))
 
@@ -212,16 +212,16 @@ def details(conf_level):
         conf_level=conf_level,
         min_score=score,
         indexes=idxs,
-        group_names=db.group_means.header,
-        coeff_names=db.coeff_values.header,
-        fold_change_group_names=db.fold_change.header,
+        group_names=db.results.group_means.header,
+        coeff_names=db.results.coeff_values.header,
+        fold_change_group_names=db.results.fold_change.header,
         stat_name=db.settings.stat_name,
         scores=scores[idxs],
         stats=scores[idxs],
-        means=db.group_means.table[idxs],
-        coeffs=db.coeff_values.table[idxs],
+        means=db.results.group_means.table[idxs],
+        coeffs=db.results.coeff_values.table[idxs],
         feature_ids=db.input.feature_ids[idxs],
-        fold_change=db.fold_change.table[idxs],
+        fold_change=db.results.fold_change.table[idxs],
         page_num=page_num)
 
 @app.route("/stat_dist.html")
@@ -245,22 +245,22 @@ def confidence_dist():
 
 @app.route("/stat_dist/<tuning_param>.png")
 def stat_dist_plot(tuning_param):
-    max_stat = np.max(app.db.raw_stats)
+    max_stat = np.max(app.db.results.raw_stats)
     tuning_param = int(tuning_param)
     fig = plt.figure()
     ax = fig.add_subplot(
         111,
-        title=app.db.stat_name + " distribution over features, $\\alpha = " + str(tuning_param) + "$",
-        xlabel=app.db.stat_name + " value",
+        title=app.db.settings.stat_name + " distribution over features, $\\alpha = " + str(tuning_param) + "$",
+        xlabel=app.db.settings.stat_name + " value",
         ylabel="Features",
         xlim=(0, max_stat))
 
-    plt.hist(app.db.raw_stats[tuning_param], log=False, bins=250)
+    plt.hist(app.db.results.raw_stats[tuning_param], log=False, bins=250)
     return figure_response(fig)
 
 @app.route("/bin_to_score.png")
 def bin_to_score_plot():
-    data = app.db.bin_to_score
+    data = app.db.results.bin_to_score
     fig = plt.figure()
     ax = fig.add_subplot(
         111,
@@ -269,7 +269,7 @@ def bin_to_score_plot():
         ylabel="Confidence")
 
     for i, param in enumerate(app.db.settings.tuning_params):
-        ax.plot(app.db.bins[i, :-1], data[i], label=str(param))
+        ax.plot(app.db.results.bins[i, :-1], data[i], label=str(param))
 
     if request.args.get('semilogx') == 'True':
         ax.semilogx(base=10)
@@ -292,8 +292,8 @@ def bin_to_features_plot():
         ylabel='Features')
     db = app.db
     for i, param in enumerate(params):
-        ax.plot(db.bins[i, :-1], db.bin_to_mean_perm_count[i], '--', label=str(param) + " permuted")
-        ax.plot(db.bins[i, :-1], db.bin_to_unperm_count[i], label=str(param) + " unpermuted")
+        ax.plot(db.results.bins[i, :-1], db.bin_to_mean_perm_count[i], '--', label=str(param) + " permuted")
+        ax.plot(db.results.bins[i, :-1], db.bin_to_unperm_count[i], label=str(param) + " unpermuted")
     if request.args.get('semilogx') == 'True':
         ax.semilogx(base=10)
     ax.legend(loc='upper right')

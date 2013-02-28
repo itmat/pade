@@ -86,6 +86,26 @@ class Settings:
         self.min_conf = None
         self.conf_interval = None
 
+class Results:
+    
+    def __init__(self):
+    
+        self.bins = None
+        self.bin_to_unperm_count = None
+        self.bin_to_mean_perm_count = None
+        self.bin_to_score = None
+        self.feature_to_score = None
+        self.raw_stats = None
+        self.summary_counts = None
+        self.summary_bins = None
+        self.best_param_idxs = None
+        self.sample_indexes = None
+        self.group_means = None
+        self.coeff_values = None
+        self.fold_change = None
+
+
+
 def save_input(input, db):
     ids = input.feature_ids
     # Saving feature ids is tricky because they are strings
@@ -95,6 +115,10 @@ def save_input(input, db):
     for i, fid in enumerate(ids):
         input.feature_ids[i] = fid
 
+def save_schema(schema, db):
+    schema_str = StringIO()
+    schema.save(schema_str)
+    db.attrs['schema'] = str(schema_str.getvalue())
 
 
 def save_settings(settings, db):
@@ -110,12 +134,45 @@ def save_settings(settings, db):
     db.attrs['min_conf'] = settings.min_conf
     db.attrs['conf_interval'] = settings.conf_interval
 
-def load_input(self):
+def save_results(results, db):
+    results.bins = db.create_dataset("bins", data=results.bins)
+    results.bin_to_mean_perm_count = db.create_dataset("bin_to_mean_perm_count", data=results.bin_to_mean_perm_count)
+    results.bin_to_unperm_count   = db.create_dataset("bin_to_unperm_count", data=results.bin_to_unperm_count)
+    results.bin_to_score = db.create_dataset("bin_to_score", data=results.bin_to_score)
+    results.feature_to_score = db.create_dataset("feature_to_score", data=results.feature_to_score)
+    results.raw_stats = db.create_dataset("raw_stats", data=results.raw_stats)
+
+    summary = db.create_group('summary')
+    summary['bins']            = results.summary_bins
+    summary['counts']          = results.summary_counts
+    summary['best_param_idxs'] = results.best_param_idxs
+
+    results.sample_indexes = db.create_dataset("sample_indexes", data=results.sample_indexes)
+
+    save_table(db, results.group_means, 'group_means')
+    save_table(db, results.fold_change, 'fold_change')
+    save_table(db, results.coeff_values, 'coeff_values')
+
+def save_table(db, table, name):
+    db.create_dataset(name, data=table.table)
+    db[name].attrs['headers'] = table.header        
+    
+def load_table(db, name):
+    ds = db[name]
+    if ds is None:
+        raise Exception("No dataset called " + str(name)) 
+    return TableWithHeader(ds.attrs['headers'], ds[...])
+
+
+def load_input(db):
     input = Input()
-    input.table = self.file['table'][...]
-    input.feature_ids = self.file['feature_ids'][...]
+    input.table = db['table'][...]
+    input.feature_ids = db['feature_ids'][...]
     return input
 
+def load_schema(db):
+    schema_str = StringIO(db.attrs['schema'])
+    return Schema.load(schema_str)
 
 def load_settings(db):
     s = Settings()
@@ -131,7 +188,31 @@ def load_settings(db):
     s.tuning_params = db['tuning_params'][...]
     return s
 
+def load_results(db):
 
+    results = Results()
+
+    results.bins = db['bins'][...]
+    results.bin_to_unperm_count    = db['bin_to_unperm_count'][...]
+    results.bin_to_mean_perm_count = db['bin_to_mean_perm_count'][...]
+    results.bin_to_score           = db['bin_to_score'][...]
+    
+    results.feature_to_score = db['feature_to_score'][...]
+    results.raw_stats = db['raw_stats'][...]
+
+    # Summary counts by bin, based on optimal tuning params at each level
+    results.summary_bins    = db['summary']['bins'][...]
+    results.summary_counts  = db['summary']['counts'][...]
+    results.best_param_idxs = db['summary']['best_param_idxs'][...]
+
+    results.sample_indexes = db['sample_indexes'][...]
+
+    # Group means, coefficients, and fold change, with the header information
+    results.group_means  = load_table(db, 'group_means')
+    results.coeff_values = load_table(db, 'coeff_values')
+    results.fold_change  = load_table(db, 'fold_change')
+
+    return results
 
 class DB:
 
@@ -142,26 +223,14 @@ class DB:
                  schema_path=None,
                  path=None):
 
-        self.settings = None
-
         self.input = Input()
+        self.settings = None
+        self.results = Results()
 
         self.schema_path = schema_path
         self.path = path
 
         # Results
-        self.bins = None
-        self.bin_to_unperm_count = None
-        self.bin_to_mean_perm_count = None
-        self.bin_to_score = None
-        self.feature_to_score = None
-        self.raw_stats = None
-        self.summary_counts = None
-        self.best_param_idxs = None
-        self.sample_indexes = None
-        self.group_means = None
-        self.coeff_values = None
-        self.fold_change = None
 
         self.file = None
         self.schema = schema
@@ -169,116 +238,61 @@ class DB:
 
     def save(self):
         logging.info("Saving job results to " + self.path)
-        f = h5py.File(self.path, 'w')
-        self.file = f
+        db = h5py.File(self.path, 'w')
 
-        save_input(self.input, self.file)
-        save_settings(self.settings, self.file)
+        save_input(self.input, db)
+        save_settings(self.settings, db)
+        save_results(self.results, db)
+        save_schema(self.schema, db)
 
-        schema_str = StringIO()
-        self.schema.save(schema_str)
+        self.compute_orderings(db)
 
-        self.bins = f.create_dataset("bins", data=self.bins)
+        db.close()
 
-        f.attrs['schema'] = str(schema_str.getvalue())
+    def compute_orderings(self, db):
 
-        self.bin_to_mean_perm_count = f.create_dataset("bin_to_mean_perm_count", data=self.bin_to_mean_perm_count)
-        self.bin_to_unperm_count   = f.create_dataset("bin_to_unperm_count", data=self.bin_to_unperm_count)
-        self.bin_to_score = f.create_dataset("bin_to_score", data=self.bin_to_score)
-        self.feature_to_score = f.create_dataset("feature_to_score", data=self.feature_to_score)
-        self.raw_stats = f.create_dataset("raw_stats", data=self.raw_stats)
-
-        summary = f.create_group('summary')
-        summary['bins']            = self.summary_bins
-        summary['counts']          = self.summary_counts
-        summary['best_param_idxs'] = self.best_param_idxs
-
-        self.sample_indexes = f.create_dataset("sample_indexes", data=self.sample_indexes)
-
-        self.save_table(self.group_means, 'group_means')
-        self.save_table(self.fold_change, 'fold_change')
-        self.save_table(self.coeff_values, 'coeff_values')
-
-        self.compute_orderings()
-        self.file = None
-
-        f.close()
-
-    def compute_orderings(self):
-
-        grp = self.file.create_group('orderings')
+        grp = db.create_group('orderings')
         original = np.arange(len(self.input.feature_ids))
-        stats = self.feature_to_score[...]
+        stats = self.results.feature_to_score[...]
         rev_stats = 0.0 - stats
 
-        by_score_original = np.zeros(np.shape(self.raw_stats), int)
+        by_score_original = np.zeros(np.shape(self.results.raw_stats), int)
         for i in range(len(self.settings.tuning_params)):
             by_score_original[i] = np.lexsort(
                 (original, rev_stats[i]))
 
         grp['score_original'] = by_score_original
 
-        by_foldchange_original = np.zeros(np.shape(self.fold_change.table), int)
-        foldchange = self.fold_change.table[...]
+        by_foldchange_original = np.zeros(np.shape(self.results.fold_change.table), int)
+        foldchange = self.results.fold_change.table[...]
         rev_foldchange = 0.0 - foldchange
-        for i in range(len(self.fold_change.header)):
+        for i in range(len(self.results.fold_change.header)):
             keys = (original, rev_foldchange[..., i])
 
             by_foldchange_original[..., i] = np.lexsort(keys)
 
         grp['foldchange_original'] = by_foldchange_original
 
-    def save_table(self, table, name):
-        self.file.create_dataset(name, data=table.table)
-        self.file[name].attrs['headers'] = table.header        
-    
-    def load_table(self, name):
-        ds = self.file[name]
-        if ds is None:
-            raise Exception("No dataset called " + str(name)) 
-        return TableWithHeader(ds.attrs['headers'], ds[...])
 
     def load(self):
 
         logging.info("Loading job results from " + self.path)
-        file = None
+        db = None
         try:
-            file = h5py.File(self.path, 'r')
+            db = h5py.File(self.path, 'r')
         except IOError as e:
             raise IOError("While trying to load database from " + self.path, e)
 
-        self.file = file
-
-        self.settings = load_settings(self.file)
-        self.input    = load_input(self.file)
-        self.bins = file['bins'][...]
-        self.bin_to_unperm_count    = file['bin_to_unperm_count'][...]
-        self.bin_to_mean_perm_count = file['bin_to_mean_perm_count'][...]
-        self.bin_to_score           = file['bin_to_score'][...]
-
-        self.feature_to_score = file['feature_to_score'][...]
-        self.raw_stats = file['raw_stats'][...]
-
-        # Summary counts by bin, based on optimal tuning params at each level
-        self.summary_bins    = file['summary']['bins'][...]
-        self.summary_counts  = file['summary']['counts'][...]
-        self.best_param_idxs = file['summary']['best_param_idxs'][...]
-
-        self.sample_indexes = file['sample_indexes'][...]
-
-        # Group means, coefficients, and fold change, with the header information
-        self.group_means  = self.load_table('group_means')
-        self.coeff_values = self.load_table('coeff_values')
-        self.fold_change  = self.load_table('fold_change')
+        self.settings = load_settings(db)
+        self.input    = load_input(db)
+        self.schema   = load_schema(db)
+        self.results  = load_results(db)
 
         # Orderings
-        self.ordering_by_score_original      = file['orderings']['score_original'][...]
-        self.ordering_by_foldchange_original = file['orderings']['foldchange_original'][...]
+        self.ordering_by_score_original      = db['orderings']['score_original'][...]
+        self.ordering_by_foldchange_original = db['orderings']['foldchange_original'][...]
 
-        schema_str = StringIO(file.attrs['schema'])
-        self.schema = Schema.load(schema_str)
-
-        file.close()
+        db.close()
         logging.info("Done loading results")
 
 
