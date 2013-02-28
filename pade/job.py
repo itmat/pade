@@ -222,7 +222,7 @@ def load_results(db):
 
     return results
 
-class DB:
+class Job:
 
     """Interface for the HDF5 file that we use to persist the job state."""
 

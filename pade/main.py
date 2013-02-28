@@ -27,7 +27,7 @@ from pade.schema import *
 from pade.model import *
 import pade.stat
 from pade.stat import random_indexes, random_orderings, residuals, group_means, layout_is_paired
-from pade.db import DB
+from pade.job import Job
 from pade.conf import *
 
 
@@ -39,7 +39,7 @@ class UsageException(Exception):
     pass
 
 @profiled
-def predicted_values(db):
+def predicted_values(job):
     """Return the values predicted by the reduced model.
     
     The return value has the same shape as the input table, with each
@@ -47,53 +47,53 @@ def predicted_values(db):
     defined by the reduced model.
 
     """
-    data = db.input.table
+    data = job.input.table
     prediction = np.zeros_like(data)
 
-    for grp in db.block_layout:
+    for grp in job.block_layout:
         means = np.mean(data[..., grp], axis=1)
         means = means.reshape(np.shape(means) + (1,))
         prediction[..., grp] = means
     return prediction
 
-def summarize_by_conf_level(db):
-    """Modify db to summarize the counts by conf level"""
+def summarize_by_conf_level(job):
+    """Modify job to summarize the counts by conf level"""
 
     logging.info("Summarizing the results")
 
-    db.results.summary_bins = np.arange(db.settings.min_conf, 1.0, db.settings.conf_interval)
-    db.results.best_param_idxs = np.zeros(len(db.results.summary_bins))
-    db.results.summary_counts = np.zeros(len(db.results.summary_bins))
+    job.results.summary_bins = np.arange(job.settings.min_conf, 1.0, job.settings.conf_interval)
+    job.results.best_param_idxs = np.zeros(len(job.results.summary_bins))
+    job.results.summary_counts = np.zeros(len(job.results.summary_bins))
 
-    for i, conf in enumerate(db.results.summary_bins):
-        idxs = db.results.feature_to_score > conf
+    for i, conf in enumerate(job.results.summary_bins):
+        idxs = job.results.feature_to_score > conf
         best = np.argmax(np.sum(idxs, axis=1))
-        db.results.best_param_idxs[i] = best
-        db.results.summary_counts[i]  = np.sum(idxs[best])
+        job.results.best_param_idxs[i] = best
+        job.results.summary_counts[i]  = np.sum(idxs[best])
 
-def print_summary(db):
+def print_summary(job):
     print """
 Summary of features by confidence level:
 
 Confidence |   Num.   | Tuning
    Level   | Features | Param.
 -----------+----------+-------"""
-    for i in range(len(db.results.summary_counts) - 1):
+    for i in range(len(job.results.summary_counts) - 1):
         print "{bin:10.1%} | {count:8d} | {param:0.4f}".format(
-            bin=db.results.summary_bins[i],
-            count=int(db.results.summary_counts[i]),
-            param=db.settings.tuning_params[db.results.best_param_idxs[i]])
+            bin=job.results.summary_bins[i],
+            count=int(job.results.summary_counts[i]),
+            param=job.settings.tuning_params[job.results.best_param_idxs[i]])
 
 ########################################################################
 #
 # Computing coefficients, fold change, and means
 #
     
-def compute_coeffs(db):
+def compute_coeffs(job):
     """Calculate the coefficients for the full model.
 
-    :param db:
-      The page.db.DB
+    :param job:
+      The page.job.Job
 
     :return: 
       A TableWithHeader giving the coefficients for the linear model
@@ -101,17 +101,17 @@ def compute_coeffs(db):
 
 
     """
-    fitted = db.full_model.fit(db.input.table)
+    fitted = job.full_model.fit(job.input.table)
     names  = [assignment_name(a) for a in fitted.labels]    
     values = fitted.params
-    return pade.db.TableWithHeader(names, values)
+    return pade.job.TableWithHeader(names, values)
 
 
-def compute_fold_change(db):
+def compute_fold_change(job):
     """Compute fold change.
 
-    :param db:
-      The pade.db.DB
+    :param job:
+      The pade.job.Job
 
     :return:
       A TableWithHeader giving the fold change for each non-baseline
@@ -120,33 +120,33 @@ def compute_fold_change(db):
     """
     logging.info("Computing fold change")
     
-    nuisance_factors = set(db.settings.block_variables)
-    test_factors     = db.settings.condition_variables
+    nuisance_factors = set(job.settings.block_variables)
+    test_factors     = job.settings.condition_variables
 
     if len(test_factors) > 1:
         raise UsageException(
             """You can only have one condition variable. We will change this soon.""")
 
-    nuisance_assignments = db.schema.possible_assignments(nuisance_factors)
+    nuisance_assignments = job.schema.possible_assignments(nuisance_factors)
     fold_changes = []
     names = []
 
-    data = db.input.table
-    get_means = lambda a: np.mean(data[:, db.schema.indexes_with_assignments(a)], axis=-1)
+    data = job.input.table
+    get_means = lambda a: np.mean(data[:, job.schema.indexes_with_assignments(a)], axis=-1)
 
-    alpha = scipy.stats.scoreatpercentile(db.input.table.flatten(), 1.0)
+    alpha = scipy.stats.scoreatpercentile(job.input.table.flatten(), 1.0)
 
     for na in nuisance_assignments:
-        test_assignments = db.schema.possible_assignments(test_factors)
+        test_assignments = job.schema.possible_assignments(test_factors)
         test_assignments = [OrderedDict(d.items() + na.items()) for d in test_assignments]
-        layouts = [ db.schema.indexes_with_assignments(a) for a in test_assignments ]
+        layouts = [ job.schema.indexes_with_assignments(a) for a in test_assignments ]
         baseline_mean = get_means(test_assignments[0])
         for a in test_assignments[1:]:
             fold_changes.append((get_means(a) + alpha) / (baseline_mean + alpha))
             names.append(assignment_name(a))
 
     # Ignoring nuisance vars
-    test_assignments = db.schema.possible_assignments(test_factors)
+    test_assignments = job.schema.possible_assignments(test_factors)
     baseline_mean = get_means(test_assignments[0])
     for a in test_assignments[1:]:
         fold_changes.append((get_means(a) + alpha) / (baseline_mean + alpha))
@@ -159,25 +159,25 @@ def compute_fold_change(db):
     for i in range(len(fold_changes)):
         result[..., i] = fold_changes[i]
 
-    return pade.db.TableWithHeader(names, result)
+    return pade.job.TableWithHeader(names, result)
 
 
-def compute_means(db):
+def compute_means(job):
     """Compute the means for each group in the full model.
     
-    :param db:
-      The pade.db.DB
+    :param job:
+      The pade.job.Job
 
     :return:
       A TableWithHeader giving the mean for each of the blocking and
       condition variables.
     
     """
-    factors = db.settings.block_variables + db.settings.condition_variables
+    factors = job.settings.block_variables + job.settings.condition_variables
     names = [assignment_name(a) 
-             for a in db.schema.possible_assignments(factors)]
-    values = get_group_means(db.schema, db.input.table, factors)
-    return pade.db.TableWithHeader(names, values)
+             for a in job.schema.possible_assignments(factors)]
+    values = get_group_means(job.schema, job.input.table, factors)
+    return pade.job.TableWithHeader(names, values)
 
 
 ########################################################################
@@ -207,41 +207,41 @@ Analyzing {filename}, which is described by the schema {schema}.
 """.format(filename=args.infile.name,
            schema=args.schema)
 
-    db = DB(path=args.db)
-    db.settings = args_to_settings(args)
-    db.schema_path = args.schema
-    db.schema = load_schema(args.schema)
+    job = Job(path=args.db)
+    job.settings = args_to_settings(args)
+    job.schema_path = args.schema
+    job.schema = load_schema(args.schema)
 
-    db.input.import_table(args.infile.name)
+    job.input.import_table(args.infile.name)
 
-    db.results.sample_indexes = new_sample_indexes(db)
+    job.results.sample_indexes = new_sample_indexes(job)
 
-    run_job(db, args.equalize_means_ids)
+    run_job(job, args.equalize_means_ids)
 
-    db.results.group_means  = compute_means(db)
-    db.results.coeff_values = compute_coeffs(db)
-    db.results.fold_change  = compute_fold_change(db)
+    job.results.group_means  = compute_means(job)
+    job.results.coeff_values = compute_coeffs(job)
+    job.results.fold_change  = compute_fold_change(job)
 
-    summarize_by_conf_level(db)
-    print_summary(db)
-    compute_orderings(db)
-    db.save()
+    summarize_by_conf_level(job)
+    print_summary(job)
+    compute_orderings(job)
+    job.save()
     print """
 The results for the job are saved in {path}. To generate a text
 report, run:
 
-  pade report --db {path}
+  pade report --job {path}
 
 To launch a small web server to generate the HTML reports, run:
 
-  pade server --db {path}
-""".format(path=db.path)
+  pade server --job {path}
+""".format(path=job.path)
 
 def do_server(args):
     import pade.server
-    db = DB(path=args.db)
-    db.load()
-    pade.server.app.db = db
+    job = Job(path=args.db)
+    job.load()
+    pade.server.app.job = job
     if args.debug:
         pade.server.app.debug = True
     pade.server.app.run(port=args.port)
@@ -249,20 +249,20 @@ def do_server(args):
 
 def do_report(args):
 
-    db = DB(path=args.db)
+    job = Job(path=args.db)
     print """
-Generating report for result database {db}.
-""".format(db=db.path)
+Generating report for result database {job}.
+""".format(job=job.path)
 
-    db.load()
+    job.load()
     filename = args.output
-    save_text_output(db, filename=filename)
+    save_text_output(job, filename=filename)
     print "Saved text report to ", filename
 
 
-def get_stat_fn(db):
+def get_stat_fn(job):
     """The statistic used for this job."""
-    name = db.settings.stat
+    name = job.settings.stat
 
     if name == 'one_sample_t_test':
         constructor = pade.stat.OneSampleDifferenceTTest
@@ -271,7 +271,7 @@ def get_stat_fn(db):
     elif name == 'means_ratio':
         constructor = pade.stat.MeansRatio
 
-    if constructor == pade.stat.Ftest and layout_is_paired(db.block_layout):
+    if constructor == pade.stat.Ftest and layout_is_paired(job.block_layout):
         raise UsageException(
 """I can't use the f-test with this data, because the reduced model
 you specified has groups with only one sample. It seems like you have
@@ -279,14 +279,14 @@ a paired layout. If this is the case, please use the --paired option.
 """)        
 
     return constructor(
-        condition_layout=db.condition_layout,
-        block_layout=db.block_layout,
-        alphas=db.settings.tuning_params)
+        condition_layout=job.condition_layout,
+        block_layout=job.block_layout,
+        alphas=job.settings.tuning_params)
 
 
 def args_to_settings(args):
 
-    settings = pade.db.Settings()
+    settings = pade.job.Settings()
 
     # Easy settings
     settings.num_bins = args.num_bins
@@ -345,110 +345,110 @@ def load_schema(path):
         raise UsageException("Couldn't load schema: " + e.filename + ": " + e.strerror)    
 
 @profiled
-def run_job(db, equalize_means_ids):
+def run_job(job, equalize_means_ids):
 
-    stat = get_stat_fn(db)
+    stat = get_stat_fn(job)
 
     logging.info("Computing {stat} statistics on raw data".format(stat=stat.name))
-    raw_stats = stat(db.input.table)
+    raw_stats = stat(job.input.table)
     logging.debug("Shape of raw stats is " + str(np.shape(raw_stats)))
 
     logging.info("Creating {num_bins} bins based on values of raw stats".format(
-            num_bins=db.settings.num_bins))
-    db.results.bins = pade.conf.bins_uniform(db.settings.num_bins, raw_stats)
+            num_bins=job.settings.num_bins))
+    job.results.bins = pade.conf.bins_uniform(job.settings.num_bins, raw_stats)
 
-    if db.settings.sample_from_residuals:
+    if job.settings.sample_from_residuals:
         logging.info("Sampling from residuals")
-        prediction = predicted_values(db)
-        diffs      = db.input.table - prediction
-        db.results.bin_to_mean_perm_count = pade.conf.bootstrap(
+        prediction = predicted_values(job)
+        diffs      = job.input.table - prediction
+        job.results.bin_to_mean_perm_count = pade.conf.bootstrap(
             prediction,
             stat, 
-            indexes=db.results.sample_indexes,
+            indexes=job.results.sample_indexes,
             residuals=diffs,
-            bins=db.results.bins)
+            bins=job.results.bins)
 
     else:
         logging.info("Sampling from raw data")
         # Shift all values in the data by the means of the groups from
         # the full model, so that the mean of each group is 0.
-        if db.settings.equalize_means:
-            shifted = residuals(db.input.table, db.full_layout)
-            data = np.zeros_like(db.input.table)
+        if job.settings.equalize_means:
+            shifted = residuals(job.input.table, job.full_layout)
+            data = np.zeros_like(job.input.table)
             if equalize_means_ids is None:
                 data = shifted
             else:
                 ids = set([line.rstrip() for line in equalize_means_ids])
                 count = len(ids)
-                for i, fid in enumerate(db.input.feature_ids):
+                for i, fid in enumerate(job.input.feature_ids):
                     if fid in ids:
                         data[i] = shifted[i]
                         ids.remove(fid)
                     else:
-                        data[i] = db.input.table[i]
+                        data[i] = job.input.table[i]
                 logging.info("Equalized means for " + str(count - len(ids)) + " features")
                 if len(ids) > 0:
                     logging.warn("There were " + str(len(ids)) + " feature " +
                                  "ids given that don't exist in the data: " +
                                  str(ids))
 
-            db.results.bin_to_mean_perm_count = pade.conf.bootstrap(
+            job.results.bin_to_mean_perm_count = pade.conf.bootstrap(
                 data,
                 stat, 
-                indexes=db.results.sample_indexes,
-                bins=db.results.bins)
+                indexes=job.results.sample_indexes,
+                bins=job.results.bins)
 
         else:
-            db.results.bin_to_mean_perm_count = pade.conf.bootstrap(
-                db.input.table,
+            job.results.bin_to_mean_perm_count = pade.conf.bootstrap(
+                job.input.table,
                 stat, 
-                indexes=db.results.sample_indexes,
-                bins=db.results.bins)            
+                indexes=job.results.sample_indexes,
+                bins=job.results.bins)            
 
     logging.info("Done bootstrapping, now computing confidence scores")
-    db.results.raw_stats    = raw_stats
-    db.results.bin_to_unperm_count   = pade.conf.cumulative_hist(db.results.raw_stats, db.results.bins)
-    db.results.bin_to_score = confidence_scores(
-        db.results.bin_to_unperm_count, db.results.bin_to_mean_perm_count, np.shape(raw_stats)[-1])
-    db.results.feature_to_score = assign_scores_to_features(
-        db.results.raw_stats, db.results.bins, db.results.bin_to_score)
+    job.results.raw_stats    = raw_stats
+    job.results.bin_to_unperm_count   = pade.conf.cumulative_hist(job.results.raw_stats, job.results.bins)
+    job.results.bin_to_score = confidence_scores(
+        job.results.bin_to_unperm_count, job.results.bin_to_mean_perm_count, np.shape(raw_stats)[-1])
+    job.results.feature_to_score = assign_scores_to_features(
+        job.results.raw_stats, job.results.bins, job.results.bin_to_score)
 
-    return db
+    return job
 
 
-def save_text_output(db, filename):
+def save_text_output(job, filename):
 
-    (num_rows, num_cols) = db.input.table.shape
+    (num_rows, num_cols) = job.input.table.shape
     num_cols += 2
     table = np.zeros((num_rows, num_cols))
 
     # Best tuning param for each feature
-    idxs = np.argmax(db.results.feature_to_score, axis=0)
+    idxs = np.argmax(job.results.feature_to_score, axis=0)
     table = []
 
     # For each row in the data, add feature id, stat, score, group
     # means, and raw values.
     logging.info("Building internal results table")
-    for i in range(len(db.input.table)):
+    for i in range(len(job.input.table)):
         row = []
 
         # Feature id
-        row.append(db.input.feature_ids[i])
+        row.append(job.input.feature_ids[i])
         
         # Best stat and all stats
-        row.append(db.results.raw_stats[idxs[i], i])
-        for j in range(len(db.settings.tuning_params)):
-            row.append(db.results.raw_stats[j, i])
+        row.append(job.results.raw_stats[idxs[i], i])
+        for j in range(len(job.settings.tuning_params)):
+            row.append(job.results.raw_stats[j, i])
         
         # Best score and all scores
-        row.append(db.results.feature_to_score[idxs[i], i])
-        for j in range(len(db.settings.tuning_params)):
-            row.append(db.results.feature_to_score[j, i])
-        row.extend(db.results.group_means[i])
-        row.extend(db.results.coeff_values[i])
-        row.extend(db.input.table[i])
+        row.append(job.results.feature_to_score[idxs[i], i])
+        for j in range(len(job.settings.tuning_params)):
+            row.append(job.results.feature_to_score[j, i])
+        row.extend(job.results.group_means[i])
+        row.extend(job.results.coeff_values[i])
+        row.extend(job.input.table[i])
         table.append(tuple(row))
-    schema = db.schema
+    schema = job.schema
 
     cols = []
     Col = namedtuple("Col", ['name', 'dtype', 'format'])
@@ -457,17 +457,17 @@ def save_text_output(db, filename):
 
     add_col(schema.feature_id_column_names[0], object, "%s")
     add_col('best_stat', float, "%f")
-    for i, alpha in enumerate(db.settings.tuning_params):
+    for i, alpha in enumerate(job.settings.tuning_params):
         add_col('stat_' + str(alpha), float, "%f")
 
     add_col('best_score', float, "%f")
-    for i, alpha in enumerate(db.settings.tuning_params):
+    for i, alpha in enumerate(job.settings.tuning_params):
         add_col('score_' + str(alpha), float, "%f")
 
-    for name in db.group_names:
+    for name in job.group_names:
         add_col("mean: " + name, float, "%f")
 
-    for name in db.coeff_names:
+    for name in job.coeff_names:
         add_col("param: " + name, float, "%f")
 
     for i, name in enumerate(schema.sample_column_names):
@@ -523,7 +523,7 @@ def new_sample_indexes(job):
         return list(random_orderings(job.condition_layout, job.block_layout, R))
 
     
-def print_profile(db):
+def print_profile(job):
 
     walked = walk_profile()
     env = jinja2.Environment(loader=jinja2.PackageLoader('pade'))
@@ -536,8 +536,8 @@ def print_profile(db):
     fmt += ["%d", "%d", "%s", "%f", "%f", "%f", "%f", "%f", "%f"]
     fmt += ["%d", "%d"]
 
-    features = [ len(db.input.table) for row in walked ]
-    samples  = [ len(db.input.table[0]) for row in walked ]
+    features = [ len(job.input.table) for row in walked ]
+    samples  = [ len(job.input.table[0]) for row in walked ]
 
     walked = append_fields(walked, names='features', data=features)
     walked = append_fields(walked, names='samples', data=samples)
