@@ -91,10 +91,10 @@ def compute_coeffs(db):
     :param db:
       The page.db.DB
 
-    :returns:
-      A (names, values) tuple where values is a (feature x coeff)
-      array giving the value of each coefficient for each feature, and
-      names is the list of names of the coefficients.
+    :return: 
+      A TableWithHeader giving the coefficients for the linear model
+      for each feature.
+
 
     """
     fitted = db.full_model.fit(db.table)
@@ -110,9 +110,8 @@ def compute_fold_change(db):
       The pade.db.DB
 
     :return:
-      A (names, values) tuple where values is a (feature x group)
-      array giving the fold change for each group for each feature,
-      and names is the list of names for the groups.
+      A TableWithHeader giving the fold change for each non-baseline
+      group for each feature.
 
     """
     logging.info("Computing fold change")
@@ -166,13 +165,11 @@ def compute_means(db):
       The pade.db.DB
 
     :return:
-      A (names, values) tuple where values is a (feature x group)
-      ndarray that gives the mean for each group for each feature. The
-      groups are based on the 'full model' (combination of condition
-      variables and blocking variables)
+      A TableWithHeader giving the mean for each of the blocking and
+      condition variables.
     
     """
-    factors = db.full_model.expr.variables
+    factors = db.settings.block_variables + db.settings.condition_variables
     names = [assignment_name(a) 
              for a in db.schema.possible_assignments(factors)]
     values = get_group_means(db.schema, db.table, factors)
@@ -236,35 +233,28 @@ Generating report for result database {db}.
     save_text_output(db, filename=filename)
     print "Saved text report to ", filename
 
-def stat_for_name(db):
+def get_stat_fn(db):
     """The statistic used for this job."""
     name = db.settings.stat
 
-    if name == 'one_sample_t_test':
-        return pade.stat.OneSampleDifferenceTTest(
-            block_layout=db.block_layout,
-            condition_layout=db.condition_layout,
-            alphas=db.settings.tuning_params)
-
+    if name == 'onesampledifferencettest':
+        constructor = pade.stat.OneSampleDifferenceTTest
     elif name == 'f_test':
+        constructor = pade.stat.Ftest
+    elif name == 'means_ratio':
+        constructor = pade.stat.MeansRatio
 
-        if layout_is_paired(db.block_layout):
-            raise UsageException(
+    if constructor == pade.stat.Ftest and layout_is_paired(db.block_layout):
+        raise UsageException(
 """I can't use the f-test with this data, because the reduced model
 you specified has groups with only one sample. It seems like you have
 a paired layout. If this is the case, please use the --paired option.
-""")
+""")        
 
-        return pade.stat.Ftest(
-            condition_layout=db.condition_layout,
-            block_layout=db.block_layout,
-            alphas=db.settings.tuning_params)
-
-    elif name == 'means_ratio':
-        return pade.stat.MeansRatio(
-            condition_layout=db.condition_layout,
-            block_layout=db.block_layout,
-            alphas=db.settings.tuning_params)
+    return constructor(
+        condition_layout=db.condition_layout,
+        block_layout=db.block_layout,
+        alphas=db.settings.tuning_params)
 
 
 def import_table(db, path):
@@ -369,7 +359,7 @@ def load_schema(path):
 @profiled
 def run_job(db, equalize_means_ids):
 
-    stat = stat_for_name(db)
+    stat = get_stat_fn(db)
 
     logging.info("Computing {stat} statistics on raw data".format(stat=stat.name))
     raw_stats = stat(db.table)
