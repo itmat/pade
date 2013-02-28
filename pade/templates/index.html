@@ -69,10 +69,10 @@
         <th>Features</th>
       </tr>
 
-      {% for i in range(db.summary_counts | length) %}
+      {% for i in range(db.results.summary_counts | length) %}
       <tr>
-        <td>{{ db.summary_bins[i] }}</td>
-        <td><a href="{{url_for('details', conf_level=i)}}">{{ db.summary_counts[i] }}</a></td>
+        <td>{{ db.results.summary_bins[i] }}</td>
+        <td><a href="{{url_for('details', conf_level=i)}}">{{ db.results.summary_counts[i] }}</a></td>
       </tr>
       {% endfor %}
 

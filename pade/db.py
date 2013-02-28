@@ -103,7 +103,8 @@ class Results:
         self.group_means = None
         self.coeff_values = None
         self.fold_change = None
-
+        self.order_by_foldchange_original = None
+        self.order_by_score_original = None
 
 
 def save_input(input, db):
@@ -152,6 +153,10 @@ def save_results(results, db):
     save_table(db, results.group_means, 'group_means')
     save_table(db, results.fold_change, 'fold_change')
     save_table(db, results.coeff_values, 'coeff_values')
+
+    orderings = db.create_group('orderings')
+    orderings['by_score_original'] = results.order_by_score_original
+    orderings['by_foldchange_original'] = results.order_by_foldchange_original
 
 def save_table(db, table, name):
     db.create_dataset(name, data=table.table)
@@ -211,6 +216,9 @@ def load_results(db):
     results.group_means  = load_table(db, 'group_means')
     results.coeff_values = load_table(db, 'coeff_values')
     results.fold_change  = load_table(db, 'fold_change')
+    # Orderings
+    results.ordering_by_score_original      = db['orderings']['by_score_original'][...]
+    results.ordering_by_foldchange_original = db['orderings']['by_foldchange_original'][...]
 
     return results
 
@@ -226,12 +234,8 @@ class DB:
         self.input = Input()
         self.settings = None
         self.results = Results()
-
         self.schema_path = schema_path
         self.path = path
-
-        # Results
-
         self.file = None
         self.schema = schema
 
@@ -241,37 +245,11 @@ class DB:
         db = h5py.File(self.path, 'w')
 
         save_input(self.input, db)
+        save_schema(self.schema, db)
         save_settings(self.settings, db)
         save_results(self.results, db)
-        save_schema(self.schema, db)
-
-        self.compute_orderings(db)
 
         db.close()
-
-    def compute_orderings(self, db):
-
-        grp = db.create_group('orderings')
-        original = np.arange(len(self.input.feature_ids))
-        stats = self.results.feature_to_score[...]
-        rev_stats = 0.0 - stats
-
-        by_score_original = np.zeros(np.shape(self.results.raw_stats), int)
-        for i in range(len(self.settings.tuning_params)):
-            by_score_original[i] = np.lexsort(
-                (original, rev_stats[i]))
-
-        grp['score_original'] = by_score_original
-
-        by_foldchange_original = np.zeros(np.shape(self.results.fold_change.table), int)
-        foldchange = self.results.fold_change.table[...]
-        rev_foldchange = 0.0 - foldchange
-        for i in range(len(self.results.fold_change.header)):
-            keys = (original, rev_foldchange[..., i])
-
-            by_foldchange_original[..., i] = np.lexsort(keys)
-
-        grp['foldchange_original'] = by_foldchange_original
 
 
     def load(self):
@@ -287,10 +265,6 @@ class DB:
         self.input    = load_input(db)
         self.schema   = load_schema(db)
         self.results  = load_results(db)
-
-        # Orderings
-        self.ordering_by_score_original      = db['orderings']['score_original'][...]
-        self.ordering_by_foldchange_original = db['orderings']['foldchange_original'][...]
 
         db.close()
         logging.info("Done loading results")

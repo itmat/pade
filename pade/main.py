@@ -224,6 +224,7 @@ Analyzing {filename}, which is described by the schema {schema}.
 
     summarize_by_conf_level(db)
     print_summary(db)
+    compute_orderings(db)
     db.save()
     print """
 The results for the job are saved in {path}. To generate a text
@@ -856,6 +857,30 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
     server_parser.set_defaults(func=do_server)
 
     return uberparser.parse_args()
+
+def compute_orderings(job):
+
+    original = np.arange(len(job.input.feature_ids))
+    stats = job.results.feature_to_score[...]
+    rev_stats = 0.0 - stats
+
+    by_score_original = np.zeros(np.shape(job.results.raw_stats), int)
+    for i in range(len(job.settings.tuning_params)):
+        by_score_original[i] = np.lexsort(
+            (original, rev_stats[i]))
+
+    job.results.order_by_score_original = by_score_original
+
+    by_foldchange_original = np.zeros(np.shape(job.results.fold_change.table), int)
+    foldchange = job.results.fold_change.table[...]
+    rev_foldchange = 0.0 - foldchange
+    for i in range(len(job.results.fold_change.header)):
+        keys = (original, rev_foldchange[..., i])
+
+        by_foldchange_original[..., i] = np.lexsort(keys)
+
+    job.results.order_by_foldchange_original = by_foldchange_original
+
 
 
 if __name__ == '__main__':
