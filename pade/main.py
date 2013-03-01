@@ -220,7 +220,17 @@ def do_makesamples(args):
         output = sys.stdout
     else:
         output = args.output
-    np.savetxt(output, res, fmt='%d')
+
+    output.write("# Block layout:     " + str(job.block_layout) + "\n")
+    output.write("# Condition layout: " + str(job.condition_layout) + "\n")
+
+    test = pade.stat.GroupSizes(job.condition_layout)
+
+    for row in res:
+        for x in row:
+            output.write(' {:3d}'.format(x))
+        output.write(" # " + str(test(np.array(row))) + "\n")
+
 
 def load_sample_indexes(path):
     return np.genfromtxt(path, dtype=int)
@@ -250,8 +260,8 @@ Analyzing {filename}, which is described by the schema {schema}.
 
     summary = summarize_by_conf_level(job)
 
-    job.results.summary_bins = summary.bins
-    job.results.summary_counts = summary.counts
+    job.results.summary_bins    = summary.bins
+    job.results.summary_counts  = summary.counts
     job.results.best_param_idxs = summary.best_param_idxs
 
     print_summary(job)
@@ -906,6 +916,7 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
 
     makesamples_parser.add_argument(
         '--output', '-o',
+        type=argparse.FileType(mode='w'),
         help="File to write sample indexes to")
 
     report_parser.set_defaults(func=do_report)
