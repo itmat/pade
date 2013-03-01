@@ -11,6 +11,12 @@ import numpy as np
 
 TableWithHeader = collections.namedtuple('TableWithHeader', ['header', 'table'])
 
+class Summary(object):
+    def __init__(self, bins, best_param_idxs, counts):
+        self.bins = bins
+        self.best_param_idxs = best_param_idxs
+        self.counts = counts
+
 class Input(object):
 
     """Raw(ish) input for the job."""

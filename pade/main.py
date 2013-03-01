@@ -62,15 +62,17 @@ def summarize_by_conf_level(job):
 
     logging.info("Summarizing the results")
 
-    job.results.summary_bins = np.arange(job.settings.min_conf, 1.0, job.settings.conf_interval)
-    job.results.best_param_idxs = np.zeros(len(job.results.summary_bins))
-    job.results.summary_counts = np.zeros(len(job.results.summary_bins))
+    bins = np.arange(job.settings.min_conf, 1.0, job.settings.conf_interval)
+    best_param_idxs = np.zeros(len(bins))
+    counts          = np.zeros(len(bins))
 
-    for i, conf in enumerate(job.results.summary_bins):
+    for i, conf in enumerate(bins):
         idxs = job.results.feature_to_score > conf
         best = np.argmax(np.sum(idxs, axis=1))
-        job.results.best_param_idxs[i] = best
-        job.results.summary_counts[i]  = np.sum(idxs[best])
+        best_param_idxs[i] = best
+        counts[i]  = np.sum(idxs[best])
+
+    return pade.job.Summary(bins, best_param_idxs, counts)
 
 def print_summary(job):
     print """
@@ -238,7 +240,7 @@ Analyzing {filename}, which is described by the schema {schema}.
         logging.info("Loading sample indexes from user-specified file " + args.sample_indexes.name)
         job.results.sample_indexes = load_sample_indexes(args.sample_indexes)
     else:
-        new_sample_indexes(job)
+        job.results.sample_indexes = new_sample_indexes(job)
 
     run_job(job, args.equalize_means_ids)
 
@@ -246,7 +248,12 @@ Analyzing {filename}, which is described by the schema {schema}.
     job.results.coeff_values = compute_coeffs(job)
     job.results.fold_change  = compute_fold_change(job)
 
-    summarize_by_conf_level(job)
+    summary = summarize_by_conf_level(job)
+
+    job.results.summary_bins = summary.bins
+    job.results.summary_counts = summary.counts
+    job.results.best_param_idxs = summary.best_param_idxs
+
     print_summary(job)
     compute_orderings(job)
 
