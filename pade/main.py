@@ -207,12 +207,10 @@ Analyzing {filename}, which is described by the schema {schema}.
 """.format(filename=args.infile.name,
            schema=args.schema)
 
-    job = Job(path=args.db)
-    job.settings = args_to_settings(args)
-    job.schema_path = args.schema
-    job.schema = load_schema(args.schema)
-
-    job.input.import_table(args.infile.name)
+    job = Job(input=pade.job.Input.from_raw_file(args.infile.name),
+              settings=args_to_settings(args),
+              schema=load_schema(args.schema),
+              path=args.db)
 
     job.results.sample_indexes = new_sample_indexes(job)
 

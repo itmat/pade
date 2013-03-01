@@ -4,7 +4,7 @@ import shutil
 import os
 
 from pade.main import *
-from pade.db   import *
+from pade.job  import *
 
 @contextlib.contextmanager
 def tempdir():
@@ -39,10 +39,9 @@ def sample_db(infile, factor_map):
         with open(schema_path, 'w') as out:
             schema.save(out)
 
-        db = DB(
-            schema_path=schema_path,
+        job = Job(
             schema=schema,
             path=db_path)
-        import_table(db, infile)
+        job.import_table(infile)
         yield db
     

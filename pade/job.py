@@ -15,19 +15,20 @@ class Input(object):
 
     """Raw(ish) input for the job."""
     
-    def __init__(self):
+    def __init__(self, table, feature_ids):
 
-        self.table = None
+        self.table = table
         """The raw data
 
         (feature x sample) ndarray.
 
         """
 
-        self.feature_ids = None
+        self.feature_ids = feature_ids
         """Array of feature ids"""
 
-    def import_table(self, path):
+    @classmethod
+    def from_raw_file(cls, path):
         """Load the given input file into memory.
 
         :param path:
@@ -69,11 +70,12 @@ class Input(object):
                 if (i % log_interval) == log_interval - 1:
                     logging.debug("Copied {0} rows".format(i + 1))
 
-        self.table = table
-        self.feature_ids = ids
+        return Input(table, ids)
 
-    
-
+    @classmethod
+    def from_db(cls, db):
+        return Input(db['table'][...],
+                     db['feature_ids'][...])
 
 class Settings:
 
@@ -201,12 +203,6 @@ def load_table(db, name):
     return TableWithHeader(ds.attrs['headers'], ds[...])
 
 
-def load_input(db):
-    input = Input()
-    input.table = db['table'][...]
-    input.feature_ids = db['feature_ids'][...]
-    return input
-
 def load_schema(db):
     schema_str = StringIO(db.attrs['schema'])
     return Schema.load(schema_str)
@@ -259,17 +255,18 @@ class Job:
     """Interface for the HDF5 file that we use to persist the job state."""
 
     def __init__(self, 
+                 input=None,
                  schema=None,
-                 schema_path=None,
+                 settings=None,
                  path=None):
 
-        self.input = Input()
-        self.settings = None
+        self.input    = input
+        self.settings = settings
+        self.schema   = schema
         self.results = Results()
-        self.schema_path = schema_path
         self.path = path
         self.file = None
-        self.schema = schema
+
 
 
     def save(self):
@@ -294,7 +291,7 @@ class Job:
             raise IOError("While trying to load database from " + self.path, e)
 
         self.settings = load_settings(db)
-        self.input    = load_input(db)
+        self.input    = Input.from_db(db)
         self.schema   = load_schema(db)
         self.results  = load_results(db)
 
