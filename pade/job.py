@@ -16,9 +16,16 @@ class Input(object):
     """Raw(ish) input for the job."""
     
     def __init__(self):
-        self.table = None
-        self.feature_ids = None
 
+        self.table = None
+        """The raw data
+
+        (feature x sample) ndarray.
+
+        """
+
+        self.feature_ids = None
+        """Array of feature ids"""
 
     def import_table(self, path):
         """Load the given input file into memory.
@@ -73,18 +80,43 @@ class Settings:
     """The settings that control how the job is run."""
 
     def __init__(self):
-        # Settings
         self.stat_name = None
+        """Name of the statistic to use."""
+
         self.num_bins = None
+        """Number of bins used to discretize statistic space"""
+
         self.num_samples = None
+        """Max number of samples to use for permutation test or bootstrapping"""
+
         self.sample_from_residuals = None
+        """If true, sample from residuals rather than raw values."""
+
         self.sample_with_replacement = None
-        self.block_variables    = None
+        """If true, do sampling with replacement (bootstrapping).
+
+        If false, do permutation test.
+
+        """
+
+        self.block_variables = None
+        """List of "blocking" or "nuisance" variables."""
+
         self.condition_variables = None
+        """List of variables you want to test for differential effects."""
+
         self.tuning_params = None
+        """Optional list of tuning parameters for statistic."""
+
         self.equalize_means = None
+        """If true, shift the values so the mean of each group is 0."""
+
         self.min_conf = None
+        """Minimum confidence level to report on."""
+
         self.conf_interval = None
+        """Interval of confidence values to report on."""
+
 
 class Results:
     
