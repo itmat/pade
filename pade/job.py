@@ -28,7 +28,7 @@ class Input(object):
         """Array of feature ids"""
 
     @classmethod
-    def from_raw_file(cls, path):
+    def from_raw_file(cls, path, limit=None):
         """Load the given input file into memory.
 
         :param path:
@@ -64,6 +64,9 @@ class Input(object):
             headers = fh.next().rstrip().split("\t")
 
             for i, line in enumerate(fh):
+                if limit is not None and i > limit:
+                    break
+
                 row = line.rstrip().split("\t")
                 ids.append(row[0])
                 table[i] = [float(x) for x in row[1:]]

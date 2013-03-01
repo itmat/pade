@@ -209,7 +209,7 @@ def do_makesamples(args):
         block_variables=args.block,
         condition_variables=args.condition)
 
-    job = Job(input=pade.job.Input.from_raw_file(args.infile.name),
+    job = Job(input=pade.job.Input.from_raw_file(args.infile.name, limit=1),
               settings=settings,
               schema=load_schema(args.schema))
 
