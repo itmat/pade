@@ -220,6 +220,8 @@ def do_makesamples(args):
         output = args.output
     np.savetxt(output, res, fmt='%d')
 
+def load_sample_indexes(path):
+    return np.genfromtxt(path, dtype=int)
 
 def do_run(args):
     print """
@@ -232,7 +234,11 @@ Analyzing {filename}, which is described by the schema {schema}.
               schema=load_schema(args.schema),
               results=pade.job.Results())
 
-    job.results.sample_indexes = new_sample_indexes(job)
+    if args.sample_indexes is not None:
+        logging.info("Loading sample indexes from user-specified file " + args.sample_indexes.name)
+        job.results.sample_indexes = load_sample_indexes(args.sample_indexes)
+    else:
+        new_sample_indexes(job)
 
     run_job(job, args.equalize_means_ids)
 
@@ -738,7 +744,6 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
         help="The schema YAML file to load",
         default="pade_schema.yaml")
 
-
     db_in_parent = argparse.ArgumentParser(add_help=False)
     db_in_parent.add_argument(
         '--db', 
@@ -810,6 +815,11 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
         '--db', 
         help="Path to the binary output file",
         default="pade_db.h5")
+
+    run_parser.add_argument(
+        '--sample-indexes',
+        type=file,
+        help="""File specifying lists of indexes to use for sampling. See 'pade makesamples'.""")
 
     grp = run_parser.add_argument_group(
         title="confidence estimation arguments",
