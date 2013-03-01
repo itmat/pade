@@ -72,51 +72,98 @@ class Input(object):
 
         return Input(table, ids)
 
-    @classmethod
-    def from_db(cls, db):
-        return Input(db['table'][...],
-                     db['feature_ids'][...])
+
+def load_input(db):
+    return Input(db['table'][...],
+                 db['feature_ids'][...])
+
+def load_job(path):
+
+    logging.info("Loading job results from " + path)
+    db = None
+    try:
+        db = h5py.File(path, 'r')
+    except IOError as e:
+        raise IOError("While trying to load database from " + path, e)
+
+    return Job(
+        settings=load_settings(db),
+        input=load_input(db),
+        schema=load_schema(db),
+        results=load_results(db))
+
+    db.close()
+    logging.info("Done loading results")
+
+
+def load_settings(db):
+    return Settings(
+        stat_name = db.attrs['stat_name'],
+        num_bins = db.attrs['num_bins'],
+        num_samples = db.attrs['num_samples'],
+        sample_from_residuals = db.attrs['sample_from_residuals'],
+        sample_with_replacement = db.attrs['sample_with_replacement'],
+        condition_variables = list(db.attrs['condition_variables']),
+        block_variables = list(db.attrs['block_variables']),
+        min_conf = db.attrs['min_conf'],
+        conf_interval = db.attrs['conf_interval'],
+        tuning_params = db['tuning_params'][...])
+
+
 
 class Settings:
 
     """The settings that control how the job is run."""
 
-    def __init__(self):
-        self.stat_name = None
+    def __init__(
+        self,
+        stat_name=None,
+        num_bins=None,
+        num_samples=None,
+        sample_from_residuals=None,
+        sample_with_replacement=None,
+        condition_variables=None,
+        block_variables=None,
+        min_conf=None,
+        equalize_means=None,
+        conf_interval=None,
+        tuning_params=None):
+
+        self.stat_name = stat_name
         """Name of the statistic to use."""
 
-        self.num_bins = None
+        self.num_bins = num_bins
         """Number of bins used to discretize statistic space"""
 
-        self.num_samples = None
+        self.num_samples = num_samples
         """Max number of samples to use for permutation test or bootstrapping"""
 
-        self.sample_from_residuals = None
+        self.sample_from_residuals = sample_from_residuals
         """If true, sample from residuals rather than raw values."""
 
-        self.sample_with_replacement = None
+        self.sample_with_replacement = sample_with_replacement
         """If true, do sampling with replacement (bootstrapping).
 
         If false, do permutation test.
 
         """
 
-        self.block_variables = None
+        self.block_variables = block_variables
         """List of "blocking" or "nuisance" variables."""
 
-        self.condition_variables = None
+        self.condition_variables = condition_variables
         """List of variables you want to test for differential effects."""
 
-        self.tuning_params = None
+        self.tuning_params = tuning_params
         """Optional list of tuning parameters for statistic."""
 
-        self.equalize_means = None
+        self.equalize_means = equalize_means
         """If true, shift the values so the mean of each group is 0."""
 
-        self.min_conf = None
+        self.min_conf = min_conf
         """Minimum confidence level to report on."""
 
-        self.conf_interval = None
+        self.conf_interval = conf_interval
         """Interval of confidence values to report on."""
 
 
@@ -196,6 +243,20 @@ def save_table(db, table, name):
     db.create_dataset(name, data=table.table)
     db[name].attrs['headers'] = table.header        
     
+
+def save_job(path, job):
+    logging.info("Saving job results to " + path)
+    db = h5py.File(path, 'w')
+    
+    save_input(job.input, db)
+    save_schema(job.schema, db)
+    save_settings(job.settings, db)
+    save_results(job.results, db)
+    
+    db.close()
+
+
+
 def load_table(db, name):
     ds = db[name]
     if ds is None:
@@ -206,20 +267,6 @@ def load_table(db, name):
 def load_schema(db):
     schema_str = StringIO(db.attrs['schema'])
     return Schema.load(schema_str)
-
-def load_settings(db):
-    s = Settings()
-    s.stat_name = db.attrs['stat_name']
-    s.num_bins = db.attrs['num_bins']
-    s.num_samples = db.attrs['num_samples']
-    s.sample_from_residuals = db.attrs['sample_from_residuals']
-    s.sample_with_replacement = db.attrs['sample_with_replacement']
-    s.condition_variables = list(db.attrs['condition_variables'])
-    s.block_variables = list(db.attrs['block_variables'])
-    s.min_conf = db.attrs['min_conf']
-    s.conf_interval = db.attrs['conf_interval']
-    s.tuning_params = db['tuning_params'][...]
-    return s
 
 def load_results(db):
 
@@ -258,45 +305,12 @@ class Job:
                  input=None,
                  schema=None,
                  settings=None,
-                 path=None):
-
+                 results=None):
+        
         self.input    = input
         self.settings = settings
         self.schema   = schema
-        self.results = Results()
-        self.path = path
-        self.file = None
-
-
-
-    def save(self):
-        logging.info("Saving job results to " + self.path)
-        db = h5py.File(self.path, 'w')
-
-        save_input(self.input, db)
-        save_schema(self.schema, db)
-        save_settings(self.settings, db)
-        save_results(self.results, db)
-
-        db.close()
-
-
-    def load(self):
-
-        logging.info("Loading job results from " + self.path)
-        db = None
-        try:
-            db = h5py.File(self.path, 'r')
-        except IOError as e:
-            raise IOError("While trying to load database from " + self.path, e)
-
-        self.settings = load_settings(db)
-        self.input    = Input.from_db(db)
-        self.schema   = load_schema(db)
-        self.results  = load_results(db)
-
-        db.close()
-        logging.info("Done loading results")
+        self.results  = results
 
 
     def layout(self, variables):

@@ -210,7 +210,7 @@ Analyzing {filename}, which is described by the schema {schema}.
     job = Job(input=pade.job.Input.from_raw_file(args.infile.name),
               settings=args_to_settings(args),
               schema=load_schema(args.schema),
-              path=args.db)
+              results=pade.job.Results())
 
     job.results.sample_indexes = new_sample_indexes(job)
 
@@ -223,36 +223,36 @@ Analyzing {filename}, which is described by the schema {schema}.
     summarize_by_conf_level(job)
     print_summary(job)
     compute_orderings(job)
-    job.save()
+
+    pade.job.save_job(args.db, job)
+
     print """
 The results for the job are saved in {path}. To generate a text
 report, run:
 
-  pade report --job {path}
+  pade report --db {path}
 
 To launch a small web server to generate the HTML reports, run:
 
-  pade server --job {path}
-""".format(path=job.path)
+  pade server --db {path}
+""".format(path=args.db)
 
 def do_server(args):
     import pade.server
-    job = Job(path=args.db)
-    job.load()
-    pade.server.app.job = job
+
+    pade.server.app.job = pade.job.load_job(args.db)
     if args.debug:
         pade.server.app.debug = True
     pade.server.app.run(port=args.port)
     
 
 def do_report(args):
+    path = args.db
 
-    job = Job(path=args.db)
     print """
 Generating report for result database {job}.
-""".format(job=job.path)
-
-    job.load()
+""".format(job=path)
+    job = pade.job.load_job(path)
     filename = args.output
     save_text_output(job, filename=filename)
     print "Saved text report to ", filename
