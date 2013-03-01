@@ -19,6 +19,7 @@ import numpy as np
 import h5py
 from numpy.lib.recfunctions import append_fields
 import os
+import sys
 import scipy.stats
 
 from pade.common import *
@@ -199,6 +200,25 @@ I have generated a schema for your input file, with factors {factors}, and saved
 Once you have finished the schema, you will need to run "pade run" to do the analysis. See "pade run -h" for its usage.
 """).format(factors=schema.factors.keys(),
             filename=args.schema)
+
+def do_makesamples(args):
+
+    settings=pade.job.Settings(
+        sample_with_replacement=args.sample_with_replacement,
+        num_samples=args.num_samples,
+        block_variables=args.block,
+        condition_variables=args.condition)
+
+    job = Job(input=pade.job.Input.from_raw_file(args.infile.name),
+              settings=settings,
+              schema=load_schema(args.schema))
+
+    res = new_sample_indexes(job)
+    if args.output is None:
+        output = sys.stdout
+    else:
+        output = args.output
+    np.savetxt(output, res, fmt='%d')
 
 
 def do_run(args):
@@ -516,7 +536,7 @@ def new_sample_indexes(job):
             logging.info("Bootstrapping raw values, within groups defined by" + 
                          "'" + str(job.settings.block_variables) + "'")
             layout = job.block_layout
-
+        logging.info("Layout is" + str(layout))
         return random_indexes(layout, R)
 
     else:
@@ -694,18 +714,6 @@ def add_fdr_args(p):
         help="Indicates that the input is paired. Synonym for '--stat one_sample_t_test'.")
 
     grp.add_argument(
-        '--num-samples', '-R',
-        type=int,
-        default=1000,
-        help="The number of samples to use if bootstrapping, or the maximum number of permutations to use if doing permutation test.")
-
-    grp.add_argument(
-        '--sample-with-replacement',
-        action='store_true',
-        default=False,
-        help="""Use sampling with replacement (bootstrapping) rather than permutation""")
-
-    grp.add_argument(
         '--num-bins',
         type=int,
         default=1000,
@@ -767,6 +775,33 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
         default="pade.log",
         help="Location of log file")
 
+    # Sampling parent
+    sampling_parent = argparse.ArgumentParser(add_help=False)
+    sampling_parent.add_argument(
+        '--num-samples', '-R',
+        type=int,
+        default=1000,
+        help="The number of samples to use if bootstrapping, or the maximum number of permutations to use if doing permutation test.")
+
+    sampling_parent.add_argument(
+        '--sample-with-replacement',
+        action='store_true',
+        default=False,
+        help="""Use sampling with replacement (bootstrapping) rather than permutation""")
+
+    infile_parent = argparse.ArgumentParser(add_help=False)
+    infile_parent.add_argument(
+        'infile',
+        help="""Name of input file""",
+        default=argparse.SUPPRESS,
+        type=file)
+    schema_in_parent = argparse.ArgumentParser(add_help=False)
+    schema_in_parent.add_argument(
+        '--schema', 
+        help="The schema YAML file to load",
+        default="pade_schema.yaml")
+
+
     # Create setup parser
     setup_parser = subparsers.add_parser(
         'setup',
@@ -774,12 +809,7 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
                 outputs a YAML file that you then need to fill out in order to
                 properly configure the job.""",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[parents])
-    setup_parser.add_argument(
-        'infile',
-        help="""Name of input file""",
-        default=argparse.SUPPRESS,
-        type=file)
+        parents=[parents, infile_parent])
     setup_parser.add_argument(
         '--factor',
         action='append',
@@ -801,16 +831,7 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
         'run',
         help="""Run the job.""",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[parents])
-    run_parser.add_argument(
-        '--schema', 
-        help="The schema YAML file",
-        default="pade_schema.yaml")
-    run_parser.add_argument(
-        'infile',
-        help="""Name of input file""",
-        default=argparse.SUPPRESS,
-        type=file)
+        parents=[parents, sampling_parent, infile_parent, schema_in_parent])
     run_parser.add_argument(
         '--db', 
         help="Path to the binary output file",
@@ -852,10 +873,22 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
         type=int,
         help="Specify the port for the server to listen on")
 
+    makesamples_parser = subparsers.add_parser(
+        'makesamples',
+        help="""Generate samples for a schema/input file combination""",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[parents, infile_parent, sampling_parent, schema_in_parent])
+    add_model_args(makesamples_parser)
+    makesamples_parser.add_argument(
+        '--output', '-o',
+        help="File to write sample indexes to")
+
     report_parser.set_defaults(func=do_report)
     run_parser.set_defaults(func=do_run)
     setup_parser.set_defaults(func=do_setup)
     server_parser.set_defaults(func=do_server)
+    makesamples_parser.set_defaults(func=do_makesamples)
+    
 
     return uberparser.parse_args()
 
