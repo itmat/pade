@@ -661,37 +661,157 @@ def init_job(infile, factors, schema_path=None, force=False):
 # Parsing command line args
 #
 
-
-
-def add_model_args(p):
-    grp = p.add_argument_group(
-        title="data model arguments",
-        description="Use these options to specify the variables to use in the model.")
     
-    grp.add_argument(
+def get_arguments():
+    """Parse the command line options and return an argparse args
+    object."""
+    
+    uberparser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    subparsers = uberparser.add_subparsers(
+        title='actions',
+        description="""Normal usage is to run 'pade.py setup ...', then manually edit the
+pade_schema.yaml file, then run 'pade.py run ...'.""")
+
+    # Set up "parent" parser, which contains some arguments used by all other parsers
+    parents = argparse.ArgumentParser(add_help=False)
+    parents.add_argument(
+        '--verbose', '-v',
+        action='store_true',
+        help="Be verbose")
+    parents.add_argument(
+        '--debug', '-d', 
+        action='store_true',
+        help="Print debugging information")
+    parents.add_argument(
+        '--log',
+        default="pade.log",
+        help="Location of log file")
+
+    model_parent = argparse.ArgumentParser(add_help=False)
+    model_parent.add_argument(
         '--block',
         '-b',
         default=[],
         help="""Specify a variable to use for blocking. You can specify this multiple times if there are multiple blocking variables.""",
         action='append')
     
-    grp.add_argument(
+    model_parent.add_argument(
         '--condition',
         '-c',
         default=[],
         help="""Specify a variable that represents an experimental condition. Currently we only support one test condition.""",
         action='append')
 
-    grp.add_argument(
+    model_parent.add_argument(
         '--full-model', '-M',
         help=argparse.SUPPRESS) #"""Specify the 'full' model as an expression, like 'batch * treated'"""
 
-    grp.add_argument(
+    model_parent.add_argument(
         '--reduced-model', '-m',
         help=argparse.SUPPRESS) #"""Specify the 'reduced' model as an expression, like 'batch'."""
-    
-def add_fdr_args(p):
-    grp = p.add_argument_group(
+
+    # Sampling parent
+    sampling_parent = argparse.ArgumentParser(add_help=False)
+    sampling_parent.add_argument(
+        '--num-samples', '-R',
+        type=int,
+        default=1000,
+        help="The number of samples to use if bootstrapping, or the maximum number of permutations to use if doing permutation test.")
+    sampling_parent.add_argument(
+        '--sample-with-replacement',
+        action='store_true',
+        default=False,
+        help="""Use sampling with replacement (bootstrapping) rather than permutation""")
+
+    # Input file
+    infile_parent = argparse.ArgumentParser(add_help=False)
+    infile_parent.add_argument(
+        'infile',
+        help="""Name of input file""",
+        default=argparse.SUPPRESS,
+        type=file)
+    schema_in_parent = argparse.ArgumentParser(add_help=False)
+    schema_in_parent.add_argument(
+        '--schema', 
+        help="The schema YAML file to load",
+        default="pade_schema.yaml")
+
+
+    db_in_parent = argparse.ArgumentParser(add_help=False)
+    db_in_parent.add_argument(
+        '--db', 
+        help="Path to the db file to read results from",
+        default="pade_db.h5")
+
+
+    ###
+    ### Add sub-parsers
+    ###
+
+    setup_parser = subparsers.add_parser(
+        'setup',
+        help="""Set up the job configuration. This reads the input file and
+                outputs a YAML file that you then need to fill out in order to
+                properly configure the job.""",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[parents, infile_parent])
+
+    run_parser = subparsers.add_parser(
+        'run',
+        help="""Run the job.""",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[parents, sampling_parent, infile_parent, schema_in_parent, model_parent])
+
+    report_parser = subparsers.add_parser(
+        'report',
+        help="""Generate report""",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[parents, db_in_parent])
+
+    server_parser = subparsers.add_parser(
+        'server',
+        help="""Start server to show results""",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[parents, db_in_parent])
+
+    makesamples_parser = subparsers.add_parser(
+        'makesamples',
+        help="""Generate samples for a schema/input file combination""",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[parents, infile_parent, sampling_parent, schema_in_parent, model_parent])
+
+    ###
+    ### Custom args for setup parser
+    ###
+
+    setup_parser.add_argument(
+        '--factor',
+        action='append',
+        required=True,
+        help="""A class that can be set for each sample. You can
+        specify this option more than once, to use more than one
+        class.""")
+    setup_parser.add_argument(
+        '--force', '-f',
+        action='store_true',
+        help="""Overwrite any existing files""")
+    setup_parser.add_argument(
+        '--schema', 
+        help="Path to write the schema file to",
+        default="pade_schema.yaml")
+
+    ###
+    ### Custom args for run parser
+    ###
+
+    run_parser.add_argument(
+        '--db', 
+        help="Path to the binary output file",
+        default="pade_db.h5")
+
+    grp = run_parser.add_argument_group(
         title="confidence estimation arguments",
         description="""These options control how we estimate the confidence levels. You can probably leave them unchanged, in which case I'll compute it using a permutation test with an f-test as the statistic, using a maximum of 1000 permutations.""")
     grp.add_argument(
@@ -748,137 +868,25 @@ def add_fdr_args(p):
         type=file,
         help="""File giving list of feature ids to equalize means for. The file must contain each id by itself on its own line, with no header row.""")
 
-def get_arguments():
-    """Parse the command line options and return an argparse args
-    object."""
-    
-    uberparser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    subparsers = uberparser.add_subparsers(
-        title='actions',
-        description="""Normal usage is to run 'pade.py setup ...', then manually edit the
-pade_schema.yaml file, then run 'pade.py run ...'.""")
-
-    # Set up "parent" parser, which contains some arguments used by all other parsers
-    parents = argparse.ArgumentParser(add_help=False)
-    parents.add_argument(
-        '--verbose', '-v',
-        action='store_true',
-        help="Be verbose")
-    parents.add_argument(
-        '--debug', '-d', 
-        action='store_true',
-        help="Print debugging information")
-    parents.add_argument(
-        '--log',
-        default="pade.log",
-        help="Location of log file")
-
-    # Sampling parent
-    sampling_parent = argparse.ArgumentParser(add_help=False)
-    sampling_parent.add_argument(
-        '--num-samples', '-R',
-        type=int,
-        default=1000,
-        help="The number of samples to use if bootstrapping, or the maximum number of permutations to use if doing permutation test.")
-
-    sampling_parent.add_argument(
-        '--sample-with-replacement',
-        action='store_true',
-        default=False,
-        help="""Use sampling with replacement (bootstrapping) rather than permutation""")
-
-    infile_parent = argparse.ArgumentParser(add_help=False)
-    infile_parent.add_argument(
-        'infile',
-        help="""Name of input file""",
-        default=argparse.SUPPRESS,
-        type=file)
-    schema_in_parent = argparse.ArgumentParser(add_help=False)
-    schema_in_parent.add_argument(
-        '--schema', 
-        help="The schema YAML file to load",
-        default="pade_schema.yaml")
-
-
-    # Create setup parser
-    setup_parser = subparsers.add_parser(
-        'setup',
-        help="""Set up the job configuration. This reads the input file and
-                outputs a YAML file that you then need to fill out in order to
-                properly configure the job.""",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[parents, infile_parent])
-    setup_parser.add_argument(
-        '--factor',
-        action='append',
-        required=True,
-        help="""A class that can be set for each sample. You can
-        specify this option more than once, to use more than one
-        class.""")
-    setup_parser.add_argument(
-        '--force', '-f',
-        action='store_true',
-        help="""Overwrite any existing files""")
-    setup_parser.add_argument(
-        '--schema', 
-        help="Path to write the schema file to",
-        default="pade_schema.yaml")
-
-    # Create "run" parser
-    run_parser = subparsers.add_parser(
-        'run',
-        help="""Run the job.""",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[parents, sampling_parent, infile_parent, schema_in_parent])
-    run_parser.add_argument(
-        '--db', 
-        help="Path to the binary output file",
-        default="pade_db.h5")
-    
-    add_model_args(run_parser)
-    add_fdr_args(run_parser)
-
-    report_parser = subparsers.add_parser(
-        'report',
-        help="""Generate report""",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[parents])
-    report_parser.add_argument(
-        '--db', 
-        help="Path to the db file to read results from",
-        default="pade_db.h5")
-    report_parser.add_argument(
-        '--html',
-        action='store_true',
-        help="Indicates that HTML reports should be produced")
+    ###
+    ### Custom args for report parser
+    ###
 
     report_parser.add_argument(
         '--output', '-o',
         default="pade_report.txt",
         help="""Location to write report to""")
 
-    server_parser = subparsers.add_parser(
-        'server',
-        help="""Start server to show results""",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[parents])
-    server_parser.add_argument(
-        '--db', 
-        help="Path to the db file to read results from",
-        default="pade_db.h5")
+    ###
+    ### Custom args for server parser
+    ###
+
     server_parser.add_argument(
         '--port',
         type=int,
         help="Specify the port for the server to listen on")
 
-    makesamples_parser = subparsers.add_parser(
-        'makesamples',
-        help="""Generate samples for a schema/input file combination""",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[parents, infile_parent, sampling_parent, schema_in_parent])
-    add_model_args(makesamples_parser)
     makesamples_parser.add_argument(
         '--output', '-o',
         help="File to write sample indexes to")
@@ -889,7 +897,6 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
     server_parser.set_defaults(func=do_server)
     makesamples_parser.set_defaults(func=do_makesamples)
     
-
     return uberparser.parse_args()
 
 def compute_orderings(job):
