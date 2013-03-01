@@ -3,8 +3,8 @@ import tempfile
 import shutil
 import os
 
-from page.main import *
-from page.db   import *
+from pade.main import *
+from pade.db   import *
 
 @contextlib.contextmanager
 def tempdir():
@@ -19,8 +19,8 @@ def sample_db(infile, factor_map):
     schema = init_schema(infile)
 
     with tempdir() as tmp:
-        schema_path = os.path.join(tmp, 'page_schema.yaml')
-        db_path     = os.path.join(tmp, 'page_db.h5')
+        schema_path = os.path.join(tmp, 'pade_schema.yaml')
+        db_path     = os.path.join(tmp, 'pade_db.h5')
 
         factors = {}
         for f in factor_map:
@@ -41,6 +41,7 @@ def sample_db(infile, factor_map):
 
         db = DB(
             schema_path=schema_path,
+            schema=schema,
             path=db_path)
         import_table(db, infile)
         yield db

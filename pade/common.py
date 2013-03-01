@@ -88,9 +88,3 @@ def assignment_name(a):
     return ", ".join(parts)
 
 
-def adjust_num_diff(V0, R, num_ids):
-    V = np.zeros((6,) + np.shape(V0))
-    V[0] = V0
-    for i in range(1, 6):
-        V[i] = V[0] - V[0] / num_ids * (R - V[i - 1])
-    return V[5]

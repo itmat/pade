@@ -18,7 +18,7 @@ all : server
 db : $(DB)
 
 pade_db.h5 : 
-	$(PADE) run --paired $(VERBOSITY) --full-model 'treated * pig' --reduced-model 'pig' sample_data_paired.txt --db $(DB)
+	$(PADE) run --paired $(VERBOSITY) --condition treated --block pig sample_data_paired.txt --db $(DB)
 
 server : $(DB)
 	$(PADE) server --db $<

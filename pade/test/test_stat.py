@@ -5,9 +5,12 @@ from pade.stat import *
 
 def pairedOrderings(n, R):
     idxs = np.arange(2 * n)
-    full_layout = idxs.reshape((2 * n, 1))
+
+    cond_layout = [ range(0, 2 * n, 2),
+                    range(1, 2 * n, 2) ]
+    
     reduced_layout = idxs.reshape((n, 2))
-    return list(random_orderings(full_layout, reduced_layout, 100))
+    return list(random_orderings(cond_layout, reduced_layout, 100))
 
 class StatTest(unittest.TestCase):
 
@@ -22,86 +25,12 @@ class StatTest(unittest.TestCase):
 
         self.infile = 'sample_data/4_class_testdata_header1.txt'
 
-    def test_tstat(self):
-        data = np.array(
-            [
-                [
-                    [2.410962, 0.90775],
-                    [1.897421, 0.964438],
-                    [2.421239, 1.07578],
-                    [1.798668, 1.065872]],
-                [
-                    [2.410962, 0.90775],
-                    [1.897421, 0.964438],
-                    [2.421239, 1.07578],
-                    [1.798668, 1.065872]],
-                ])
-        data = np.swapaxes(data, 0, 2)
-        alpha = 1.62026604316528 * Ttest.TUNING_PARAM_RANGE_VALUES[4]
-        stat = Ttest(alpha)
-        result = stat(data)
-
-        expected = [1.51898640652018,
-                    1.51898640652018]
-
-        self.assertAlmostEqual(sum(result),
-                               sum(expected),
-                               )
-
-    def test_3d_tstat(self):
-        data = np.array(
-            [
-                [
-                    [2.410962, 0.90775],
-                    [1.897421, 0.964438],
-                    [2.421239, 1.07578],
-                    [1.798668, 1.065872]],
-                [
-                    [2.410962, 0.90775],
-                    [1.897421, 0.964438],
-                    [2.421239, 1.07578],
-                    [1.798668, 1.065872]],
-                [
-                    [2.410962, 0.90775],
-                    [1.897421, 0.964438],
-                    [2.421239, 1.07578],
-                    [1.798668, 1.065872]]])
-        data = np.swapaxes(data, 0, 2)
-        alpha = 1.62026604316528 * Ttest.TUNING_PARAM_RANGE_VALUES[4]
-        stat = Ttest(alpha)
-        result = stat(data)
-
-        expected = [1.51898640652018,
-                    1.51898640652018,
-                    1.51898640652018,
-                    ]
-
-        self.assertAlmostEqual(sum(result),
-                               sum(expected),
-                               )
-
-    def test_2d_tstat(self):
-        data = np.array(
-            [
-                [2.410962, 0.90775],
-                [1.897421, 0.964438],
-                [2.421239, 1.07578],
-                [1.798668, 1.065872]])
-        data = np.swapaxes(data, 0, 1)
-        alpha = 1.62026604316528 * Ttest.TUNING_PARAM_RANGE_VALUES[4]
-        stat = Ttest(alpha)
-        result = stat(data)
-
-        expected = 1.51898640652018
-        self.assertAlmostEqual(result, expected)
-
-
     def test_ftest_no_tuning_params(self):
 
         expected = 9.26470588235
         ftest = Ftest(
-            layout_full=[range(i, 18, 3) for i in range(3)],
-            layout_reduced=[range(18)])
+            condition_layout=[range(i, 18, 3) for i in range(3)],
+            block_layout=[range(18)])
         self.assertAlmostEqual(expected, ftest(self.ftest_in))
 
         a2 = np.concatenate((self.ftest_in,
@@ -118,8 +47,8 @@ class StatTest(unittest.TestCase):
 
         expected = 9.26470588235
         ftest = Ftest(
-            layout_full=[range(i, 18, 3) for i in range(3)],
-            layout_reduced=[range(18)],
+            condition_layout=[range(i, 18, 3) for i in range(3)],
+            block_layout=[range(18)],
             alphas=alphas)
 
         self.assertAlmostEqual(expected, ftest(self.ftest_in)[0])
@@ -141,25 +70,6 @@ class StatTest(unittest.TestCase):
                            [[0, 1,   2, 3], [4, 5,   6, 7]],
                            36)
 
-    def test_orderings_within_group(self):
-        def assertOrderings(items, sizes, expected):
-            got = list(all_orderings_within_group(set(items), sizes))
-            self.assertEquals(got, expected)
-
-        assertOrderings([0], [1], [[0]])
-        assertOrderings([0, 1], [2], [[0, 1]])
-
-        assertOrderings([0, 1], [1, 1], [[0, 1], [1, 0]])
-
-        assertOrderings([0, 1, 2, 3], [2, 2], 
-                           [[0, 1, 2, 3], 
-                            [0, 2, 1, 3],
-                            [0, 3, 1, 2],
-                            [1, 2, 0, 3],
-                            [1, 3, 0, 2],
-                            [2, 3, 0, 1]])
-                            
-
 
     def test_all_orderings(self):
         def assertOrderings(full, reduced, expected):
@@ -167,29 +77,29 @@ class StatTest(unittest.TestCase):
             self.assertEquals(list(got), expected)        
         
         assertOrderings([[0]], 
-                           [[0]],
-                           [[0]])
+                        [[0]],
+                        [[0]])
         
         assertOrderings([[0], [1]], 
-                           [[0, 1]],
-                           [[0, 1], [1, 0]])
+                        [[0, 1]],
+                        [[0, 1], [1, 0]])
         
         assertOrderings([[0, 1], [2, 3]],
-                           [[0, 1,   2, 3]],
-                           [[0, 1,   2, 3],
-                            [0, 2,   1, 3],
-                            [0, 3,   1, 2],
-                            [1, 2,   0, 3],
-                            [1, 3,   0, 2],
-                            [2, 3,   0, 1]])
-
+                        [[0, 1,   2, 3]],
+                        [[0, 1,   2, 3],
+                         [0, 2,   1, 3],
+                         [0, 3,   1, 2],
+                         [1, 2,   0, 3],
+                         [1, 3,   0, 2],
+                         [2, 3,   0, 1]])
+        
         assertOrderings(
-             [[0, 1], [2, 3], [4, 5], [6, 7]],
-             [[0, 1,   2, 3], [4, 5,   6, 7]],
-             [
-                 [0, 1,   2, 3,   4, 5,   6, 7],
-                 [0, 1,   2, 3,   4, 6,   5, 7],
-                 [0, 1,   2, 3,   4, 7,   5, 6],
+            [[0, 1, 4, 5], [2, 3, 6, 7]],
+            [[0, 1,   2, 3], [4, 5,   6, 7]],
+            [
+                [0, 1,   2, 3,   4, 5,   6, 7],
+                [0, 1,   2, 3,   4, 6,   5, 7],
+                [0, 1,   2, 3,   4, 7,   5, 6],
                  [0, 1,   2, 3,   5, 6,   4, 7],
                  [0, 1,   2, 3,   5, 7,   4, 6],
                  [0, 1,   2, 3,   6, 7,   4, 5],
@@ -286,13 +196,13 @@ class StatTest(unittest.TestCase):
 
     def test_group_rss(self):
         np.testing.assert_almost_equal(
-            group_rss(
+            rss(
                 np.array([1, 2, 3, 4, 5], float),
                 [ [0, 1], [2, 3, 4] ]),
             2.5)
 
         np.testing.assert_almost_equal(
-            group_rss(
+            rss(
                 np.array([[ 1,  2,  3,  4,  5],
                           [10, 20, 30, 40, 50]], float),
                 [ [0, 1], [2, 3, 4] ]),
@@ -303,7 +213,7 @@ class StatTest(unittest.TestCase):
                          13, 9, 11, 8, 7, 12], float)
 
         np.testing.assert_almost_equal(
-            group_rss(data, [ np.arange(0, 6),
+            rss(data, [ np.arange(0, 6),
                                 np.arange(6, 12),
                                 np.arange(12, 18) ]),
             np.array(68))
@@ -326,31 +236,6 @@ class StatTest(unittest.TestCase):
         np.testing.assert_almost_equal(test(table), [ expected ])
 
 
-    def test_one_sample_diff_t_test(self):
-        
-        row1 = np.array([3., 2., 
-                         6., 4., 
-                         9., 6., 
-                         7., 3.])
-
-        row2 = np.array([2., 4.,
-                         4., 7.,
-                         5., 1.,
-                         8., 3.])
-
-        table = np.vstack((row1, row2))
-
-        reduced_layout = np.arange(8).reshape((4, 2))
-
-        test = OneSampleDifferenceTTest(reduced_layout)
-        expected = np.array([4.47213595, 0.56568542])
-
-        np.testing.assert_almost_equal(test(row1), expected[0])
-        np.testing.assert_almost_equal(test(row2), expected[1])
-        np.testing.assert_almost_equal(test(table), expected)        
-
-
-
     def test_random_orderings_paired(self):
 
         for n in range(7):
@@ -364,21 +249,21 @@ class StatTest(unittest.TestCase):
         self.assertFalse(layout_is_paired([[0,1,2],[3,4,5]]))
 
     def test_means_ratio(self):
-        full_layout    = [[0, 1, 2], [3, 4, 5]]
-        reduced_layout = [[0, 1, 2,   3, 4, 5]]
+        condition_layout = [[0, 1, 2], [3, 4, 5]]
+        block_layout     = [[0, 1, 2,   3, 4, 5]]
 
         row1 = np.array([0, 2, 7, 4, 6, 8])
         row2 = np.array([5, 4, 3, 2, 1, 0])
         table = np.vstack((row1, row2))
 
         # Asymmetric
-        test = MeansRatio(full_layout, reduced_layout, symmetric=False)
+        test = MeansRatio(condition_layout, block_layout, symmetric=False)
         np.testing.assert_almost_equal(test(row1), 0.5)
         np.testing.assert_almost_equal(test(row2), 4.0)
         np.testing.assert_almost_equal(test(table), [0.5, 4.0])
 
         # Symmetric
-        test = MeansRatio(full_layout, reduced_layout)
+        test = MeansRatio(condition_layout, block_layout)
         np.testing.assert_almost_equal(test(row1), 2.0)
         np.testing.assert_almost_equal(test(row2), 4.0)
         np.testing.assert_almost_equal(test(table), [2.0, 4.0])
@@ -387,7 +272,7 @@ class StatTest(unittest.TestCase):
         alphas = np.array([0.0, 1.0, 2.0])
 
         # Asymmetric with alphas
-        test = MeansRatio(full_layout, reduced_layout, 
+        test = MeansRatio(condition_layout, block_layout, 
                           symmetric=False,
                           alphas=alphas)
         np.testing.assert_almost_equal(test(row1), [3. / 6., 4. / 7., 5. / 8.])
@@ -397,9 +282,8 @@ class StatTest(unittest.TestCase):
                                                  [4. / 7.,  5. / 2.],
                                                  [5. / 8.,  6. / 3.]]))
 
-
         # Symmetric with alphas
-        test = MeansRatio(full_layout, reduced_layout, 
+        test = MeansRatio(condition_layout, block_layout, 
                           alphas=alphas)
         np.testing.assert_almost_equal(test(row1), [6. / 3., 7. / 4., 8. / 5.])
         np.testing.assert_almost_equal(test(row2), [4.0, 5. / 2., 2.])
@@ -407,6 +291,26 @@ class StatTest(unittest.TestCase):
                                        np.array([[6. / 3.,  4. / 1.],
                                                  [7. / 4.,  5. / 2.],
                                                  [8. / 5.,  6. / 3.]]))
+
+
+    def test_multi_means_ratio(self):
+        blocks     = [[0,   1], [2,   3], [4, 5]] # Pig
+        conditions = [[0, 2, 4], [1, 3, 5]]
+        
+        row1 = np.array([0, 2, 7, 4, 6, 8])
+        row2 = np.array([5, 4, 3, 2, 1, 0])
+        table = np.vstack((row1, row2))
+
+        tuning_param = 1
+
+        test = MeansRatio(condition_layout=conditions,
+                          block_layout=blocks,
+                          symmetric=False, alphas=[1.])
+
+        np.testing.assert_almost_equal(test(row1), [0.7457926])
+        np.testing.assert_almost_equal(test(row2), [1.4736126])
+        np.testing.assert_almost_equal(test(table), 
+                                       np.array([[0.7457926, 1.4736126]]))
 
 
 if __name__ == '__main__':

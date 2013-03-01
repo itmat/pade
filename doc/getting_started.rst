@@ -135,50 +135,30 @@ Running the analysis
 
 Once you have created the schema file, you are ready to run the
 analysis, using ``pade run``. You'll need to specify a couple options,
-most importantly ``--full-model`` and optionally ``--reduced-model``.
+most importantly ``--condition`` and optionally ``--block``.
 
-Full model
-""""""""""
+Condition and Block
+"""""""""""""""""""
 
-``--full-model`` allows you to specify a formula that indicates which
-variables should be considered, and whether or not you want to compute
-coefficients for interactions between those variables. If you just
-have one factor, or if you want to ignore all but one factor, you
-would just provide something like ``--full-model treated``. If you
-want to consider two variables, say "treated" and "gender", and you
-want to look for interaction effects, you would use::
+``--condition`` allows you to specify the factor the represents the
+experimental condition that you want to test for differential
+effects. ``--block`` allows you to optionally specify "nuisance
+variables". If you specify one or more blocking factors, permutations
+will be restricted by those factors, so that for every permutation,
+the labelling of those blocking factors does not change for any sample.
 
-  --full-model "treated * gender"
+For example, if you have factors "gender" and "treated", and you want
+to test for differential effects due to treatment within each value of
+gender, you would run::
 
-If you only want to consider main effects (not interactions), you would use:
-
-  --full-model "treated + gender"
-
-Reduced model
-"""""""""""""
-
-If you have more than one variable in the full model, you may specify
-a reduced model, which must be a subset of the variables in the full
-model. The null hypothesis tested by Pade is that the variables in the
-reduced model describe the data as well as the variables in the full model.
-
-.. NOTE::
-   That's a terrible description...
-
-For example, if your full model is "treated * gender" and you want to
-consider the effects of treatment only, then your reduced model would
-simply be "gender". If your full model is "treated" (without
-considering gender at all), you would not provide a reduced model.
-
-.. NOTE::
-   This could use work.
+  --condition treated --block gender
 
 Default settings
 """"""""""""""""
 
 The simplest Pade job for our 4-class sample input would be something like::
 
-  pade run --full-model "treated * gender" --reduced-model gender sample_data/sample_data_4_class.txt
+  pade run --condition treated --block gender sample_data/sample_data_4_class.txt
 
 This should take less than a minute. Note that you need to provide the
 input file on the command line.
@@ -202,6 +182,19 @@ showing the distribution of the confidence levels. You can make it be
 more verbose with the ``--verbose`` or ``-v`` option. It will print
 even more debugging-level output if you give it ``--debug`` or ``-d``.
 
+You can change the statistic pade uses with the '--stat'
+option. Currently we support the following statistics:
+
+f_test:
+  F-test. Can only be used where each group has two or more samples.
+
+one_sample_t_test:
+  Single sample t-test, for paired input only.
+
+means_ratio:
+  Ratio of means. Can only be used when there are two conditions. Can
+  be used with or without blocking. Works with paired data also.
+
 Viewing reports
 ^^^^^^^^^^^^^^^
 
@@ -220,3 +213,4 @@ To start the Pade server, run:
 
 It will take several seconds to start up. Then visit localhost:5000 in
 a browser to look at the reports.
+

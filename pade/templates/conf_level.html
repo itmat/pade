@@ -2,14 +2,6 @@
 {% block title %}Details for score >= {{ min_score }}, page {{ page_num + 1 }} of {{ num_pages }} {% endblock %}
 {% block content %}
 
-<h3>Sorting options</h3>
-  <ul>
-    <li><a href="{{url_for('details', conf_level=conf_level, page=page_num, order='score_original')}}">Score (filtered by score, fall back to original)</a></li>
-    <li><a href="{{url_for('details', conf_level=conf_level, page=page_num, order='foldchange_original')}}">Fold change (filtered by score, fall back to original)</a></li>
-    <li><a href="{{url_for('details', conf_level=conf_level, page=page_num)}}">Original ordering (filtered by score)</a></li>
-  </ul>
-</h3>
-
 <table class="details">
 
   <tr>
@@ -17,22 +9,22 @@
     <th class="details"></th>
     <th class="details"></th>
     <th class="details" colspan="{{group_names|length}}">Mean</th>
-    <th class="details" colspan="{{group_names|length}}">Fold Change</th>
+    <th class="details" colspan="{{fold_change_group_names|length}}">Fold Change</th>
     <th class="details" colspan="{{coeff_names|length}}">Coefficient</th>
   </tr>
 
   <tr>
-    <th class="details">Feature id</th>
+    <th class="details"><a href="{{url_for('details', conf_level=conf_level, page=page_num)}}">Feature id</a></th>
     
-    <th class="details">Score</th>
+    <th class="details"><a href="{{url_for('details', conf_level=conf_level, page=page_num, order='score_original')}}">Score</th>
     <th class="details">{{ stat_name }} stat</th>
 
     {% for name in group_names %}
     <th class="details">{{ name }}</th>
     {% endfor %}
 
-    {% for name in group_names %}
-    <th class="details">{{ name }}</th>
+    {% for i in range(fold_change_group_names|length) %}
+    <th class="details"><a href="{{url_for('details', conf_level=conf_level, page=page_num, order='foldchange_original', groupnum=i)}}">{{ fold_change_group_names[i] }}</a></th>
     {% endfor %}
 
     {% for name in coeff_names %}

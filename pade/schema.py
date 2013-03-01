@@ -106,9 +106,9 @@ is_sample are false will simply be ignored.
         factors = list(factors)
         correct_order = [f for f in self.factors if f in factors]
         
-        if factors != correct_order:
-            raise Exception("Please request factors in correct order: "
-                            + str(correct_order) + ", not " + str(factors))
+#        if factors != correct_order:
+#            raise Exception("Please request factors in correct order: "
+#                            + str(correct_order) + ", not " + str(factors))
 
         return factors
 
@@ -204,6 +204,9 @@ is_sample are false will simply be ignored.
 
         """
         doc = yaml.load(stream)
+
+        if doc is None:
+            raise Exception("Didn't find a YAML schema document in " + str(stream))
 
         col_names = doc['headers']
 

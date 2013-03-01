@@ -1,26 +1,7 @@
 API Documentation
 =================
 
-pade.common
------------
+.. toctree::
+   :maxdepth: 2
 
-.. automodule:: pade.common
-   :members:
-
-pade.schema
------------
-
-.. automodule:: pade.schema
-   :members:
-
-pade.stat
----------
-
-.. automodule:: pade.stat
-   :members:
-
-pade.performance
-----------------
-
-.. automodule:: pade.performance
-   :members:
+   generated/pade
