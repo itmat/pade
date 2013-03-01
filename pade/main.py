@@ -260,7 +260,7 @@ Generating report for result database {job}.
 
 def get_stat_fn(job):
     """The statistic used for this job."""
-    name = job.settings.stat
+    name = job.settings.stat_name
 
     if name == 'one_sample_t_test':
         constructor = pade.stat.OneSampleDifferenceTTest
@@ -284,56 +284,59 @@ a paired layout. If this is the case, please use the --paired option.
 
 def args_to_settings(args):
 
-    settings = pade.job.Settings()
-
-    # Easy settings
-    settings.num_bins = args.num_bins
-    settings.num_samples = args.num_samples
-    settings.sample_from_residuals = args.sample_from_residuals
-    settings.sample_with_replacement = args.sample_with_replacement
-    settings.min_conf = args.min_conf
-    settings.conf_interval = args.conf_interval
-
     # If they said paired, override the choice of stat
     if args.paired:
         logging.info("You've given the --paired option, so I'll use a one-sample t-test.")
-        settings.stat = 'one_sample_t_test'
+        stat = 'one_sample_t_test'
     else:
-        settings.stat = args.stat
+        stat = args.stat
 
     # If they chose one_sample_t_test or means_ratio, we can't
     # equalize the means.
-    if settings.stat in set(['one_sample_t_test', 'means_ratio']):
-        logging.info("We're using stat " + settings.stat + ", so I won't equalize means")
-        settings.equalize_means = False
+    if stat in set(['one_sample_t_test', 'means_ratio']):
+        logging.info("We're using stat " + stat + ", so I won't equalize means")
+        equalize_means = False
     else:
-        settings.equalize_means = args.equalize_means
+        equalize_means = args.equalize_means
 
     # Block and condition variables
     if len(args.block) > 0 or len(args.condition) > 0:
-        settings.block_variables = args.block
-        settings.condition_variables = args.condition
+        block_variables = args.block
+        condition_variables = args.condition
         
     elif args.full_model is not None:
         full_model    = Model(schema, args.full_model)
         reduced_model = Model(schema, args.reduced_model)
-        settings.block_variables     = set(reduced_model.expr.variables)
-        settings.condition_variables = set(full_model.expr.variables).difference(block_vars)
+        block_variables     = set(reduced_model.expr.variables)
+        condition_variables = set(full_model.expr.variables).difference(block_vars)
 
     elif len(factors) == 1:
-        settings.condition_variables = factors
-        settings.block_variables = []
+        condition_variables = factors
+        block_variables = []
     
     else:
         raise Exception("Since you have multiple factors, please specify a full model")
 
     # Tuning params
     if args.tuning_param is None or len(args.tuning_param) == 0 :
-        settings.tuning_params = np.array(DEFAULT_TUNING_PARAMS)
+        tuning_params = np.array(DEFAULT_TUNING_PARAMS)
     else:
-        settings.tuning_params = np.array(args.tuning_param)
+        tuning_params = np.array(args.tuning_param)
 
-    return settings
+    return pade.job.Settings(
+        num_bins=args.num_bins,
+        num_samples=args.num_samples,
+        sample_from_residuals=args.sample_from_residuals,
+        sample_with_replacement=args.sample_with_replacement,
+        min_conf=args.min_conf,
+        conf_interval=args.conf_interval,
+        
+        tuning_params=tuning_params,
+        block_variables=block_variables,
+        condition_variables=condition_variables,
+        stat_name=stat,
+        equalize_means=equalize_means
+        )
 
 def load_schema(path):
     try:

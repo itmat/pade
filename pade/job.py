@@ -206,7 +206,7 @@ def save_schema(schema, db):
 def save_settings(settings, db):
         
     db.create_dataset("tuning_params", data=settings.tuning_params)
-    db.attrs['stat_name'] = settings.stat
+    db.attrs['stat_name'] = settings.stat_name
     db.attrs['num_bins'] = settings.num_bins
     db.attrs['num_samples'] = settings.num_samples
     db.attrs['sample_from_residuals'] = settings.sample_from_residuals
