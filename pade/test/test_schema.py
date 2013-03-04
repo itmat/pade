@@ -129,6 +129,55 @@ class SchemaTest(unittest.TestCase):
                 OrderedDict([('sex', 'female'), ('treated', True)]),
                 ])
 
+    def test_ignore_columns(self):
+    
+        names = ["gene_id"] 
+        roles = ['feature_id']
+        for i in range(8):
+            names.append('sample_' + str(i))
+            if (i % 2) == 0:
+                roles.append('sample')
+            else:
+                roles.append(None)
+
+        schema = Schema(
+            column_names=names,
+            column_roles=roles)
+        self.assertEquals(len(schema.sample_column_names), 4)
+
+
+        schema.add_factor('treated', [False, True])
+
+        schema.set_factor('sample_0', 'treated', False)
+        schema.set_factor('sample_2', 'treated', False)
+        schema.set_factor('sample_4', 'treated', True)
+        schema.set_factor('sample_6', 'treated', True)
+
+        with self.assertRaises(Exception):
+            schema.set_factor('sample_1' + str(i), 'treated', True)
+
+        self.assertEquals(schema.possible_assignments(['treated']),
+                          [OrderedDict([('treated', False)]), 
+                           OrderedDict([('treated', True )])])
+
+        self.assertEquals(schema.indexes_with_assignments(
+                OrderedDict([('treated', False)])),
+                          [0, 1])
+
+        self.assertEquals(schema.indexes_with_assignments(
+                OrderedDict([('treated', True)])),
+                          [2, 3])
+
+        self.assertEquals(schema.samples_with_assignments(
+                OrderedDict([('treated', False)])),
+                          ['sample_0', 'sample_2'])
+
+        self.assertEquals(schema.samples_with_assignments(
+                OrderedDict([('treated', True)])),
+                          ['sample_4', 'sample_6'])
+        
+        
+
 
 if __name__ == '__main__':
     unittest.main()
