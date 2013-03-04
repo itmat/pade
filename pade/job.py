@@ -3,6 +3,7 @@
 import logging
 import h5py
 import collections
+import csv
 
 from StringIO import StringIO
 from pade.schema import Schema
@@ -34,7 +35,7 @@ class Input(object):
         """Array of feature ids"""
 
     @classmethod
-    def from_raw_file(cls, path, limit=None):
+    def from_raw_file(cls, path, schema, limit=None):
         """Load the given input file into memory.
 
         :param path:
@@ -45,39 +46,42 @@ class Input(object):
         logging.info("Loading table from " + path)
         logging.info("Counting rows and columns in input file")
 
-        with open(path) as fh:
+        ids = []
+        table = []
 
-            headers = fh.next().rstrip().split("\t")
-            num_cols = len(headers) - 1
-            num_rows = 0
-            for line in fh:
-                num_rows += 1
+        log_interval = 100000
+
+        with open(path) as fh:
+            csvfile = csv.DictReader(fh, delimiter="\t")
+            headers = csvfile.fieldnames
+
+            sample_names = schema.sample_column_names
+
+            for i, rec in enumerate(csvfile):
+                if limit is not None and i > limit:
+                    break
+                table.append([ float(rec[name]) for name in sample_names ])
+                ids.append(rec[schema.feature_id_column_names[0]])
+
+                if (i % log_interval) == log_interval - 1:
+                    logging.debug("Copied {0} rows".format(i + 1))
+
+        table = np.array(table)
 
         logging.info(
             "Input has {features} features and {samples} samples".format(
-                features=num_rows,
-                samples=num_cols))
+                features=np.size(table, 0),
+                samples=np.size(table, 1)))
 
         logging.info("Creating raw data table")
 
-        table = np.zeros((num_rows, num_cols), float)
-        log_interval = int(num_rows / 10)
-        table = np.zeros((num_rows, num_cols))
-        ids = []
 
-        with open(path) as fh:
 
-            headers = fh.next().rstrip().split("\t")
 
-            for i, line in enumerate(fh):
-                if limit is not None and i > limit:
-                    break
 
-                row = line.rstrip().split("\t")
-                ids.append(row[0])
-                table[i] = [float(x) for x in row[1:]]
-                if (i % log_interval) == log_interval - 1:
-                    logging.debug("Copied {0} rows".format(i + 1))
+
+
+
 
         return Input(table, ids)
 

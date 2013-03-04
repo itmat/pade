@@ -241,9 +241,12 @@ def do_makesamples(args):
         block_variables=args.block,
         condition_variables=args.condition)
 
-    job = Job(input=pade.job.Input.from_raw_file(args.infile.name, limit=1),
+
+    schema = load_schema(args.schema)
+    input  = pade.job.Input.from_raw_file(args.infile.name, schema, limit=1)
+    job = Job(input=input,
               settings=settings,
-              schema=load_schema(args.schema))
+              schema=schema)
 
     res = new_sample_indexes(job)
     if args.output is None:
@@ -271,9 +274,11 @@ Analyzing {filename}, which is described by the schema {schema}.
 """.format(filename=args.infile.name,
            schema=args.schema)
 
-    job = Job(input=pade.job.Input.from_raw_file(args.infile.name),
+    schema = load_schema(args.schema)
+    input = pade.job.Input.from_raw_file(args.infile.name, schema)
+    job = Job(input=input,
               settings=args_to_settings(args),
-              schema=load_schema(args.schema),
+              schema=schema,
               results=pade.job.Results())
 
     if args.sample_indexes is not None:
