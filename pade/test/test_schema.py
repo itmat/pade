@@ -10,13 +10,13 @@ class SchemaTest(unittest.TestCase):
 
         colnames = ["gene_id"] + ["sample" + str(x) for x in sample_nums]
         
-        is_feature_id = [True]  + [False for x in sample_nums]
-        is_sample     = [False] + [True  for x in sample_nums]
+        roles = ['feature_id']
+        for i in range(len(sample_nums)):
+            roles.append('sample')
 
         schema = Schema(
             column_names=colnames,
-            is_feature_id=is_feature_id,
-            is_sample=is_sample)
+            column_roles=roles)
 
         schema.add_factor('age', [2, 20, 55])
         schema.add_factor('sex', ['male', 'female'])

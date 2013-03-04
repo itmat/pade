@@ -659,14 +659,12 @@ def init_schema(infile=None):
         infile = open(infile)
     logging.info("Initializing schema from " + infile.name)
     header_line = infile.next().rstrip()    
-    headers = header_line.split("\t")                
-    is_feature_id = [i == 0 for i in range(len(headers))]
-    is_sample     = [i != 0 for i in range(len(headers))]    
+    headers = header_line.split("\t")
 
-    return Schema(
-        is_feature_id=is_feature_id,
-        is_sample=is_sample,
-        column_names=headers)
+    roles = ['sample' for i in headers]
+    roles[0] = 'feature_id'
+
+    return Schema(column_names=headers, column_roles=roles)
 
 
 def init_job(infile, factors, schema_path=None, force=False):

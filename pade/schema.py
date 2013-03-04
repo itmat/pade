@@ -1,4 +1,4 @@
-"""Describes a PaGE input file."""
+"""Describes a PADE input file."""
 
 import numpy as np
 import textwrap
@@ -15,37 +15,39 @@ def write_yaml_block_comment(fh, comment):
     fh.write(unicode(result))
 
 
-
 class Schema(object):
 
-    """Describes a PaGE input file.
+    """Describes a PADE input file.
 
     """
 
     def __init__(self, 
-                 is_feature_id=None,
-                 is_sample=None,
+                 column_roles=None,
                  column_names=None):
         """Construct a Schema. 
 
-  column_names  - a list of strings, giving names for the columns.
 
-  is_feature_id - a list of booleans of the same length as
-                  column_names. is_feature_id[i] indicates if the ith
-                  column contains feature ids (e.g. gene names).
+        :param column_names:
+          List of strings, giving names for the columns.
 
-  is_sample     - a list of booleans of the same length as
-                  column_names. is_sample[i] indicates if the ith
-                  column contains a sample.
+        :param is_feature_id:
+          List of booleans of the same length as
+          column_names. is_feature_id[i] indicates if the ith column
+          contains feature ids (e.g. gene names).
 
-Any columns for which is_feature_id is true will be treated as feature
-ids, and any for which is_sample is true will be assumed to contain
-intensity values. No column should have both is_feature_id and
-is_sample set to true. Any columns where both is_feature_id and
-is_sample are false will simply be ignored.
+        :param is_sample:
+          List of booleans of the same length as
+          column_names. is_sample[i] indicates if the ith column
+          contains a sample.
 
-  """
+          Any columns for which is_feature_id is true will be treated
+          as feature ids, and any for which is_sample is true will be
+          assumed to contain intensity values. No column should have
+          both is_feature_id and is_sample set to true. Any columns
+          where both is_feature_id and is_sample are false will simply
+          be ignored.
 
+          """
         if column_names is None:
             raise Exception("I need column names")
         else:
@@ -55,16 +57,19 @@ is_sample are false will simply be ignored.
 
 
         self.sample_to_factor_values = OrderedDict()
-        self.is_feature_id = np.array(is_feature_id, dtype=bool)
-        self.is_sample     = np.array(is_sample,     dtype=bool)
+        """Maps a column name to a dict which maps factor name to value."""
+
+        self.column_roles = np.array(column_roles)
+        """Nth item is true if Nth column is a sample."""
+
         self.column_names  = column_names
-        self.sample_to_column  = []
+        """List of column names."""
+
         self.sample_name_index = {}
 
-        for i, name in enumerate(column_names):
-            if self.is_sample[i]:
-                self.sample_name_index[name] = len(self.sample_name_index)
-                self.sample_to_factor_values[name] = {}
+        for i, name in enumerate(self.sample_column_names):
+            self.sample_name_index[name] = i
+            self.sample_to_factor_values[name] = {}
 
 
     @property
@@ -79,7 +84,7 @@ is_sample are false will simply be ignored.
 
     def factor_values(self, factor):
 
-        """Return the list of valid values for the given factor.
+        """List of valid values for the given factor.
 
         The result is sorted according to the order the values are
         given in the schema file.
@@ -90,13 +95,12 @@ is_sample are false will simply be ignored.
     @property
     def sample_column_names(self):
         """List of the names of columns that contain intensities."""
-
-        return self.column_names[self.is_sample]
+        return self.column_names[self.column_roles == 'sample']
 
     @property
     def feature_id_column_names(self):
         """Name of column that contains feature ids."""
-        return self.column_names[self.is_feature_id]
+        return self.column_names[self.column_roles == 'feature_id']
 
     def _check_factors(self, factors):
 
@@ -214,13 +218,17 @@ is_sample are false will simply be ignored.
         # sample booleans
         feature_id_cols = set(doc['feature_id_columns'])
 
-        is_feature_id = [c in feature_id_cols for c in col_names]
-        is_sample     = [c in doc['sample_factor_mapping'] for c in col_names]
+        roles = []
+        for c in col_names:
+            if c in feature_id_cols:
+                role = 'feature_id'
+            elif c in doc['sample_factor_mapping']:
+                role = 'sample'
+            roles.append(role)
 
         schema = Schema(
             column_names=col_names,
-            is_feature_id=is_feature_id,
-            is_sample=is_sample)
+            column_roles=roles)
 
         # Now add all the factors and their types
         factors = doc['factors']
@@ -245,11 +253,10 @@ is_sample are false will simply be ignored.
 
         for i, name in enumerate(names):
 
-            if self.is_feature_id[i]:
+            if self.column_roles[i] == 'feature_id':
                 feature_id_cols.append(name)
 
-            elif self.is_sample[i]:
-                
+            elif self.column_roles[i] == 'sample':
 
                 sample_cols[name] = {}
                 for factor in self.factors:
