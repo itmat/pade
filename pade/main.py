@@ -224,12 +224,12 @@ def do_makesamples(args):
     output.write("# Block layout:     " + str(job.block_layout) + "\n")
     output.write("# Condition layout: " + str(job.condition_layout) + "\n")
 
-    test = pade.stat.GroupSizes(job.condition_layout)
+    test = pade.stat.GroupSymbols(job.condition_layout)
 
     for row in res:
         for x in row:
             output.write(' {:3d}'.format(x))
-        output.write(" # " + str(test(np.array(row))) + "\n")
+        output.write(" # " + test(np.array(row)) + "\n")
 
 
 def load_sample_indexes(path):

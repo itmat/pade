@@ -355,6 +355,5 @@ class StatTest(unittest.TestCase):
         self.assertEquals(test(np.array([0, 1, 2, 3])), 'AA BB')
         self.assertEquals(test(np.array([0, 2, 0, 3])), 'AB AB')
 
-
 if __name__ == '__main__':
     unittest.main()
