@@ -176,7 +176,17 @@ class SchemaTest(unittest.TestCase):
                 OrderedDict([('treated', True)])),
                           ['sample_4', 'sample_6'])
         
-        
+        out = io.StringIO()
+
+        schema.save(out)
+        loaded = Schema.load(out.getvalue())
+
+        out2 = io.StringIO()
+        loaded.save(out2)
+
+        self.maxDiff = None
+        self.assertEquals(out.getvalue(),
+                          out2.getvalue())        
 
 
 if __name__ == '__main__':

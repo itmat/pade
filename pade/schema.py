@@ -224,6 +224,8 @@ class Schema(object):
                 role = 'feature_id'
             elif c in doc['sample_factor_mapping']:
                 role = 'sample'
+            else:
+                role = None
             roles.append(role)
 
         schema = Schema(
