@@ -347,3 +347,4 @@ class Job:
     def full_layout(self):
         return self.layout(self.settings.block_variables + self.settings.condition_variables)
 
+

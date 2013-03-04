@@ -12,6 +12,7 @@
 # External imports
 
 import argparse
+import csv
 import errno
 import jinja2
 import logging
@@ -655,16 +656,13 @@ def init_schema(infile=None):
     system.
 
     """
-    if isinstance(infile, str):
-        infile = open(infile)
     logging.info("Initializing schema from " + infile.name)
-    header_line = infile.next().rstrip()    
-    headers = header_line.split("\t")
 
-    roles = ['sample' for i in headers]
+    csvfile = csv.DictReader(infile, delimiter="\t")
+    roles = ['sample' for i in csvfile.fieldnames]
     roles[0] = 'feature_id'
 
-    return Schema(column_names=headers, column_roles=roles)
+    return Schema(column_names=csvfile.fieldnames, column_roles=roles)
 
 
 def init_job(infile, factors, schema_path=None, force=False):
