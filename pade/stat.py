@@ -416,4 +416,30 @@ class GroupSizes(object):
 
         return sizes
 
+class GroupSymbols(object):
+
+    def __init__(self, condition_layout):
+        self.condition_layout = condition_layout
+
+        letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+        self.index_to_symbol = {}
+        for i, grp in enumerate(condition_layout):
+            for idx in grp:
+                self.index_to_symbol[idx] = letters[i]
+
+    def __call__(self, data):
+        groups = apply_layout(data, self.condition_layout)
+        res = []
+        for i, grp in enumerate(groups):
+            syms = []
+            for index in grp:
+                sym = self.index_to_symbol[index]
+                syms.append(sym)
+
+            res.append(''.join(sorted(syms)))
+
+
+        return ' '.join(res)
+
             

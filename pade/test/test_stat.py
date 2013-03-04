@@ -341,6 +341,20 @@ class StatTest(unittest.TestCase):
         self.assertEquals(test(np.array([0, 1, 2, 3])), [[2], [2]])
         self.assertEquals(test(np.array([0, 2, 0, 3])), [[1, 1], [1, 1]])
 
+    def test_group_symbols(self):
+        test = GroupSymbols([ [ 0, 1, 2, 3 ], [ 4, 5, 6, 7] ])
+        self.assertEquals(test(np.array([0, 1, 2, 3, 4, 5, 6, 7])), 'AAAA BBBB')
+        self.assertEquals(test(np.array([0, 1, 4, 5, 2, 3, 6, 7])), 'AABB AABB')
+        self.assertEquals(test(np.array([0, 5, 6, 7, 4, 1, 2, 3])), 'ABBB AAAB')
+
+        test = GroupSymbols([ [ 0, 1, 2 ], [ 3, 4, 5] ])
+        self.assertEquals(test(np.array([0, 1, 2, 3, 4, 5])), 'AAA BBB')
+        self.assertEquals(test(np.array([0, 1, 3, 2, 4, 5])), 'AAB ABB')
+
+        test = GroupSymbols([ [ 0, 1 ], [ 2, 3] ])
+        self.assertEquals(test(np.array([0, 1, 2, 3])), 'AA BB')
+        self.assertEquals(test(np.array([0, 2, 0, 3])), 'AB AB')
+
 
 if __name__ == '__main__':
     unittest.main()
