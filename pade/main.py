@@ -473,6 +473,7 @@ def save_text_output(job, filename):
     # For each row in the data, add feature id, stat, score, group
     # means, and raw values.
     logging.info("Building internal results table")
+
     for i in range(len(job.input.table)):
         row = []
 
@@ -488,8 +489,8 @@ def save_text_output(job, filename):
         row.append(job.results.feature_to_score[idxs[i], i])
         for j in range(len(job.settings.tuning_params)):
             row.append(job.results.feature_to_score[j, i])
-        row.extend(job.results.group_means[i])
-        row.extend(job.results.coeff_values[i])
+        row.extend(job.results.group_means.table[i])
+        row.extend(job.results.coeff_values.table[i])
         row.extend(job.input.table[i])
         table.append(tuple(row))
     schema = job.schema
@@ -508,10 +509,10 @@ def save_text_output(job, filename):
     for i, alpha in enumerate(job.settings.tuning_params):
         add_col('score_' + str(alpha), float, "%f")
 
-    for name in job.group_names:
+    for name in job.results.group_means.header:
         add_col("mean: " + name, float, "%f")
 
-    for name in job.coeff_names:
+    for name in job.results.coeff_values.header:
         add_col("param: " + name, float, "%f")
 
     for i, name in enumerate(schema.sample_column_names):
