@@ -32,7 +32,7 @@ class CommonTest(unittest.TestCase):
         with sample_db(self.sample_input_4_class,
                         self.factor_map_treated_sex) as job:
 
-            self.assertEquals(np.shape(job.table), (1000, 16))
+            self.assertEquals(np.shape(job.input.table), (1000, 16))
 
 
     def test_model_to_layout(self):
