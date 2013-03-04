@@ -313,34 +313,6 @@ class StatTest(unittest.TestCase):
                                        np.array([[0.7457926, 1.4736126]]))
 
 
-    def test_condition_similarity(self):
-        test = ConditionSimilarity([ [ 0, 1, 2, 3 ], [ 4, 5, 6, 7] ])
-        self.assertAlmostEquals(test(np.array([0, 1, 2, 3, 4, 5, 6, 7])), 1.0)
-        self.assertAlmostEquals(test(np.array([0, 1, 4, 5, 2, 3, 6, 7])), 0.5)
-        self.assertAlmostEquals(test(np.array([0, 5, 6, 7, 4, 1, 2, 3])), 0.4330127)
-
-        test = ConditionSimilarity([ [ 0, 1, 2 ], [ 3, 4, 5] ])
-        self.assertAlmostEquals(test(np.array([0, 1, 2, 3, 4, 5])), 1.0)
-        self.assertAlmostEquals(test(np.array([0, 1, 3, 2, 4, 5])), 0.4714045)
-
-        test = ConditionSimilarity([ [ 0, 1 ], [ 2, 3] ])
-        self.assertAlmostEquals(test(np.array([0, 1, 2, 3])), 1.0)
-        self.assertAlmostEquals(test(np.array([0, 2, 0, 3])), 0.5)
-
-    def test_group_sizes(self):
-        test = GroupSizes([ [ 0, 1, 2, 3 ], [ 4, 5, 6, 7] ])
-        self.assertEquals(test(np.array([0, 1, 2, 3, 4, 5, 6, 7])), [[4], [4]])
-        self.assertEquals(test(np.array([0, 1, 4, 5, 2, 3, 6, 7])), [[2, 2], [2, 2]])
-        self.assertEquals(test(np.array([0, 5, 6, 7, 4, 1, 2, 3])), [[1, 3], [1, 3]])
-
-        test = GroupSizes([ [ 0, 1, 2 ], [ 3, 4, 5] ])
-        self.assertEquals(test(np.array([0, 1, 2, 3, 4, 5])), [[3], [3]])
-        self.assertEquals(test(np.array([0, 1, 3, 2, 4, 5])), [[1, 2], [1, 2]])
-
-        test = GroupSizes([ [ 0, 1 ], [ 2, 3] ])
-        self.assertEquals(test(np.array([0, 1, 2, 3])), [[2], [2]])
-        self.assertEquals(test(np.array([0, 2, 0, 3])), [[1, 1], [1, 1]])
-
     def test_group_symbols(self):
         test = GroupSymbols([ [ 0, 1, 2, 3 ], [ 4, 5, 6, 7] ])
         self.assertEquals(test(np.array([0, 1, 2, 3, 4, 5, 6, 7])), 'AAAA BBBB')

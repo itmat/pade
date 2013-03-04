@@ -58,8 +58,16 @@ def predicted_values(job):
     return prediction
 
 def summarize_by_conf_level(job):
-    """Modify job to summarize the counts by conf level"""
+    """Summarize the counts by conf level.
 
+    :param job:
+      The pade.job.Job
+    
+    :return:
+
+      A pade.job.Summary summarizing the results.
+
+    """
     logging.info("Summarizing the results")
 
     bins = np.arange(job.settings.min_conf, 1.0, job.settings.conf_interval)
@@ -73,6 +81,11 @@ def summarize_by_conf_level(job):
         counts[i]  = np.sum(idxs[best])
 
     return pade.job.Summary(bins, best_param_idxs, counts)
+
+########################################################################
+###
+### Command-line interface
+###
 
 def print_summary(job):
     print """
@@ -181,6 +194,22 @@ def compute_means(job):
              for a in job.schema.possible_assignments(factors)]
     values = get_group_means(job.schema, job.input.table, factors)
     return pade.job.TableWithHeader(names, values)
+
+def get_group_means(schema, data, factors):
+    logging.info("Getting group means for factors " + str(factors))
+    assignments = schema.possible_assignments(factors=factors)
+
+    num_features = len(data)
+    num_groups = len(assignments)
+
+    result = np.zeros((num_features, num_groups))
+
+    for i, assignment in enumerate(assignments):
+        indexes = schema.indexes_with_assignments(assignment)
+        result[:, i] = np.mean(data[:, indexes], axis=1)
+
+    return result
+
 
 
 ########################################################################
@@ -527,22 +556,6 @@ def save_text_output(job, filename):
         np.savetxt(out, table, 
                    fmt=[c.format for c in cols],
                    delimiter="\t")
-
-
-def get_group_means(schema, data, factors):
-    logging.info("Getting group means for factors " + str(factors))
-    assignments = schema.possible_assignments(factors=factors)
-
-    num_features = len(data)
-    num_groups = len(assignments)
-
-    result = np.zeros((num_features, num_groups))
-
-    for i, assignment in enumerate(assignments):
-        indexes = schema.indexes_with_assignments(assignment)
-        result[:, i] = np.mean(data[:, indexes], axis=1)
-
-    return result
 
 
 def new_sample_indexes(job):

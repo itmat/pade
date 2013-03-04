@@ -365,57 +365,6 @@ class OneSampleDifferenceTTest(LayoutPairTest):
         return self.child(values[0] - values[1])
 
 
-class ConditionSimilarity(object):
-
-    def __init__(self, condition_layout):
-        self.condition_layout = condition_layout
-
-        self.index_to_group_num = {}
-        for i, grp in enumerate(condition_layout):
-            for idx in grp:
-                self.index_to_group_num[idx] = i
-
-    def __call__(self, data):
-        groups = apply_layout(data, self.condition_layout)
-        group_sims = np.zeros(len(groups))
-        for i, grp in enumerate(groups):
-            counts = {}
-            for index in grp:
-                value = self.index_to_group_num[index]
-                if value not in counts:
-                    counts[value] = 0
-                counts[value] += 1
-
-            group_sims[i] =  gmean(counts.values())  / len(grp)
-
-        return gmean(group_sims)                
-
-class GroupSizes(object):
-
-    def __init__(self, condition_layout):
-        self.condition_layout = condition_layout
-
-        self.index_to_group_num = {}
-        for i, grp in enumerate(condition_layout):
-            for idx in grp:
-                self.index_to_group_num[idx] = i
-
-    def __call__(self, data):
-        groups = apply_layout(data, self.condition_layout)
-        sizes = []
-        for i, grp in enumerate(groups):
-            counts = {}
-            for index in grp:
-                value = self.index_to_group_num[index]
-                if value not in counts:
-                    counts[value] = 0
-                counts[value] += 1
-
-            sizes.append(sorted(list(counts.values())))
-
-
-        return sizes
-
 class GroupSymbols(object):
 
     def __init__(self, condition_layout):
