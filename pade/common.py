@@ -88,3 +88,14 @@ def assignment_name(a):
     return ", ".join(parts)
 
 
+def assert_ndarray(array, name=None, ndim=None):
+    if ndim is not None:
+        if array.ndim != ndim:
+            msg = ("Array argument {name} must be {ndim}-dimensional, " +
+                   "but it has shape {shape}")
+            raise Exception(msg.format(
+                    name=name,
+                    ndim=ndim,
+                    shape=array.shape))
+                
+

@@ -8,9 +8,12 @@ import csv
 from StringIO import StringIO
 from pade.schema import Schema
 from pade.model import Model
+from pade.common import *
 import numpy as np
 
 TableWithHeader = collections.namedtuple('TableWithHeader', ['header', 'table'])
+
+
 
 class Summary(object):
     def __init__(self, bins, best_param_idxs, counts):
@@ -23,7 +26,9 @@ class Input(object):
     """Raw(ish) input for the job."""
     
     def __init__(self, table, feature_ids):
-
+        assert_ndarray(table, name='table', ndim=2)
+        assert_ndarray(feature_ids, name='feature_ids', ndim=1)
+        
         self.table = table
         """The raw data
 
@@ -67,21 +72,12 @@ class Input(object):
                     logging.debug("Copied {0} rows".format(i + 1))
 
         table = np.array(table)
+        ids   = np.array(ids)
 
         logging.info(
             "Input has {features} features and {samples} samples".format(
                 features=np.size(table, 0),
                 samples=np.size(table, 1)))
-
-        logging.info("Creating raw data table")
-
-
-
-
-
-
-
-
 
         return Input(table, ids)
 

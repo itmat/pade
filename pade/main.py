@@ -661,12 +661,9 @@ def init_schema(infile=None):
     system.
 
     """
-    logging.info("Initializing schema from " + infile.name)
-
     csvfile = csv.DictReader(infile, delimiter="\t")
     roles = ['sample' for i in csvfile.fieldnames]
     roles[0] = 'feature_id'
-
     return Schema(column_names=csvfile.fieldnames, column_roles=roles)
 
 

@@ -39,6 +39,6 @@ def sample_db(infile, factor_map):
         with open(schema_path, 'w') as out:
             schema.save(out)
 
-        input = Input.from_raw_file(infile)
+        input = Input.from_raw_file(infile, schema)
         yield Job(input=input, schema=schema)
     
