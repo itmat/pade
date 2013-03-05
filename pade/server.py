@@ -11,7 +11,7 @@ import logging
 import StringIO
 import pade.conf
 from bisect import bisect
-from flask import Flask, render_template, make_response, request
+from flask import Flask, render_template, make_response, request, session, redirect, url_for, flash
 from pade.common import *
 from pade.job import Job
 from pade.conf import cumulative_hist
@@ -22,6 +22,7 @@ class PadeApp(Flask):
     def __init__(self):
         super(PadeApp, self).__init__(__name__)
         self.job = None
+        self.secret_key = 'asdf'
 
 app = PadeApp()
 
@@ -40,6 +41,46 @@ def index():
 def job():
     logging.info("Getting index")
     return render_template("job.html", job=app.job)
+
+@app.route("/input_file_upload_form")
+def input_file_upload_form():
+    return render_template("input_file_upload_form.html")
+
+
+def ensure_job_scratch():
+    if 'job_scratch' not in session:
+        logging.info("Setting up job scratch")
+        session['job_scratch'] = { 'factors' : {} }
+
+@app.route("/edit_factors_form")
+def edit_factors_form():
+
+    ensure_job_scratch()
+    logging.info("Session is " + str(session))
+    return render_template("edit_factors_form.html",
+                           factors=session['job_scratch']['factors'])
+
+@app.route("/add_factor", methods=['POST'])
+def add_factor():
+    name = request.form.get('name')
+    ensure_job_scratch()
+    logging.info("Adding factor " + str(name))
+    session['job_scratch']['factors'][name] = []
+    session.modified = True
+    logging.info("Then session is " + str(session))
+    return redirect(url_for('edit_factors_form'))
+
+@app.route("/delete_factor")
+def delete_factor():
+    ensure_job_scratch()
+    name = request.args.get('name')
+    if name in session['job_scratch']['factors']:
+        del session['job_scratch']['factors'][name]
+        flash("Deleted factor " + str(name))
+
+    else:
+        flash("There is no factor called " + str(name))
+    return redirect(url_for('edit_factors_form'))
 
 @app.route("/measurement_scatter/<feature_num>")
 def measurement_scatter(feature_num):
