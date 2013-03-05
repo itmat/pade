@@ -34,8 +34,12 @@ def figure_response(fig):
 
 @app.route("/")
 def index():
+    return render_template("index.html")
+
+@app.route("/job")
+def job():
     logging.info("Getting index")
-    return render_template("index.html", job=app.job)
+    return render_template("job.html", job=app.job)
 
 @app.route("/measurement_scatter/<feature_num>")
 def measurement_scatter(feature_num):

@@ -13,8 +13,6 @@ import numpy as np
 
 TableWithHeader = collections.namedtuple('TableWithHeader', ['header', 'table'])
 
-
-
 class Summary(object):
     def __init__(self, bins, best_param_idxs, counts):
         self.bins = bins
@@ -48,7 +46,7 @@ class Input(object):
           with a header line.
         
         """
-        logging.info("Loading table from " + path)
+        logging.info("Loading table from " + str(path))
         logging.info("Counting rows and columns in input file")
 
         ids = []
@@ -107,6 +105,12 @@ def load_job(path):
 
 
 def load_settings(db):
+
+    if 'equalize_means_ids' in db:
+        equalize_means_ids = db['equalize_means_ids'][...]
+    else:
+        equalize_means_ids = None
+
     return Settings(
         stat_name = db.attrs['stat_name'],
         num_bins = db.attrs['num_bins'],
@@ -117,7 +121,8 @@ def load_settings(db):
         block_variables = list(db.attrs['block_variables']),
         min_conf = db.attrs['min_conf'],
         conf_interval = db.attrs['conf_interval'],
-        tuning_params = db['tuning_params'][...])
+        tuning_params = db['tuning_params'][...],
+        equalize_means_ids = equalize_means_ids)
 
 
 
@@ -137,7 +142,8 @@ class Settings:
         min_conf=None,
         equalize_means=None,
         conf_interval=None,
-        tuning_params=None):
+        tuning_params=None,
+        equalize_means_ids=None):
 
         self.stat_name = stat_name
         """Name of the statistic to use."""
@@ -175,6 +181,9 @@ class Settings:
 
         self.conf_interval = conf_interval
         """Interval of confidence values to report on."""
+
+        self.equalize_means_ids = equalize_means_ids
+        """List of ids of features to equalize means for."""
 
 class Results:
     
@@ -224,6 +233,9 @@ def save_settings(settings, db):
     db.attrs['min_conf'] = settings.min_conf
     db.attrs['conf_interval'] = settings.conf_interval
 
+    if settings.equalize_means_ids is not None:
+        db['equalize_means_ids'] = settings.equalize_means_ids
+
 def save_results(results, db):
     results.bins = db.create_dataset("bins", data=results.bins)
     results.bin_to_mean_perm_count = db.create_dataset("bin_to_mean_perm_count", data=results.bin_to_mean_perm_count)
@@ -255,7 +267,7 @@ def save_table(db, table, name):
     
 
 def save_job(path, job):
-    logging.info("Saving job results to " + path)
+    logging.info("Saving job results to " + str(path))
     db = h5py.File(path, 'w')
     
     save_input(job.input, db)
