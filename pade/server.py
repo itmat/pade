@@ -173,7 +173,7 @@ def details(conf_level):
 
     ### Process params
     conf_level = int(conf_level)
-    alpha_idx = job.results.best_param_idxs[conf_level]
+    alpha_idx = job.summary.best_param_idxs[conf_level]
 
     page_num = 0
     if 'page' in request.args:
@@ -182,7 +182,7 @@ def details(conf_level):
 
     scores = job.results.feature_to_score[alpha_idx]
     stats = job.results.raw_stats[alpha_idx]
-    min_score = job.results.summary_bins[conf_level]
+    min_score = job.summary.bins[conf_level]
 
     rows_per_page = 50
 
@@ -202,7 +202,7 @@ def details(conf_level):
     end = start + rows_per_page
     idxs = filtered_idxs[ start : end ]
 
-    score=job.results.summary_bins[conf_level]
+    score=job.summary.bins[conf_level]
 
     num_pages = int(np.ceil(float(len(filtered_idxs)) / float(rows_per_page)))
 
@@ -307,7 +307,7 @@ def conf_dist_plot():
         title="Feature count by confidence score",
         xlabel="Confidence score",
         ylabel="Features")
-    ax.plot(app.job.summary_bins, app.job.summary_counts)
+    ax.plot(app.job.summary.bins, app.job.summary.counts)
     return figure_response(fig)
     
 

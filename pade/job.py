@@ -99,7 +99,8 @@ def load_job(path):
         settings=load_settings(db),
         input=load_input(db),
         schema=load_schema(db),
-        results=load_results(db))
+        results=load_results(db),
+        summary=load_summary(db))
 
     db.close()
     logging.info("Done loading results")
@@ -175,7 +176,6 @@ class Settings:
         self.conf_interval = conf_interval
         """Interval of confidence values to report on."""
 
-
 class Results:
     
     def __init__(self):
@@ -186,13 +186,12 @@ class Results:
         self.bin_to_score = None
         self.feature_to_score = None
         self.raw_stats = None
-        self.summary_counts = None
-        self.summary_bins = None
-        self.best_param_idxs = None
         self.sample_indexes = None
+
         self.group_means = None
         self.coeff_values = None
         self.fold_change = None
+
         self.order_by_foldchange_original = None
         self.order_by_score_original = None
 
@@ -233,11 +232,6 @@ def save_results(results, db):
     results.feature_to_score = db.create_dataset("feature_to_score", data=results.feature_to_score)
     results.raw_stats = db.create_dataset("raw_stats", data=results.raw_stats)
 
-    summary = db.create_group('summary')
-    summary['bins']            = results.summary_bins
-    summary['counts']          = results.summary_counts
-    summary['best_param_idxs'] = results.best_param_idxs
-
     results.sample_indexes = db.create_dataset("sample_indexes", data=results.sample_indexes)
 
     save_table(db, results.group_means, 'group_means')
@@ -247,6 +241,13 @@ def save_results(results, db):
     orderings = db.create_group('orderings')
     orderings['by_score_original'] = results.order_by_score_original
     orderings['by_foldchange_original'] = results.order_by_foldchange_original
+
+def save_summary(summary, db):
+    grp = db.create_group('summary')
+    grp['bins']            = summary.bins
+    grp['best_param_idxs'] = summary.best_param_idxs
+    grp['counts']          = summary.counts
+
 
 def save_table(db, table, name):
     db.create_dataset(name, data=table.table)
@@ -261,9 +262,9 @@ def save_job(path, job):
     save_schema(job.schema, db)
     save_settings(job.settings, db)
     save_results(job.results, db)
+    save_summary(job.summary, db)
     
     db.close()
-
 
 
 def load_table(db, name):
@@ -277,6 +278,12 @@ def load_schema(db):
     schema_str = StringIO(db.attrs['schema'])
     return Schema.load(schema_str)
 
+def load_summary(db):
+    return Summary(
+        db['summary']['bins'][...],
+        db['summary']['best_param_idxs'][...],
+        db['summary']['counts'][...])
+
 def load_results(db):
 
     results = Results()
@@ -288,12 +295,6 @@ def load_results(db):
     
     results.feature_to_score = db['feature_to_score'][...]
     results.raw_stats = db['raw_stats'][...]
-
-    # Summary counts by bin, based on optimal tuning params at each level
-    results.summary_bins    = db['summary']['bins'][...]
-    results.summary_counts  = db['summary']['counts'][...]
-    results.best_param_idxs = db['summary']['best_param_idxs'][...]
-
     results.sample_indexes = db['sample_indexes'][...]
 
     # Group means, coefficients, and fold change, with the header information
@@ -314,13 +315,14 @@ class Job:
                  input=None,
                  schema=None,
                  settings=None,
-                 results=None):
+                 results=None,
+                 summary=None):
         
         self.input    = input
         self.settings = settings
         self.schema   = schema
         self.results  = results
-
+        self.summary  = summary
 
     def layout(self, variables):
         s = self.schema

@@ -95,11 +95,11 @@ Summary of features by confidence level:
 Confidence |   Num.   | Tuning
    Level   | Features | Param.
 -----------+----------+-------"""
-    for i in range(len(job.results.summary_counts) - 1):
+    for i in range(len(job.summary.counts) - 1):
         print "{bin:10.1%} | {count:8d} | {param:0.4f}".format(
-            bin=job.results.summary_bins[i],
-            count=int(job.results.summary_counts[i]),
-            param=job.settings.tuning_params[job.results.best_param_idxs[i]])
+            bin=job.summary.bins[i],
+            count=int(job.summary.counts[i]),
+            param=job.settings.tuning_params[job.summary.best_param_idxs[i]])
 
 ########################################################################
 #
@@ -293,11 +293,7 @@ Analyzing {filename}, which is described by the schema {schema}.
     job.results.coeff_values = compute_coeffs(job)
     job.results.fold_change  = compute_fold_change(job)
 
-    summary = summarize_by_conf_level(job)
-
-    job.results.summary_bins    = summary.bins
-    job.results.summary_counts  = summary.counts
-    job.results.best_param_idxs = summary.best_param_idxs
+    job.summary = summarize_by_conf_level(job)
 
     print_summary(job)
     compute_orderings(job)
@@ -427,7 +423,11 @@ def load_schema(path):
 def run_job(job, equalize_means_ids):
 
     stat = get_stat_fn(job)
-
+    
+    ###
+    ### Compute raw stats
+    ###
+    
     logging.info("Computing {stat} statistics on raw data".format(stat=stat.name))
     raw_stats = stat(job.input.table)
     logging.debug("Shape of raw stats is " + str(np.shape(raw_stats)))
