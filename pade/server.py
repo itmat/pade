@@ -70,6 +70,16 @@ def add_factor():
     logging.info("Then session is " + str(session))
     return redirect(url_for('edit_factors_form'))
 
+@app.route("/add_factor_value/<factor>", methods=['POST'])
+def add_factor_value(factor):
+
+    value = request.form.get('factor_value')
+    ensure_job_scratch()
+    session['job_scratch']['factors'][factor].append(value)
+    session.modified = True
+    logging.info("After adding factor value sesion is " + str(session))
+    return redirect(url_for('edit_factors_form'))
+
 @app.route("/delete_factor")
 def delete_factor():
     ensure_job_scratch()
