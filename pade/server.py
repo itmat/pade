@@ -11,6 +11,8 @@ import logging
 import StringIO
 import pade.conf
 import uuid
+import shutil
+
 from bisect import bisect
 from flask import Flask, render_template, make_response, request, session, redirect, url_for, flash
 from werkzeug import secure_filename
@@ -57,8 +59,25 @@ def ensure_job_scratch():
         logging.info("Setting up job scratch")
         session['job_scratch'] = { 
             'factors' : {},
-            'job_id' : uuid.uuid1()
+            'job_id' : str(uuid.uuid1())
             }
+
+        makedirs(current_job_scratch_dir())
+
+def current_job_scratch_dir():
+    job_id = current_job_id()
+    if job_id is None:
+        return None
+    return os.path.join(app.config['UPLOAD_FOLDER'], job_id)
+
+
+@app.route("/clear_job_scratch")
+def clear_job_scratch():
+    d = current_job_scratch_dir()
+    if d is not None:
+        shutil.rmtree(d)
+    del session['job_scratch']
+    return redirect(url_for('edit_factors_form'))
 
 @app.route("/edit_factors_form")
 def edit_factors_form():
@@ -100,8 +119,16 @@ def delete_factor():
         flash("There is no factor called " + str(name))
     return redirect(url_for('edit_factors_form'))
 
+def job_scratch():
+    if 'job_scratch' not in session:
+        return None
+    return session['job_scratch']
+
 def current_job_id():
-    return session['job_scratch']['job_id']
+    scratch = job_scratch()
+    if scratch is None or 'job_id' not in scratch:
+        return None
+    return scratch['job_id']
 
 
 @app.route("/upload_input_file", methods=['POST'])
@@ -112,7 +139,7 @@ def upload_input_file():
     file = request.files['input_file']
     filename = secure_filename(file.filename)
 
-    file.save(os.path.join(app.config['UPLOAD_FOLDER'], job_id, filename))
+    file.save(os.path.join(current_job_scratch_dir(), 'input.txt'))
     return redirect(url_for('edit_factors_form'))
 
 @app.route("/measurement_scatter/<feature_num>")
