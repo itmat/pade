@@ -5,6 +5,7 @@ import scipy.stats
 from collections import OrderedDict
 from pade.common import assignment_name
 import pade.stat as stat
+from pade.stat import *
 from pade.layout import *
 
 
@@ -50,6 +51,8 @@ def compute_coeffs(job):
     names  = [assignment_name(a) for a in fitted.labels]    
     values = fitted.params
     return pade.job.TableWithHeader(names, values)
+
+
 
 def compute_fold_change(job):
     """Compute fold change.
@@ -183,3 +186,51 @@ def new_sample_indexes(job):
         return list(random_orderings(job.condition_layout, job.block_layout, R))
 
     
+def compute_mean_perm_count(job):
+
+    table = job.input.table
+    bins  = job.results.bins
+    perms = job.results.sample_indexes
+    stat_fn = get_stat_fn(job)
+
+    if job.settings.sample_from_residuals:
+        logging.info("Sampling from residuals")
+        prediction = predicted_values(job)
+        diffs      = table - prediction
+        return pade.conf.bootstrap(
+            prediction,
+            stat_fn, 
+            indexes=perms,
+            residuals=diffs,
+            bins=bins)
+
+    else:
+        logging.info("Sampling from raw data")
+        # Shift all values in the data by the means of the groups from
+        # the full model, so that the mean of each group is 0.
+        if job.settings.equalize_means:
+            shifted = residuals(table, job.full_layout)
+            data = np.zeros_like(table)
+            if job.settings.equalize_means_ids is None:
+                data = shifted
+            else:
+                ids = job.settings.equalize_means_ids
+                count = len(ids)
+                for i, fid in enumerate(job.input.feature_ids):
+                    if fid in ids:
+                        data[i] = shifted[i]
+                        ids.remove(fid)
+                    else:
+                        data[i] = table[i]
+                logging.info("Equalized means for " + str(count - len(ids)) + " features")
+                if len(ids) > 0:
+                    logging.warn("There were " + str(len(ids)) + " feature " +
+                                 "ids given that don't exist in the data: " +
+                                 str(ids))
+
+            return pade.conf.bootstrap(data, stat_fn, indexes=perms,bins=bins)
+
+        else:
+            return pade.conf.bootstrap(table, stat_fn, indexes=perms,bins=bins)
+
+

@@ -14,21 +14,6 @@ def summarize_by_conf_level(job):
     job.summary = an.summary_by_conf_level(job)
     return job
 
-@celery.task    
-def compute_coeffs(job):
-    job.results.coeff_values = an.compute_coeffs(job)
-    return job
-
-@celery.task    
-def compute_fold_change(job):
-    job.results.fold_change = an.compute_fold_change(job)
-    return job
-
-@celery.task    
-def compute_means(job):
-    job.results.group_means = an.compute_means(job)
-    return job
-
 @celery.task
 def compute_orderings(job):
 
@@ -55,77 +40,35 @@ def compute_orderings(job):
     return job
 
 @celery.task
-def run_sampling(job):
+def compute_raw_stats(job):
+    job.results.raw_stats    = an.get_stat_fn(job)(job.input.table)
+    job.results.coeff_values = an.compute_coeffs(job)
+    job.results.fold_change  = an.compute_fold_change(job)
+    job.results.group_means  = an.compute_means(job)
+    return job
 
-    stat = an.get_stat_fn(job)
-    
-    ###
-    ### Compute raw stats
-    ###
-    
-    logging.info("Computing {stat} statistics on raw data".format(stat=stat.name))
-    raw_stats = stat(job.input.table)
-    logging.debug("Shape of raw stats is " + str(np.shape(raw_stats)))
+@celery.task
+def choose_bins(job):
+    job.results.bins = pade.conf.bins_uniform(job.settings.num_bins, job.results.raw_stats)
+    return job
 
-    logging.info("Creating {num_bins} bins based on values of raw stats".format(
-            num_bins=job.settings.num_bins))
-    job.results.bins = pade.conf.bins_uniform(job.settings.num_bins, raw_stats)
+@celery.task
+def compute_mean_perm_count(job):
+    job.results.bin_to_mean_perm_count = an.compute_mean_perm_count(job)
+    return job
 
-    if job.settings.sample_from_residuals:
-        logging.info("Sampling from residuals")
-        prediction = predicted_values(job)
-        diffs      = job.input.table - prediction
-        job.results.bin_to_mean_perm_count = pade.conf.bootstrap(
-            prediction,
-            stat, 
-            indexes=job.results.sample_indexes,
-            residuals=diffs,
-            bins=job.results.bins)
+@celery.task
+def compute_conf_scores(job):
+    raw  = job.results.raw_stats
+    bins = job.results.bins
+    unperm_counts = pade.conf.cumulative_hist(raw, bins)
+    perm_counts   = job.results.bin_to_mean_perm_count
+    bin_to_score  = confidence_scores(unperm_counts, perm_counts, np.shape(raw)[-1])
 
-    else:
-        logging.info("Sampling from raw data")
-        # Shift all values in the data by the means of the groups from
-        # the full model, so that the mean of each group is 0.
-        if job.settings.equalize_means:
-            shifted = residuals(job.input.table, job.full_layout)
-            data = np.zeros_like(job.input.table)
-            if job.settings.equalize_means_ids is None:
-                data = shifted
-            else:
-                ids = job.settings.equalize_means_ids
-                count = len(ids)
-                for i, fid in enumerate(job.input.feature_ids):
-                    if fid in ids:
-                        data[i] = shifted[i]
-                        ids.remove(fid)
-                    else:
-                        data[i] = job.input.table[i]
-                logging.info("Equalized means for " + str(count - len(ids)) + " features")
-                if len(ids) > 0:
-                    logging.warn("There were " + str(len(ids)) + " feature " +
-                                 "ids given that don't exist in the data: " +
-                                 str(ids))
-
-            job.results.bin_to_mean_perm_count = pade.conf.bootstrap(
-                data,
-                stat, 
-                indexes=job.results.sample_indexes,
-                bins=job.results.bins)
-
-        else:
-            job.results.bin_to_mean_perm_count = pade.conf.bootstrap(
-                job.input.table,
-                stat, 
-                indexes=job.results.sample_indexes,
-                bins=job.results.bins)            
-
-    logging.info("Done bootstrapping, now computing confidence scores")
-    job.results.raw_stats    = raw_stats
-    job.results.bin_to_unperm_count   = pade.conf.cumulative_hist(job.results.raw_stats, job.results.bins)
-    job.results.bin_to_score = confidence_scores(
-        job.results.bin_to_unperm_count, job.results.bin_to_mean_perm_count, np.shape(raw_stats)[-1])
+    job.results.bin_to_unperm_count = unperm_counts
+    job.results.bin_to_score = bin_to_score
     job.results.feature_to_score = assign_scores_to_features(
-        job.results.raw_stats, job.results.bins, job.results.bin_to_score)
+        raw, bins, bin_to_score)
 
     return job
 

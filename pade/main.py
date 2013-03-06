@@ -22,6 +22,7 @@ import numpy as np
 import h5py
 from numpy.lib.recfunctions import append_fields
 import os
+import os.path
 import sys
 import scipy.stats
 import celery
@@ -147,26 +148,55 @@ Analyzing {filename}, which is described by the schema {schema}.
               schema=schema,
               results=pade.job.Results())
 
-    copy_input = pade.tasks.copy_input.s(args.infile)
+    copy_input = pade.tasks.copy_input.s(os.path.abspath(args.infile))
     
     if args.sample_indexes is not None:
-        make_sample_indexes = pade.tasks.load_sample_indexes.s(args.sample_indexes)
+        make_sample_indexes = pade.tasks.load_sample_indexes.s(os.path.abspath(args.sample_indexes))
     else:
         make_sample_indexes = pade.tasks.gen_sample_indexes.s()
 
     steps = [
+
+        # First we need to load the input table
         copy_input,
+
+        # Then construct (or load) a list of permutations of the indexes
         make_sample_indexes,
-        pade.tasks.run_sampling.s(),
+
+        # Then compute the raw statistics (f-test or other
+        # differential expression stat, means, fold change, and
+        # coefficients)
+        pade.tasks.compute_raw_stats.s(),
+
+        # Then choose bins for our histogram based on the values of
+        # the raw stats
+        pade.tasks.choose_bins.s(),
+
+        # Then run the permutations and come up with cumulative counts
+        pade.tasks.compute_mean_perm_count.s(),
+
+        # Compare the unpermuted counts to the mean permuted counts to
+        # come up with confidence scores.
+        pade.tasks.compute_conf_scores.s(),
+
+        # Produce a small summary table
         pade.tasks.summarize_by_conf_level.s(),
-        pade.tasks.compute_means.s(),
-        pade.tasks.compute_coeffs.s(),
-        pade.tasks.compute_fold_change.s(),
+
+        # Now that we have all the stats, compute orderings using
+        # different keys
         pade.tasks.compute_orderings.s(),
+
+        # and save the job.
         pade.tasks.save_job.s(args.db)]
 
-    for step in steps:
-        job = step.apply((job,)).get()
+    if args.distrib:
+        job = celery.chain(steps)(job).get()
+    else:
+        for step in steps:
+            res = step.apply((job,))
+            if not res.successful():
+                raise Exception(res.traceback)
+            job = res.get()
 
     print_summary(job)
 
@@ -599,6 +629,11 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
         '--db', 
         help="Path to the binary output file",
         default="pade_db.h5")
+
+    run_parser.add_argument(
+        '--distrib',
+        help="Distribute work",
+        action='store_true')
 
     run_parser.add_argument(
         '--sample-indexes',
