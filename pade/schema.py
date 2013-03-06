@@ -337,7 +337,7 @@ sample_factor_mapping:
         allowed = self.factor_values(factor)
         if value not in allowed:
             raise Exception("""\
-                Value {value} is not allowed for factor {factor};
+                Value '{value}' is not allowed for factor {factor};
                 allowable values are {allowed}.
                 """.format(value=value, factor=factor, allowed=allowed))
 
