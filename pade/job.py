@@ -205,8 +205,8 @@ def save_input(input, db):
     ids = input.feature_ids
     # Saving feature ids is tricky because they are strings
     dt = h5py.special_dtype(vlen=str)
-    input.table       = db.create_dataset("table", data=input.table)
-    input.feature_ids = db.create_dataset("feature_ids", (len(ids),), dt)
+    db.create_dataset("table", data=input.table)
+    db.create_dataset("feature_ids", (len(ids),), dt)
     for i, fid in enumerate(ids):
         input.feature_ids[i] = fid
 
@@ -233,14 +233,13 @@ def save_settings(settings, db):
         db['equalize_means_ids'] = settings.equalize_means_ids
 
 def save_results(results, db):
-    results.bins = db.create_dataset("bins", data=results.bins)
-    results.bin_to_mean_perm_count = db.create_dataset("bin_to_mean_perm_count", data=results.bin_to_mean_perm_count)
-    results.bin_to_unperm_count   = db.create_dataset("bin_to_unperm_count", data=results.bin_to_unperm_count)
-    results.bin_to_score = db.create_dataset("bin_to_score", data=results.bin_to_score)
-    results.feature_to_score = db.create_dataset("feature_to_score", data=results.feature_to_score)
-    results.raw_stats = db.create_dataset("raw_stats", data=results.raw_stats)
-
-    results.sample_indexes = db.create_dataset("sample_indexes", data=results.sample_indexes)
+    db.create_dataset("bins", data=results.bins)
+    db.create_dataset("bin_to_mean_perm_count", data=results.bin_to_mean_perm_count)
+    db.create_dataset("bin_to_unperm_count", data=results.bin_to_unperm_count)
+    db.create_dataset("bin_to_score", data=results.bin_to_score)
+    db.create_dataset("feature_to_score", data=results.feature_to_score)
+    db.create_dataset("raw_stats", data=results.raw_stats)
+    db.create_dataset("sample_indexes", data=results.sample_indexes)
 
     save_table(db, results.group_means, 'group_means')
     save_table(db, results.fold_change, 'fold_change')

@@ -108,5 +108,5 @@ def gen_sample_indexes(job):
 @celery.task
 def save_job(job, filename):
     logging.info("Saving job to {0}".format(filename))
-    # pade.job.save_job(filename, job)
+    pade.job.save_job(filename, job)
     return job
