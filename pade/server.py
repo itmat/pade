@@ -12,6 +12,8 @@ import StringIO
 import pade.conf
 import uuid
 import shutil
+import csv
+from pade.schema import Schema
 
 from bisect import bisect
 from flask import Flask, render_template, make_response, request, session, redirect, url_for, flash
@@ -58,7 +60,7 @@ def ensure_job_scratch():
     if 'job_scratch' not in session:
         logging.info("Setting up job scratch")
         session['job_scratch'] = { 
-            'factors' : {},
+            'schema' : Schema(),
             'job_id' : str(uuid.uuid1())
             }
 
@@ -70,13 +72,26 @@ def current_job_scratch_dir():
         return None
     return os.path.join(app.config['UPLOAD_FOLDER'], job_id)
 
+def current_scratch_filename():
+    scratch = job_scratch()
+    if 'filename' in scratch:
+        return scratch['filename']
+    return None
+
+def current_scratch_schema():
+    scratch = job_scratch()
+    if 'schema' in scratch:
+        return scratch['schema']
+    return None
+
 
 @app.route("/clear_job_scratch")
 def clear_job_scratch():
-    d = current_job_scratch_dir()
-    if d is not None:
-        shutil.rmtree(d)
-    del session['job_scratch']
+    if 'job_scratch' in session:
+        d = current_job_scratch_dir()
+        if d is not None:
+            shutil.rmtree(d)
+        del session['job_scratch']
     return redirect(url_for('edit_factors_form'))
 
 @app.route("/edit_factors_form")
@@ -84,15 +99,19 @@ def edit_factors_form():
 
     ensure_job_scratch()
     logging.info("Session is " + str(session))
+    print "Roles are ", current_scratch_schema().column_roles
     return render_template("edit_factors_form.html",
-                           factors=session['job_scratch']['factors'])
+                           schema=current_scratch_schema(),
+                           filename=current_scratch_filename())
+
+
 
 @app.route("/add_factor", methods=['POST'])
 def add_factor():
     name = request.form.get('name')
     ensure_job_scratch()
     logging.info("Adding factor " + str(name))
-    session['job_scratch']['factors'][name] = []
+    session['job_scratch']['schema'].add_factor(name)
     session.modified = True
     logging.info("Then session is " + str(session))
     return redirect(url_for('edit_factors_form'))
@@ -102,7 +121,7 @@ def add_factor_value(factor):
 
     value = request.form.get('factor_value')
     ensure_job_scratch()
-    session['job_scratch']['factors'][factor].append(value)
+    session['job_scratch']['schema'].add_factor_value(factor, value)
     session.modified = True
     logging.info("After adding factor value sesion is " + str(session))
     return redirect(url_for('edit_factors_form'))
@@ -111,12 +130,9 @@ def add_factor_value(factor):
 def delete_factor():
     ensure_job_scratch()
     name = request.args.get('name')
-    if name in session['job_scratch']['factors']:
-        del session['job_scratch']['factors'][name]
-        flash("Deleted factor " + str(name))
+    session['job_scratch']['schema'].remove_factor(name)
+    flash("Deleted factor " + str(name))
 
-    else:
-        flash("There is no factor called " + str(name))
     return redirect(url_for('edit_factors_form'))
 
 def job_scratch():
@@ -131,6 +147,7 @@ def current_job_id():
     return scratch['job_id']
 
 
+
 @app.route("/upload_input_file", methods=['POST'])
 def upload_input_file():
     
@@ -138,8 +155,22 @@ def upload_input_file():
     
     file = request.files['input_file']
     filename = secure_filename(file.filename)
+    session['job_scratch']['filename'] = filename
 
-    file.save(os.path.join(current_job_scratch_dir(), 'input.txt'))
+    path = os.path.join(current_job_scratch_dir(), filename)
+    file.save(path)
+
+    with open(path) as infile:
+        csvfile = csv.DictReader(infile, delimiter="\t")
+        fieldnames = csvfile.fieldnames
+
+    roles = ['sample' for i in csvfile.fieldnames]
+    roles[0] = 'feature_id'
+
+    schema = session['job_scratch']['schema']
+    schema.set_columns(csvfile.fieldnames, roles)
+
+    session.modified = True
     return redirect(url_for('edit_factors_form'))
 
 @app.route("/measurement_scatter/<feature_num>")

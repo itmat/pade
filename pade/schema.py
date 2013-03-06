@@ -48,28 +48,33 @@ class Schema(object):
           be ignored.
 
           """
-        if column_names is None:
-            raise Exception("I need column names")
-        else:
-            column_names = np.array(column_names)
 
         self.factors = OrderedDict()
-
 
         self.sample_to_factor_values = OrderedDict()
         """Maps a column name to a dict which maps factor name to value."""
 
-        self.column_roles = np.array(column_roles)
+        self.column_roles = None
         """Nth item is true if Nth column is a sample."""
 
-        self.column_names  = column_names
+        self.column_names  = None
         """List of column names."""
 
         self.sample_name_index = {}
 
-        for i, name in enumerate(self.sample_column_names):
-            self.sample_name_index[name] = i
-            self.sample_to_factor_values[name] = {}
+        if column_names is not None:
+            self.set_columns(column_names, column_roles)
+            
+    def set_columns(self, names, roles):
+        self.sample_to_factor_values.clear()
+        self.column_roles = np.array(roles)
+        self.column_names = np.array(names)
+
+        for i, name in enumerate(names):
+            if roles[i] == 'sample':
+                self.sample_name_index[name] = len(self.sample_name_index)
+                self.sample_to_factor_values[name] = { f : None for f in self.factors }
+            
 
 
     @property
@@ -156,6 +161,8 @@ class Schema(object):
         assignments - must be a mapping from factor name to value
 
         """
+
+        print "Testing ", sample_name, "for", assignments
         for f, v in assignments.items():
             if self.get_factor(sample_name, f) != v:
                 return False
@@ -167,8 +174,12 @@ class Schema(object):
         assignments - must be a mapping from factor name to value
 
         """
-        matches = lambda name: self.sample_matches_assignments(name, assignments)
-        return filter(matches, self.sample_column_names)
+        res = []
+        for name in self.sample_column_names:
+            print "Trying name", name, "from", self.sample_column_names
+            if self.sample_matches_assignments(name, assignments):
+                res.append(name)
+        return res
 
     def indexes_with_assignments(self, assignments):
         """Return list of indexes that have the given assignments.
@@ -194,9 +205,23 @@ class Schema(object):
 
     def add_factor(self, name, values=[]):
         """Add a factor with the given name and values."""
-        self.factors[name] = values
+        self.factors[name] = []
+
+        for v in values:
+            self.add_factor_value(name, v)
+
         for sample in self.sample_to_factor_values:
             self.sample_to_factor_values[sample][name] = None
+
+    def add_factor_value(self, name, value):
+        self.factors[name].append(value)
+
+    def remove_factor(self, factor):
+        del self.factors[factor]
+        for sample in self.sample_to_factor_values:
+            del self.sample_to_factor_values[factor]
+
+
 
     @classmethod
     def load(cls, stream):
@@ -321,6 +346,11 @@ sample_factor_mapping:
     def get_factor(self, sample_name, factor):
         """Get an factor for a sample, identified by sample
         name."""
+        if sample_name not in self.sample_to_factor_values:
+            raise Exception("No sample called " + str(sample_name) + ". " +
+                            "The samples I have are " + 
+                            str(self.sample_to_factor_values.keys()))
+                            
 
         return self.sample_to_factor_values[sample_name][factor]
 
