@@ -10,12 +10,16 @@ import argparse
 import logging 
 import StringIO
 import pade.conf
+import uuid
 from bisect import bisect
 from flask import Flask, render_template, make_response, request, session, redirect, url_for, flash
+from werkzeug import secure_filename
 from pade.common import *
 from pade.job import Job
 from pade.conf import cumulative_hist
 
+ALLOWED_EXTENSIONS = set(['txt', 'tab'])
+UPLOAD_FOLDER = 'uploads'
 
 class PadeApp(Flask):
 
@@ -25,6 +29,11 @@ class PadeApp(Flask):
         self.secret_key = 'asdf'
 
 app = PadeApp()
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
 
 def figure_response(fig):
     png_output = StringIO.StringIO()
@@ -42,15 +51,14 @@ def job():
     logging.info("Getting index")
     return render_template("job.html", job=app.job)
 
-@app.route("/input_file_upload_form")
-def input_file_upload_form():
-    return render_template("input_file_upload_form.html")
-
 
 def ensure_job_scratch():
     if 'job_scratch' not in session:
         logging.info("Setting up job scratch")
-        session['job_scratch'] = { 'factors' : {} }
+        session['job_scratch'] = { 
+            'factors' : {},
+            'job_id' : uuid.uuid1()
+            }
 
 @app.route("/edit_factors_form")
 def edit_factors_form():
@@ -90,6 +98,21 @@ def delete_factor():
 
     else:
         flash("There is no factor called " + str(name))
+    return redirect(url_for('edit_factors_form'))
+
+def current_job_id():
+    return session['job_scratch']['job_id']
+
+
+@app.route("/upload_input_file", methods=['POST'])
+def upload_input_file():
+    
+    ensure_job_scratch()
+    
+    file = request.files['input_file']
+    filename = secure_filename(file.filename)
+
+    file.save(os.path.join(app.config['UPLOAD_FOLDER'], job_id, filename))
     return redirect(url_for('edit_factors_form'))
 
 @app.route("/measurement_scatter/<feature_num>")
