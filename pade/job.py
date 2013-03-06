@@ -46,8 +46,6 @@ class Input(object):
           with a header line.
         
         """
-        logging.info("Loading table from " + str(path))
-        logging.info("Counting rows and columns in input file")
 
         ids = []
         table = []
@@ -72,7 +70,7 @@ class Input(object):
         table = np.array(table)
         ids   = np.array(ids)
 
-        logging.info(
+        logging.debug(
             "Input has {features} features and {samples} samples".format(
                 features=np.size(table, 0),
                 samples=np.size(table, 1)))
@@ -86,7 +84,6 @@ def load_input(db):
 
 def load_job(path):
 
-    logging.info("Loading job results from " + path)
     db = None
     try:
         db = h5py.File(path, 'r')
@@ -101,7 +98,6 @@ def load_job(path):
         summary=load_summary(db))
 
     db.close()
-    logging.info("Done loading results")
 
 
 def load_settings(db):
@@ -267,7 +263,6 @@ def save_table(db, table, name):
     
 
 def save_job(path, job):
-    logging.info("Saving job results to " + str(path))
     db = h5py.File(path, 'w')
     
     save_input(job.input, db)
@@ -295,6 +290,7 @@ def load_summary(db):
         db['summary']['bins'][...],
         db['summary']['best_param_idxs'][...],
         db['summary']['counts'][...])
+
 
 def load_results(db):
 

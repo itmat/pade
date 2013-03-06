@@ -112,13 +112,11 @@ def bootstrap(data,
     # features. Each row is the array of statistics for all the
     # features, using a different random sampling.
     
-    logging.info("Processing {0} samples".format(len(indexes)))
     samples = (build_sample(p) for p in indexes)
     stats   = (stat_fn(s)      for s in samples)
 
     reduced = reduce(accumulator.reduce_fn, stats, accumulator.initializer)
 
-    logging.info("Finalizing results")
     return accumulator.finalize_fn(reduced)
 
 def cumulative_hist_shape(bins):
@@ -196,7 +194,7 @@ def confidence_scores(raw_counts, perm_counts, num_features):
     """Return confidence scores.
     
     """
-    logging.info("Getting confidence scores for shape {shape} with {num_features} features".format(shape=np.shape(raw_counts),
+    logging.debug("Getting confidence scores for shape {shape} with {num_features} features".format(shape=np.shape(raw_counts),
                                                                                                    num_features=num_features))
     if np.shape(raw_counts) != np.shape(perm_counts):
         raise Exception(
@@ -238,7 +236,6 @@ def assign_scores_to_features(stats, bins, scores):
       An array that gives the confidence score for each feature.
 
     """
-    logging.info("Assigning scores to features")
     logging.debug(("I have {num_stats} stats, {num_bins} bins, and " +
                   "{num_scores} scores").format(num_stats=np.shape(stats),
                                                 num_bins=np.shape(bins),

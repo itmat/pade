@@ -40,9 +40,6 @@ def summary_by_conf_level(job):
 
     """
     
-    logging.info("Summarizing the results")
-
-    
     bins = np.arange(job.settings.min_conf, 1.0, job.settings.conf_interval)
     best_param_idxs = np.zeros(len(bins))
     counts          = np.zeros(len(bins))
@@ -84,7 +81,6 @@ def compute_fold_change(job):
       group for each feature.
 
     """
-    logging.info("Computing fold change")
     
     nuisance_factors = set(job.settings.block_variables)
     test_factors     = job.settings.condition_variables
@@ -145,7 +141,7 @@ def compute_means(job):
     return pade.job.TableWithHeader(names, values)
 
 def get_group_means(schema, data, factors):
-    logging.info("Getting group means for factors " + str(factors))
+    logging.debug("Getting group means for factors " + str(factors))
     assignments = schema.possible_assignments(factors=factors)
 
     num_features = len(data)
@@ -190,18 +186,17 @@ def new_sample_indexes(job):
 
     if job.settings.sample_with_replacement:
         if job.settings.sample_from_residuals:
-            logging.info("Bootstrapping using samples constructed from " +
+            logging.debug("Bootstrapping using samples constructed from " +
                          "residuals, not using groups")
             layout = [ sorted(job.schema.sample_name_index.values()) ]
         else:
-            logging.info("Bootstrapping raw values, within groups defined by" + 
+            logging.debug("Bootstrapping raw values, within groups defined by" + 
                          "'" + str(job.settings.block_variables) + "'")
             layout = job.block_layout
-        logging.info("Layout is" + str(layout))
         return random_indexes(layout, R)
 
     else:
-        logging.info("Creating max of {0} random permutations".format(R))
+        logging.debug("Creating max of {0} random permutations".format(R))
         return list(random_orderings(job.condition_layout, job.block_layout, R))
 
     
@@ -213,7 +208,6 @@ def compute_mean_perm_count(job):
     stat_fn = get_stat_fn(job)
 
     if job.settings.sample_from_residuals:
-        logging.info("Sampling from residuals")
         prediction = predicted_values(job)
         diffs      = table - prediction
         return pade.conf.bootstrap(
@@ -224,7 +218,6 @@ def compute_mean_perm_count(job):
             bins=bins)
 
     else:
-        logging.info("Sampling from raw data")
         # Shift all values in the data by the means of the groups from
         # the full model, so that the mean of each group is 0.
         if job.settings.equalize_means:
@@ -241,7 +234,7 @@ def compute_mean_perm_count(job):
                         ids.remove(fid)
                     else:
                         data[i] = table[i]
-                logging.info("Equalized means for " + str(count - len(ids)) + " features")
+                logging.debug("Equalized means for " + str(count - len(ids)) + " features")
                 if len(ids) > 0:
                     logging.warn("There were " + str(len(ids)) + " feature " +
                                  "ids given that don't exist in the data: " +
