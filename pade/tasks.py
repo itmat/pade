@@ -91,6 +91,6 @@ def gen_sample_indexes(job):
 def save_job(job, filename):
     logging.info("Job is " + str(job))
     logging.info("Filename is " + str(filename))
-#    pade.job.save_job(filename, job)
+    pade.job.save_job(filename, job)
     logging.info("Saved it")
     return job

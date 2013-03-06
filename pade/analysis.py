@@ -8,6 +8,25 @@ import pade.stat as stat
 from pade.stat import *
 from pade.layout import *
 
+@profiled
+def predicted_values(job):
+    """Return the values predicted by the reduced model.
+    
+    The return value has the same shape as the input table, with each
+    cell containing the mean of all the cells in the same group, as
+    defined by the reduced model.
+
+    """
+    data = job.input.table
+    prediction = np.zeros_like(data)
+
+    for grp in job.block_layout:
+        means = np.mean(data[..., grp], axis=1)
+        means = means.reshape(np.shape(means) + (1,))
+        prediction[..., grp] = means
+    return prediction
+
+
 
 def summary_by_conf_level(job):
     """Summarize the counts by conf level.

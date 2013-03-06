@@ -44,24 +44,6 @@ class UsageException(Exception):
     """Thrown when the user gave invalid parameters."""
     pass
 
-@profiled
-def predicted_values(job):
-    """Return the values predicted by the reduced model.
-    
-    The return value has the same shape as the input table, with each
-    cell containing the mean of all the cells in the same group, as
-    defined by the reduced model.
-
-    """
-    data = job.input.table
-    prediction = np.zeros_like(data)
-
-    for grp in job.block_layout:
-        means = np.mean(data[..., grp], axis=1)
-        means = means.reshape(np.shape(means) + (1,))
-        prediction[..., grp] = means
-    return prediction
-
 
 ########################################################################
 ###
@@ -157,7 +139,7 @@ Analyzing {filename}, which is described by the schema {schema}.
 
     steps = [
 
-        # First we need to load the input table
+        # First we need to load the input table.
         copy_input,
 
         # Then construct (or load) a list of permutations of the indexes
@@ -165,14 +147,18 @@ Analyzing {filename}, which is described by the schema {schema}.
 
         # Then compute the raw statistics (f-test or other
         # differential expression stat, means, fold change, and
-        # coefficients)
+        # coefficients). We should be able to chunk this up. We would
+        # then simply need to copy the chunk results into the master
+        # job db.
         pade.tasks.compute_raw_stats.s(),
 
-        # Then choose bins for our histogram based on the values of
-        # the raw stats
+        # Choose bins for our histogram based on the values of the raw
+        # stats. We would need to merge all of the above chunks first.
         pade.tasks.choose_bins.s(),
 
-        # Then run the permutations and come up with cumulative counts
+        # Then run the permutations and come up with cumulative
+        # counts. This can be chunked. We would need to add another
+        # step that merges the results together.
         pade.tasks.compute_mean_perm_count.s(),
 
         # Compare the unpermuted counts to the mean permuted counts to
