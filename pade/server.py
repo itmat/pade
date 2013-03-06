@@ -202,6 +202,7 @@ def upload_input_file():
     session['job_scratch']['filename'] = filename
 
     path = os.path.join(current_job_scratch_dir(), filename)
+    print "File type is", file
     file.save(path)
 
     with open(path) as infile:
