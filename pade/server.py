@@ -147,6 +147,16 @@ def current_job_id():
     return scratch['job_id']
 
 
+@app.route("/update_columns", methods=['POST'])
+def update_columns():
+    schema = current_scratch_schema()
+
+    names = schema.column_names
+    roles = [request.form['role_' + str(i)] for i in range(len(names))]
+
+    schema.set_columns(names, roles)
+    session.modified = True
+    return redirect(url_for('edit_factors_form'))
 
 @app.route("/upload_input_file", methods=['POST'])
 def upload_input_file():

@@ -49,7 +49,7 @@ Factors:
 
 Working with input file {{filename}}.
 
-<form action="{{url_for('edit_factors_form')}}" method="post">
+<form action="{{url_for('update_columns')}}" method="post">
 
   <table>
     <tr>
@@ -61,33 +61,44 @@ Working with input file {{filename}}.
     </tr>
     
     {% for name in schema.column_names %}
+
+    {% set col_num = loop.index0 %}
+    {% set role    = schema.column_roles[col_num] %}
+
     <tr>
       <td>{{ name }}</td>
       <td> 
         <select name="role_{{loop.index0}}" value="{{schema.column_roles[loop.index0]}}">
-          {% if schema.column_roles[loop.index0] == 'feature_id' %}
-          <option value="ignored"></option>
-          <option value="feature_id" selected="selected">Feature ID</option>
-          <option value="sample">Sample</option>
-          {% elif schema.column_roles[loop.index0] == 'sample' %}
-          <option value="ignored"></option>
-          <option value="feature_id">Feature ID</option>
-          <option value="sample" selected="selected">Sample</option>
-          {% else %}
-          <option value="ignored"></option>
-          <option value="feature_id">Feature ID</option>
-          <option value="sample" selected="selected">Sample</option>
-          {% endif %}
-          
+          <option value="ignored"    {% if role == None         %} selected="selected" {% endif %} > </option>
+          <option value="feature_id" {% if role == 'feature_id' %} selected="selected" {% endif %} >Feature ID</option>
+          <option value="sample"     {% if role == 'sample'     %} selected="selected" {% endif %} >Sample </option>
         </select>
       </td>
       {% for f in schema.factors %}
-      <th>{{f}}</th>
+      {% set factor_num = loop.index0 %}
+      <td>
+
+        {% if name in schema.sample_column_names %}
+        {% set selected_value = schema.get_factor(name, f) %}
+        {% endif %}
+
+        <select name="factor_value_{{col_num}}_{{factor_num}}">
+          <option value=""></option>
+          {% for v in schema.factor_values(f) %}
+          <option value="{{v}}" {% if selected_value == v %} selected="selected" {% endif %} >{{v}}</option>
+          {% endfor %}
+        </select>
+        
+      </td>
       {% endfor %}
     </tr>
     {% endfor %}
     
   </table>
+  <p>
+    <input type="submit" value="Update"></input>  
+  </p>
+
 </form>
 
 {% endif %}
