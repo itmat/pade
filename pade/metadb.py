@@ -116,6 +116,11 @@ class InputFileMeta(ObjMeta):
     """Meta-data for an input file."""
     obj_type        = 'input_file'
     collection_name = 'pade:input_files'
+
+    @property
+    def size(self):
+        return os.stat(self.path).st_size
+    
     
 class JobDBMeta(ObjMeta):
     """Meta-data for an HDF5 job database."""

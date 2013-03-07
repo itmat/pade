@@ -87,6 +87,7 @@ def ensure_job_scratch():
         makedirs(current_job_scratch_dir())
 
 
+
 def current_job_scratch_dir():
     job_id = current_job_id()
     if job_id is None:
