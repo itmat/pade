@@ -25,7 +25,7 @@ from werkzeug import secure_filename
 from pade.common import *
 from pade.job import Job
 from pade.conf import cumulative_hist
-
+from pade.metadb import MetaDB
 ALLOWED_EXTENSIONS = set(['txt', 'tab'])
 UPLOAD_FOLDER = 'uploads'
 
@@ -34,12 +34,15 @@ class PadeApp(Flask):
     def __init__(self):
         super(PadeApp, self).__init__(__name__)
         self.job = None
+        self.mdb = None
         self.secret_key = 'asdf'
+
 
 app = PadeApp()
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.session_interface = pade.redis_session.RedisSessionInterface(
-    Redis(redisconfig.DB_SESSION))
+    Redis(db=redisconfig.DB_SESSION))
+app.mdb = MetaDB(UPLOAD_FOLDER, Redis(db=redisconfig.DB_METADB_DEV))
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -61,6 +64,11 @@ def job():
     logging.info("Getting index")
     return render_template("job.html", job=app.job)
 
+@app.route("/schemas")
+def schema_list():
+    return render_template(
+        'schemas.html',
+        schema_metas=app.mdb.all_schemas())
 
 def ensure_job_scratch():
     if 'job_scratch' not in session:
