@@ -1,26 +1,16 @@
 import datetime as dt
 import os
-import redis
 import shutil
 
 from pade.schema import Schema
-from redis import Redis
 from StringIO import StringIO
 
-import shutil
-
-REDIS_DB_NUMBERS = {
-    'scratch' : 0,
-    'dev'     : 1,
-    'test'    : 2,
-    'prod'    : 3
-}
 
 class MetaDB(object):
 
-    def __init__(self, directory, env):
-        self.redis = Redis(db=REDIS_DB_NUMBERS[env])
+    def __init__(self, directory, redis):
         self.directory = directory
+        self.redis     = redis
 
     def _next_obj_id(self, type):
         key = ":".join(('pade', 'nextid', type))

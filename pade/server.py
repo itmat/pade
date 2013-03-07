@@ -14,7 +14,8 @@ import uuid
 import shutil
 import csv
 import pade.redis_session
-
+import redisconfig
+from redis import Redis
 
 from pade.schema import Schema
 
@@ -37,7 +38,8 @@ class PadeApp(Flask):
 
 app = PadeApp()
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.session_interface = pade.redis_session.RedisSessionInterface()
+app.session_interface = pade.redis_session.RedisSessionInterface(
+    Redis(redisconfig.DB_SESSION))
 
 def allowed_file(filename):
     return '.' in filename and \

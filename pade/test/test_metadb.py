@@ -1,16 +1,18 @@
 import unittest
 import contextlib
+import redisconfig
 
+from StringIO import StringIO
 from pade.test.utils import tempdir
 from pade.schema import Schema
-
 from pade.metadb import *
-from StringIO import StringIO
+from redis import Redis
+
 
 @contextlib.contextmanager
 def temp_metadb():
     with tempdir() as d:
-        mdb = MetaDB(d, 'test')
+        mdb = MetaDB(d, Redis(db=redisconfig.DB_METADB_TEST))
         mdb.redis.flushdb()
         yield mdb
 

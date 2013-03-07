@@ -2,6 +2,7 @@ import unittest
 import numpy as np
 
 from pade.main import *
+from pade.analysis import *
 
 class ModelTest(unittest.TestCase):
 
