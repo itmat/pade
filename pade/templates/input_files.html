@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Index{% endblock %}
+{% block content %}
+
+Cached input files:
+
+<table>
+  <tr>
+    <th>Name</th>
+    <th>Date created</th>
+    <th>Comments</th>
+  </tr>
+  
+  {% for s in input_file_metas %}
+  <tr>
+    <td>
+      {{ s.name }}
+    </td>
+    <td>
+      {{ s.dt_created }}
+    </td>
+    <td>
+      {{ s.comments }}
+    </td>
+  </tr>
+
+  {% endfor %}
+
+</table>
+
+<form action="{{url_for('upload_input_file')}}" method="post" enctype="multipart/form-data">
+  <p>
+    Choose input file to upload:
+    <input type="file" name="input_file"/>
+    <input type="submit" value="Upload"/>
+  </p>
+</form>
+
+{% endblock %}

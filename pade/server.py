@@ -70,6 +70,12 @@ def schema_list():
         'schemas.html',
         schema_metas=app.mdb.all_schemas())
 
+@app.route("/inputfiles")
+def input_file_list():
+    return render_template(
+        'input_files.html',
+        input_file_metas=app.mdb.all_input_files())
+
 def ensure_job_scratch():
     if 'job_scratch' not in session:
         logging.info("Setting up job scratch")
@@ -212,20 +218,20 @@ def upload_input_file():
     session['job_scratch']['filename'] = filename
 
     path = os.path.join(current_job_scratch_dir(), filename)
-    print "File type is", file
-    file.save(path)
+    logging.info("Adding input file to meta db")
+    app.mdb.add_input_file(filename, "", file)
 
-    with open(path) as infile:
-        csvfile = csv.DictReader(infile, delimiter="\t")
-        fieldnames = csvfile.fieldnames
+#    with open(path) as infile:
+#        csvfile = csv.DictReader(infile, delimiter="\t")
+#        fieldnames = csvfile.fieldnames
 
-    roles = ['sample' for i in csvfile.fieldnames]
-    roles[0] = 'feature_id'
+#    roles = ['sample' for i in csvfile.fieldnames]
+#    roles[0] = 'feature_id'
 
-    schema = current_scratch_schema()
-    schema.set_columns(csvfile.fieldnames, roles)
+#    schema = current_scratch_schema()
+#    schema.set_columns(csvfile.fieldnames, roles)
 
-    session.modified = True
+#    session.modified = True
     return redirect(url_for('edit_factors_form'))
 
 @app.route("/measurement_scatter/<feature_num>")

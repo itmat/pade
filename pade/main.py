@@ -200,7 +200,7 @@ To launch a small web server to generate the HTML reports, run:
 def do_server(args):
     import pade.server
 
-    pade.server.app.job = pade.job.load_job(args.db)
+#    pade.server.app.job = pade.job.load_job(args.db)
     if args.debug:
         pade.server.app.debug = True
     pade.server.app.run(port=args.port)
