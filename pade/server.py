@@ -120,6 +120,17 @@ def clear_job_scratch():
         del session['job_scratch']
     return redirect(url_for('edit_factors_form'))
 
+@app.route("/setup_schema")
+def setup_schema():
+    ensure_job_scratch()
+    input_file_id = int(request.args.get('input_file_id'))
+    input_file_meta = app.mdb.input_file(input_file_id)
+
+    logging.info("Using input file " + input_file_meta.name)
+    return render_template("edit_factors_form.html",
+                           schema=current_scratch_schema(),
+                           filename=input_file_meta.path)
+
 @app.route("/edit_factors_form")
 def edit_factors_form():
 
@@ -220,7 +231,7 @@ def upload_input_file():
 
     path = os.path.join(current_job_scratch_dir(), filename)
     logging.info("Adding input file to meta db")
-    app.mdb.add_input_file(filename, "", file)
+    meta = app.mdb.add_input_file(filename, "", file)
 
 #    with open(path) as infile:
 #        csvfile = csv.DictReader(infile, delimiter="\t")

@@ -120,8 +120,7 @@ class InputFileMeta(ObjMeta):
     @property
     def size(self):
         return os.stat(self.path).st_size
-    
-    
+        
 class JobDBMeta(ObjMeta):
     """Meta-data for an HDF5 job database."""
     obj_type = 'job_db'

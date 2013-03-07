@@ -4,7 +4,11 @@
 
 <table>
 
-Factors:
+<h2>Factors</h2>
+
+First you need to define the factors, or variables, that you want to
+associate with the columns. 
+
 <ul>
 {% for f in schema.factors %}
 <li>{{ f }} (<a href="{{url_for('delete_factor', name=f)}}">delete</a>)
@@ -37,17 +41,17 @@ Factors:
 </li>
 </ul>
 
-<form action="{{url_for('upload_input_file')}}" method="post" enctype="multipart/form-data">
-  <p>
-    Choose input file to upload:
-    <input type="file" name="input_file"/>
-    <input type="submit" value="Upload"/>
-  </p>
-</form>
-
 {% if filename %}
 
 Working with input file {{filename}}.
+
+<h2>Column labels</h2>
+
+<p>
+  Next you need to tell me which column contains the feature ids and
+  which ones contain the samples. You also need to label the sample
+  columns with the factor values you created above.
+</p>
 
 <form action="{{url_for('update_columns')}}" method="post">
 
@@ -83,8 +87,6 @@ Working with input file {{filename}}.
         {% else %}
         {% set selected_value = None %}
         {% endif %}
-
-        {{ f, selected_value }}
 
         <select name="factor_value_{{col_num}}_{{factor_num}}">
           <option value=""></option>

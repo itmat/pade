@@ -2,10 +2,19 @@
 {% block title %}Index{% endblock %}
 {% block content %}
 
-Cached input files:
+<form action="{{url_for('upload_input_file')}}" method="post" enctype="multipart/form-data">
+  <p>
+    You can upload a new input file:
+    <input type="file" name="input_file"/>
+    <input type="submit" value="Upload"/>
+  </p>
+</form>
+
+Or choose a previously uploaded input file:
 
 <table>
   <tr>
+    <th></th>
     <th>Name</th>
     <th>Size</th>
     <th>Date created</th>
@@ -14,6 +23,9 @@ Cached input files:
   
   {% for s in input_file_metas %}
   <tr>
+    <td>
+      <a href="{{url_for('setup_schema', input_file_id=s.obj_id)}}">select</a>
+    </td>
     <td>
       {{ s.name }}
     </td>
@@ -31,13 +43,5 @@ Cached input files:
   {% endfor %}
 
 </table>
-
-<form action="{{url_for('upload_input_file')}}" method="post" enctype="multipart/form-data">
-  <p>
-    Choose input file to upload:
-    <input type="file" name="input_file"/>
-    <input type="submit" value="Upload"/>
-  </p>
-</form>
 
 {% endblock %}
