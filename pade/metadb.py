@@ -95,7 +95,7 @@ class MetaDB(object):
         return self._all_objects(SchemaMeta)
 
     def add_job_db(self, name, comments):
-        return self._add_obj(name, comments)
+        return self._add_obj(JobDBMeta, name, comments)
 
     def job_db(self, obj_id):
         return self._load_obj(JobDBMeta, obj_id)

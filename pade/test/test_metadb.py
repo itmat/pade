@@ -16,13 +16,13 @@ def temp_metadb():
 
 class MetaDBTest(unittest.TestCase):
 
-    def _next_obj_id(self):
+    def test_next_obj_id(self):
         with temp_metadb() as mdb:
             a = mdb._next_obj_id('input_file')
             b = mdb._next_obj_id('input_file')
             self.assertGreater(b, a)
 
-    def _input_files(self):
+    def test_input_files(self):
         with temp_metadb() as mdb:
 
             a = mdb.add_input_file("test.txt", "Some comments", StringIO("a\nb\nc\n"))
@@ -71,6 +71,24 @@ class MetaDBTest(unittest.TestCase):
                 colnames.update(schema.column_names)
             self.assertEquals(colnames, set(['id', 'a', 'b',
                                              'key', 'foo', 'bar']))
+
+    def test_job_dbs(self):
+        with temp_metadb() as mdb:
+            a = mdb.add_job_db("job1", "Some job")
+            b = mdb.add_job_db("job2", "Other job")
+
+            # Make sure it returned the object appropriately
+            self.assertEquals(a.name, "job1")
+            self.assertEquals(a.comments, "Some job")
+
+            # Make sure we can list all input files
+            job_dbs = mdb.all_job_dbs()
+            self.assertEquals(len(job_dbs), 2)
+            names = set(['job1', 'job2'])
+            self.assertEquals(names, set([x.name for x in job_dbs]))
+
+
+            
 
 if __name__ == '__main__':
     unittest.main()
