@@ -95,6 +95,9 @@ class Schema(object):
         given in the schema file.
 
         """
+        if factor not in self.factors:
+            raise Exception("No factor called '" + factor + "'")
+
         return self.factors[factor]
 
     @property
@@ -362,4 +365,4 @@ sample_factor_mapping:
 
         return self.sample_name_index[sample_name]
 
-
+    

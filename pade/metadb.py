@@ -3,6 +3,7 @@ import os
 import redis
 import shutil
 
+from pade.schema import Schema
 from redis import Redis
 from StringIO import StringIO
 
@@ -55,7 +56,7 @@ class MetaDB(object):
 
         pipe = self.redis.pipeline()
         pipe.hmset(key, mapping)
-        pipe.sadd(InputFileMeta.collection_name, meta.obj_id)
+        pipe.sadd(cls.collection_name, meta.obj_id)
         pipe.execute()        
         return meta
 
@@ -136,3 +137,6 @@ class SchemaMeta(ObjMeta):
     obj_type        = 'schema'
     collection_name = 'pade:schemas'
 
+    def load(self):
+        with open(self.path) as f:
+            return Schema.load(f)

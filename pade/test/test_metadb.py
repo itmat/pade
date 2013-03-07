@@ -16,13 +16,13 @@ def temp_metadb():
 
 class MetaDBTest(unittest.TestCase):
 
-    def test_next_obj_id(self):
+    def _next_obj_id(self):
         with temp_metadb() as mdb:
             a = mdb._next_obj_id('input_file')
             b = mdb._next_obj_id('input_file')
             self.assertGreater(b, a)
 
-    def test_input_files(self):
+    def _input_files(self):
         with temp_metadb() as mdb:
 
             a = mdb.add_input_file("test.txt", "Some comments", StringIO("a\nb\nc\n"))
@@ -46,10 +46,15 @@ class MetaDBTest(unittest.TestCase):
             schema_a.add_factor('treated', [False, True])
             schema_a.set_columns(['id', 'a', 'b'],
                                  ['feature_id', 'sample', 'sample'])
+            schema_a.set_factor('a', 'treated', False)
+            schema_a.set_factor('b', 'treated', True)
+
             schema_b = Schema()
             schema_b.add_factor('age', ['young', 'old'])
             schema_b.set_columns(['key', 'foo', 'bar'],
                                  ['feature_id', 'sample', 'sample'])
+            schema_b.set_factor('foo', 'age', 'young')
+            schema_b.set_factor('bar', 'age', 'old')
 
             a = mdb.add_schema("First one", "The first one", schema_a)
             b = mdb.add_schema("Second", "Other", schema_b)
@@ -57,5 +62,15 @@ class MetaDBTest(unittest.TestCase):
             self.assertEquals(a.name, "First one")
             self.assertEquals(a.comments, "The first one")
             
+            schemas = mdb.all_schemas()
+            self.assertEquals(len(schemas), 2)
+
+            colnames = set()
+            for s in schemas:
+                schema = s.load()
+                colnames.update(schema.column_names)
+            self.assertEquals(colnames, set(['id', 'a', 'b',
+                                             'key', 'foo', 'bar']))
+
 if __name__ == '__main__':
     unittest.main()
