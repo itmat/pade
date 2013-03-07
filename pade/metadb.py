@@ -20,26 +20,12 @@ class MetaDB(object):
         self.redis = Redis(db=REDIS_DB_NUMBERS[env])
         self.directory = directory
 
-    def next_obj_id(self, type):
+    def _next_obj_id(self, type):
         key = ":".join(('pade', 'nextid', type))
         return self.redis.incr(key)
 
-    def obj_key(self, obj_type, obj_id):
+    def _obj_key(self, obj_type, obj_id):
         return ':'.join(('pade', obj_type, str(obj_id)))
-
-    def _add_meta(self, meta):
-        mapping = {
-            'name'       : meta.name,
-            'comments'   : meta.comments,
-            'dt_created' : str(meta.dt_created) }
-
-        key    = self.obj_key(meta.obj_type, meta.obj_id)
-
-        pipe = self.redis.pipeline()
-        pipe.hmset(key, mapping)
-        pipe.sadd(InputFileMeta.collection_name, meta.obj_id)
-        pipe.execute()        
-
 
     def _path(self, obj_type, obj_id):
         filename = "{obj_type}_{obj_id}.txt".format(
@@ -47,31 +33,53 @@ class MetaDB(object):
             obj_id=obj_id)
         return os.path.join(self.directory, filename)
 
-    def add_input_file(self, name, comments, stream):
+    def _add_obj(self, cls, name, comments, stream):
 
-        obj_type = InputFileMeta.obj_type
-        obj_id = self.next_obj_id(obj_type)
+        obj_type = cls.obj_type
+        obj_id = self._next_obj_id(obj_type)
 
         path = self._path(obj_type, obj_id)
 
         with open(path, 'w') as out:
             shutil.copyfileobj(stream, out)
 
-        meta = InputFileMeta(obj_id, name, comments, path)
-        self._add_meta(meta)
+        meta = cls(obj_id, name, comments, path)
+        mapping = {
+            'name'       : meta.name,
+            'comments'   : meta.comments,
+            'dt_created' : str(meta.dt_created) }
+
+        key = self._obj_key(meta.obj_type, meta.obj_id)
+
+        pipe = self.redis.pipeline()
+        pipe.hmset(key, mapping)
+        pipe.sadd(InputFileMeta.collection_name, meta.obj_id)
+        pipe.execute()        
         return meta
 
-    def all_input_files(self):
-        ids = self.redis.smembers('pade:input_files')
-        return [ self.input_file(obj_id) for obj_id in ids ]
+    def _all_objects(self, cls):
+        ids = self.redis.smembers(cls.collection_name)
+        return [ self._load_obj(cls, obj_id) for obj_id in ids ]
 
-    def input_file(self, obj_id):
-        key        = self.obj_key(InputFileMeta.obj_type, obj_id)
+    def _load_obj(self, cls, obj_id):
+        key        = self._obj_key(cls.obj_type, obj_id)
         name       = self.redis.hget(key, 'name')
         comments   = self.redis.hget(key, 'comments')
         dt_created = self.redis.hget(key, 'dt_created')
-        path       = self._path(InputFileMeta.obj_type, obj_id)
-        return InputFileMeta(obj_id, name, comments, path, dt_created)
+        path       = self._path(cls.obj_type, obj_id)
+        return cls(obj_id, name, comments, path, dt_created)
+
+    def add_input_file(self, name, comments, stream):
+        return self._add_obj(InputFileMeta, name, comments, stream)
+
+    def all_input_files(self):
+        return self._all_objects(InputFileMeta)
+
+    def input_file(self, obj_id):
+        return self._load_obj(InputFileMeta, obj_id)
+
+
+
 
 class ObjMeta(object):
     """Meta-data for an object we store on the filesystem."""

@@ -14,11 +14,11 @@ def temp_metadb():
 
 class MetaDBTest(unittest.TestCase):
 
-#    def test_next_obj_id(self):
-#        with temp_metadb() as mdb:
-#            a = mdb.next_obj_id('input_file')
-#            b = mdb.next_obj_id('input_file')
-#            self.assertGreater(b, a)
+    def test_next_obj_id(self):
+        with temp_metadb() as mdb:
+            a = mdb._next_obj_id('input_file')
+            b = mdb._next_obj_id('input_file')
+            self.assertGreater(b, a)
 
     def test_input_files(self):
         with temp_metadb() as mdb:
