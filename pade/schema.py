@@ -362,3 +362,4 @@ sample_factor_mapping:
 
         return self.sample_name_index[sample_name]
 
+

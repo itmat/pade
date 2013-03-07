@@ -4,6 +4,7 @@ import redis
 import shutil
 
 from redis import Redis
+from StringIO import StringIO
 
 import shutil
 
@@ -33,15 +34,16 @@ class MetaDB(object):
             obj_id=obj_id)
         return os.path.join(self.directory, filename)
 
-    def _add_obj(self, cls, name, comments, stream):
+    def _add_obj(self, cls, name, comments, stream=None):
 
         obj_type = cls.obj_type
         obj_id = self._next_obj_id(obj_type)
 
         path = self._path(obj_type, obj_id)
 
-        with open(path, 'w') as out:
-            shutil.copyfileobj(stream, out)
+        if stream is not None:
+            with open(path, 'w') as out:
+                shutil.copyfileobj(stream, out)
 
         meta = cls(obj_id, name, comments, path)
         mapping = {
@@ -78,8 +80,27 @@ class MetaDB(object):
     def input_file(self, obj_id):
         return self._load_obj(InputFileMeta, obj_id)
 
+    def add_schema(self, name, comments, schema):
+        out = StringIO()
+        schema.save(out)
+        saved = out.getvalue()
+        stream = StringIO(out.getvalue())
+        return self._add_obj(SchemaMeta, name, comments, stream)
 
+    def schema(self, obj_id):
+        return self._load_obj(SchemaMeta, obj_id)
+    
+    def all_schemas(self):
+        return self._all_objects(SchemaMeta)
 
+    def add_job_db(self, name, comments):
+        return self._add_obj(name, comments)
+
+    def job_db(self, obj_id):
+        return self._load_obj(JobDBMeta, obj_id)
+
+    def all_job_dbs(self):
+        return self._all_objects(JobDBMeta)
 
 class ObjMeta(object):
     """Meta-data for an object we store on the filesystem."""

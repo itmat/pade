@@ -1,6 +1,8 @@
 import unittest
 import contextlib
+
 from pade.test.utils import tempdir
+from pade.schema import Schema
 
 from pade.metadb import *
 from StringIO import StringIO
@@ -37,6 +39,23 @@ class MetaDBTest(unittest.TestCase):
             self.assertEquals(len(input_files), 2)
             names = set(['test.txt', 'foo.txt'])
             self.assertEquals(names, set([x.name for x in input_files]))
+
+    def test_schemas(self):
+        with temp_metadb() as mdb:
+            schema_a = Schema()
+            schema_a.add_factor('treated', [False, True])
+            schema_a.set_columns(['id', 'a', 'b'],
+                                 ['feature_id', 'sample', 'sample'])
+            schema_b = Schema()
+            schema_b.add_factor('age', ['young', 'old'])
+            schema_b.set_columns(['key', 'foo', 'bar'],
+                                 ['feature_id', 'sample', 'sample'])
+
+            a = mdb.add_schema("First one", "The first one", schema_a)
+            b = mdb.add_schema("Second", "Other", schema_b)
+            
+            self.assertEquals(a.name, "First one")
+            self.assertEquals(a.comments, "The first one")
             
 if __name__ == '__main__':
     unittest.main()
