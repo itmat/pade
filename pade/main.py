@@ -151,7 +151,11 @@ def compute_fold_change(job):
     data = job.input.table
     get_means = lambda a: np.mean(data[:, job.schema.indexes_with_assignments(a)], axis=-1)
 
-    alpha = scipy.stats.scoreatpercentile(job.input.table.flatten(), 1.0)
+    flat = job.input.table.flatten()
+    pos = flat[flat > 0]
+    alpha = np.min(pos) / 100.
+    logging.info("Using {alpha} (1/100 of smallest positive value) as alpha for fold change".format(
+            alpha=alpha))
 
     for na in nuisance_assignments:
         test_assignments = job.schema.possible_assignments(test_factors)
