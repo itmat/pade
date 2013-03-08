@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Index{% endblock %}
+{% block content %}
+
+<form action="{{url_for('add_factor')}}" method="post">
+  
+  <p>
+    Enter a name for the new factor: <input type="text" name="new_factor_name"></input>
+  </p>
+
+  <p>
+    Please tell me the possible values that this new factor can take on:
+  </p>
+
+  <ul>
+    <li><input type="text" name="new_factor_value_0"></input></li>
+    <li><input type="text" name="new_factor_value_1"></input></li>
+    <li><input type="text" name="new_factor_value_2"></input></li>
+    <li><input type="text" name="new_factor_value_3"></input></li>
+    <li><input type="text" name="new_factor_value_4"></input></li>
+    <li><input type="text" name="new_factor_value_5"></input></li>
+    <li><input type="text" name="new_factor_value_6"></input></li>
+    <li><input type="text" name="new_factor_value_7"></input></li>
+    <li><input type="text" name="new_factor_value_8"></input></li>
+    <li><input type="text" name="new_factor_value_9"></input></li>
+  </ul>
+
+  <input type="submit" value="Add"></input>
+</form>
+
+<p>
+  <em>TODO: Allow flexible number of factor values</em>
+</p>
+
+{% endblock %}

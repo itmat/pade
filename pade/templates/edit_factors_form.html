@@ -46,77 +46,9 @@ associate with the columns.
 </p>
 
 <p>
-<a href="{{url_for('label_columns_form')}}">Next step (label columns)</a>
+<a href="{{url_for('set_column_roles')}}">Next step (setup columns)</a>
 </p>
 
-
-{% if filename %}
-
-Working with input file {{filename}}.
-
-<h2>Column labels</h2>
-
-<p>
-  Next you need to tell me which column contains the feature ids and
-  which ones contain the samples. You also need to label the sample
-  columns with the factor values you created above.
-</p>
-
-<form action="{{url_for('update_columns')}}" method="post">
-
-  <table>
-    <tr>
-      <th>Field name</th>
-      <th>Role</th>
-      {% for f in schema.factors %}
-      <th>{{f}}</th>
-      {% endfor %}
-    </tr>
-    
-    {% for name in schema.column_names %}
-
-    {% set col_num = loop.index0 %}
-    {% set role    = schema.column_roles[col_num] %}
-
-    <tr>
-      <td>{{ name }}</td>
-      <td> 
-        <select name="role_{{loop.index0}}" value="{{schema.column_roles[loop.index0]}}">
-          <option value="ignored"    {% if role == None         %} selected="selected" {% endif %} > </option>
-          <option value="feature_id" {% if role == 'feature_id' %} selected="selected" {% endif %} >Feature ID</option>
-          <option value="sample"     {% if role == 'sample'     %} selected="selected" {% endif %} >Sample </option>
-        </select>
-      </td>
-      {% for f in schema.factors %}
-      {% set factor_num = loop.index0 %}
-      <td>
-
-        {% if role == 'sample' %}
-        {% set selected_value = schema.get_factor(name, f) %}
-        {% else %}
-        {% set selected_value = None %}
-        {% endif %}
-
-        <select name="factor_value_{{col_num}}_{{factor_num}}">
-          <option value=""></option>
-          {% for v in schema.factor_values(f) %}
-          <option value="{{v}}" {% if selected_value == v %} selected="selected" {% endif %} >{{v}}</option>
-          {% endfor %}
-        </select>
-        
-      </td>
-      {% endfor %}
-    </tr>
-    {% endfor %}
-    
-  </table>
-  <p>
-    <input type="submit" value="Update"></input>  
-  </p>
-
-</form>
-
-{% endif %}
 
 <a href="{{url_for('clear_job_scratch')}}">Clear job scratch space</a>
 {% endblock %}

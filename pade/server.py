@@ -80,28 +80,26 @@ def ensure_job_scratch():
     if 'job_scratch' not in session:
         logging.info("Setting up job scratch")
         session['job_scratch'] = { 
-            'job_id' : str(uuid.uuid1()),
             'schema' : Schema()
             }
 
-        makedirs(current_job_scratch_dir())
 
 
+def set_job_scratch_schema(schema):
+    if 'job_scratch' not in session:
+        session['job_scratch'] = {}
+    session['job_scratch']['schema'] = schema
 
-def current_job_scratch_dir():
-    job_id = current_job_id()
-    if job_id is None:
-        return None
-    return os.path.join(app.config['UPLOAD_FOLDER'], job_id)
+def set_job_scratch_input_file_id(input_file_id):
+    if 'job_scratch' not in session:
+        session['job_scratch'] = {}
+    session['job_scratch']['input_file_id'] = input_file_id
 
 def current_scratch_filename():
     scratch = job_scratch()
     if 'filename' in scratch:
         return scratch['filename']
     return None
-
-def current_scratch_schema_filename():
-    return os.path.join(current_job_scratch_dir(), "schema.yaml")
 
 
 def current_scratch_schema():
@@ -110,23 +108,81 @@ def current_scratch_schema():
         return scratch['schema']
     return None
 
+def current_scratch_input_file_meta():
+    scratch = job_scratch()
+    if 'input_file_id' in scratch:
+        return app.mdb.input_file(scratch['input_file_id'])
+    return None
+
 
 @app.route("/clear_job_scratch")
 def clear_job_scratch():
     if 'job_scratch' in session:
-        d = current_job_scratch_dir()
-        if d is not None:
-            shutil.rmtree(d)
         del session['job_scratch']
     return redirect(url_for('edit_factors_form'))
+
+@app.route("/select_input_file")
+def select_input_file():
+    logging.info("Setting input file id\n")
+
+    input_file_id = int(request.args.get('input_file_id'))
+    input_file_meta = app.mdb.input_file(input_file_id)
+
+    with open(input_file_meta.path) as infile:
+        csvfile = csv.DictReader(infile, delimiter="\t")
+        fieldnames = csvfile.fieldnames    
+
+        roles = [ 'sample' for x in fieldnames ]
+        roles[0] = 'feature_id'
+
+        set_job_scratch_schema(Schema(fieldnames, roles))
+        set_job_scratch_input_file_id(input_file_id)
+    return set_column_roles_form()
+
+
+
+def set_column_roles_form():
+    return render_template('set_column_roles.html',
+                           schema=current_scratch_schema(),
+                           filename=current_scratch_input_file_meta())
+
+@app.route("/set_column_roles", methods=['GET', 'POST'])
+def set_column_roles():
+    if request.method == 'GET':
+        return set_column_roles_form()
+    else:
+        schema = current_scratch_schema()
+        names = schema.column_names
+        roles = [request.form['role_' + str(i)] for i in range(len(names))]
+        schema.set_columns(names, roles)
+        return redirect(url_for('add_factor'))
+    
+
+@app.route("/add_factor", methods=['GET', 'POST'])
+def add_factor():
+    print "Args are", request.args
+    if request.method == 'GET':
+        return render_template('add_factor.html',
+                               schema=current_scratch_schema())
+    elif request.method == 'POST':
+        schema = current_scratch_schema()
+        name = request.form.get('new_factor_name')
+        print "Factor name is", name
+        values = []
+        for i in range(10):
+            key = 'new_factor_value_' + str(i)
+            if key in request.form:
+                value = request.form.get(key)
+                if len(value) > 0:
+                    values.append(value)
+        schema.add_factor(name, values)
+        session.modified = True
+        return redirect(url_for('label_columns_form', factor=name))
 
 @app.route("/setup_schema")
 def setup_schema():
     ensure_job_scratch()
-    input_file_id = int(request.args.get('input_file_id'))
-    input_file_meta = app.mdb.input_file(input_file_id)
 
-    logging.info("Using input file " + input_file_meta.name)
     return render_template("edit_factors_form.html",
                            schema=current_scratch_schema(),
                            filename=input_file_meta.path)
@@ -140,28 +196,32 @@ def edit_factors_form():
     return render_template("edit_factors_form.html",
                            schema=current_scratch_schema(),
                            filename=current_scratch_filename())
+
 @app.route("/label_columns")
 def label_columns_form():
 
-    ensure_job_scratch()
     schema = current_scratch_schema()
 
+    factor = request.args.get('factor')
+
+    print "Session is", session
     return render_template("label_columns.html",
                            schema=current_scratch_schema(),
-                           filename=current_scratch_filename())
+                           input_file_meta=current_scratch_input_file_meta(),
+                           factor=factor)
 
 
 
-@app.route("/add_factor", methods=['POST'])
-def add_factor():
-    name = request.form.get('name')
-    schema = current_scratch_schema()
-    ensure_job_scratch()
-    logging.info("Adding factor " + str(name))
-    schema.add_factor(name)
-    session.modified = True
-    logging.info("Then session is " + str(session))
-    return redirect(url_for('edit_factors_form'))
+#@app.route("/add_factor", methods=['POST'])
+#def add_factor():
+#    name = request.form.get('name')
+#    schema = current_scratch_schema()
+#    ensure_job_scratch()
+#    logging.info("Adding factor " + str(name))
+#    schema.add_factor(name)
+#    session.modified = True
+#    logging.info("Then session is " + str(session))
+#    return redirect(url_for('edit_factors_form'))
 
 @app.route("/add_factor_value/<factor>", methods=['POST'])
 def add_factor_value(factor):
@@ -219,9 +279,6 @@ def update_columns():
     session.modified = True
     logging.info("Redirecting, factor values is " + str(schema.sample_to_factor_values))
 
-    with open(current_scratch_schema_filename(), 'w') as out:
-        schema.save(out)
-
     return redirect(url_for('edit_factors_form'))
 
 @app.route("/upload_input_file", methods=['POST'])
@@ -233,21 +290,9 @@ def upload_input_file():
     filename = secure_filename(file.filename)
     session['job_scratch']['filename'] = filename
 
-    path = os.path.join(current_job_scratch_dir(), filename)
     logging.info("Adding input file to meta db")
     meta = app.mdb.add_input_file(filename, "", file)
 
-#    with open(path) as infile:
-#        csvfile = csv.DictReader(infile, delimiter="\t")
-#        fieldnames = csvfile.fieldnames
-
-#    roles = ['sample' for i in csvfile.fieldnames]
-#    roles[0] = 'feature_id'
-
-#    schema = current_scratch_schema()
-#    schema.set_columns(csvfile.fieldnames, roles)
-
-#    session.modified = True
     return redirect(url_for('edit_factors_form'))
 
 @app.route("/measurement_scatter/<feature_num>")

@@ -4,9 +4,9 @@
 
 <table>
 
-{% if filename %}
+Working with input file {{input_file_meta.name}}.
 
-Working with input file {{filename}}.
+Editing factor {{factor}}.
 
 <h2>Column labels</h2>
 
@@ -34,13 +34,8 @@ Working with input file {{filename}}.
 
     <tr>
       <td>{{ name }}</td>
-      <td> 
-        <select name="role_{{loop.index0}}" value="{{schema.column_roles[loop.index0]}}">
-          <option value="ignored"    {% if role == None         %} selected="selected" {% endif %} > </option>
-          <option value="feature_id" {% if role == 'feature_id' %} selected="selected" {% endif %} >Feature ID</option>
-          <option value="sample"     {% if role == 'sample'     %} selected="selected" {% endif %} >Sample </option>
-        </select>
-      </td>
+      <td>{{ role }}</td>
+
       {% for f in schema.factors %}
       {% set factor_num = loop.index0 %}
       <td>
@@ -57,9 +52,10 @@ Working with input file {{filename}}.
           <option value="{{v}}" {% if selected_value == v %} selected="selected" {% endif %} >{{v}}</option>
           {% endfor %}
         </select>
-        
+
       </td>
       {% endfor %}
+
     </tr>
     {% endfor %}
     
@@ -69,8 +65,6 @@ Working with input file {{filename}}.
   </p>
 
 </form>
-
-{% endif %}
 
 <p>
 <a href="{{url_for('edit_factors_form')}}">Previous step</a> (setup factors)

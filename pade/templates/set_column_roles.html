@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Index{% endblock %}
+{% block content %}
+
+<table>
+
+{% if filename %}
+
+Working with input file {{filename}}.
+
+<h2>Column labels</h2>
+
+<p>
+  Next you need to tell me which column contains the feature ids and
+  which ones contain the samples. By default I assume that the first
+  column contains the feature IDs and the rest contain samples. To
+  ignore a column in this analysis, set its role to "Ignore".
+</p>
+
+<form action="{{url_for('set_column_roles')}}" method="post">
+
+  <table>
+    <tr>
+      <th>Field name</th>
+      <th>Example value</th>
+      <th>Role</th>
+    </tr>
+    
+    {% for name in schema.column_names %}
+
+    {% set col_num = loop.index0 %}
+    {% set role    = schema.column_roles[col_num] %}
+
+    <tr>
+      <td>{{ name }}</td>
+      <td> 
+        <select name="role_{{loop.index0}}" value="{{schema.column_roles[loop.index0]}}">
+          <option value="ignored"    {% if role == None         %} selected="selected" {% endif %} > </option>
+          <option value="feature_id" {% if role == 'feature_id' %} selected="selected" {% endif %} >Feature ID</option>
+          <option value="sample"     {% if role == 'sample'     %} selected="selected" {% endif %} >Sample </option>
+        </select>
+      </td>
+
+    </tr>
+    {% endfor %}
+    
+  </table>
+  <p>
+    <input type="submit" value="Save"></input>  
+  </p>
+
+</form>
+
+{% endif %}
+
+<p>
+<a href="{{url_for('edit_factors_form')}}">Previous step</a> (setup factors)
+</p>
+
+<a href="{{url_for('clear_job_scratch')}}">Clear job scratch space</a>
+{% endblock %}
+

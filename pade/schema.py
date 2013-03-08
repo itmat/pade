@@ -22,8 +22,9 @@ class Schema(object):
     """
 
     def __init__(self, 
-                 column_roles=None,
-                 column_names=None):
+                 column_names=None,
+                 column_roles=None):
+
         """Construct a Schema. 
 
 

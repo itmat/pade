@@ -24,7 +24,7 @@ Or choose a previously uploaded input file:
   {% for s in input_file_metas %}
   <tr>
     <td>
-      <a href="{{url_for('setup_schema', input_file_id=s.obj_id)}}">select</a>
+      <a href="{{url_for('select_input_file', input_file_id=s.obj_id)}}">select</a>
     </td>
     <td>
       {{ s.name }}
