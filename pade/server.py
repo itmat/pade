@@ -137,12 +137,16 @@ def edit_factors_form():
     ensure_job_scratch()
     schema = current_scratch_schema()
 
-
-    logging.info("Session is " + str(session))
-    print "Roles are ", current_scratch_schema().column_roles
-    logging.info("Returning form, factor values is " + str(schema.sample_to_factor_values))
-
     return render_template("edit_factors_form.html",
+                           schema=current_scratch_schema(),
+                           filename=current_scratch_filename())
+@app.route("/label_columns")
+def label_columns_form():
+
+    ensure_job_scratch()
+    schema = current_scratch_schema()
+
+    return render_template("label_columns.html",
                            schema=current_scratch_schema(),
                            filename=current_scratch_filename())
 
