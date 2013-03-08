@@ -177,7 +177,7 @@ def add_factor():
                     values.append(value)
         schema.add_factor(name, values)
         session.modified = True
-        return redirect(url_for('label_columns_form', factor=name))
+        return redirect(url_for('label_columns', factor=name))
 
 @app.route("/setup_schema")
 def setup_schema():
@@ -197,19 +197,39 @@ def edit_factors_form():
                            schema=current_scratch_schema(),
                            filename=current_scratch_filename())
 
-@app.route("/label_columns")
-def label_columns_form():
+@app.route("/label_columns", methods=['GET', 'POST'])
+def label_columns():
+
+    schema=current_scratch_schema()
+
+    if request.method == 'POST':
+        
+        for i, col_name in enumerate(schema.column_names):
+            for j, factor in enumerate(schema.factors):
+                key = 'factor_value_{0}_{1}'.format(i, j)
+                if key in request.form:
+                    value = request.form[key]
+                    if len(value) > 0:
+                        schema.set_factor(col_name, factor, value)
+        
+        schema.modified = True
+        return redirect(url_for('confirm_schema'))
+
 
     schema = current_scratch_schema()
 
     factor = request.args.get('factor')
 
-    print "Session is", session
     return render_template("label_columns.html",
                            schema=current_scratch_schema(),
                            input_file_meta=current_scratch_input_file_meta(),
                            factor=factor)
-
+    
+@app.route("/confirm_schema")
+def confirm_schema():
+    return render_template("confirm_schema.html",
+                           schema=current_scratch_schema(),
+                           input_file_meta=current_scratch_input_file_meta())
 
 
 #@app.route("/add_factor", methods=['POST'])

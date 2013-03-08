@@ -16,7 +16,7 @@ Editing factor {{factor}}.
   columns with the factor values you created above.
 </p>
 
-<form action="{{url_for('update_columns')}}" method="post">
+<form action="{{url_for('label_columns')}}" method="post">
 
   <table>
     <tr>
@@ -42,16 +42,12 @@ Editing factor {{factor}}.
 
         {% if role == 'sample' %}
         {% set selected_value = schema.get_factor(name, f) %}
-        {% else %}
-        {% set selected_value = None %}
-        {% endif %}
-
         <select name="factor_value_{{col_num}}_{{factor_num}}">
-          <option value=""></option>
           {% for v in schema.factor_values(f) %}
           <option value="{{v}}" {% if selected_value == v %} selected="selected" {% endif %} >{{v}}</option>
           {% endfor %}
         </select>
+        {% endif %}
 
       </td>
       {% endfor %}
