@@ -315,6 +315,15 @@ def upload_input_file():
 
     return redirect(url_for('edit_factors_form'))
 
+@app.route("/setup_job_factors", methods=['GET', 'POST'])
+def setup_job_factors():
+
+    if request.method == 'GET':
+        return render_template(
+            'setup_job_factors.html',
+            schema=current_scratch_schema())
+    
+
 @app.route("/measurement_scatter/<feature_num>")
 def measurement_scatter(feature_num):
     

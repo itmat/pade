@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Index{% endblock %}
+{% block content %}
+
+
+
+<form action="setup_job" method="post">
+
+<h3>
+
+  <p>
+    <table>
+      {% for factor in schema.factors %}
+      <tr>
+        <td>{{ factor }}</td>
+        {{ set factor_num = loop.index0 }}
+        <td>
+          <select name="factor_role_{{factor_num}}"> 
+            <option name="block"></option>
+            <option name="condition"></option>
+            <option name="ignore"></option>
+          </select>
+        </td>
+      </tr>
+    </table>
+  </p>
+
+  <p>
+    Statistic:
+  </p>
+
+  <p>
+    Bins
+  </p>
+
+  <p>
+    Maximum number of sample:
+  </p>
+
+  <p>
+    Sample from residuals:
+  </p>
+
+  <p>
+    Sample with replacement:
+  </p>
+
+  <p>
+    Minimum confidence level:
+  </p>
+
+  <p>
+    Confidence interval:
+  </p>
+
+  <p>
+    Tuning parameters:
+  </p>
+  
+</h3>
+
+
+
+</form>
+
+{% endblock %}

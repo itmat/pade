@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Index{% endblock %}
+{% block content %}
+
+<form action="setup_job_factors" method="post">
+
+<h3>
+
+  <p>
+    <table>
+      {% for factor in schema.factors %}
+      <tr>
+        <td>{{ factor }}</td>
+        {% set factor_num = loop.index0 %}
+        <td>
+          <select name="factor_role_{{factor_num}}"> 
+            <option name="block">block</option>
+            <option name="condition">condition</option>
+            <option name="ignore">ignore</option>
+          </select>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </p>
+
+  <input type="submit" value="Submit"></submit>
+
+</form>
+
+{% endblock %}
