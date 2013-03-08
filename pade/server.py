@@ -5,6 +5,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
+from flask.ext.wtf import Form, TextField, Required, FieldList
 import numpy as np
 import argparse
 import logging 
@@ -158,23 +159,31 @@ def set_column_roles():
         return redirect(url_for('add_factor'))
     
 
+class NewFactorForm(Form):
+    factor_name = TextField('Factor name', validators=[Required()])
+    possible_values = FieldList(TextField(''))
+    
+
 @app.route("/add_factor", methods=['GET', 'POST'])
 def add_factor():
-    print "Args are", request.args
+
+    form = NewFactorForm()
+    for i in range(10):
+        form.possible_values.append_entry()
+
     if request.method == 'GET':
         return render_template('add_factor.html',
+                               form=form,
                                schema=current_scratch_schema())
     elif request.method == 'POST':
         schema = current_scratch_schema()
-        name = request.form.get('new_factor_name')
-        print "Factor name is", name
+        form = NewFactorForm(request.form)
+        name = form.factor_name.data
         values = []
-        for i in range(10):
-            key = 'new_factor_value_' + str(i)
-            if key in request.form:
-                value = request.form.get(key)
-                if len(value) > 0:
-                    values.append(value)
+        for val_field in form.possible_values:
+            value = val_field.data
+            if len(value) > 0:
+                values.append(value)
         schema.add_factor(name, values)
         session.modified = True
         return redirect(url_for('label_columns', factor=name))
@@ -322,7 +331,13 @@ def setup_job_factors():
         return render_template(
             'setup_job_factors.html',
             schema=current_scratch_schema())
-    
+
+    elif request.method == 'POST':
+        condition_vars = []
+        block_vars = []
+        for i in range(len(schema.factors())):
+            key = 'factor_role_' + str(i)
+            
 
 @app.route("/measurement_scatter/<feature_num>")
 def measurement_scatter(feature_num):

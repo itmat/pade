@@ -5,7 +5,7 @@
 <form action="{{url_for('add_factor')}}" method="post">
   
   <p>
-    Enter a name for the new factor: <input type="text" name="new_factor_name"></input>
+    {{ form.factor_name.label }}: {{ form.factor_name()|safe }} 
   </p>
 
   <p>
@@ -13,16 +13,7 @@
   </p>
 
   <ul>
-    <li><input type="text" name="new_factor_value_0"></input></li>
-    <li><input type="text" name="new_factor_value_1"></input></li>
-    <li><input type="text" name="new_factor_value_2"></input></li>
-    <li><input type="text" name="new_factor_value_3"></input></li>
-    <li><input type="text" name="new_factor_value_4"></input></li>
-    <li><input type="text" name="new_factor_value_5"></input></li>
-    <li><input type="text" name="new_factor_value_6"></input></li>
-    <li><input type="text" name="new_factor_value_7"></input></li>
-    <li><input type="text" name="new_factor_value_8"></input></li>
-    <li><input type="text" name="new_factor_value_9"></input></li>
+    {{ form.possible_values() }}
   </ul>
 
   <input type="submit" value="Add"></input>
