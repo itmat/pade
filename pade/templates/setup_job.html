@@ -2,64 +2,35 @@
 {% block title %}Index{% endblock %}
 {% block content %}
 
-
-
-<form action="setup_job" method="post">
-
-<h3>
+<form action="job_settings" method="post">
 
   <p>
-    <table>
-      {% for factor in schema.factors %}
-      <tr>
-        <td>{{ factor }}</td>
-        {{ set factor_num = loop.index0 }}
-        <td>
-          <select name="factor_role_{{factor_num}}"> 
-            <option name="block"></option>
-            <option name="condition"></option>
-            <option name="ignore"></option>
-          </select>
-        </td>
-      </tr>
-    </table>
+    {{form.statistic.label}}: {{ form.statistic()|safe }}
   </p>
 
-  <p>
-    Statistic:
-  </p>
+  <fieldset>
+    <legend>Advanced options:</legend>
+    <p>
+      {{form.tuning_params.label}}: {{ form.tuning_params()|safe }}
+    </p>
+    <p>
+      {{form.bins.label}}: {{ form.bins(size=6)|safe }}
+    </p>
+    <p>
+      {{form.permutations.label}}: {{ form.permutations(size=6)|safe }}
+    </p>
+    <p>
+      {{ form.sample_from_residuals()|safe }} {{form.sample_from_residuals.label}} 
+      {{ form.sample_with_replacement()|safe }} {{form.sample_with_replacement.label}}
+    </p>
+    <p>
+      {{form.min_conf_level.label}}: {{ form.min_conf_level(size=5)|safe }}
+      {{form.conf_interval.label}}: {{ form.conf_interval(size=5)|safe }}
+    </p>
 
-  <p>
-    Bins
-  </p>
+    {{form.submit}}
 
-  <p>
-    Maximum number of sample:
-  </p>
-
-  <p>
-    Sample from residuals:
-  </p>
-
-  <p>
-    Sample with replacement:
-  </p>
-
-  <p>
-    Minimum confidence level:
-  </p>
-
-  <p>
-    Confidence interval:
-  </p>
-
-  <p>
-    Tuning parameters:
-  </p>
-  
-</h3>
-
-
+  </fieldset>
 
 </form>
 

@@ -5,7 +5,9 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from flask.ext.wtf import Form, TextField, Required, FieldList, SelectField, FileField, SubmitField
+from flask.ext.wtf import (
+    Form, TextField, Required, FieldList, SelectField, 
+    FileField, SubmitField, BooleanField, IntegerField, FloatField)
 import numpy as np
 import argparse
 import logging 
@@ -173,6 +175,11 @@ def set_column_roles():
         return redirect(url_for('add_factor'))
     
 
+########################################################################
+###
+### Form classes
+###
+
 class NewFactorForm(Form):
     factor_name = TextField('Factor name', validators=[Required()])
     possible_values = FieldList(TextField(''))
@@ -183,11 +190,33 @@ class ColumnRolesForm(Form):
         SelectField(choices=[('feature_id', 'Feature ID'),
                              ('sample',     'Sample'),
                              ('ignored',    'Ignored')]))
+    submit = SubmitField()
 
 class InputFileUploadForm(Form):
     input_file = FileField('Input file')
     submit     = SubmitField()
 
+class JobFactorForm(Form):
+    factor_roles = FieldList(
+        SelectField(choices=[('block', 'Block'),
+                             ('condition',     'Condition'),
+                             ('ignored',    'Ignored')]))
+    submit = SubmitField()
+
+class JobSettingsForm(Form):
+
+    statistic    = SelectField('Statistic', choices=[('f_test', 'F-test'), 
+                                                     ('one_sample_t_test', 'One-sample t-test'),
+                                                     ('means_ratio', 'Ratio of means')])
+    bins         = TextField('Number of bins')
+    permutations = TextField('Maximum number of permutations')
+    sample_from_residuals = BooleanField('Sample from residuals')
+    sample_with_replacement = BooleanField('Sample with replacement')
+    min_conf_level = FloatField('Minimum confidence level')
+    conf_interval = FloatField('Confidence interval')
+    tuning_params = TextField('Tuning parameters')
+    submit = SubmitField()
+    
 @app.route("/add_factor", methods=['GET', 'POST'])
 def add_factor():
 
@@ -276,18 +305,43 @@ def upload_input_file():
 
 @app.route("/setup_job_factors", methods=['GET', 'POST'])
 def setup_job_factors():
+    schema = current_scratch_schema()
 
     if request.method == 'GET':
+
+        form = JobFactorForm()
+        for factor in schema.factors:
+            entry = form.factor_roles.append_entry()
+            entry.label = factor
         return render_template(
             'setup_job_factors.html',
+            form=form,
             schema=current_scratch_schema())
 
     elif request.method == 'POST':
+        form = JobFactorForm(request.form)
         condition_vars = []
         block_vars = []
-        for i in range(len(schema.factors())):
-            key = 'factor_role_' + str(i)
-            
+        for i, factor in enumerate(schema.factors):
+            value = form.factor_roles[i].data
+            if value == 'condition':
+                condition_vars.append(factor)
+            elif value == 'block':
+                block_vars.append(factor)
+        
+        job_scratch()['condition_vars'] = condition_vars
+        job_scratch()['block_vars']     = block_vars
+
+        return redirect(url_for('job_settings'))
+
+
+
+@app.route("/job_settings", methods=['GET', 'POST'])
+def job_settings():
+    form = JobSettingsForm()
+    return render_template(
+        'setup_job.html',
+        form=form)
 
 @app.route("/measurement_scatter/<feature_num>")
 def measurement_scatter(feature_num):

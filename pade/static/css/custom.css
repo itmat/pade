@@ -41,3 +41,7 @@ table.feature_detail_by_alpha th {
   border: 1px solid lightgray;
 }
 
+fieldset {
+  border-style: solid;
+  border-color: #000000;
+}        
