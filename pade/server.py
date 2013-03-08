@@ -139,8 +139,7 @@ def select_input_file():
 
         set_job_scratch_schema(Schema(fieldnames, roles))
         set_job_scratch_input_file_id(input_file_id)
-    return set_column_roles_form()
-
+    return redirect(url_for('set_column_roles'))
 
 
 def set_column_roles_form():

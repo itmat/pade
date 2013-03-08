@@ -2,6 +2,12 @@
 {% block title %}Index{% endblock %}
 {% block content %}
 
+You need to define at least one "factor" that will be used to group
+the samples together. Please enter the name of a factor, and list the
+possible values for that factor. For example, you might have a factor
+called "gender" with possible values "male" and "female", or one
+called "treated" with possible values "yes" and "no".
+
 <form action="{{url_for('add_factor')}}" method="post">
   
   <p>
@@ -9,11 +15,13 @@
   </p>
 
   <p>
-    Please tell me the possible values that this new factor can take on:
+    Possible values:
   </p>
 
   <ul>
-    {{ form.possible_values() }}
+    {% for entry in form.possible_values %}
+    <li>{{ entry|safe }}</li>
+    {% endfor %}
   </ul>
 
   {{ form.submit }}

@@ -41,8 +41,12 @@ Here is the schema we have so far:
 
 If you're done labeling the columns of the input file: 
 
-<a href="{{url_for('setup_job_factors')}}">Setup the job</a>
+You can:
 
-<a href="{{url_for('clear_job_scratch')}}">Clear job scratch space</a>
+<ul>
+  <li><a href="{{url_for('add_factor')}}">Add another factor</a></li>
+  <li><a href="{{url_for('setup_job_factors')}}">Finish</a></li>
+</ul>
+
 {% endblock %}
 
