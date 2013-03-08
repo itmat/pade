@@ -5,7 +5,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from flask.ext.wtf import Form, TextField, Required, FieldList, SelectField
+from flask.ext.wtf import Form, TextField, Required, FieldList, SelectField, FileField, SubmitField
 import numpy as np
 import argparse
 import logging 
@@ -75,6 +75,7 @@ def schema_list():
 def input_file_list():
     return render_template(
         'input_files.html',
+        form=InputFileUploadForm(),
         input_file_metas=app.mdb.all_input_files())
 
 def ensure_job_scratch():
@@ -183,6 +184,9 @@ class ColumnRolesForm(Form):
                              ('sample',     'Sample'),
                              ('ignored',    'Ignored')]))
 
+class InputFileUploadForm(Form):
+    input_file = FileField('Input file')
+    submit     = SubmitField()
 
 @app.route("/add_factor", methods=['GET', 'POST'])
 def add_factor():
