@@ -121,7 +121,7 @@ def current_scratch_input_file_meta():
 def clear_job_scratch():
     if 'job_scratch' in session:
         del session['job_scratch']
-    return redirect(url_for('edit_factors_form'))
+    return redirect(url_for('index'))
 
 @app.route("/select_input_file")
 def select_input_file():
@@ -177,6 +177,7 @@ def set_column_roles():
 class NewFactorForm(Form):
     factor_name = TextField('Factor name', validators=[Required()])
     possible_values = FieldList(TextField(''))
+    submit = SubmitField()
 
 class ColumnRolesForm(Form):
     roles = FieldList(
@@ -212,23 +213,6 @@ def add_factor():
         session.modified = True
         return redirect(url_for('label_columns', factor=name))
 
-@app.route("/setup_schema")
-def setup_schema():
-    ensure_job_scratch()
-
-    return render_template("edit_factors_form.html",
-                           schema=current_scratch_schema(),
-                           filename=input_file_meta.path)
-
-@app.route("/edit_factors_form")
-def edit_factors_form():
-
-    ensure_job_scratch()
-    schema = current_scratch_schema()
-
-    return render_template("edit_factors_form.html",
-                           schema=current_scratch_schema(),
-                           filename=current_scratch_filename())
 
 @app.route("/label_columns", methods=['GET', 'POST'])
 def label_columns():
@@ -264,38 +248,6 @@ def confirm_schema():
                            schema=current_scratch_schema(),
                            input_file_meta=current_scratch_input_file_meta())
 
-
-#@app.route("/add_factor", methods=['POST'])
-#def add_factor():
-#    name = request.form.get('name')
-#    schema = current_scratch_schema()
-#    ensure_job_scratch()
-#    logging.info("Adding factor " + str(name))
-#    schema.add_factor(name)
-#    session.modified = True
-#    logging.info("Then session is " + str(session))
-#    return redirect(url_for('edit_factors_form'))
-
-@app.route("/add_factor_value/<factor>", methods=['POST'])
-def add_factor_value(factor):
-    schema = current_scratch_schema()
-    value = request.form.get('factor_value')
-    ensure_job_scratch()
-    schema.add_factor_value(factor, value)
-    session.modified = True
-    logging.info("After adding factor value sesion is " + str(session))
-    return redirect(url_for('edit_factors_form'))
-
-@app.route("/delete_factor")
-def delete_factor():
-    ensure_job_scratch()
-    schema = current_scratch_schema()
-    name = request.args.get('name')
-    schema.remove_factor(name)
-    flash("Deleted factor " + str(name))
-
-    return redirect(url_for('edit_factors_form'))
-
 def job_scratch():
     if 'job_scratch' not in session:
         return None
@@ -308,31 +260,6 @@ def current_job_id():
     return scratch['job_id']
 
 
-@app.route("/update_columns", methods=['POST'])
-def update_columns():
-    logging.info("Updating columns")
-    schema = current_scratch_schema()
-
-    names = schema.column_names
-    roles = [request.form['role_' + str(i)] for i in range(len(names))]
-
-    schema.set_columns(names, roles)
-
-    logging.info("form is" + str(request.form))
-
-    for i, col in enumerate(names):
-        for j, factor in enumerate(schema.factors):
-            input_name = 'factor_value_{0}_{1}'.format(i, j)
-            value = str(request.form[input_name])
-            if len(value) > 0:
-                logging.info("Setting " + factor + " to " + value + " for " + col)
-            
-                schema.set_factor(col, factor, value)
-
-    session.modified = True
-    logging.info("Redirecting, factor values is " + str(schema.sample_to_factor_values))
-
-    return redirect(url_for('edit_factors_form'))
 
 @app.route("/upload_input_file", methods=['POST'])
 def upload_input_file():
@@ -346,7 +273,7 @@ def upload_input_file():
     logging.info("Adding input file to meta db")
     meta = app.mdb.add_input_file(filename, "", file)
 
-    return redirect(url_for('edit_factors_form'))
+    return redirect(url_for('input_file_list'))
 
 @app.route("/setup_job_factors", methods=['GET', 'POST'])
 def setup_job_factors():
