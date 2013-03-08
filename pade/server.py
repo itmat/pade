@@ -5,7 +5,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from flask.ext.wtf import Form, TextField, Required, FieldList
+from flask.ext.wtf import Form, TextField, Required, FieldList, SelectField
 import numpy as np
 import argparse
 import logging 
@@ -143,9 +143,22 @@ def select_input_file():
 
 
 def set_column_roles_form():
+    form = ColumnRolesForm()
+    schema = current_scratch_schema()
+    for i, col in enumerate(schema.column_names):
+        entry = form.roles.append_entry()
+        entry.label = col
+        if i == 0:
+            entry.data = 'feature_id'
+        else:
+            entry.data = 'sample'
+        
     return render_template('set_column_roles.html',
                            schema=current_scratch_schema(),
+                           form=form,
                            filename=current_scratch_input_file_meta())
+
+
 
 @app.route("/set_column_roles", methods=['GET', 'POST'])
 def set_column_roles():
@@ -154,7 +167,8 @@ def set_column_roles():
     else:
         schema = current_scratch_schema()
         names = schema.column_names
-        roles = [request.form['role_' + str(i)] for i in range(len(names))]
+        form = ColumnRolesForm(request.form)
+        roles = [ e.data for e in form.roles ]
         schema.set_columns(names, roles)
         return redirect(url_for('add_factor'))
     
@@ -162,7 +176,13 @@ def set_column_roles():
 class NewFactorForm(Form):
     factor_name = TextField('Factor name', validators=[Required()])
     possible_values = FieldList(TextField(''))
-    
+
+class ColumnRolesForm(Form):
+    roles = FieldList(
+        SelectField(choices=[('feature_id', 'Feature ID'),
+                             ('sample',     'Sample'),
+                             ('ignored',    'Ignored')]))
+
 
 @app.route("/add_factor", methods=['GET', 'POST'])
 def add_factor():

@@ -22,28 +22,15 @@ Working with input file {{filename}}.
   <table>
     <tr>
       <th>Field name</th>
-      <th>Example value</th>
       <th>Role</th>
     </tr>
-    
-    {% for name in schema.column_names %}
 
-    {% set col_num = loop.index0 %}
-    {% set role    = schema.column_roles[col_num] %}
-
+    {% for entry in form.roles %}
     <tr>
-      <td>{{ name }}</td>
-      <td> 
-        <select name="role_{{loop.index0}}" value="{{schema.column_roles[loop.index0]}}">
-          <option value="ignored"    {% if role == None         %} selected="selected" {% endif %} > </option>
-          <option value="feature_id" {% if role == 'feature_id' %} selected="selected" {% endif %} >Feature ID</option>
-          <option value="sample"     {% if role == 'sample'     %} selected="selected" {% endif %} >Sample </option>
-        </select>
-      </td>
-
+      <td>{{ entry.label }}</td>
+      <td>{{ entry()|safe }}</td>
     </tr>
     {% endfor %}
-    
   </table>
   <p>
     <input type="submit" value="Save"></input>  
