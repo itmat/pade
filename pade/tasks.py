@@ -15,6 +15,7 @@ import logging
 import pade.analysis as an
 import numpy as np
 import pade.conf
+from StringIO import StringIO
 from pade.stat import *
 from pade.conf import *
 import h5py
@@ -26,9 +27,36 @@ def copy_input(db_path, input_path, schema, settings):
 
     logging.info("Saving input, settings, and schema to " + str(db_path))
     with h5py.File(db_path, 'w') as db:
-        pade.job.save_input(input, db)
-        pade.job.save_settings(settings, db)
-        pade.job.save_schema(schema, db)
+
+        # Save the input object
+        ids = input.feature_ids
+        # Saving feature ids is tricky because they are strings
+        dt = h5py.special_dtype(vlen=str)
+        db.create_dataset("table", data=input.table)
+        db.create_dataset("feature_ids", (len(ids),), dt)
+        for i, fid in enumerate(ids):
+            input.feature_ids[i] = fid
+
+        # Save the settings object
+        db.create_dataset("tuning_params", data=settings.tuning_params)
+        db.attrs['stat_name'] = settings.stat_name
+        db.attrs['num_bins'] = settings.num_bins
+        db.attrs['num_samples'] = settings.num_samples
+        db.attrs['sample_from_residuals'] = settings.sample_from_residuals
+        db.attrs['sample_with_replacement'] = settings.sample_with_replacement
+        db.attrs['condition_variables'] = settings.condition_variables
+        db.attrs['block_variables'] = settings.block_variables
+        db.attrs['min_conf'] = settings.min_conf
+        db.attrs['conf_interval'] = settings.conf_interval
+
+        # Save the schema object
+        schema_str = StringIO()
+        schema.save(schema_str)
+        db.attrs['schema'] = str(schema_str.getvalue())
+
+        if settings.equalize_means_ids is not None:
+            db['equalize_means_ids'] = settings.equalize_means_ids
+
     return db_path
 
 @celery.task

@@ -204,14 +204,6 @@ class Results:
         self.order_by_score_original = None
 
 
-def save_input(input, db):
-    ids = input.feature_ids
-    # Saving feature ids is tricky because they are strings
-    dt = h5py.special_dtype(vlen=str)
-    db.create_dataset("table", data=input.table)
-    db.create_dataset("feature_ids", (len(ids),), dt)
-    for i, fid in enumerate(ids):
-        input.feature_ids[i] = fid
 
 def save_schema(schema, db):
     schema_str = StringIO()
@@ -219,36 +211,11 @@ def save_schema(schema, db):
     db.attrs['schema'] = str(schema_str.getvalue())
 
 
-def save_settings(settings, db):
-        
-    db.create_dataset("tuning_params", data=settings.tuning_params)
-    db.attrs['stat_name'] = settings.stat_name
-    db.attrs['num_bins'] = settings.num_bins
-    db.attrs['num_samples'] = settings.num_samples
-    db.attrs['sample_from_residuals'] = settings.sample_from_residuals
-    db.attrs['sample_with_replacement'] = settings.sample_with_replacement
-    db.attrs['condition_variables'] = settings.condition_variables
-    db.attrs['block_variables'] = settings.block_variables
-    db.attrs['min_conf'] = settings.min_conf
-    db.attrs['conf_interval'] = settings.conf_interval
-
-    if settings.equalize_means_ids is not None:
-        db['equalize_means_ids'] = settings.equalize_means_ids
 
 
 def save_table(db, table, name):
     db.create_dataset(name, data=table.table)
     db[name].attrs['headers'] = table.header        
-
-    
-def save_job(path, job):
-    with h5py.File(path, 'w') as db:
-        save_input(job.input, db)
-        save_schema(job.schema, db)
-        save_settings(job.settings, db)
-        save_results(job.results, db)
-        save_summary(job.summary, db)
-    db.close()
 
 
 def load_table(db, name):

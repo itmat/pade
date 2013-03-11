@@ -122,7 +122,6 @@ Analyzing {filename}, which is described by the schema {schema}.
 """.format(filename=args.infile,
            schema=args.schema)
 
-
     infile = os.path.abspath(args.infile)
     db     = os.path.abspath(args.db)
 
