@@ -744,12 +744,15 @@ def submit_job():
               schema=schema,
               results=pade.job.Results())
 
+    job_meta = app.mdb.add_job_db('Job db', 'comments')
+    
+
     steps = pade.tasks.steps(
         infile_path=os.path.abspath(infile_meta.path),
         schema=schema,
         settings=settings,
         sample_indexes_path=None,
-        output_path=os.path.abspath("foo"))
+        output_path=os.path.abspath(job_meta.path))
 
     job = celery.chain(steps)(job).get()
 

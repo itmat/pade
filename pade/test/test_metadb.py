@@ -89,7 +89,6 @@ class MetaDBTest(unittest.TestCase):
             names = set(['job1', 'job2'])
             self.assertEquals(names, set([x.name for x in job_dbs]))
 
-
             
 
 if __name__ == '__main__':
