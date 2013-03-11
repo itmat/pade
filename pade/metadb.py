@@ -1,6 +1,7 @@
 import datetime as dt
 import os
 import shutil
+import logging
 
 from pade.schema import Schema
 from StringIO import StringIO
@@ -9,6 +10,8 @@ from StringIO import StringIO
 class MetaDB(object):
 
     def __init__(self, directory, redis):
+        logging.info("Initializing metadb for directory " +
+                     str(directory) + ", redis " + str(redis))
         self.directory = directory
         self.redis     = redis
 

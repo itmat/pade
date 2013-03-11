@@ -344,8 +344,19 @@ class Job:
 
     def layout(self, variables):
         s = self.schema
-        return [s.indexes_with_assignments(a)
-                for a in s.possible_assignments(variables)]
+        assignments = s.possible_assignments(variables)
+        result = [s.indexes_with_assignments(a) for a in assignments]
+        seen = set()
+        for grp in result:
+            for idx in grp:
+                if idx in seen:
+                    raise Exception("The schema seems be be corrupt, because " +
+                                    "column " + str(idx) + " appears more " +
+                                    "than once in the layout defined by " +
+                                    "variables " + str(variables) + 
+                                    " with assignments " + str(assignments))
+                seen.add(idx)
+        return result
 
     @property
     def full_model(self):

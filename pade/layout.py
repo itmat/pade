@@ -166,7 +166,9 @@ def all_orderings_within_group(items, sizes):
     """
     items = set(items)
     if len(items) != sum(sizes):
-        raise InvalidLayoutException("Layout is bad")
+        raise InvalidLayoutException("Layout is bad, because length of items " +
+                                     "does not equal sizes. Layout is " + 
+                                     str(items) + " and sizes is " + str(sizes))
 
     for c in map(list, combinations(items, sizes[0])):
         if len(sizes) == 1:

@@ -199,6 +199,8 @@ def new_sample_indexes(job):
 
     else:
         logging.debug("Creating max of {0} random permutations".format(R))
+        logging.debug("Condition layout is " + str(job.condition_layout))
+        logging.debug("Block layout is " + str(job.block_layout))
         return list(random_orderings(job.condition_layout, job.block_layout, R))
 
     

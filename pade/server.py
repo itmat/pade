@@ -1,12 +1,12 @@
 # TODO:
 #  Pre-generate histograms of stat distributions
-
+from __future__ import absolute_import
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from flask.ext.wtf import (
-    Form, TextField, Required, FieldList, SelectField, 
+    Form, StringField, Required, FieldList, SelectField, 
     FileField, SubmitField, BooleanField, IntegerField, FloatField)
 import numpy as np
 import argparse
@@ -18,6 +18,8 @@ import shutil
 import csv
 import pade.redis_session
 import redisconfig
+import celery
+
 from redis import Redis
 
 from pade.schema import Schema
@@ -184,8 +186,8 @@ def column_roles():
 ###
 
 class NewFactorForm(Form):
-    factor_name = TextField('Factor name', validators=[Required()])
-    possible_values = FieldList(TextField(''))
+    factor_name = StringField('Factor name', validators=[Required()])
+    possible_values = FieldList(StringField(''))
     submit = SubmitField()
 
 class ColumnRolesForm(Form):
@@ -211,12 +213,12 @@ class JobSettingsForm(Form):
     statistic    = SelectField('Statistic', choices=[('f_test', 'F-test'), 
                                                      ('one_sample_t_test', 'One-sample t-test'),
                                                      ('means_ratio', 'Ratio of means')])
-    bins = TextField(
+    bins = IntegerField(
         'Number of bins', 
         validators=[Required()],
         default=pade.job.DEFAULT_NUM_BINS)
 
-    permutations = TextField(
+    permutations = IntegerField(
         'Maximum number of permutations', 
         validators=[Required()],
         default=pade.job.DEFAULT_NUM_SAMPLES)
@@ -246,7 +248,7 @@ class JobSettingsForm(Form):
         validators=[Required()],
         default=pade.job.DEFAULT_CONF_INTERVAL)
     
-    tuning_params = TextField(
+    tuning_params = StringField(
         'Tuning parameters', 
         validators=[Required()],
         default=' '.join(map(str, pade.job.DEFAULT_TUNING_PARAMS)))
@@ -254,10 +256,10 @@ class JobSettingsForm(Form):
     submit = SubmitField()
     
 def update_schema_with_new_factor(schema, form):
-    factor = form.factor_name.data
+    factor = str(form.factor_name.data)
     values = []
     for val_field in form.possible_values:
-        value = val_field.data
+        value = str(val_field.data)
         if len(value) > 0:
             values.append(value)
     schema.add_factor(factor, values)    
@@ -297,7 +299,7 @@ def column_labels():
             for j, factor in enumerate(schema.factors):
                 key = 'factor_value_{0}_{1}'.format(i, j)
                 if key in request.form:
-                    value = request.form[key]
+                    value = str(request.form[key])
                     if len(value) > 0:
                         schema.set_factor(col_name, factor, value)
         
@@ -403,7 +405,8 @@ def job_settings():
         tuning_params=[float(x) for x in form.tuning_params.data.split(" ")]
         settings = session['job_scratch']['settings']
 
-        settings.stat_name = form.statistic.data
+        settings.stat_name = str(form.statistic.data)
+
         settings.num_bins = form.bins.data
         settings.num_samples = form.permutations.data
         settings.sample_from_residuals = form.sample_from_residuals.data
@@ -730,3 +733,26 @@ def score_dist_by_tuning_param():
 
     return figure_response(fig)
 
+@app.route("/submit_job")
+def submit_job():
+    settings = job_scratch()['settings']
+    schema   = current_scratch_schema()
+    schema_meta = app.mdb.add_schema('Schema', 'Comments', schema)
+    infile_meta = current_scratch_input_file_meta()
+    
+    job = Job(settings=settings,
+              schema=schema,
+              results=pade.job.Results())
+
+    steps = pade.tasks.steps(
+        infile_path=os.path.abspath(infile_meta.path),
+        schema=schema,
+        settings=settings,
+        sample_indexes_path=None,
+        output_path=os.path.abspath("foo"))
+
+    job = celery.chain(steps)(job).get()
+
+    print "Got job ", job
+
+    

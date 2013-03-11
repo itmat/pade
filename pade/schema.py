@@ -70,13 +70,15 @@ class Schema(object):
         self.sample_to_factor_values.clear()
         self.column_roles = np.array(roles)
         self.column_names = np.array(names)
-
+        self.sample_name_index = {}
+        logging.info("Setting sample name index, which is " + 
+                     str(self.sample_name_index) + " of length " + 
+                     str(len(self.sample_name_index)))
         for i, name in enumerate(names):
             if roles[i] == 'sample':
                 self.sample_name_index[name] = len(self.sample_name_index)
                 self.sample_to_factor_values[name] = { f : None for f in self.factors }
             
-
 
     @property
     def factor_names(self):
@@ -165,8 +167,6 @@ class Schema(object):
         assignments - must be a mapping from factor name to value
 
         """
-
-        print "Testing ", sample_name, "for", assignments
         for f, v in assignments.items():
             if self.get_factor(sample_name, f) != v:
                 return False
@@ -180,7 +180,6 @@ class Schema(object):
         """
         res = []
         for name in self.sample_column_names:
-            print "Trying name", name, "from", self.sample_column_names
             if self.sample_matches_assignments(name, assignments):
                 res.append(name)
         return res
@@ -192,7 +191,9 @@ class Schema(object):
 
         """
         samples = self.samples_with_assignments(assignments)
+        logging.debug("Got samples " + str(samples) + " for assignments " + str(assignments))
         indexes = [self.sample_num(s) for s in samples]
+        logging.debug("Got indexes " + str(indexes) + ", my sample name index is " + str(self.sample_name_index))
         return indexes
 
     def possible_assignments(self, factors=None):
@@ -236,6 +237,7 @@ class Schema(object):
         Schema.dump.
 
         """
+        logging.info("Loading schema from " + stream)
         doc = yaml.load(stream)
 
         if doc is None:
