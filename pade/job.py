@@ -272,14 +272,12 @@ def save_table(db, table, name):
 
     
 def save_job(path, job):
-    db = h5py.File(path, 'w')
-    
-    save_input(job.input, db)
-    save_schema(job.schema, db)
-    save_settings(job.settings, db)
-    save_results(job.results, db)
-    save_summary(job.summary, db)
-    
+    with h5py.File(path, 'w') as db:
+        save_input(job.input, db)
+        save_schema(job.schema, db)
+        save_settings(job.settings, db)
+        save_results(job.results, db)
+        save_summary(job.summary, db)
     db.close()
 
 
