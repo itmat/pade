@@ -131,7 +131,6 @@ def load_settings(db):
         equalize_means_ids = equalize_means_ids)
 
 
-
 class Settings:
 
     """The settings that control how the job is run."""
@@ -270,8 +269,8 @@ def save_summary(summary, db):
 def save_table(db, table, name):
     db.create_dataset(name, data=table.table)
     db[name].attrs['headers'] = table.header        
-    
 
+    
 def save_job(path, job):
     db = h5py.File(path, 'w')
     

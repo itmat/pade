@@ -99,7 +99,7 @@ def load_sample_indexes(filename, job):
     job.results.sample_indexes = np.genfromtxt(args.sample_indexes, dtype=int)
     return job
 
-@celery.task
+@celery.task(name="Generate sample indexes")
 def gen_sample_indexes(job):
     logging.info("Generating sample indexes")
     job.results.sample_indexes = an.new_sample_indexes(job)

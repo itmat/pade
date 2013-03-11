@@ -754,8 +754,15 @@ def submit_job():
         sample_indexes_path=None,
         output_path=os.path.abspath(job_meta.path))
 
-    job = celery.chain(steps)(job).get()
+    chained = celery.chain(steps)
+    result = chained.apply_async((job,))
+    print "Chained is " + str(chained) + " (" + str(type(chained)) + ")"
+    print "Result is " + str(result) + " (" + str(type(result)) + ")"
+    print "Children are " + str(result.children)
+    print "Status: " + str(result.status)
 
-    print "Got job ", job
-
+    print "Waiting..."
+    job = result.get()
+    print "Status: " + str(result.status)
+    print "Done"
     

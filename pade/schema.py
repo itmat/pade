@@ -226,8 +226,6 @@ class Schema(object):
         for sample in self.sample_to_factor_values:
             del self.sample_to_factor_values[factor]
 
-
-
     @classmethod
     def load(cls, stream):
         """Load a schema from the specified stream.
@@ -237,7 +235,7 @@ class Schema(object):
         Schema.dump.
 
         """
-        logging.info("Loading schema from " + stream)
+        logging.info("Loading schema from " + str(stream))
         doc = yaml.load(stream)
 
         if doc is None:
