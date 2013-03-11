@@ -223,32 +223,31 @@ class JobSettingsForm(Form):
 @app.route("/add_factor", methods=['GET', 'POST'])
 def add_factor():
 
-    form = NewFactorForm()
-    for i in range(10):
-        form.possible_values.append_entry()
-
     if request.method == 'GET':
+        form = NewFactorForm()
+        for i in range(10):
+            form.possible_values.append_entry()
         return render_template('add_factor.html',
-                               form=form,
-                               schema=current_scratch_schema())
+                               form=form)
+
     elif request.method == 'POST':
         schema = current_scratch_schema()
         form = NewFactorForm(request.form)
-        name = form.factor_name.data
+        factor = form.factor_name.data
         values = []
         for val_field in form.possible_values:
             value = val_field.data
             if len(value) > 0:
                 values.append(value)
-        schema.add_factor(name, values)
+        schema.add_factor(factor, values)
         session.modified = True
-        return redirect(url_for('label_columns', factor=name))
+        return redirect(url_for('label_columns', factor=factor))
 
 
 @app.route("/label_columns", methods=['GET', 'POST'])
 def label_columns():
 
-    schema=current_scratch_schema()
+    schema = current_scratch_schema()
 
     if request.method == 'POST':
         
