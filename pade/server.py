@@ -141,37 +141,40 @@ def select_input_file():
         fieldnames = csvfile.fieldnames    
 
         roles = [ 'sample' for x in fieldnames ]
-        roles[0] = 'feature_id'
+        if len(roles) > 0:
+            roles[0] = 'feature_id'
 
         set_job_scratch_schema(Schema(fieldnames, roles))
         set_job_scratch_input_file_id(input_file_id)
     return redirect(url_for('set_column_roles'))
 
 
+def schema_to_column_roles_form(schema):
+    form = ColumnRolesForm()
+    for i, col in enumerate(schema.column_names):
+        entry = form.roles.append_entry()
+        entry.label = col
+        entry.data = schema.column_roles[i]
+    
+    return form
+
+def update_schema_with_column_roles(schema, form):
+    names = schema.column_names
+    roles = [ e.data for e in form.roles ]
+    schema.set_columns(names, roles)
+
 @app.route("/set_column_roles", methods=['GET', 'POST'])
 def set_column_roles():
+    schema = current_scratch_schema()
+
     if request.method == 'GET':
-        form = ColumnRolesForm()
-        schema = current_scratch_schema()
-        for i, col in enumerate(schema.column_names):
-            entry = form.roles.append_entry()
-            entry.label = col
-            if i == 0:
-                entry.data = 'feature_id'
-            else:
-                entry.data = 'sample'
-        
-        return render_template('set_column_roles.html',
-                               schema=current_scratch_schema(),
-                               form=form,
-                               filename=current_scratch_input_file_meta())
+        return render_template(
+            'set_column_roles.html',
+            form=schema_to_column_roles_form(schema),
+            filename=current_scratch_input_file_meta().name)
 
     elif request.method == 'POST':
-        schema = current_scratch_schema()
-        names = schema.column_names
-        form = ColumnRolesForm(request.form)
-        roles = [ e.data for e in form.roles ]
-        schema.set_columns(names, roles)
+        update_schema_with_column_roles(schema, ColumnRolesForm(request.form))
         return redirect(url_for('add_factor'))
     
 
