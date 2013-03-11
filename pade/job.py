@@ -204,20 +204,6 @@ class Results:
         self.order_by_score_original = None
 
 
-
-def save_schema(schema, db):
-    schema_str = StringIO()
-    schema.save(schema_str)
-    db.attrs['schema'] = str(schema_str.getvalue())
-
-
-
-
-def save_table(db, table, name):
-    db.create_dataset(name, data=table.table)
-    db[name].attrs['headers'] = table.header        
-
-
 def load_table(db, name):
     if name in db:
         ds = db[name]

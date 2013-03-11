@@ -20,6 +20,10 @@ from pade.stat import *
 from pade.conf import *
 import h5py
 
+def save_table(db, table, name):
+    db.create_dataset(name, data=table.table)
+    db[name].attrs['headers'] = table.header        
+
 @celery.task
 def copy_input(db_path, input_path, schema, settings):
     logging.info("Loading input for job from {0}".format(input_path))
@@ -88,9 +92,9 @@ def compute_raw_stats(path):
 
     with h5py.File(path, 'r+') as db:
         db.create_dataset("raw_stats", data=raw_stats)
-        pade.job.save_table(db, group_means, 'group_means')
-        pade.job.save_table(db, fold_change, 'fold_change')
-        pade.job.save_table(db, coeff_values, 'coeff_values')
+        save_table(db, group_means, 'group_means')
+        save_table(db, fold_change, 'fold_change')
+        save_table(db, coeff_values, 'coeff_values')
         
     return path
 
