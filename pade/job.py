@@ -11,6 +11,15 @@ from pade.model import Model
 from pade.common import *
 import numpy as np
 
+DEFAULT_STATISTIC = 'f_stat'
+DEFAULT_NUM_BINS = 1000
+DEFAULT_NUM_SAMPLES = 1000
+DEFAULT_SAMPLE_WITH_REPLACEMENT = False
+DEFAULT_SAMPLE_FROM_RESIDUALS = False
+DEFAULT_MIN_CONF = 0.25
+DEFAULT_CONF_INTERVAL = 0.05
+DEFAULT_EQUALIZE_MEANS = True
+
 TableWithHeader = collections.namedtuple('TableWithHeader', ['header', 'table'])
 
 class Summary(object):

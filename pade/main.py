@@ -523,12 +523,12 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
     sampling_parent.add_argument(
         '--num-samples', '-R',
         type=int,
-        default=1000,
+        default=pade.job.DEFAULT_NUM_SAMPLES,
         help="The number of samples to use if bootstrapping, or the maximum number of permutations to use if doing permutation test.")
     sampling_parent.add_argument(
         '--sample-with-replacement',
         action='store_true',
-        default=False,
+        default=pade.job.DEFAULT_SAMPLE_WITH_REPLACEMENT,
         help="""Use sampling with replacement (bootstrapping) rather than permutation""")
 
     # Input file
@@ -633,7 +633,7 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
         '--stat', '-s',
 #        choices=['f', 't', 'f_sqrt'],
         choices=['f_test', 'one_sample_t_test', 'means_ratio'],
-        default='f_test',
+        default=pade.job.DEFAULT_STATISTIC,
         help="The statistic to use.")
 
     grp.add_argument(
@@ -651,24 +651,24 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
     grp.add_argument(
         '--num-bins',
         type=int,
-        default=1000,
+        default=pade.job.DEFAULT_NUM_BINS,
         help="Number of bins to divide the statistic space into. You probably don't need to change this.")
 
     grp.add_argument(
         '--sample-from-residuals',
-        default=False,
+        default=pade.job.DEFAULT_SAMPLE_FROM_RESIDUALS,
         action='store_true',
         help="""Sample from residuals rather than raw data.""")
 
     grp.add_argument(
         '--min-conf',
-        default=0.25,
+        default=pade.job.DEFAULT_MIN_CONF,
         type=float,
         help="Smallest confidence level to report")
 
     grp.add_argument(
         '--conf-interval',
-        default=0.05,
+        default=pade.job.DEFAULT_CONF_INTERVAL,
         type=float,
         help="Interval of confidence levels")
 
@@ -676,8 +676,9 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
         '--no-equalize-means',
         action='store_false',
         dest='equalize_means',
-        default=True,
+        default=pade.job.DEFAULT_EQUALIZE_MEANS,
         help="""Shift values of samples within same group for same feature so that their mean is 0 before the permutation test. This will likely cause Pade to be more conservative in selecting features.""")
+
     grp.add_argument(
         '--equalize-means-ids',
         type=file,

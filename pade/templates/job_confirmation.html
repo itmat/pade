@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Index{% endblock %}
+{% block content %}
+
+<h2>Raw input file:</h2>
+<p>
+  Filename: {{input_file_meta.name}} 
+</p>
+<p>
+Size: {{input_file_meta.size}} bytes
+</p>
+
+<h2>
+Schema:
+</h2>
+
+Feature id column: {{schema.feature_id_column_names}}
+
+<h3>Sample columns and labels:</h3>
+
+<table>
+  <tr>
+    <th></th>
+    {% for factor in schema.factors %}
+    <th>{{factor}}</th>
+    {% endfor %}
+  </tr>
+  {% for name in schema.sample_column_names %}
+  <tr>
+    <td>{{name}}</td>
+    {% for factor in schema.factors %}
+    <td>{{schema.get_factor(name, factor)}}</td>
+    {% endfor %}
+  </tr>
+  {% endfor %}
+</table>
+
+<h2>Grouping</h2>
+<p>
+Condition variables (to test for differential effects): {{settings.condition_variables}}
+</p>
+<p>
+Block variables (to treat as "nuisance" factors): {{settings.block_variables}}
+</p>
+
+<h2>Other settings</h2>
+<p>Statistic: {{settings.stat_name}}</p>
+<p>Tuning params: {{settings.tuning_params}}</p>
+<p>Bins: {{settings.num_bins}}</p>
+<p>Permutations: {{settings.num_samples}}</p>
+<p>Sample from residuals: {{settings.sample_from_residuals}}</p>
+<p>Sample with replacement: {{settings.sample_with_replacement}}</p>
+<p>Min confidence: {{settings.min_conf}}</p>
+<p>Confidence interval: {{settings.conf_interval}}</p>
+
+{% endblock %}

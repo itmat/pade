@@ -26,7 +26,8 @@ from bisect import bisect
 from flask import Flask, render_template, make_response, request, session, redirect, url_for, flash
 from werkzeug import secure_filename
 from pade.common import *
-from pade.job import Job
+from pade.job import Job, Settings
+
 from pade.conf import cumulative_hist
 from pade.metadb import MetaDB
 ALLOWED_EXTENSIONS = set(['txt', 'tab'])
@@ -80,14 +81,18 @@ def input_file_list():
         form=InputFileUploadForm(),
         input_file_metas=app.mdb.all_input_files())
 
+########################################################################
+###
+### Accessing the session
+###
+
 def ensure_job_scratch():
     if 'job_scratch' not in session:
         logging.info("Setting up job scratch")
         session['job_scratch'] = { 
-            'schema' : Schema()
+            'schema' : Schema(),
+            'settings' : Settings()
             }
-
-
 
 def set_job_scratch_schema(schema):
     if 'job_scratch' not in session:
@@ -104,7 +109,6 @@ def current_scratch_filename():
     if 'filename' in scratch:
         return scratch['filename']
     return None
-
 
 def current_scratch_schema():
     scratch = job_scratch()
@@ -144,29 +148,25 @@ def select_input_file():
     return redirect(url_for('set_column_roles'))
 
 
-def set_column_roles_form():
-    form = ColumnRolesForm()
-    schema = current_scratch_schema()
-    for i, col in enumerate(schema.column_names):
-        entry = form.roles.append_entry()
-        entry.label = col
-        if i == 0:
-            entry.data = 'feature_id'
-        else:
-            entry.data = 'sample'
-        
-    return render_template('set_column_roles.html',
-                           schema=current_scratch_schema(),
-                           form=form,
-                           filename=current_scratch_input_file_meta())
-
-
-
 @app.route("/set_column_roles", methods=['GET', 'POST'])
 def set_column_roles():
     if request.method == 'GET':
-        return set_column_roles_form()
-    else:
+        form = ColumnRolesForm()
+        schema = current_scratch_schema()
+        for i, col in enumerate(schema.column_names):
+            entry = form.roles.append_entry()
+            entry.label = col
+            if i == 0:
+                entry.data = 'feature_id'
+            else:
+                entry.data = 'sample'
+        
+        return render_template('set_column_roles.html',
+                               schema=current_scratch_schema(),
+                               form=form,
+                               filename=current_scratch_input_file_meta())
+
+    elif request.method == 'POST':
         schema = current_scratch_schema()
         names = schema.column_names
         form = ColumnRolesForm(request.form)
@@ -208,13 +208,13 @@ class JobSettingsForm(Form):
     statistic    = SelectField('Statistic', choices=[('f_test', 'F-test'), 
                                                      ('one_sample_t_test', 'One-sample t-test'),
                                                      ('means_ratio', 'Ratio of means')])
-    bins         = TextField('Number of bins')
-    permutations = TextField('Maximum number of permutations')
-    sample_from_residuals = BooleanField('Sample from residuals')
-    sample_with_replacement = BooleanField('Sample with replacement')
-    min_conf_level = FloatField('Minimum confidence level')
-    conf_interval = FloatField('Confidence interval')
-    tuning_params = TextField('Tuning parameters')
+    bins         = TextField('Number of bins', validators=[Required()])
+    permutations = TextField('Maximum number of permutations', validators=[Required()])
+    sample_from_residuals = BooleanField('Sample from residuals', validators=[Required()])
+    sample_with_replacement = BooleanField('Sample with replacement', validators=[Required()])
+    min_conf_level = FloatField('Minimum confidence level', validators=[Required()])
+    conf_interval = FloatField('Confidence interval', validators=[Required()])
+    tuning_params = TextField('Tuning parameters', validators=[Required()])
     submit = SubmitField()
     
 @app.route("/add_factor", methods=['GET', 'POST'])
@@ -328,9 +328,11 @@ def setup_job_factors():
                 condition_vars.append(factor)
             elif value == 'block':
                 block_vars.append(factor)
-        
-        job_scratch()['condition_vars'] = condition_vars
-        job_scratch()['block_vars']     = block_vars
+
+        if 'settings' not in job_scratch():
+            job_scratch()['settings'] = Settings()
+        job_scratch()['settings'].condition_variables = condition_vars
+        job_scratch()['settings'].block_variables = block_vars
 
         return redirect(url_for('job_settings'))
 
@@ -338,10 +340,40 @@ def setup_job_factors():
 
 @app.route("/job_settings", methods=['GET', 'POST'])
 def job_settings():
-    form = JobSettingsForm()
+
+    form = JobSettingsForm(request.form)
+
+    if request.method == 'POST':
+        form = JobSettingsForm(request.form)
+        tuning_params=[float(x) for x in form.tuning_params.data.split(" ")]
+        settings = session['job_scratch']['settings']
+
+        settings.stat_name = form.statistic.data
+        settings.num_bins = form.bins.data
+        settings.num_samples = form.permutations.data
+        settings.sample_from_residuals = form.sample_from_residuals.data
+        settings.sample_with_replacement = form.sample_with_replacement.data
+        settings.min_conf = form.min_conf_level.data
+        settings.conf_interval = form.conf_interval.data
+        settings.tuning_params = tuning_params
+
+        return redirect(url_for('job_confirmation'))
+
+    else:
+        return render_template(
+            'setup_job.html',
+            form=form)
+
+@app.route("/job_confirmation")
+def job_confirmation():
+    schema   = job_scratch()['schema']
+    settings = job_scratch()['settings']
+        
     return render_template(
-        'setup_job.html',
-        form=form)
+        'job_confirmation.html',
+        input_file_meta=current_scratch_input_file_meta(),
+        schema=schema,
+        settings=settings)
 
 @app.route("/measurement_scatter/<feature_num>")
 def measurement_scatter(feature_num):
