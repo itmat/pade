@@ -220,28 +220,37 @@ class JobSettingsForm(Form):
     tuning_params = TextField('Tuning parameters', validators=[Required()])
     submit = SubmitField()
     
+def update_schema_with_new_factor(schema, form):
+    factor = form.factor_name.data
+    values = []
+    for val_field in form.possible_values:
+        value = val_field.data
+        if len(value) > 0:
+            values.append(value)
+    schema.add_factor(factor, values)    
+
 @app.route("/add_factor", methods=['GET', 'POST'])
 def add_factor():
+
+    schema = current_scratch_schema()
 
     if request.method == 'GET':
         form = NewFactorForm()
         for i in range(10):
             form.possible_values.append_entry()
+        factors = schema.factors
+        allow_next = len(factors) > 0
         return render_template('add_factor.html',
-                               form=form)
+                               form=form,
+                               factors=factors,
+                               allow_next=allow_next)
 
     elif request.method == 'POST':
         schema = current_scratch_schema()
         form = NewFactorForm(request.form)
-        factor = form.factor_name.data
-        values = []
-        for val_field in form.possible_values:
-            value = val_field.data
-            if len(value) > 0:
-                values.append(value)
-        schema.add_factor(factor, values)
+        update_schema_with_new_factor(schema, form)
         session.modified = True
-        return redirect(url_for('column_labels', factor=factor))
+        return redirect(url_for('add_factor'))
 
 
 @app.route("/column_labels", methods=['GET', 'POST'])

@@ -10,22 +10,34 @@ called "treated" with possible values "yes" and "no".
 
 <form action="{{url_for('add_factor')}}" method="post">
   
-  <p>
-    {{ form.factor_name.label }}: {{ form.factor_name()|safe }} 
-  </p>
-
-  <p>
-    Possible values:
-  </p>
-
   <ul>
-    {% for entry in form.possible_values %}
-    <li>{{ entry|safe }}</li>
+    {% for factor in factors %}
+    <li>{{ factor }}</li>
+    <ul>
+      {% for value in factors[factor] %}
+      <li>{{value}}</li>
+      {% endfor %}
+    </ul>
     {% endfor %}
+  
+    <li>{{ form.factor_name.label }}: {{ form.factor_name()|safe }} 
+      <br/>
+    Possible values:
+
+    <ul>
+      {% for entry in form.possible_values %}
+      <li>{{ entry|safe }}</li>
+      {% endfor %}
+    </ul>
+    </li>
   </ul>
 
   {{ form.submit }}
 </form>
+
+{% if allow_next %}
+<a href="{{url_for('column_labels')}}">Next (label columns)</a>
+{% endif %}
 
 <p>
   <em>TODO: Allow flexible number of factor values</em>
