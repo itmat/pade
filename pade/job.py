@@ -11,7 +11,7 @@ from pade.model import Model
 from pade.common import *
 import numpy as np
 
-DEFAULT_STATISTIC = 'f_stat'
+DEFAULT_STATISTIC = 'f_test'
 DEFAULT_NUM_BINS = 1000
 DEFAULT_NUM_SAMPLES = 1000
 DEFAULT_SAMPLE_WITH_REPLACEMENT = False

@@ -165,6 +165,8 @@ def get_stat_fn(job):
         constructor = pade.stat.Ftest
     elif name == 'means_ratio':
         constructor = pade.stat.MeansRatio
+    else:
+        raise Exception("No statistic called " + str(job.settings.stat_name))
 
     if constructor == pade.stat.Ftest and layout_is_paired(job.block_layout):
         raise UsageException(

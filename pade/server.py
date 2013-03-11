@@ -314,12 +314,6 @@ def column_labels():
                            input_file_meta=current_scratch_input_file_meta(),
                            factor=factor)
     
-@app.route("/confirm_schema")
-def confirm_schema():
-    return render_template("confirm_schema.html",
-                           schema=current_scratch_schema(),
-                           input_file_meta=current_scratch_input_file_meta())
-
 def job_scratch():
     if 'job_scratch' not in session:
         return None

@@ -129,50 +129,12 @@ Analyzing {filename}, which is described by the schema {schema}.
               schema=schema,
               results=pade.job.Results())
 
-    copy_input = pade.tasks.copy_input.s(os.path.abspath(args.infile))
-    
-    if args.sample_indexes is not None:
-        make_sample_indexes = pade.tasks.load_sample_indexes.s(os.path.abspath(args.sample_indexes))
-    else:
-        make_sample_indexes = pade.tasks.gen_sample_indexes.s()
-
-    steps = [
-
-        # First we need to load the input table.
-        copy_input,
-
-        # Then construct (or load) a list of permutations of the indexes
-        make_sample_indexes,
-
-        # Then compute the raw statistics (f-test or other
-        # differential expression stat, means, fold change, and
-        # coefficients). We should be able to chunk this up. We would
-        # then simply need to copy the chunk results into the master
-        # job db.
-        pade.tasks.compute_raw_stats.s(),
-
-        # Choose bins for our histogram based on the values of the raw
-        # stats. We would need to merge all of the above chunks first.
-        pade.tasks.choose_bins.s(),
-
-        # Then run the permutations and come up with cumulative
-        # counts. This can be chunked. We would need to add another
-        # step that merges the results together.
-        pade.tasks.compute_mean_perm_count.s(),
-
-        # Compare the unpermuted counts to the mean permuted counts to
-        # come up with confidence scores.
-        pade.tasks.compute_conf_scores.s(),
-
-        # Produce a small summary table
-        pade.tasks.summarize_by_conf_level.s(),
-
-        # Now that we have all the stats, compute orderings using
-        # different keys
-        pade.tasks.compute_orderings.s(),
-
-        # and save the job.
-        pade.tasks.save_job.s(args.db)]
+    steps = pade.tasks.steps(
+        infile_path=os.path.abspath(args.infile),
+        schema=schema,
+        settings=settings,
+        sample_indexes_path=args.sample_indexes,
+        output_path=os.path.abspath(args.db))
 
     if args.distrib:
         job = celery.chain(steps)(job).get()
