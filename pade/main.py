@@ -38,7 +38,6 @@ from pade.conf import *
 import pade.tasks
 
 REAL_PATH = os.path.realpath(__file__)
-DEFAULT_TUNING_PARAMS=[0.001, 0.01, 0.1, 1, 3, 10, 30, 100, 300, 1000, 3000]
 
 class UsageException(Exception):
     """Thrown when the user gave invalid parameters."""
@@ -256,7 +255,7 @@ def args_to_settings(args):
 
     # Tuning params
     if args.tuning_param is None or len(args.tuning_param) == 0 :
-        tuning_params = np.array(DEFAULT_TUNING_PARAMS)
+        tuning_params = np.array(pade.job.DEFAULT_TUNING_PARAMS)
     else:
         tuning_params = np.array(args.tuning_param)
 

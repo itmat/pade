@@ -22,6 +22,7 @@
     <p>
       {{ form.sample_from_residuals()|safe }} {{form.sample_from_residuals.label}} 
       {{ form.sample_with_replacement()|safe }} {{form.sample_with_replacement.label}}
+      {{ form.equalize_means()|safe }} {{form.equalize_means.label}}
     </p>
     <p>
       {{form.min_conf_level.label}}: {{ form.min_conf_level(size=5)|safe }}

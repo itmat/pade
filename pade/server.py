@@ -211,13 +211,46 @@ class JobSettingsForm(Form):
     statistic    = SelectField('Statistic', choices=[('f_test', 'F-test'), 
                                                      ('one_sample_t_test', 'One-sample t-test'),
                                                      ('means_ratio', 'Ratio of means')])
-    bins         = TextField('Number of bins', validators=[Required()])
-    permutations = TextField('Maximum number of permutations', validators=[Required()])
-    sample_from_residuals = BooleanField('Sample from residuals', validators=[Required()])
-    sample_with_replacement = BooleanField('Sample with replacement', validators=[Required()])
-    min_conf_level = FloatField('Minimum confidence level', validators=[Required()])
-    conf_interval = FloatField('Confidence interval', validators=[Required()])
-    tuning_params = TextField('Tuning parameters', validators=[Required()])
+    bins = TextField(
+        'Number of bins', 
+        validators=[Required()],
+        default=pade.job.DEFAULT_NUM_BINS)
+
+    permutations = TextField(
+        'Maximum number of permutations', 
+        validators=[Required()],
+        default=pade.job.DEFAULT_NUM_SAMPLES)
+
+    sample_from_residuals = BooleanField(
+        'Sample from residuals', 
+        validators=[Required()],
+        default=pade.job.DEFAULT_SAMPLE_FROM_RESIDUALS)
+
+    sample_with_replacement = BooleanField(
+        'Sample with replacement', 
+        validators=[Required()],
+        default=pade.job.DEFAULT_SAMPLE_WITH_REPLACEMENT)
+
+    equalize_means = BooleanField(
+        'Equalize means', 
+        validators=[Required()],
+        default=pade.job.DEFAULT_EQUALIZE_MEANS)
+
+    min_conf_level = FloatField(
+        'Minimum confidence level', 
+        validators=[Required()],
+        default=pade.job.DEFAULT_MIN_CONF)
+
+    conf_interval = FloatField(
+        'Confidence interval', 
+        validators=[Required()],
+        default=pade.job.DEFAULT_CONF_INTERVAL)
+    
+    tuning_params = TextField(
+        'Tuning parameters', 
+        validators=[Required()],
+        default=' '.join(map(str, pade.job.DEFAULT_TUNING_PARAMS)))
+
     submit = SubmitField()
     
 def update_schema_with_new_factor(schema, form):
@@ -269,7 +302,7 @@ def column_labels():
                         schema.set_factor(col_name, factor, value)
         
         schema.modified = True
-        return redirect(url_for('confirm_schema'))
+        return redirect(url_for('setup_job_factors'))
 
 
     schema = current_scratch_schema()
@@ -348,11 +381,28 @@ def setup_job_factors():
         return redirect(url_for('job_settings'))
 
 
+# Workflow:
+# 1. Choose input file
+# 2. Pick sample columns
+# 3. Add factors (possibly multiple times)
+# 4. 
+
+def settings_to_form(settings):
+    form = JobSettingsForm()
+    
+    form.bins.data = settings.num_bins
+    form.permutations.data = settings.num_samples
+    form.sample_from_residuals.data = settings.sample_from_residuals
+    form.sample_with_replacement.data = settings.sample_with_replacement
+    form.min_conf_level.data = settings.min_conf
+    form.conf_interval.data = settings.conf_interval
+    print "Tuning params are", settings.tuning_params
+    form.tuning_params.data = " ".join(map(str, settings.tuning_params))
+    
+    return form
 
 @app.route("/job_settings", methods=['GET', 'POST'])
 def job_settings():
-
-    form = JobSettingsForm(request.form)
 
     if request.method == 'POST':
         form = JobSettingsForm(request.form)
@@ -371,6 +421,7 @@ def job_settings():
         return redirect(url_for('job_confirmation'))
 
     else:
+        form = settings_to_form(job_scratch()['settings'])
         return render_template(
             'setup_job.html',
             form=form)

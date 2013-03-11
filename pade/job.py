@@ -19,6 +19,7 @@ DEFAULT_SAMPLE_FROM_RESIDUALS = False
 DEFAULT_MIN_CONF = 0.25
 DEFAULT_CONF_INTERVAL = 0.05
 DEFAULT_EQUALIZE_MEANS = True
+DEFAULT_TUNING_PARAMS=[0.001, 0.01, 0.1, 1, 3, 10, 30, 100, 300, 1000, 3000]
 
 TableWithHeader = collections.namedtuple('TableWithHeader', ['header', 'table'])
 
@@ -137,24 +138,21 @@ class Settings:
 
     def __init__(
         self,
-        stat_name=None,
-        num_bins=None,
-        num_samples=None,
-        sample_from_residuals=None,
-        sample_with_replacement=None,
+        stat_name=DEFAULT_STATISTIC,
+        num_bins=DEFAULT_NUM_BINS,
+        num_samples=DEFAULT_NUM_SAMPLES,
+        sample_from_residuals=DEFAULT_SAMPLE_FROM_RESIDUALS,
+        sample_with_replacement=DEFAULT_SAMPLE_WITH_REPLACEMENT,
         condition_variables=None,
         block_variables=None,
-        min_conf=None,
-        equalize_means=None,
-        conf_interval=None,
-        tuning_params=None,
+        min_conf=DEFAULT_MIN_CONF,
+        equalize_means=DEFAULT_EQUALIZE_MEANS,
+        conf_interval=DEFAULT_CONF_INTERVAL,
+        tuning_params=DEFAULT_TUNING_PARAMS,
         equalize_means_ids=None):
 
         self.stat_name = stat_name
         """Name of the statistic to use."""
-
-        self.num_bins = num_bins
-        """Number of bins used to discretize statistic space"""
 
         self.num_samples = num_samples
         """Max number of samples to use for permutation test or bootstrapping"""
@@ -168,6 +166,9 @@ class Settings:
         If false, do permutation test.
 
         """
+
+        self.num_bins = num_bins
+        """Number of bins used to discretize statistic space"""
 
         self.block_variables = block_variables
         """List of "blocking" or "nuisance" variables."""
@@ -189,6 +190,7 @@ class Settings:
 
         self.equalize_means_ids = equalize_means_ids
         """List of ids of features to equalize means for."""
+
 
 class Results:
     

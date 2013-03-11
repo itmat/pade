@@ -35,6 +35,8 @@ called "treated" with possible values "yes" and "no".
   {{ form.submit }}
 </form>
 
+<a href="{{url_for('column_roles')}}">Previous (column roles)</a>
+
 {% if allow_next %}
 <a href="{{url_for('column_labels')}}">Next (label columns)</a>
 {% endif %}
