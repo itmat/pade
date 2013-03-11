@@ -94,20 +94,13 @@ def load_input(db):
 
 def load_job(path):
 
-    db = None
-    try:
-        db = h5py.File(path, 'r')
-    except IOError as e:
-        raise IOError("While trying to load database from " + path, e)
-
-    return Job(
-        settings=load_settings(db),
-        input=load_input(db),
-        schema=load_schema(db),
-        results=load_results(db),
-        summary=load_summary(db))
-
-    db.close()
+    with h5py.File(path, 'r') as db:
+        return Job(
+            settings=load_settings(db),
+            input=load_input(db),
+            schema=load_schema(db),
+            results=load_results(db),
+            summary=load_summary(db))
 
 
 def load_settings(db):
@@ -242,29 +235,6 @@ def save_settings(settings, db):
     if settings.equalize_means_ids is not None:
         db['equalize_means_ids'] = settings.equalize_means_ids
 
-def save_results(results, db):
-    db.create_dataset("bins", data=results.bins)
-    db.create_dataset("bin_to_mean_perm_count", data=results.bin_to_mean_perm_count)
-    db.create_dataset("bin_to_unperm_count", data=results.bin_to_unperm_count)
-    db.create_dataset("bin_to_score", data=results.bin_to_score)
-    db.create_dataset("feature_to_score", data=results.feature_to_score)
-    db.create_dataset("raw_stats", data=results.raw_stats)
-    db.create_dataset("sample_indexes", data=results.sample_indexes)
-
-    save_table(db, results.group_means, 'group_means')
-    save_table(db, results.fold_change, 'fold_change')
-    save_table(db, results.coeff_values, 'coeff_values')
-
-    orderings = db.create_group('orderings')
-    orderings['by_score_original'] = results.order_by_score_original
-    orderings['by_foldchange_original'] = results.order_by_foldchange_original
-
-def save_summary(summary, db):
-    grp = db.create_group('summary')
-    grp['bins']            = summary.bins
-    grp['best_param_idxs'] = summary.best_param_idxs
-    grp['counts']          = summary.counts
-
 
 def save_table(db, table, name):
     db.create_dataset(name, data=table.table)
@@ -282,10 +252,11 @@ def save_job(path, job):
 
 
 def load_table(db, name):
-    ds = db[name]
-    if ds is None:
-        raise Exception("No dataset called " + str(name)) 
-    return TableWithHeader(ds.attrs['headers'], ds[...])
+    if name in db:
+        ds = db[name]
+        return TableWithHeader(ds.attrs['headers'], ds[...])
+    else:
+        return None
 
 
 def load_schema(db):
@@ -293,32 +264,45 @@ def load_schema(db):
     return Schema.load(schema_str)
 
 def load_summary(db):
-    return Summary(
-        db['summary']['bins'][...],
-        db['summary']['best_param_idxs'][...],
-        db['summary']['counts'][...])
+    if 'summary' in db:
+        return Summary(
+            db['summary']['bins'][...],
+            db['summary']['best_param_idxs'][...],
+            db['summary']['counts'][...])
+    else:
+        return None
 
 
 def load_results(db):
 
     results = Results()
 
-    results.bins = db['bins'][...]
-    results.bin_to_unperm_count    = db['bin_to_unperm_count'][...]
-    results.bin_to_mean_perm_count = db['bin_to_mean_perm_count'][...]
-    results.bin_to_score           = db['bin_to_score'][...]
+    if 'bins' in db:
+        results.bins = db['bins'][...]
+    if 'bin_to_unperm_count' in db:
+        results.bin_to_unperm_count    = db['bin_to_unperm_count'][...]
+    if 'bin_to_mean_perm_count' in db:
+        results.bin_to_mean_perm_count = db['bin_to_mean_perm_count'][...]
+    if 'bin_to_score' in db:
+        results.bin_to_score           = db['bin_to_score'][...]
     
-    results.feature_to_score = db['feature_to_score'][...]
-    results.raw_stats = db['raw_stats'][...]
-    results.sample_indexes = db['sample_indexes'][...]
+    if 'feature_to_score' in db:
+        results.feature_to_score = db['feature_to_score'][...]
+    
+    if 'raw_stats' in db:
+        results.raw_stats = db['raw_stats'][...]
+
+    if 'sample_indexes' in db:
+        results.sample_indexes = db['sample_indexes'][...]
 
     # Group means, coefficients, and fold change, with the header information
     results.group_means  = load_table(db, 'group_means')
     results.coeff_values = load_table(db, 'coeff_values')
     results.fold_change  = load_table(db, 'fold_change')
     # Orderings
-    results.ordering_by_score_original      = db['orderings']['by_score_original'][...]
-    results.ordering_by_foldchange_original = db['orderings']['by_foldchange_original'][...]
+    if 'orderings' in db:
+        results.ordering_by_score_original      = db['orderings']['by_score_original'][...]
+        results.ordering_by_foldchange_original = db['orderings']['by_foldchange_original'][...]
 
     return results
 

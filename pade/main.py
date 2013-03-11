@@ -122,6 +122,10 @@ Analyzing {filename}, which is described by the schema {schema}.
 """.format(filename=args.infile,
            schema=args.schema)
 
+
+    infile = os.path.abspath(args.infile)
+    db     = os.path.abspath(args.db)
+
     settings = args_to_settings(args)
     schema   = load_schema(args.schema)
 
@@ -130,17 +134,17 @@ Analyzing {filename}, which is described by the schema {schema}.
               results=pade.job.Results())
 
     steps = pade.tasks.steps(
-        infile_path=os.path.abspath(args.infile),
+        infile_path=infile,
         schema=schema,
         settings=settings,
         sample_indexes_path=args.sample_indexes,
-        output_path=os.path.abspath(args.db))
+        output_path=db)
 
     if args.distrib:
-        job = celery.chain(steps)(job).get()
+        job = celery.chain(steps)(db).get()
     else:
         for step in steps:
-            res = step.apply((job,))
+            res = step.apply((db,))
             if not res.successful():
                 raise Exception(res.traceback)
             job = res.get()
