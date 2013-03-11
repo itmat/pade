@@ -241,11 +241,11 @@ def add_factor():
                 values.append(value)
         schema.add_factor(factor, values)
         session.modified = True
-        return redirect(url_for('label_columns', factor=factor))
+        return redirect(url_for('column_labels', factor=factor))
 
 
-@app.route("/label_columns", methods=['GET', 'POST'])
-def label_columns():
+@app.route("/column_labels", methods=['GET', 'POST'])
+def column_labels():
 
     schema = current_scratch_schema()
 
@@ -267,7 +267,7 @@ def label_columns():
 
     factor = request.args.get('factor')
 
-    return render_template("label_columns.html",
+    return render_template("column_labels.html",
                            schema=current_scratch_schema(),
                            input_file_meta=current_scratch_input_file_meta(),
                            factor=factor)
