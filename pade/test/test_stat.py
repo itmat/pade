@@ -1,7 +1,7 @@
 import numpy as np
 import unittest
 from pade.stat import *
-
+from pade.layout import random_orderings, num_orderings, all_orderings
 
 def pairedOrderings(n, R):
     idxs = np.arange(2 * n)

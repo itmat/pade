@@ -9,13 +9,14 @@ may use these functions outside of the standard PADE workflow.
 import numbers
 import numpy as np
 import numpy.ma as ma
-from scipy.stats import gmean
 import itertools
 import collections
 
+from scipy.stats import gmean
 from pade.performance import profiling, profiled
-from pade.common import *
-from pade.layout import *
+from pade.common import double_sum
+from pade.layout import (
+    intersect_layouts, apply_layout, layout_is_paired)
 
 class UnsupportedLayoutException(Exception):
     """Thrown when a statistic is used with a layout that it can't support."""

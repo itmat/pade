@@ -32,7 +32,6 @@ from pade.performance import *
 from pade.schema import *
 from pade.model import *
 import pade.stat
-from pade.stat import random_indexes, random_orderings, residuals, group_means, layout_is_paired
 from pade.job import Job
 from pade.conf import *
 import pade.tasks
