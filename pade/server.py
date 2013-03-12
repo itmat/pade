@@ -65,10 +65,15 @@ def figure_response(fig):
 def index():
     return render_template("index.html")
 
-@app.route("/job")
-def job():
-    logging.info("Getting index")
-    return render_template("job.html", job=app.job)
+def load_job(job_id):
+    job_meta = app.mdb.job_db(job_id)
+    return pade.tasks.load_job(job_meta.path)
+
+@app.route("/jobs/<job_id>")
+def job_details(job_id):
+    job = load_job(job_id)
+    print "Job id is ", job.job_id
+    return render_template("job.html", job=job)
 
 @app.route("/schemas")
 def schema_list():
@@ -750,7 +755,8 @@ def submit_job():
         schema=schema,
         settings=settings,
         sample_indexes_path=None,
-        path=os.path.abspath(job_meta.path))
+        path=os.path.abspath(job_meta.path),
+        job_id=job_meta.obj_id)
 
     chained = celery.chain(steps)
     result = chained.apply_async((job,))
@@ -778,7 +784,12 @@ def job_status(job_id):
         'job_status.html',
         job_id=job_id,
         status=task.status)
-    
+
+@app.route("/jobs")
+def job_list():
+    job_metas = app.mdb.all_job_dbs()
+    print "Job metas are", job_metas
+    return render_template('jobs.html', jobs=job_metas)
 
 @contextlib.contextmanager
 def figure(path):

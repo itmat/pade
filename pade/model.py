@@ -289,12 +289,14 @@ class Job:
 
     """
     def __init__(self, 
+                 job_id=None,
                  input=None,
                  schema=None,
                  settings=None,
                  results=None,
                  summary=None):
         
+        self.job_id   = job_id
         self.input    = input
         self.settings = settings
         self.schema   = schema

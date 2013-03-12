@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Index{% endblock %}
+{% block content %}
+
+<table>
+  
+  <tr>
+    <th>ID</th>
+    <th>Created</th>
+  </tr>
+  
+  {% for job in jobs %}
+  <tr>
+    <td><a href="{{ url_for('job_details', job_id=job.obj_id) }}">{{ job.obj_id }}</a></td>
+    <td>{{ job.dt_created }}</td>
+  </tr>
+  {% endfor %}
+</table>
+
+{% endblock %}

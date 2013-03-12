@@ -29,7 +29,7 @@ def save_table(db, table, name):
     db[name].attrs['headers'] = table.header        
 
 @celery.task
-def copy_input(path, input_path, schema, settings):
+def copy_input(path, input_path, schema, settings, job_id):
     logging.info("Loading input for job from {0}".format(input_path))
     input = Input.from_raw_file(input_path, schema)
 
@@ -47,6 +47,7 @@ def copy_input(path, input_path, schema, settings):
 
         # Save the settings object
         db.create_dataset("tuning_params", data=settings.tuning_params)
+        db.attrs['job_id'] = job_id
         db.attrs['stat_name'] = settings.stat_name
         db.attrs['num_bins'] = settings.num_bins
         db.attrs['num_samples'] = settings.num_samples
@@ -179,9 +180,9 @@ def compute_orderings(path):
         orderings['by_foldchange_original'] = order_by_foldchange_original        
 
 
-def steps(settings, schema, infile_path, sample_indexes_path, path):
+def steps(settings, schema, infile_path, sample_indexes_path, path, job_id):
 
-    do_copy_input = copy_input.si(path, infile_path, schema, settings)
+    do_copy_input = copy_input.si(path, infile_path, schema, settings, job_id)
     
     if sample_indexes_path is not None:
         make_sample_indexes = load_sample_indexes.si(path, os.path.abspath(sample_indexes_path))
@@ -232,6 +233,7 @@ def load_job(path):
 
     with h5py.File(path, 'r') as db:
         return Job(
+            job_id = db.attrs['job_id'],
             settings=load_settings(db),
             input=load_input(db),
             schema=load_schema(db),
