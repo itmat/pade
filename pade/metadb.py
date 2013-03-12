@@ -86,13 +86,13 @@ class MetaDB(object):
     def all_schemas(self):
         return self._all_objects(SchemaMeta)
 
-    def add_job_db(self, name, comments):
+    def add_job(self, name, comments):
         return self._add_obj(JobMeta, name, comments)
 
-    def job_db(self, obj_id):
+    def job(self, obj_id):
         return self._load_obj(JobMeta, obj_id)
 
-    def all_job_dbs(self):
+    def all_jobs(self):
         return self._all_objects(JobMeta)
 
     def add_task_id(self, obj, task_id):
@@ -134,8 +134,8 @@ class InputFileMeta(ObjMeta):
         
 class JobMeta(ObjMeta):
     """Meta-data for an HDF5 job database."""
-    obj_type = 'job_db'
-    collection_name = 'pade:job_dbs'
+    obj_type = 'job'
+    collection_name = 'pade:jobs'
 
 class SchemaMeta(ObjMeta):
     """Meta-data for a PADE schema YAML file."""

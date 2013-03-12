@@ -66,7 +66,7 @@ def index():
     return render_template("index.html")
 
 def load_job(job_id):
-    job_meta = app.mdb.job_db(job_id)
+    job_meta = app.mdb.job(job_id)
     return pade.tasks.load_job(job_meta.path)
 
 @app.route("/jobs/<job_id>")
@@ -759,7 +759,7 @@ def submit_job():
               schema=schema,
               results=pade.model.Results())
 
-    job_meta = app.mdb.add_job_db('Job db', 'comments')
+    job_meta = app.mdb.add_job('Job db', 'comments')
     
     steps = pade.tasks.steps(
         infile_path=os.path.abspath(infile_meta.path),
@@ -778,7 +778,7 @@ def submit_job():
 @app.route("/job/<job_id>")
 def job_status(job_id):
 
-    job_meta = app.mdb.job_db(job_id)
+    job_meta = app.mdb.job(job_id)
 
     task_ids = app.mdb.get_task_ids(job_meta)
     print "Got task ids ", task_ids
@@ -798,7 +798,7 @@ def job_status(job_id):
 
 @app.route("/jobs")
 def job_list():
-    job_metas = app.mdb.all_job_dbs()
+    job_metas = app.mdb.all_jobs()
     print "Job metas are", job_metas
     return render_template('jobs.html', jobs=job_metas)
 

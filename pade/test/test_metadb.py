@@ -74,20 +74,20 @@ class MetaDBTest(unittest.TestCase):
             self.assertEquals(colnames, set(['id', 'a', 'b',
                                              'key', 'foo', 'bar']))
 
-    def test_job_dbs(self):
+    def test_jobs(self):
         with temp_metadb() as mdb:
-            a = mdb.add_job_db("job1", "Some job")
-            b = mdb.add_job_db("job2", "Other job")
+            a = mdb.add_job("job1", "Some job")
+            b = mdb.add_job("job2", "Other job")
 
             # Make sure it returned the object appropriately
             self.assertEquals(a.name, "job1")
             self.assertEquals(a.comments, "Some job")
 
             # Make sure we can list all input files
-            job_dbs = mdb.all_job_dbs()
-            self.assertEquals(len(job_dbs), 2)
+            jobs = mdb.all_jobs()
+            self.assertEquals(len(jobs), 2)
             names = set(['job1', 'job2'])
-            self.assertEquals(names, set([x.name for x in job_dbs]))
+            self.assertEquals(names, set([x.name for x in jobs]))
 
             
 
