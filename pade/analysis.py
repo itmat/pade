@@ -5,8 +5,9 @@ import scipy.stats
 from collections import OrderedDict, namedtuple
 from itertools import combinations
 
-from pade.stat import (OneSampleDifferenceTTest, Ftest, MeansRatio, residuals)
-from pade.confidence import bootstrap
+from pade.stat import (
+    OneSampleDifferenceTTest, Ftest, MeansRatio, residuals, bootstrap)
+
 from pade.model import TableWithHeader, Summary
 from pade.layout import random_orderings, layout_is_paired
 
@@ -218,7 +219,7 @@ def compute_mean_perm_count(job):
         return bootstrap(
             prediction,
             stat_fn, 
-            indexes=perms,
+            permutations=perms,
             residuals=diffs,
             bins=bins)
 
@@ -245,10 +246,10 @@ def compute_mean_perm_count(job):
                                  "ids given that don't exist in the data: " +
                                  str(ids))
 
-            return bootstrap(data, stat_fn, indexes=perms,bins=bins)
+            return bootstrap(data, stat_fn, permutations=perms,bins=bins)
 
         else:
-            return bootstrap(table, stat_fn, indexes=perms,bins=bins)
+            return bootstrap(table, stat_fn, permutations=perms,bins=bins)
 
 
 def assignment_name(a):

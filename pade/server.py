@@ -26,7 +26,7 @@ from flask.ext.wtf import (
     FileField, SubmitField, BooleanField, IntegerField, FloatField)
 from werkzeug import secure_filename
 from pade.analysis import assignment_name
-from pade.confidence import cumulative_hist, adjust_num_diff
+from pade.stat import cumulative_hist, adjust_num_diff
 from pade.model import Job, Settings, Schema
 from pade.metadb import MetaDB
 

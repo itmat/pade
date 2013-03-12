@@ -9,20 +9,21 @@ together.
 """
 from __future__ import absolute_import
 
-from pade.celery import celery
+
 
 import logging
 import pade.analysis as an
 import numpy as np
+import h5py
 
 from StringIO import StringIO
-from pade.confidence import (
+from pade.celery import celery
+from pade.stat import (
     cumulative_hist, bins_uniform, confidence_scores, 
     assign_scores_to_features)
-
 from pade.model import (
     Job, Settings, Results, Input, TableWithHeader, Summary, Schema)
-import h5py
+
 
 
 def save_table(db, table, name):
