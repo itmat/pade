@@ -1,3 +1,5 @@
+"""Classes used to model PADE data and jobs."""
+
 import numpy as np
 from collections import namedtuple
 
@@ -25,7 +27,9 @@ class ModelExpressionException(Exception):
 
 
 class ModelExpression:
-    
+    """Represents a list of variables and an operator."""
+
+
     def __init__(self, 
                  operator=None,
                  variables=None):
@@ -123,6 +127,8 @@ class Model:
 
 
 class Summary(object):
+    """Summarizes the results of a job by confidence level."""
+
     def __init__(self, bins, best_param_idxs, counts):
         self.bins = bins
         self.best_param_idxs = best_param_idxs
@@ -130,8 +136,12 @@ class Summary(object):
 
 class Input(object):
 
-    """Raw(ish) input for the job."""
-    
+    """Raw(ish) input for the job.
+
+    Consists only of a 2d array of the intensity values, and a 1d
+    array of feature ids. Grouping if the columns is handled elsewhere.
+
+    """
     def __init__(self, table, feature_ids):
         assert_ndarray(table, name='table', ndim=2)
         assert_ndarray(feature_ids, name='feature_ids', ndim=1)
@@ -249,6 +259,7 @@ class Settings:
 
 
 class Results:
+    """The bulk of the results of the job."""
     
     def __init__(self):
     
@@ -259,19 +270,22 @@ class Results:
         self.feature_to_score = None
         self.raw_stats = None
         self.sample_indexes = None
-
         self.group_means = None
         self.coeff_values = None
         self.fold_change = None
-
         self.order_by_foldchange_original = None
         self.order_by_score_original = None
 
 
 class Job:
 
-    """Interface for the HDF5 file that we use to persist the job state."""
+    """Bundle of things that make up a PADE analysis.
+    
+    Contains the raw input, the schema describing the input, the
+    settings that control how the job was executed, the results of the
+    job, and a summary of those results.
 
+    """
     def __init__(self, 
                  input=None,
                  schema=None,
@@ -321,4 +335,18 @@ class Job:
     def full_layout(self):
         return self.layout(self.settings.block_variables + self.settings.condition_variables)
 
+    @property
+    def full_variables(self):
+        return self.settings.block_variables + self.settings.condition_variables
 
+
+def assert_ndarray(array, name=None, ndim=None):
+    if ndim is not None:
+        if array.ndim != ndim:
+            msg = ("Array argument {name} must be {ndim}-dimensional, " +
+                   "but it has shape {shape}")
+            raise Exception(msg.format(
+                    name=name,
+                    ndim=ndim,
+                    shape=array.shape))
+                

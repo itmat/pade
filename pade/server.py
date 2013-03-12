@@ -440,7 +440,6 @@ def measurement_scatter(feature_num):
 
     job = app.job
     schema = job.schema
-    model = job.full_model
     measurements = job.input.table[feature_num]
     
     fig = plt.figure()
@@ -450,7 +449,7 @@ def measurement_scatter(feature_num):
         xlabel='Group',
         ylabel='Measurement')
 
-    assignments = schema.possible_assignments(model.expr.variables)
+    assignments = schema.possible_assignments(job.full_variables)
     names = [assignment_name(a) for a in assignments]
     grps = [schema.indexes_with_assignments(a) for a in assignments]
 
@@ -490,10 +489,9 @@ def measurement_bars(feature_num):
 
     job = app.job
     schema = job.schema
-    model = job.full_model
     measurements = job.input.table[feature_num]
 
-    variables = model.expr.variables
+    variables = job.full_variables
     if 'variable' in request.args:
         variables = [ request.args.get('variable') ]
 
@@ -541,7 +539,7 @@ def feature(feature_num):
     new_scores = (unperm_count - adjusted) / unperm_count
 
     max_stat = job.results.bins[..., -2]
-    print "Max stat", max_stat
+
     return render_template(
         "feature.html",
         feature_num=feature_num,
@@ -550,7 +548,7 @@ def feature(feature_num):
         sample_names=job.schema.sample_column_names,
         factors=job.schema.factors,
         factor_values=factor_values,
-        layout=job.full_model.layout,
+        layout=job.full_layout,
         tuning_params=job.settings.tuning_params,
         stats=stats,
         bins=bins,
