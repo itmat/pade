@@ -15,6 +15,7 @@ import pade.redis_session
 import redisconfig
 import celery
 import contextlib
+import os
 
 from redis import Redis
 from bisect import bisect
@@ -742,13 +743,12 @@ def submit_job():
 
     job_meta = app.mdb.add_job_db('Job db', 'comments')
     
-
     steps = pade.tasks.steps(
         infile_path=os.path.abspath(infile_meta.path),
         schema=schema,
         settings=settings,
         sample_indexes_path=None,
-        output_path=os.path.abspath(job_meta.path))
+        path=os.path.abspath(job_meta.path))
 
     chained = celery.chain(steps)
     result = chained.apply_async((job,))
