@@ -24,8 +24,6 @@ from pade.stat import (
 from pade.model import (
     Job, Settings, Results, Input, TableWithHeader, Summary, Schema)
 
-
-
 def save_table(db, table, name):
     db.create_dataset(name, data=table.table)
     db[name].attrs['headers'] = table.header        
@@ -67,12 +65,9 @@ def copy_input(db_path, input_path, schema, settings):
         if settings.equalize_means_ids is not None:
             db['equalize_means_ids'] = settings.equalize_means_ids
 
-    return db_path
-
 @celery.task
 def load_sample_indexes(filename, job):
     job.results.sample_indexes = np.genfromtxt(args.sample_indexes, dtype=int)
-    return job
 
 @celery.task(name="Generate sample indexes")
 def gen_sample_indexes(db_path):
@@ -82,8 +77,6 @@ def gen_sample_indexes(db_path):
     with h5py.File(db_path, 'r+') as db:
         indexes = an.new_sample_indexes(job)
         db.create_dataset("sample_indexes", data=indexes)
-
-    return db_path
 
 @celery.task
 def compute_raw_stats(path):
@@ -102,8 +95,6 @@ def compute_raw_stats(path):
         save_table(db, fold_change, 'fold_change')
         save_table(db, coeff_values, 'coeff_values')
         
-    return path
-
 @celery.task
 def choose_bins(path):
     logging.info("Choosing bins for discretized statistic space")
@@ -111,7 +102,6 @@ def choose_bins(path):
     bins = bins_uniform(job.settings.num_bins, job.results.raw_stats)
     with h5py.File(path, 'r+') as db:
         db.create_dataset("bins", data=bins)
-    return path
 
 
 @celery.task
@@ -121,7 +111,7 @@ def compute_mean_perm_count(path):
     bin_to_mean_perm_count = an.compute_mean_perm_count(job)
     with h5py.File(path, 'r+') as db:
         db.create_dataset("bin_to_mean_perm_count", data=bin_to_mean_perm_count)
-    return path
+
 
 @celery.task
 def compute_conf_scores(path):
@@ -141,8 +131,6 @@ def compute_conf_scores(path):
         db.create_dataset("bin_to_score", data=bin_to_score)
         db.create_dataset("feature_to_score", data=feature_to_score)
 
-    return path
-
 
 @celery.task
 def summarize_by_conf_level(path):
@@ -157,8 +145,6 @@ def summarize_by_conf_level(path):
         grp['counts']          = summary.counts
 
         
-    return path
-
 @celery.task
 def compute_orderings(path):
 
@@ -192,17 +178,15 @@ def compute_orderings(path):
         orderings['by_score_original'] = order_by_score_original
         orderings['by_foldchange_original'] = order_by_foldchange_original        
 
-    return path
 
+def steps(settings, schema, infile_path, sample_indexes_path, path):
 
-def steps(settings, schema, infile_path, sample_indexes_path, output_path):
-
-    do_copy_input = copy_input.s(infile_path, schema, settings)
+    do_copy_input = copy_input.si(path, infile_path, schema, settings)
     
     if sample_indexes_path is not None:
-        make_sample_indexes = load_sample_indexes.s(os.path.abspath(sample_indexes_path))
+        make_sample_indexes = load_sample_indexes.si(path, os.path.abspath(sample_indexes_path))
     else:
-        make_sample_indexes = gen_sample_indexes.s()
+        make_sample_indexes = gen_sample_indexes.si(path)
 
     return [
 
@@ -217,27 +201,27 @@ def steps(settings, schema, infile_path, sample_indexes_path, output_path):
         # coefficients). We should be able to chunk this up. We would
         # then simply need to copy the chunk results into the master
         # job db.
-        compute_raw_stats.s(),
+        compute_raw_stats.si(path),
 
         # Choose bins for our histogram based on the values of the raw
         # stats. We would need to merge all of the above chunks first.
-        choose_bins.s(),
+        choose_bins.si(path),
 
         # Then run the permutations and come up with cumulative
         # counts. This can be chunked. We would need to add another
         # step that merges the results together.
-        compute_mean_perm_count.s(),
+        compute_mean_perm_count.si(path),
 
         # Compare the unpermuted counts to the mean permuted counts to
         # come up with confidence scores.
-        compute_conf_scores.s(),
+        compute_conf_scores.si(path),
 
         # Produce a small summary table
-        summarize_by_conf_level.s(),
+        summarize_by_conf_level.si(path),
 
         # Now that we have all the stats, compute orderings using
         # different keys
-        compute_orderings.s()]
+        compute_orderings.si(path)]
 
 
 def load_input(db):
