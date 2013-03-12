@@ -91,8 +91,7 @@ def do_setup(args):
 I have generated a schema for your input file, with factors {factors}, and saved it to "{filename}". You should now edit that file to set the factors for each sample. The file contains instructions on how to edit it.
 
 Once you have finished the schema, you will need to run "pade run" to do the analysis. See "pade run -h" for its usage.
-""").format(factors=schema.factors.keys(),
-            filename=args.schema)
+""").format(factors=schema.factors, filename=args.schema)
 
 def do_makesamples(args):
 

@@ -117,7 +117,7 @@ class Model:
                 raise Exception(
                     "Factor '" + factor + 
                     "' is not defined in the schema. Valid factors are " + 
-                    str(self.schema.factors.keys()))
+                    str(self.schema.factors))
 
     @property
     def layout(self):

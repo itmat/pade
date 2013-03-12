@@ -43,7 +43,7 @@ Editing factor {{factor}}.
         {% if role == 'sample' %}
         {% set selected_value = schema.get_factor(name, f) %}
         <select name="factor_value_{{col_num}}_{{factor_num}}">
-          {% for v in schema.factor_values(f) %}
+          {% for v in schema.factor_values[f] %}
           <option value="{{v}}" {% if selected_value == v %} selected="selected" {% endif %} >{{v}}</option>
           {% endfor %}
         </select>

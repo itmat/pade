@@ -85,7 +85,7 @@ class SchemaTest(unittest.TestCase):
         self.assertEquals(schema.get_factor("sample10", "age"), 20)
         self.assertEquals(schema.get_factor("sample10", "treated"), False)
 
-        names = sorted(schema.factor_names)
+        names = sorted(schema.factors)
         self.assertEquals(names[0], "age")
 
 

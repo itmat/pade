@@ -27,7 +27,6 @@ class Schema(object):
 
         """Construct a Schema. 
 
-
         :param column_names:
           List of strings, giving names for the columns.
 
@@ -50,7 +49,7 @@ class Schema(object):
 
           """
 
-        self.factors = OrderedDict()
+        self.factor_values = OrderedDict()
 
         self.sample_to_factor_values = OrderedDict()
         """Maps a column name to a dict which maps factor name to value."""
@@ -65,6 +64,11 @@ class Schema(object):
 
         if column_names is not None:
             self.set_columns(column_names, column_roles)
+
+    @property
+    def factors(self):
+        """List of the factor names for this schema."""
+        return self.factor_values.keys()
             
     def set_columns(self, names, roles):
         self.sample_to_factor_values.clear()
@@ -81,29 +85,6 @@ class Schema(object):
             
 
     @property
-    def factor_names(self):
-        """List of the factor names for this schema.
-
-        The factors are given in the same order they appear in the
-        schema file.
-
-        """
-        return self.factors.keys()
-
-    def factor_values(self, factor):
-
-        """List of valid values for the given factor.
-
-        The result is sorted according to the order the values are
-        given in the schema file.
-
-        """
-        if factor not in self.factors:
-            raise Exception("No factor called '" + factor + "'")
-
-        return self.factors[factor]
-
-    @property
     def sample_column_names(self):
         """List of the names of columns that contain intensities."""
         return self.column_names[self.column_roles == 'sample']
@@ -116,7 +97,7 @@ class Schema(object):
     def _check_factors(self, factors):
 
         if factors is None:
-            factors = self.factor_names
+            factors = self.factors
 
         factors = list(factors)
         correct_order = [f for f in self.factors if f in factors]
@@ -135,17 +116,19 @@ class Schema(object):
         """
 
         factors = self._check_factors(factors)
-        values = [self.factor_values(f) for f in factors]
+        values = [self.factor_values[f] for f in factors]
         return list(product(*values))
+
+    def are_baseline(self, assignments):
+        return [ v == self.baseline_value(f) for (f, v) in assignments.items() ]
 
     def baseline_value(self, factor):
         """Return the first value listed in the schema for given factor."""
-        return self.factors[factor][0]
+        return self.factor_values[factor][0]
 
     def baseline_values(self, factors):
         """Return first value defined for each of the factors given."""        
         return [self.baseline_value(f) for f in factors]
-
 
     def has_baseline(self, assignment):
         """Return true if any of the variables is assigned to their baseline.
@@ -155,10 +138,7 @@ class Schema(object):
         is to the 'baseline' value for that factor.
 
         """
-        for factor, value in assignment.items():
-            if value == self.baseline_value(factor):
-                return True
-        return False
+        return any(self.are_baseline(assignment))
 
     def sample_matches_assignments(self, sample_name, assignments):
         """Return true if the sample with the given has the given assignments.
@@ -167,10 +147,8 @@ class Schema(object):
         assignments - must be a mapping from factor name to value
 
         """
-        for f, v in assignments.items():
-            if self.get_factor(sample_name, f) != v:
-                return False
-        return True
+        matches = lambda f: self.get_factor(sample_name, f) == assignments[f]
+        return all(map(matches, assignments))
 
     def samples_with_assignments(self, assignments):
         """Return list of sample names that have the given assignments.
@@ -178,11 +156,9 @@ class Schema(object):
         assignments - must be a mapping from factor name to value
 
         """
-        res = []
-        for name in self.sample_column_names:
-            if self.sample_matches_assignments(name, assignments):
-                res.append(name)
-        return res
+        names = self.sample_column_names
+        matches = lambda x: self.sample_matches_assignments(x, assignments)
+        return filter(matches, names)
 
     def indexes_with_assignments(self, assignments):
         """Return list of indexes that have the given assignments.
@@ -191,9 +167,7 @@ class Schema(object):
 
         """
         samples = self.samples_with_assignments(assignments)
-        logging.debug("Got samples " + str(samples) + " for assignments " + str(assignments))
         indexes = [self.sample_num(s) for s in samples]
-        logging.debug("Got indexes " + str(indexes) + ", my sample name index is " + str(self.sample_name_index))
         return indexes
 
     def possible_assignments(self, factors=None):
@@ -210,19 +184,12 @@ class Schema(object):
 
     def add_factor(self, name, values=[]):
         """Add a factor with the given name and values."""
-        self.factors[name] = []
-
-        for v in values:
-            self.add_factor_value(name, v)
-
+        self.factor_values[name] = list(values)
         for sample in self.sample_to_factor_values:
             self.sample_to_factor_values[sample][name] = None
 
-    def add_factor_value(self, name, value):
-        self.factors[name].append(value)
-
     def remove_factor(self, factor):
-        del self.factors[factor]
+        del self.factor_values[factor]
         for sample in self.sample_to_factor_values:
             del self.sample_to_factor_values[factor]
 
@@ -296,7 +263,7 @@ class Schema(object):
                         sample_cols[name][factor] = value
 
         factors = []
-        for name, values in self.factors.items():
+        for name, values in self.factor_values.items():
             factors.append({ "name" : name, "values" : values })
 
         doc = {
@@ -338,7 +305,7 @@ sample_factor_mapping:
 
     def set_factor(self, sample_name, factor, value):
         """Set a factor for a sample, identified by sample name."""
-        allowed = self.factor_values(factor)
+        allowed = self.factor_values[factor]
         if value not in allowed:
             raise Exception("""\
                 Value '{value}' is not allowed for factor {factor};
@@ -365,5 +332,3 @@ sample_factor_mapping:
         sample."""
 
         return self.sample_name_index[sample_name]
-
-    
