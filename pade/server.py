@@ -12,7 +12,6 @@ import uuid
 import shutil
 import csv
 import pade.redis_session
-import pade.conf
 import redisconfig
 import celery
 import contextlib
@@ -27,7 +26,7 @@ from flask.ext.wtf import (
     FileField, SubmitField, BooleanField, IntegerField, FloatField)
 from werkzeug import secure_filename
 from pade.analysis import assignment_name
-from pade.conf import cumulative_hist
+from pade.confidence import cumulative_hist, adjust_num_diff
 from pade.job import Job, Settings
 from pade.metadb import MetaDB
 from pade.schema import Schema
@@ -537,7 +536,7 @@ def feature(feature_num):
     unperm_count=np.array([ job.results.bin_to_unperm_count[i, bins[i]] for i in range(len(params))])
     mean_perm_count=np.array([ job.results.bin_to_mean_perm_count[i, bins[i]] for i in range(len(params))])
 
-    adjusted=np.array(pade.conf.adjust_num_diff(mean_perm_count, unperm_count, len(job.input.table)))
+    adjusted=np.array(adjust_num_diff(mean_perm_count, unperm_count, len(job.input.table)))
 
     new_scores = (unperm_count - adjusted) / unperm_count
 

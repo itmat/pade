@@ -3,7 +3,11 @@ import numpy as np
 import pade.job
 import scipy.stats
 from collections import OrderedDict
-import pade.stat as stat
+
+from pade.stat import (OneSampleDifferenceTTest, Ftest, MeansRatio, residuals)
+from pade.confidence import bootstrap
+from pade.job import TableWithHeader, Summary
+from pade.layout import random_orderings, layout_is_paired
 
 def predicted_values(job):
     """Return the values predicted by the reduced model.
@@ -46,7 +50,7 @@ def summary_by_conf_level(job):
         best_param_idxs[i] = best
         counts[i]  = np.sum(idxs[best])
 
-    return pade.job.Summary(bins, best_param_idxs, counts)
+    return Summary(bins, best_param_idxs, counts)
 
 def compute_coeffs(job):
     """Calculate the coefficients for the full model.
@@ -62,7 +66,7 @@ def compute_coeffs(job):
     fitted = job.full_model.fit(job.input.table)
     names  = [assignment_name(a) for a in fitted.labels]    
     values = fitted.params
-    return pade.job.TableWithHeader(names, values)
+    return TableWithHeader(names, values)
 
 
 
@@ -117,7 +121,7 @@ def compute_fold_change(job):
     for i in range(len(fold_changes)):
         result[..., i] = fold_changes[i]
 
-    return pade.job.TableWithHeader(names, result)
+    return TableWithHeader(names, result)
 
 def compute_means(job):
     """Compute the means for each group in the full model.
@@ -134,7 +138,7 @@ def compute_means(job):
     names = [assignment_name(a) 
              for a in job.schema.possible_assignments(factors)]
     values = get_group_means(job.schema, job.input.table, factors)
-    return pade.job.TableWithHeader(names, values)
+    return TableWithHeader(names, values)
 
 def get_group_means(schema, data, factors):
     logging.debug("Getting group means for factors " + str(factors))
@@ -156,15 +160,15 @@ def get_stat_fn(job):
     name = job.settings.stat_name
 
     if name == 'one_sample_t_test':
-        constructor = pade.stat.OneSampleDifferenceTTest
+        constructor = OneSampleDifferenceTTest
     elif name == 'f_test':
-        constructor = pade.stat.Ftest
+        constructor = Ftest
     elif name == 'means_ratio':
-        constructor = pade.stat.MeansRatio
+        constructor = MeansRatio
     else:
         raise Exception("No statistic called " + str(job.settings.stat_name))
 
-    if constructor == pade.stat.Ftest and layout_is_paired(job.block_layout):
+    if constructor == Ftest and layout_is_paired(job.block_layout):
         raise UsageException(
 """I can't use the f-test with this data, because the reduced model
 you specified has groups with only one sample. It seems like you have
@@ -210,7 +214,7 @@ def compute_mean_perm_count(job):
     if job.settings.sample_from_residuals:
         prediction = predicted_values(job)
         diffs      = table - prediction
-        return pade.conf.bootstrap(
+        return bootstrap(
             prediction,
             stat_fn, 
             indexes=perms,
@@ -240,10 +244,10 @@ def compute_mean_perm_count(job):
                                  "ids given that don't exist in the data: " +
                                  str(ids))
 
-            return pade.conf.bootstrap(data, stat_fn, indexes=perms,bins=bins)
+            return bootstrap(data, stat_fn, indexes=perms,bins=bins)
 
         else:
-            return pade.conf.bootstrap(table, stat_fn, indexes=perms,bins=bins)
+            return bootstrap(table, stat_fn, indexes=perms,bins=bins)
 
 
 def assignment_name(a):
@@ -254,5 +258,4 @@ def assignment_name(a):
     parts = ["{0}={1}".format(k, v) for k, v in a.items()]
 
     return ", ".join(parts)
-
 

@@ -4,6 +4,8 @@
 
 import collections
 import logging
+import numpy as np
+from pade.stat import residuals
 from bisect import bisect
 
 Accumulator = collections.namedtuple(

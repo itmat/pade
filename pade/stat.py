@@ -117,8 +117,7 @@ class LayoutPairTest(object):
     def __init__(self, condition_layout, block_layout):
         self.condition_layout = condition_layout
         self.block_layout = block_layout
-    
-    
+
 
 class Ftest(LayoutPairTest):
     """Computes the F-test.

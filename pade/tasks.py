@@ -14,10 +14,12 @@ from pade.celery import celery
 import logging
 import pade.analysis as an
 import numpy as np
-import pade.conf
+
 from StringIO import StringIO
-from pade.stat import *
-from pade.conf import *
+from pade.confidence import (
+    cumulative_hist, bins_uniform, confidence_scores, 
+    assign_scores_to_features)
+
 from pade.job import (
     Job, Settings, Results, Input, TableWithHeader, Summary)
 from pade.schema import Schema
@@ -106,7 +108,7 @@ def compute_raw_stats(path):
 def choose_bins(path):
     logging.info("Choosing bins for discretized statistic space")
     job = load_job(path)
-    bins = pade.conf.bins_uniform(job.settings.num_bins, job.results.raw_stats)
+    bins = bins_uniform(job.settings.num_bins, job.results.raw_stats)
     with h5py.File(path, 'r+') as db:
         db.create_dataset("bins", data=bins)
     return path
@@ -128,7 +130,7 @@ def compute_conf_scores(path):
     raw  = job.results.raw_stats
     bins = job.results.bins
     
-    unperm_counts = pade.conf.cumulative_hist(raw, bins)
+    unperm_counts = cumulative_hist(raw, bins)
     perm_counts   = job.results.bin_to_mean_perm_count
     bin_to_score  = confidence_scores(unperm_counts, perm_counts, np.shape(raw)[-1])
     feature_to_score = assign_scores_to_features(
@@ -195,17 +197,17 @@ def compute_orderings(path):
 
 def steps(settings, schema, infile_path, sample_indexes_path, output_path):
 
-    copy_input = pade.tasks.copy_input.s(infile_path, schema, settings)
+    do_copy_input = copy_input.s(infile_path, schema, settings)
     
     if sample_indexes_path is not None:
-        make_sample_indexes = pade.tasks.load_sample_indexes.s(os.path.abspath(sample_indexes_path))
+        make_sample_indexes = load_sample_indexes.s(os.path.abspath(sample_indexes_path))
     else:
-        make_sample_indexes = pade.tasks.gen_sample_indexes.s()
+        make_sample_indexes = gen_sample_indexes.s()
 
-    steps = [
+    return [
 
         # First we need to load the input table.
-        copy_input,
+        do_copy_input,
 
         # Then construct (or load) a list of permutations of the indexes
         make_sample_indexes,
@@ -215,29 +217,28 @@ def steps(settings, schema, infile_path, sample_indexes_path, output_path):
         # coefficients). We should be able to chunk this up. We would
         # then simply need to copy the chunk results into the master
         # job db.
-        pade.tasks.compute_raw_stats.s(),
+        compute_raw_stats.s(),
 
         # Choose bins for our histogram based on the values of the raw
         # stats. We would need to merge all of the above chunks first.
-        pade.tasks.choose_bins.s(),
+        choose_bins.s(),
 
         # Then run the permutations and come up with cumulative
         # counts. This can be chunked. We would need to add another
         # step that merges the results together.
-        pade.tasks.compute_mean_perm_count.s(),
+        compute_mean_perm_count.s(),
 
         # Compare the unpermuted counts to the mean permuted counts to
         # come up with confidence scores.
-        pade.tasks.compute_conf_scores.s(),
+        compute_conf_scores.s(),
 
         # Produce a small summary table
-        pade.tasks.summarize_by_conf_level.s(),
+        summarize_by_conf_level.s(),
 
         # Now that we have all the stats, compute orderings using
         # different keys
-        pade.tasks.compute_orderings.s()]
+        compute_orderings.s()]
 
-    return steps
 
 def load_input(db):
     return Input(db['table'][...],
