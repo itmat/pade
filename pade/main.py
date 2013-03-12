@@ -140,14 +140,14 @@ Analyzing {filename}, which is described by the schema {schema}.
         output_path=db)
 
     if args.distrib:
-        job = celery.chain(steps)(db).get()
+        celery.chain(steps)(db).get()
     else:
         for step in steps:
             res = step.apply((db,))
             if not res.successful():
                 raise Exception(res.traceback)
-            job = res.get()
 
+    job = pade.tasks.load_job(db)
     print_summary(job)
 
     print """<
