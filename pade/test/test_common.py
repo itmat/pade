@@ -2,6 +2,7 @@ import unittest
 import numpy as np
 
 from pade.main import *
+from pade.model import ModelExpression, ModelExpressionException
 
 class CommonTest(unittest.TestCase):
 

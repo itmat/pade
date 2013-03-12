@@ -3,9 +3,8 @@ import os
 import shutil
 import logging
 
-from pade.schema import Schema
 from StringIO import StringIO
-
+from schema import Schema
 
 class MetaDB(object):
 

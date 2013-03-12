@@ -20,21 +20,22 @@ import jinja2
 import logging
 import numpy as np
 import h5py
-from numpy.lib.recfunctions import append_fields
 import os
 import os.path
 import sys
 import scipy.stats
 import celery
-
-from pade.common import *
-from pade.performance import *
-from pade.schema import *
-from pade.model import *
-import pade.stat
-from pade.job import Job
-from pade.conf import *
 import pade.tasks
+import textwrap
+
+from numpy.lib.recfunctions import append_fields
+from pade.performance import *
+from pade.schema import Schema
+from pade.model import Model
+from pade.stat import GroupSymbols
+from pade.job import Job
+
+
 
 REAL_PATH = os.path.realpath(__file__)
 
@@ -42,6 +43,18 @@ class UsageException(Exception):
     """Thrown when the user gave invalid parameters."""
     pass
 
+def fix_newlines(msg):
+    """Attempt to wrap long lines as paragraphs.
+
+    Treats each line in the given message as a paragraph. Wraps each
+    paragraph to avoid long lines. Returns a string that contains all
+    the wrapped paragraphs, separated by blank lines.
+
+    """
+    output = ""
+    for par in msg.split("\n\n"):
+        output += textwrap.fill(textwrap.dedent(par)) + "\n"
+    return output
 
 ########################################################################
 ###
@@ -69,7 +82,6 @@ Confidence |   Num.   | Tuning
 # Handlers for command-line actions
 #
     
-@profiled
 def do_setup(args):
     schema = init_job(
         infile=args.infile,
@@ -107,7 +119,7 @@ def do_makesamples(args):
     output.write("# Block layout:     " + str(job.block_layout) + "\n")
     output.write("# Condition layout: " + str(job.condition_layout) + "\n")
 
-    test = pade.stat.GroupSymbols(job.condition_layout)
+    test = GroupSymbols(job.condition_layout)
 
     for row in res:
         for x in row:
@@ -369,7 +381,6 @@ def setup_logging(args):
 
 
 
-@profiled
 def main():
     """Run pade."""
 

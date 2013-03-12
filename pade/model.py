@@ -1,6 +1,6 @@
 import numpy as np
 from collections import namedtuple
-from itertools import combinations, product
+from itertools import combinations
 import StringIO
 import tokenize
 import logging
@@ -98,8 +98,6 @@ class ModelExpression:
         if len(variables) > 0:
             return ModelExpression(operator=operator, variables=variables)
 
-
-
     def __str__(self):
         if len(self.variables) == 0:
             return ""
@@ -114,26 +112,18 @@ class Model:
     def __init__(self, schema, expr):
         self.schema = schema
         self.expr = ModelExpression.parse(expr)
-        self.validate_model()
-
-    def validate_model(self):
-        """Validate the model against the given schema.
-
-        Raises an exception if the model refers to any variables that are
-        not defined in schema.
-        
-        """
-        
         for factor in self.expr.variables:
             if factor not in self.schema.factors:
-                raise Exception("Factor '" + factor + "' is not defined in the schema. Valid factors are " + str(self.schema.factors.keys()))
+                raise Exception(
+                    "Factor '" + factor + 
+                    "' is not defined in the schema. Valid factors are " + 
+                    str(self.schema.factors.keys()))
 
     @property
     def layout(self):
         s = self.schema
         return [s.indexes_with_assignments(a)
                 for a in s.possible_assignments(self.expr.variables)]
-
 
     def fit(self, data):
 

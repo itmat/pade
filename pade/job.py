@@ -4,12 +4,13 @@ import logging
 import h5py
 import collections
 import csv
+import numpy as np
 
 from StringIO import StringIO
-from pade.schema import Schema
+
 from pade.model import Model
-from pade.common import *
-import numpy as np
+from pade.common import assert_ndarray
+
 
 DEFAULT_STATISTIC = 'f_test'
 DEFAULT_NUM_BINS = 1000

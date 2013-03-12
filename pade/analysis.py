@@ -3,12 +3,8 @@ import numpy as np
 import pade.job
 import scipy.stats
 from collections import OrderedDict
-from pade.common import assignment_name
 import pade.stat as stat
-from pade.stat import *
-from pade.layout import *
 
-@profiled
 def predicted_values(job):
     """Return the values predicted by the reduced model.
     
@@ -248,5 +244,15 @@ def compute_mean_perm_count(job):
 
         else:
             return pade.conf.bootstrap(table, stat_fn, indexes=perms,bins=bins)
+
+
+def assignment_name(a):
+
+    if len(a) == 0:
+        return "intercept"
+    
+    parts = ["{0}={1}".format(k, v) for k, v in a.items()]
+
+    return ", ".join(parts)
 
 

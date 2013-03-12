@@ -6,21 +6,20 @@ may use these functions outside of the standard PADE workflow.
 
 """
 
-import numbers
 import numpy as np
-import numpy.ma as ma
 import itertools
-import collections
 
 from scipy.stats import gmean
-from pade.performance import profiling, profiled
-from pade.common import double_sum
 from pade.layout import (
     intersect_layouts, apply_layout, layout_is_paired)
 
 class UnsupportedLayoutException(Exception):
     """Thrown when a statistic is used with a layout that it can't support."""
     pass
+
+def double_sum(data):
+    """Returns the sum of data over the first two axes."""
+    return np.sum(np.sum(data, axis=-1), axis=-1)
 
 
 def group_means(data, layout):

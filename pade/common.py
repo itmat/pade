@@ -8,14 +8,6 @@ project.
 import os
 import logging
 import contextlib
-import resource
-import numpy as np
-import textwrap
-
-def double_sum(data):
-    """Returns the sum of data over the first two axes."""
-    return np.sum(np.sum(data, axis=-1), axis=-1)
-
 
 @contextlib.contextmanager
 def chdir(path):
@@ -34,36 +26,6 @@ def chdir(path):
         os.chdir(cwd)
 
 
-@contextlib.contextmanager
-def figure(path):
-    """Context manager for saving a figure.
-
-    Clears the current figure, yeilds, then saves the figure to the
-    given path and clears the figure again.
-
-    """
-    try:
-        logging.debug("Creating figure " + path)
-        plt.clf()
-        yield
-        plt.savefig(path)
-    finally:
-        plt.clf()
-
-
-def fix_newlines(msg):
-    """Attempt to wrap long lines as paragraphs.
-
-    Treats each line in the given message as a paragraph. Wraps each
-    paragraph to avoid long lines. Returns a string that contains all
-    the wrapped paragraphs, separated by blank lines.
-
-    """
-    output = ""
-    for par in msg.split("\n\n"):
-        output += textwrap.fill(textwrap.dedent(par)) + "\n"
-    return output
-
 def makedirs(path):
     """Attempt to make the directory.
 
@@ -77,16 +39,6 @@ def makedirs(path):
     except OSError as e:
         if not os.path.isdir(path):
             raise e
-
-def assignment_name(a):
-
-    if len(a) == 0:
-        return "intercept"
-    
-    parts = ["{0}={1}".format(k, v) for k, v in a.items()]
-
-    return ", ".join(parts)
-
 
 def assert_ndarray(array, name=None, ndim=None):
     if ndim is not None:

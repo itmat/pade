@@ -5,7 +5,6 @@
 import collections
 import logging
 from bisect import bisect
-from pade.performance import *
 
 Accumulator = collections.namedtuple(
     'Accumulator',
@@ -29,7 +28,6 @@ def _binning_accumulator(bins, num_samples):
 
     return Accumulator(initializer, reduce_fn, finalize_fn)
 
-@profiled
 def bootstrap(data,
               stat_fn,
               R=1000,
@@ -188,8 +186,6 @@ def bins_custom(num_bins, stats):
     return bins
 
 
-
-@profiled
 def confidence_scores(raw_counts, perm_counts, num_features):
     """Return confidence scores.
     
@@ -216,7 +212,6 @@ def confidence_scores(raw_counts, perm_counts, num_features):
     return res
 
 
-@profiled
 def assign_scores_to_features(stats, bins, scores):
     """Return an array that gives the confidence score for each feature.
     

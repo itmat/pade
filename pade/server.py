@@ -5,33 +5,33 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from flask.ext.wtf import (
-    Form, StringField, Required, FieldList, SelectField, 
-    FileField, SubmitField, BooleanField, IntegerField, FloatField)
 import numpy as np
-import argparse
 import logging 
 import StringIO
-import pade.conf
 import uuid
 import shutil
 import csv
 import pade.redis_session
+import pade.conf
 import redisconfig
 import celery
+import contextlib
 
 from redis import Redis
-
+from bisect import bisect
+from flask import (
+    Flask, render_template, make_response, request, session, redirect, 
+    url_for, flash)
+from flask.ext.wtf import (
+    Form, StringField, Required, FieldList, SelectField, 
+    FileField, SubmitField, BooleanField, IntegerField, FloatField)
+from werkzeug import secure_filename
+from pade.analysis import assignment_name
+from pade.conf import cumulative_hist
+from pade.job import Job, Settings
+from pade.metadb import MetaDB
 from pade.schema import Schema
 
-from bisect import bisect
-from flask import Flask, render_template, make_response, request, session, redirect, url_for, flash
-from werkzeug import secure_filename
-from pade.common import *
-from pade.job import Job, Settings
-
-from pade.conf import cumulative_hist
-from pade.metadb import MetaDB
 ALLOWED_EXTENSIONS = set(['txt', 'tab'])
 UPLOAD_FOLDER = 'uploads'
 
@@ -766,3 +766,20 @@ def submit_job():
     print "Status: " + str(result.status)
     print "Done"
     
+
+@contextlib.contextmanager
+def figure(path):
+    """Context manager for saving a figure.
+
+    Clears the current figure, yeilds, then saves the figure to the
+    given path and clears the figure again.
+
+    """
+    try:
+        logging.debug("Creating figure " + path)
+        plt.clf()
+        yield
+        plt.savefig(path)
+    finally:
+        plt.clf()
+

@@ -8,7 +8,6 @@ whole layout represents some grouping of samples.
 """
 
 import numpy as np
-import numbers
 from itertools import combinations, product
 from scipy.misc import comb
 

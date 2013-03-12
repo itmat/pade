@@ -3,6 +3,7 @@ import numpy as np
 
 from pade.main import *
 from pade.analysis import *
+from pade.model import dummy_vars, DummyVarTable, DummyVarAssignment, ModelExpression
 
 class ModelTest(unittest.TestCase):
 
