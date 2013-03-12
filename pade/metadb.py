@@ -87,13 +87,13 @@ class MetaDB(object):
         return self._all_objects(SchemaMeta)
 
     def add_job_db(self, name, comments):
-        return self._add_obj(JobDBMeta, name, comments)
+        return self._add_obj(JobMeta, name, comments)
 
     def job_db(self, obj_id):
-        return self._load_obj(JobDBMeta, obj_id)
+        return self._load_obj(JobMeta, obj_id)
 
     def all_job_dbs(self):
-        return self._all_objects(JobDBMeta)
+        return self._all_objects(JobMeta)
 
     def add_task_id(self, obj, task_id):
         self.redis.sadd(self.task_ids_key(obj), task_id)
@@ -132,7 +132,7 @@ class InputFileMeta(ObjMeta):
     def size(self):
         return os.stat(self.path).st_size
         
-class JobDBMeta(ObjMeta):
+class JobMeta(ObjMeta):
     """Meta-data for an HDF5 job database."""
     obj_type = 'job_db'
     collection_name = 'pade:job_dbs'
