@@ -27,7 +27,7 @@ from flask.ext.wtf import (
 from werkzeug import secure_filename
 from pade.analysis import assignment_name
 from pade.confidence import cumulative_hist, adjust_num_diff
-from pade.job import Job, Settings
+from pade.model import Job, Settings
 from pade.metadb import MetaDB
 from pade.schema import Schema
 
@@ -215,42 +215,42 @@ class JobSettingsForm(Form):
     bins = IntegerField(
         'Number of bins', 
         validators=[Required()],
-        default=pade.job.DEFAULT_NUM_BINS)
+        default=pade.model.DEFAULT_NUM_BINS)
 
     permutations = IntegerField(
         'Maximum number of permutations', 
         validators=[Required()],
-        default=pade.job.DEFAULT_NUM_SAMPLES)
+        default=pade.model.DEFAULT_NUM_SAMPLES)
 
     sample_from_residuals = BooleanField(
         'Sample from residuals', 
         validators=[Required()],
-        default=pade.job.DEFAULT_SAMPLE_FROM_RESIDUALS)
+        default=pade.model.DEFAULT_SAMPLE_FROM_RESIDUALS)
 
     sample_with_replacement = BooleanField(
         'Sample with replacement', 
         validators=[Required()],
-        default=pade.job.DEFAULT_SAMPLE_WITH_REPLACEMENT)
+        default=pade.model.DEFAULT_SAMPLE_WITH_REPLACEMENT)
 
     equalize_means = BooleanField(
         'Equalize means', 
         validators=[Required()],
-        default=pade.job.DEFAULT_EQUALIZE_MEANS)
+        default=pade.model.DEFAULT_EQUALIZE_MEANS)
 
     min_conf_level = FloatField(
         'Minimum confidence level', 
         validators=[Required()],
-        default=pade.job.DEFAULT_MIN_CONF)
+        default=pade.model.DEFAULT_MIN_CONF)
 
     conf_interval = FloatField(
         'Confidence interval', 
         validators=[Required()],
-        default=pade.job.DEFAULT_CONF_INTERVAL)
+        default=pade.model.DEFAULT_CONF_INTERVAL)
     
     tuning_params = StringField(
         'Tuning parameters', 
         validators=[Required()],
-        default=' '.join(map(str, pade.job.DEFAULT_TUNING_PARAMS)))
+        default=' '.join(map(str, pade.model.DEFAULT_TUNING_PARAMS)))
 
     submit = SubmitField()
     
@@ -741,7 +741,7 @@ def submit_job():
     
     job = Job(settings=settings,
               schema=schema,
-              results=pade.job.Results())
+              results=pade.model.Results())
 
     job_meta = app.mdb.add_job_db('Job db', 'comments')
     

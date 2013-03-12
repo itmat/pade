@@ -20,7 +20,7 @@ from pade.confidence import (
     cumulative_hist, bins_uniform, confidence_scores, 
     assign_scores_to_features)
 
-from pade.job import (
+from pade.model import (
     Job, Settings, Results, Input, TableWithHeader, Summary)
 from pade.schema import Schema
 import h5py

@@ -4,7 +4,7 @@ import shutil
 import os
 
 from pade.main import *
-from pade.job  import *
+from pade.model  import *
 
 @contextlib.contextmanager
 def tempdir():

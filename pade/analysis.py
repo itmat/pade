@@ -1,13 +1,13 @@
 import logging
 import numpy as np
-import pade.job
+import pade.model
 import scipy.stats
 from collections import OrderedDict, namedtuple
 from itertools import combinations
 
 from pade.stat import (OneSampleDifferenceTTest, Ftest, MeansRatio, residuals)
 from pade.confidence import bootstrap
-from pade.job import TableWithHeader, Summary
+from pade.model import TableWithHeader, Summary
 from pade.layout import random_orderings, layout_is_paired
 
 def predicted_values(job):
@@ -33,11 +33,11 @@ def summary_by_conf_level(job):
     """Summarize the counts by conf level.
 
     :param job:
-      The pade.job.Job
+      The pade.model.Job
     
     :return:
 
-      A pade.job.Summary summarizing the results.
+      A pade.model.Summary summarizing the results.
 
     """
     
@@ -75,7 +75,7 @@ def compute_fold_change(job):
     """Compute fold change.
 
     :param job:
-      The pade.job.Job
+      The pade.model.Job
 
     :return:
       A TableWithHeader giving the fold change for each non-baseline
@@ -128,7 +128,7 @@ def compute_means(job):
     """Compute the means for each group in the full model.
     
     :param job:
-      The pade.job.Job
+      The pade.model.Job
 
     :return:
       A TableWithHeader giving the mean for each of the blocking and

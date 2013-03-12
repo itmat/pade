@@ -31,10 +31,8 @@ import textwrap
 from numpy.lib.recfunctions import append_fields
 from pade.performance import *
 from pade.schema import Schema
-from pade.model import Model
+from pade.model import Job, Model, Settings, Input, Results
 from pade.stat import GroupSymbols
-from pade.job import Job
-
 
 
 REAL_PATH = os.path.realpath(__file__)
@@ -98,14 +96,14 @@ Once you have finished the schema, you will need to run "pade run" to do the ana
 
 def do_makesamples(args):
 
-    settings=pade.job.Settings(
+    settings=Settings(
         sample_with_replacement=args.sample_with_replacement,
         num_samples=args.num_samples,
         block_variables=args.block,
         condition_variables=args.condition)
 
     schema = load_schema(args.schema)
-    input  = pade.job.Input.from_raw_file(args.infile.name, schema, limit=1)
+    input  = Input.from_raw_file(args.infile.name, schema, limit=1)
     job = Job(input=input,
               settings=settings,
               schema=schema)
@@ -141,7 +139,7 @@ Analyzing {filename}, which is described by the schema {schema}.
 
     job = Job(settings=settings,
               schema=schema,
-              results=pade.job.Results())
+              results=Results())
 
     steps = pade.tasks.steps(
         infile_path=infile,
@@ -175,7 +173,6 @@ To launch a small web server to generate the HTML reports, run:
 def do_server(args):
     import pade.server
 
-#    pade.server.app.job = pade.job.load_job(args.db)
     if args.debug:
         pade.server.app.debug = True
     pade.server.app.run(port=args.port)
@@ -187,7 +184,7 @@ def do_report(args):
     print """
 Generating report for result database {job}.
 """.format(job=path)
-    job = pade.job.load_job(path)
+    job = load_job(path)
     filename = args.output
     save_text_output(job, filename=filename)
     print "Saved text report to ", filename
@@ -231,7 +228,7 @@ def args_to_settings(args):
 
     # Tuning params
     if args.tuning_param is None or len(args.tuning_param) == 0 :
-        tuning_params = np.array(pade.job.DEFAULT_TUNING_PARAMS)
+        tuning_params = np.array(pade.model.DEFAULT_TUNING_PARAMS)
     else:
         tuning_params = np.array(args.tuning_param)
 
@@ -240,7 +237,7 @@ def args_to_settings(args):
     else:
         equalize_means_ids = set([line.rstrip() for line in equalize_means_ids])
 
-    return pade.job.Settings(
+    return pade.model.Settings(
         num_bins=args.num_bins,
         num_samples=args.num_samples,
         sample_from_residuals=args.sample_from_residuals,
@@ -497,12 +494,12 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
     sampling_parent.add_argument(
         '--num-samples', '-R',
         type=int,
-        default=pade.job.DEFAULT_NUM_SAMPLES,
+        default=pade.model.DEFAULT_NUM_SAMPLES,
         help="The number of samples to use if bootstrapping, or the maximum number of permutations to use if doing permutation test.")
     sampling_parent.add_argument(
         '--sample-with-replacement',
         action='store_true',
-        default=pade.job.DEFAULT_SAMPLE_WITH_REPLACEMENT,
+        default=pade.model.DEFAULT_SAMPLE_WITH_REPLACEMENT,
         help="""Use sampling with replacement (bootstrapping) rather than permutation""")
 
     # Input file
@@ -607,7 +604,7 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
         '--stat', '-s',
 #        choices=['f', 't', 'f_sqrt'],
         choices=['f_test', 'one_sample_t_test', 'means_ratio'],
-        default=pade.job.DEFAULT_STATISTIC,
+        default=pade.model.DEFAULT_STATISTIC,
         help="The statistic to use.")
 
     grp.add_argument(
@@ -625,24 +622,24 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
     grp.add_argument(
         '--num-bins',
         type=int,
-        default=pade.job.DEFAULT_NUM_BINS,
+        default=pade.model.DEFAULT_NUM_BINS,
         help="Number of bins to divide the statistic space into. You probably don't need to change this.")
 
     grp.add_argument(
         '--sample-from-residuals',
-        default=pade.job.DEFAULT_SAMPLE_FROM_RESIDUALS,
+        default=pade.model.DEFAULT_SAMPLE_FROM_RESIDUALS,
         action='store_true',
         help="""Sample from residuals rather than raw data.""")
 
     grp.add_argument(
         '--min-conf',
-        default=pade.job.DEFAULT_MIN_CONF,
+        default=pade.model.DEFAULT_MIN_CONF,
         type=float,
         help="Smallest confidence level to report")
 
     grp.add_argument(
         '--conf-interval',
-        default=pade.job.DEFAULT_CONF_INTERVAL,
+        default=pade.model.DEFAULT_CONF_INTERVAL,
         type=float,
         help="Interval of confidence levels")
 
@@ -650,7 +647,7 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
         '--no-equalize-means',
         action='store_false',
         dest='equalize_means',
-        default=pade.job.DEFAULT_EQUALIZE_MEANS,
+        default=pade.model.DEFAULT_EQUALIZE_MEANS,
         help="""Shift values of samples within same group for same feature so that their mean is 0 before the permutation test. This will likely cause Pade to be more conservative in selecting features.""")
 
     grp.add_argument(
