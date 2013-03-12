@@ -95,6 +95,15 @@ class MetaDB(object):
     def all_job_dbs(self):
         return self._all_objects(JobDBMeta)
 
+    def add_task_id(self, obj, task_id):
+        self.redis.sadd(self.task_ids_key(obj), task_id)
+
+    def task_ids_key(self, obj):
+        return self._obj_key('taskids', str(obj.obj_id))
+
+    def get_task_ids(self, obj):
+        return self.redis.smembers(self.task_ids_key(obj))
+                        
 class ObjMeta(object):
     """Meta-data for an object we store on the filesystem."""
     def __init__(self, obj_id, name, comments, path, dt_created=dt.datetime.now()):

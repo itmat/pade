@@ -14,7 +14,7 @@ called "treated" with possible values "yes" and "no".
     {% for factor in factors %}
     <li>{{ factor }}</li>
     <ul>
-      {% for value in factors[factor] %}
+      {% for value in factor_values[factor] %}
       <li>{{value}}</li>
       {% endfor %}
     </ul>

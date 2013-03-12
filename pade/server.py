@@ -17,6 +17,7 @@ import celery
 import contextlib
 import os
 
+from celery.result import AsyncResult
 from redis import Redis
 from bisect import bisect
 from flask import (
@@ -47,7 +48,7 @@ app = PadeApp()
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.session_interface = pade.redis_session.RedisSessionInterface(
     Redis(db=redisconfig.DB_SESSION))
-app.mdb = MetaDB(UPLOAD_FOLDER, Redis(db=redisconfig.DB_METADB_DEV))
+app.mdb = MetaDB(UPLOAD_FOLDER, Redis(db=redisconfig.DB_METADB))
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -277,6 +278,7 @@ def add_factor():
         return render_template('add_factor.html',
                                form=form,
                                factors=factors,
+                               factor_values=schema.factor_values,
                                allow_next=allow_next)
 
     elif request.method == 'POST':
@@ -752,15 +754,30 @@ def submit_job():
 
     chained = celery.chain(steps)
     result = chained.apply_async((job,))
-    print "Chained is " + str(chained) + " (" + str(type(chained)) + ")"
-    print "Result is " + str(result) + " (" + str(type(result)) + ")"
-    print "Children are " + str(result.children)
-    print "Status: " + str(result.status)
+    app.mdb.add_task_id(job_meta, result.task_id)
 
-    print "Waiting..."
-    job = result.get()
-    print "Status: " + str(result.status)
-    print "Done"
+    return redirect(url_for('job_status', job_id=job_meta.obj_id))
+
+@app.route("/job/<job_id>")
+def job_status(job_id):
+
+    job_meta = app.mdb.job_db(job_id)
+
+    task_ids = app.mdb.get_task_ids(job_meta)
+    print "Got task ids ", task_ids
+
+    tasks = [ AsyncResult(x) for x in task_ids ]
+
+    if len(tasks) != 1:
+        raise Exception("I got " + str(len(tasks)) +
+                        " tasks for job " + 
+                        str(job_id) + "; this should never happen")
+    task = tasks[0]
+
+    return render_template(
+        'job_status.html',
+        job_id=job_id,
+        status=task.status)
     
 
 @contextlib.contextmanager
