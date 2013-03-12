@@ -3,7 +3,7 @@ import numpy as np
 
 from pade.main import *
 from pade.analysis import *
-from pade.model import dummy_vars, DummyVarTable, DummyVarAssignment, ModelExpression
+
 
 class ModelTest(unittest.TestCase):
 
@@ -67,7 +67,7 @@ class ModelTest(unittest.TestCase):
 
         expected_labels = ({}, {'treated' : True}, {'sex' : 'female'}, { 'sex': 'female', 'treated' : True})
 
-        fitted = model.fit(data)
+        fitted = fit_model(model, data)
 
         self.assertEquals(expected_labels, fitted.labels)
         np.testing.assert_almost_equal(expected_coeffs, fitted.params)
@@ -86,7 +86,7 @@ class ModelTest(unittest.TestCase):
             
 
         expected_labels = ({}, {'treated' : True}, {'sex' : 'female'})
-        fitted = model.fit(data)
+        fitted = fit_model(model, data)
         self.assertEquals(expected_labels, fitted.labels)
         np.testing.assert_almost_equal(expected_coeffs, fitted.params)
 

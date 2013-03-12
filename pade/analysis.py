@@ -2,7 +2,8 @@ import logging
 import numpy as np
 import pade.job
 import scipy.stats
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
+from itertools import combinations
 
 from pade.stat import (OneSampleDifferenceTTest, Ftest, MeansRatio, residuals)
 from pade.confidence import bootstrap
@@ -63,7 +64,7 @@ def compute_coeffs(job):
       for each feature.
 
     """
-    fitted = job.full_model.fit(job.input.table)
+    fitted = fit_model(job.full_model, job.input.table)
     names  = [assignment_name(a) for a in fitted.labels]    
     values = fitted.params
     return TableWithHeader(names, values)
@@ -258,4 +259,116 @@ def assignment_name(a):
     parts = ["{0}={1}".format(k, v) for k, v in a.items()]
 
     return ", ".join(parts)
+
+
+
+DummyVarTable = namedtuple(
+    "DummyVarTable",
+    ["names", "rows"])
+
+DummyVarAssignment = namedtuple(
+    "DummyVarAssignment",
+    ["factor_values",
+     "bits",
+     "indexes"])
+
+FittedModel = namedtuple(
+    "FittedModel",
+    ["labels",
+     "x",
+     "y_indexes",
+     "params"])
+
+def dummy_vars(schema, factors=None, level=None):
+    """
+    level=0 is intercept only
+    level=1 is intercept plus main effects
+    level=2 is intercept, main effects, interactions between two variables
+    ...
+    level=n is intercept, main effects, interactions between n variables
+
+    """ 
+    factors = schema._check_factors(factors)
+
+    if level is None:
+        return dummy_vars(schema, factors, len(factors))
+
+    if level == 0:
+        names = ({},)
+        rows = []
+        for a in schema.possible_assignments(factors):
+            rows.append(
+                DummyVarAssignment(a.values(), (True,), schema.samples_with_assignments(a)))
+        return DummyVarTable(names, rows)
+
+    res = dummy_vars(schema, factors, level - 1)
+
+    col_names = tuple(res.names)
+    rows      = list(res.rows)
+
+    # Get col names
+    for interacting in combinations(factors, level):
+        for a in schema.factor_combinations(interacting):
+            if schema.has_baseline(dict(zip(interacting, a))):
+                continue
+            col_names += ({ interacting[i] : a[i] for i in range(len(interacting)) },)
+
+    for i, dummy in enumerate(rows):
+        (factor_values, bits, indexes) = dummy
+
+        # For each subset of factors of size level
+        for interacting in combinations(factors, level):
+
+            my_vals = ()
+            for j in range(len(factors)):
+                if factors[j] in interacting:
+                    my_vals += (factor_values[j],)
+
+            # For each possible assignment of values to these factors
+            for a in schema.factor_combinations(interacting):
+                if schema.has_baseline(dict(zip(interacting, a))):
+                    continue
+
+                # Test if this row of the result table has all the
+                # values in this assignment
+                matches = my_vals == a
+                bits = bits + (matches,)
+
+        rows[i] = DummyVarAssignment(tuple(factor_values), bits, indexes)
+
+    return DummyVarTable(col_names, rows)
+
+
+
+
+def fit_model(model, data):
+
+    logging.info("Computing coefficients using least squares for " +
+             str(len(data)) + " rows")
+
+    effect_level = 1 if model.expr.operator == '+' else len(model.expr.variables)
+
+    dummies = dummy_vars(model.schema, level=effect_level, factors=model.expr.variables)
+
+    x = []
+    indexes = []
+
+    for row in dummies.rows:
+        for index in row.indexes:
+            x.append(row.bits)
+            indexes.append(model.schema.sample_name_index[index])
+
+    x = np.array(x, bool)
+
+    num_vars = np.size(x, axis=1)
+    shape = np.array((len(data), num_vars))
+
+    result = np.zeros(shape)
+
+    for i, row in enumerate(data):
+        y = row[indexes]
+        (coeffs, residuals, rank, s) = np.linalg.lstsq(x, y)
+        result[i] = coeffs
+
+    return FittedModel(dummies.names, x, indexes, result)
 
