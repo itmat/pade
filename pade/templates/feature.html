@@ -42,14 +42,14 @@
 <h2>Plots</h2>
 
 <h3>This shows the mean and standard deviation of the measurements for each group</h3>
-<img src="{{ url_for('measurement_bars', feature_num=feature_num) }}"></img>
+<img src="{{ url_for('measurement_bars', job_id=job.job_id, feature_num=feature_num) }}"></img>
 
 {% for v in factors %}
-<img src="{{ url_for('measurement_bars', feature_num=feature_num, variable=v) }}"></img>
+<img src="{{ url_for('measurement_bars', job_id=job.job_id, feature_num=feature_num, variable=v) }}"></img>
 {% endfor %}
 
 <h3>This shows the actual measured values for each group</h3>
-<img src="{{ url_for('measurement_scatter', feature_num=feature_num) }}"></img>
+<img src="{{ url_for('measurement_scatter', job_id=job.job_id, feature_num=feature_num) }}"></img>
 
 <h2>Details by tuning parameter</h2>
 

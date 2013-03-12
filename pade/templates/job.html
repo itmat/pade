@@ -72,7 +72,7 @@
   {% for i in range(job.summary.counts | length) %}
   <tr>
     <td>{{ job.summary.bins[i] }}</td>
-    <td><a href="{{url_for('details', conf_level=i)}}">{{ job.summary.counts[i] }}</a></td>
+    <td><a href="{{url_for('details', job_id=job.job_id, conf_level=i)}}">{{ job.summary.counts[i] }}</a></td>
   </tr>
   {% endfor %}
 

@@ -440,12 +440,12 @@ def job_confirmation():
         schema=schema,
         settings=settings)
 
-@app.route("/measurement_scatter/<feature_num>")
-def measurement_scatter(feature_num):
-    
+@app.route("/jobs/<job_id>/features/<feature_num>/measurement_scatter")
+def measurement_scatter(job_id, feature_num):
+    job = load_job(job_id)    
     feature_num = int(feature_num)
 
-    job = app.job
+
     schema = job.schema
     measurements = job.input.table[feature_num]
     
@@ -489,12 +489,10 @@ def mean_vs_std():
     ax.scatter(means, std)
     return figure_response(fig)
 
-@app.route("/features/<feature_num>/measurement_bars")
-def measurement_bars(feature_num):
-    
+@app.route("/jobs/<job_id>/features/<feature_num>/measurement_bars")
+def measurement_bars(job_id, feature_num):
+    job = load_job(job_id)    
     feature_num = int(feature_num)
-
-    job = app.job
     schema = job.schema
     measurements = job.input.table[feature_num]
 
@@ -524,9 +522,9 @@ def measurement_bars(feature_num):
     return figure_response(fig)
 
 
-@app.route("/features/<feature_num>")
-def feature(feature_num):
-    job = app.job
+@app.route("/job/<job_id>/features/<feature_num>")
+def feature(job_id, feature_num):
+    job = load_job(job_id)
     schema = job.schema
     feature_num = int(feature_num)
     factor_values = {
@@ -559,6 +557,7 @@ def feature(feature_num):
         tuning_params=job.settings.tuning_params,
         stats=stats,
         bins=bins,
+        job=job,
         num_bins=len(job.results.bins[0]),
         unperm_count=unperm_count,
         mean_perm_count=mean_perm_count,
@@ -568,9 +567,9 @@ def feature(feature_num):
         new_scores=new_scores
         )
 
-@app.route("/details/<conf_level>")
-def details(conf_level):
-    job = app.job
+@app.route("/jobs/<job_id>/conf_level/<conf_level>")
+def details(job_id, conf_level):
+    job = load_job(job_id)
 
     ### Process params
     conf_level = int(conf_level)
@@ -607,8 +606,11 @@ def details(conf_level):
 
     num_pages = int(np.ceil(float(len(filtered_idxs)) / float(rows_per_page)))
 
+    print "Feature ids are ", job.input.feature_ids[idxs]
+
     return render_template(
         "conf_level.html",
+        job=job,
         num_pages=num_pages,
         conf_level=conf_level,
         min_score=score,
