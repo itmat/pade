@@ -29,12 +29,12 @@ def save_table(db, table, name):
     db[name].attrs['headers'] = table.header        
 
 @celery.task
-def copy_input(db_path, input_path, schema, settings):
+def copy_input(path, input_path, schema, settings):
     logging.info("Loading input for job from {0}".format(input_path))
     input = Input.from_raw_file(input_path, schema)
 
-    logging.info("Saving input, settings, and schema to " + str(db_path))
-    with h5py.File(db_path, 'w') as db:
+    logging.info("Saving input, settings, and schema to " + str(path))
+    with h5py.File(path, 'w') as db:
 
         # Save the input object
         ids = input.feature_ids
@@ -70,11 +70,11 @@ def load_sample_indexes(filename, job):
     job.results.sample_indexes = np.genfromtxt(args.sample_indexes, dtype=int)
 
 @celery.task(name="Generate sample indexes")
-def gen_sample_indexes(db_path):
-    logging.info("Generating sample indexes for " + str(db_path))
-    job = load_job(db_path)
+def gen_sample_indexes(path):
+    logging.info("Generating sample indexes for " + str(path))
+    job = load_job(path)
     
-    with h5py.File(db_path, 'r+') as db:
+    with h5py.File(path, 'r+') as db:
         indexes = an.new_sample_indexes(job)
         db.create_dataset("sample_indexes", data=indexes)
 
