@@ -21,8 +21,7 @@ from pade.confidence import (
     assign_scores_to_features)
 
 from pade.model import (
-    Job, Settings, Results, Input, TableWithHeader, Summary)
-from pade.schema import Schema
+    Job, Settings, Results, Input, TableWithHeader, Summary, Schema)
 import h5py
 
 

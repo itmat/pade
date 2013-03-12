@@ -4,7 +4,7 @@ import shutil
 import logging
 
 from StringIO import StringIO
-from schema import Schema
+from pade.model import Schema
 
 class MetaDB(object):
 

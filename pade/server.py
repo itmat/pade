@@ -27,9 +27,8 @@ from flask.ext.wtf import (
 from werkzeug import secure_filename
 from pade.analysis import assignment_name
 from pade.confidence import cumulative_hist, adjust_num_diff
-from pade.model import Job, Settings
+from pade.model import Job, Settings, Schema
 from pade.metadb import MetaDB
-from pade.schema import Schema
 
 ALLOWED_EXTENSIONS = set(['txt', 'tab'])
 UPLOAD_FOLDER = 'uploads'

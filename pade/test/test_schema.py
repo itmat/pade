@@ -1,7 +1,7 @@
 import unittest
 import io
 
-from pade.schema import *
+from pade.model import *
 
 class SchemaTest(unittest.TestCase):
 

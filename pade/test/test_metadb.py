@@ -4,7 +4,7 @@ import redisconfig
 
 from StringIO import StringIO
 from pade.test.utils import tempdir
-from pade.schema import Schema
+from pade.model import Schema
 from pade.metadb import *
 from redis import Redis
 

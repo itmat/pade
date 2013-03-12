@@ -30,8 +30,7 @@ import textwrap
 
 from numpy.lib.recfunctions import append_fields
 from pade.performance import *
-from pade.schema import Schema
-from pade.model import Job, Model, Settings, Input, Results
+from pade.model import Job, Model, Settings, Input, Results, Schema
 from pade.stat import GroupSymbols
 
 
