@@ -8,33 +8,12 @@ import numpy as np
 from pade.stat import residuals
 from bisect import bisect
 
-Accumulator = collections.namedtuple(
-    'Accumulator',
-    ['initializer', 'reduce_fn', 'finalize_fn'])
-
-
-DEFAULT_ACCUMULATOR = Accumulator(
-    [],
-    lambda res, val: res + [ val ],
-    lambda x: np.array(x))
-
-def _binning_accumulator(bins, num_samples):
-    initializer = np.zeros(cumulative_hist_shape(bins))
-
-    def reduce_fn(res, val):
-        hist = cumulative_hist(val, bins)
-        return res + hist
-    
-    def finalize_fn(res):
-        return res / num_samples
-
-    return Accumulator(initializer, reduce_fn, finalize_fn)
 
 def bootstrap(data,
               stat_fn,
               R=1000,
-              sample_layout=None,
-              indexes=None,
+              layout=None,
+              permutations=None,
               residuals=None,
               bins=None):
     """Run bootstrapping.
@@ -47,24 +26,25 @@ def bootstrap(data,
       An (M x N) array.
 
     :param stat_fn:
-      A callable that accepts an array of shape (M x N) and returns statistics of shape (M).
+      A callable that accepts an array of shape (M x N) and returns
+      statistics of shape (M).
 
     :param R:
-      The number of bootstrapping samples to generate, if *indexes* is
-      not supplied.
+      The number of bootstrapping samples to generate, if
+      *permutations* is not supplied.
 
-    :param sample_layout:
-      If *indexes* is not supplied, sample_layout can be used to
-      specify a :layout: to restrict the randomized sampling. If
+    :param layout:
+      If *permutations* is not supplied, layout can be used to
+      specify a :term:`layout` to restrict the randomized sampling. If
       supplied, it must be a list of lists which divides the N indexes
       of the columns of *data* up into groups.
 
-    :param indexes:
+    :param permutations:
       If supplied, it must be an (M x N) table of indexes into the
       data, which we will use to extract data points for
       bootstrapping. If not supplied, *R* indexes will be generated
       randomly, optionally restricted by the :layout: given in
-      *sample_layout*.
+      *layout*.
 
     :param residuals:
       You can use this in conjunction with the *data* parameter to
@@ -81,43 +61,54 @@ def bootstrap(data,
       An optional list of numbers representing the edges of bins into
       which we will accumulate mean counts of statistics.
 
-
     :return:
-      If *bins* is not provided, I will return an :math:`(R x M)` array giving
-      the value of the statistic for each row of *data* for sample.
+      If *bins* is not provided, I will return an :math:`(R x M)`
+      array giving the value of the statistic for each row of *data*
+      for sample.
 
-      If *bins* is not provided, I will return a list of length
+      If *bins* is provided, I will return a list of length
       :math:`len(bins) - 1` where each item is the average number of
       rows of *data* across all samples that have statistic value
       falling in the range associated with the corresponding bin.
 
       """
-    accumulator = DEFAULT_ACCUMULATOR
-
-    build_sample = None
     if residuals is None:
         build_sample = lambda idxs: data[..., idxs]
     else:
         build_sample = lambda idxs: data + residuals[..., idxs]
 
-    if indexes is None:
-        if sample_layout is None:
-            sample_layout = [ np.arange(np.shape(data)[1]) ]
-        indexes = random_indexes(sample_layout, R)
+    if permutations is None:
+        if layout is None:
+            layout = [ np.arange(np.shape(data)[1]) ]
+        permutations = random_indexes(layout, R)
 
-    if bins is not None:
-        accumulator = _binning_accumulator(bins, len(indexes))
+    # If we did not get bins, we simply return an ndarray of all the
+    # statistics we got. So initialize the result to [], reduce it by
+    # just appending the new result to the table, and finalize it by
+    # turning it into an ndarray.
+    if bins is None:
+        initial_value = []
+        reduce_fn = lambda res, val: res + [ val ],
+        finalize_fn = lambda x: np.array(x)
+
+    # If we got bins, we want to accumulate counts into those bins and
+    # then take the average by dividing the count in each bins by the
+    # number of permutations.
+    else:
+        initial_value = np.zeros(cumulative_hist_shape(bins))
+        reduce_fn = lambda res, val : res + cumulative_hist(val, bins)
+        finalize_fn = lambda res : res / len(permutations)
         
     # We'll return an R x n array, where n is the number of
     # features. Each row is the array of statistics for all the
     # features, using a different random sampling.
     
-    samples = (build_sample(p) for p in indexes)
+    samples = (build_sample(p) for p in permutations)
     stats   = (stat_fn(s)      for s in samples)
 
-    reduced = reduce(accumulator.reduce_fn, stats, accumulator.initializer)
+    reduced = reduce(reduce_fn, stats, initial_value)
 
-    return accumulator.finalize_fn(reduced)
+    return finalize_fn(reduced)
 
 def cumulative_hist_shape(bins):
     """Returns the shape of the histogram with the given bins.
@@ -127,8 +118,7 @@ def cumulative_hist_shape(bins):
 
     """
     shape = np.shape(bins)
-    shape = shape[:-1] + (shape[-1] - 1,)
-    return shape
+    return shape[:-1] + (shape[-1] - 1,)
 
 def cumulative_hist(values, bins):
     """Create a cumulative histogram for values using the given bins.
@@ -192,12 +182,14 @@ def confidence_scores(raw_counts, perm_counts, num_features):
     """Return confidence scores.
     
     """
-    logging.debug("Getting confidence scores for shape {shape} with {num_features} features".format(shape=np.shape(raw_counts),
-                                                                                                   num_features=num_features))
+    logging.debug(("Getting confidence scores for shape {shape} with "
+                   "{num_features} features").format(
+            shape=np.shape(raw_counts),
+            num_features=num_features))
     if np.shape(raw_counts) != np.shape(perm_counts):
-        raise Exception(
-            """raw_counts and perm_counts must have same shape.
-               raw_counts is {raw} and perm_counts is {perm}""".format(
+        raise Exception((
+                "raw_counts and perm_counts must have same shape. "
+                "raw_counts is {raw} and perm_counts is {perm}").format(
                 raw=np.shape(raw_counts), perm=np.shape(perm_counts)))
     
     shape = np.shape(raw_counts)
