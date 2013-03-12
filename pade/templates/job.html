@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Index{% endblock %}
+{% block title %}Job {{ job_id }} {% endblock %}
 {% block content %}
 
 <h2>Job settings</h2>
@@ -72,11 +72,20 @@
   {% for i in range(job.summary.counts | length) %}
   <tr>
     <td>{{ job.summary.bins[i] }}</td>
-    <td><a href="{{url_for('details', job_id=job.job_id, conf_level=i)}}">{{ job.summary.counts[i] }}</a></td>
+    <td><a href="{{url_for('details', job_id=job_id, conf_level=i)}}">{{ job.summary.counts[i] }}</a></td>
   </tr>
   {% endfor %}
 
 </table>
+
+<h3>Plots</h3>
+<ul>
+  <li><a href="{{url_for('confidence_dist', job_id=job_id)}}">Confidence score distribution</a></li>
+  <li><a href="{{url_for('stat_dist_plots_page', job_id=job_id)}}">Statistic distribution</a></li>
+  <li><a href="{{url_for('feature_count_and_score_by_stat', job_id=job_id)}}">Feature count and score by statistic</a></li>
+  <li><a href="{{url_for('mean_vs_std', job_id=job_id)}}">Mean vs standard deviation</a></li>
+</ul>
+
 
 <img src="counts_by_stat.png"></img>
 <img src="conf_by_stat.png"></img>

@@ -73,7 +73,7 @@ def load_job(job_id):
 def job_details(job_id):
     job = load_job(job_id)
     print "Job id is ", job.job_id
-    return render_template("job.html", job=job)
+    return render_template("job.html", job_id=job.job_id, job=job)
 
 @app.route("/schemas")
 def schema_list():
@@ -474,9 +474,9 @@ def measurement_scatter(job_id, feature_num):
     ax.legend(loc='upper_right')
     return figure_response(fig)
 
-@app.route("/mean_vs_std")
-def mean_vs_std():
-    job = app.job
+@app.route("/jobs/<job_id>/mean_vs_std")
+def mean_vs_std(job_id):
+    job = load_job(job_id)
     means = np.mean(job.input.table, axis=-1)
     std   = np.std(job.input.table, axis=-1)
     fig = plt.figure()
@@ -558,6 +558,7 @@ def feature(job_id, feature_num):
         stats=stats,
         bins=bins,
         job=job,
+        job_id=job.job_id,
         num_bins=len(job.results.bins[0]),
         unperm_count=unperm_count,
         mean_perm_count=mean_perm_count,
@@ -611,6 +612,7 @@ def details(job_id, conf_level):
     return render_template(
         "conf_level.html",
         job=job,
+        job_id=job.job_id,
         num_pages=num_pages,
         conf_level=conf_level,
         min_score=score,
@@ -627,43 +629,48 @@ def details(job_id, conf_level):
         fold_change=job.results.fold_change.table[idxs],
         page_num=page_num)
 
-@app.route("/stat_dist.html")
-def stat_dist_plots_page():
+@app.route("/jobs/<job_id>/stat_dist")
+def stat_dist_plots_page(job_id):
+
     semilogx = request.args.get('semilogx') == 'True'
     return render_template("stat_dist.html", 
-                           job=app.job,
+                           job_id=job_id,
+                           job=load_job(job_id),
                            semilogx=semilogx)
 
-@app.route("/feature_count_and_score_by_stat.html")
-def feature_count_and_score_by_stat():
+@app.route("/jobs/<job_id>/feature_count_and_score_by_stat.html")
+def feature_count_and_score_by_stat(job_id):
     semilogx = request.args.get('semilogx') == 'True'
     return render_template("feature_count_and_score_by_stat.html", 
+                           job_id=job_id,
                            job=app.job,
                            semilogx=semilogx)
 
-@app.route("/confidence_dist.html")
-def confidence_dist():
+@app.route("/jobs/<job_id>/confidence_dist")
+def confidence_dist(job_id):
     return render_template("confidence_dist.html", 
-                           job=app.job)
+                           job_id=job_id)
 
-@app.route("/stat_dist/<tuning_param>.png")
-def stat_dist_plot(tuning_param):
-    max_stat = np.max(app.job.results.raw_stats)
+@app.route("/jobs/<job_id>/stat_dist/<tuning_param>.png")
+def stat_dist_plot(job_id, tuning_param):
+    job = load_job(job_id)
+    max_stat = np.max(job.results.raw_stats)
     tuning_param = int(tuning_param)
     fig = plt.figure()
     ax = fig.add_subplot(
         111,
-        title=app.job.settings.stat_name + " distribution over features, $\\alpha = " + str(tuning_param) + "$",
-        xlabel=app.job.settings.stat_name + " value",
+        title=job.settings.stat_name + " distribution over features, $\\alpha = " + str(tuning_param) + "$",
+        xlabel=job.settings.stat_name + " value",
         ylabel="Features",
         xlim=(0, max_stat))
 
-    plt.hist(app.job.results.raw_stats[tuning_param], log=False, bins=250)
+    plt.hist(job.results.raw_stats[tuning_param], log=False, bins=250)
     return figure_response(fig)
 
-@app.route("/bin_to_score.png")
-def bin_to_score_plot():
-    data = app.job.results.bin_to_score
+@app.route("/jobs/<job_id>/bin_to_score.png")
+def bin_to_score_plot(job_id):
+    job = load_job(job_id)
+    data = job.results.bin_to_score
     fig = plt.figure()
     ax = fig.add_subplot(
         111,
@@ -671,8 +678,8 @@ def bin_to_score_plot():
         xlabel="Statistic value",
         ylabel="Confidence")
 
-    for i, param in enumerate(app.job.settings.tuning_params):
-        ax.plot(app.job.results.bins[i, :-1], data[i], label=str(param))
+    for i, param in enumerate(job.settings.tuning_params):
+        ax.plot(job.results.bins[i, :-1], data[i], label=str(param))
 
     if request.args.get('semilogx') == 'True':
         ax.semilogx(base=10)
@@ -680,10 +687,10 @@ def bin_to_score_plot():
 
     return figure_response(fig)
 
-@app.route("/bin_to_features.png")
-def bin_to_features_plot():
-
-    params = app.job.settings.tuning_params
+@app.route("/jobs/<job_id>/bin_to_features.png")
+def bin_to_features_plot(job_id):
+    job = load_job(job_id)
+    params = job.settings.tuning_params
     if 'tuning_param_idx' in request.args:
         params = [ params[int(request.args.get('tuning_param_idx'))] ]
 
@@ -693,29 +700,31 @@ def bin_to_features_plot():
         title='Features count by statistic value',
         xlabel='Statistic value',
         ylabel='Features')
-    job = app.job
+    job = job
     for i, param in enumerate(params):
-        ax.plot(job.results.bins[i, :-1], job.bin_to_mean_perm_count[i], '--', label=str(param) + " permuted")
-        ax.plot(job.results.bins[i, :-1], job.bin_to_unperm_count[i], label=str(param) + " unpermuted")
+        ax.plot(job.results.bins[i, :-1], job.results.bin_to_mean_perm_count[i], '--', label=str(param) + " permuted")
+        ax.plot(job.results.bins[i, :-1], job.results.bin_to_unperm_count[i], label=str(param) + " unpermuted")
     if request.args.get('semilogx') == 'True':
         ax.semilogx(base=10)
     ax.legend(loc='upper right')
     return figure_response(fig)
 
-@app.route("/conf_dist.png")
-def conf_dist_plot():
+@app.route("/jobs/<job_id>/conf_dist")
+def conf_dist_plot(job_id):
+    job = load_job(job_id)
     fig = plt.figure()
     ax = fig.add_subplot(
         111,
         title="Feature count by confidence score",
         xlabel="Confidence score",
         ylabel="Features")
-    ax.plot(app.job.summary.bins, app.job.summary.counts)
+    ax.plot(job.summary.bins, job.summary.counts)
     return figure_response(fig)
     
 
-@app.route("/score_dist_for_tuning_params.png")
-def score_dist_by_tuning_param():
+@app.route("/jobs/<job_id>/score_dist_for_tuning_params.png")
+def score_dist_by_tuning_param(job_id):
+    job = load_job(job_id)
     fig = plt.figure()
     ax = fig.add_subplot(
         111,
@@ -726,13 +735,13 @@ def score_dist_by_tuning_param():
     lines = []
     labels = []
 
-    params = app.job.settings.tuning_params
+    params = job.settings.tuning_params
     if 'tuning_param_idx' in request.args:
         params = [ int(request.args.get('tuning_param_idx')) ]
 
     for i, alpha in enumerate(params):
         bins = np.arange(0.5, 1.0, 0.01)
-        hist = cumulative_hist(app.job.feature_to_score[i], bins)
+        hist = cumulative_hist(job.results.feature_to_score[i], bins)
         lines.append(ax.plot(bins[:-1], hist, label=str(alpha)))
         labels.append(str(alpha))
     ax.legend(loc='upper right')

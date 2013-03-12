@@ -1,6 +1,8 @@
 {% extends "base.html" %}
-{% block title %}Feature {{ feature_id }} {% endblock %}
+{% block title %}Job {{ job_id }} | Feature {{ feature_id }} {% endblock %}
 {% block content %}
+
+<a href="{{url_for('job_details', job_id=job_id)}}">Back to job {{ job_id }}</a>
 
 <p>Feature number: {{ feature_num }}</p>
 <p>Feature id: {{ feature_id }}</p>
@@ -42,14 +44,14 @@
 <h2>Plots</h2>
 
 <h3>This shows the mean and standard deviation of the measurements for each group</h3>
-<img src="{{ url_for('measurement_bars', job_id=job.job_id, feature_num=feature_num) }}"></img>
+<img src="{{ url_for('measurement_bars', job_id=job_id, feature_num=feature_num) }}"></img>
 
 {% for v in factors %}
-<img src="{{ url_for('measurement_bars', job_id=job.job_id, feature_num=feature_num, variable=v) }}"></img>
+<img src="{{ url_for('measurement_bars', job_id=job_id, feature_num=feature_num, variable=v) }}"></img>
 {% endfor %}
 
 <h3>This shows the actual measured values for each group</h3>
-<img src="{{ url_for('measurement_scatter', job_id=job.job_id, feature_num=feature_num) }}"></img>
+<img src="{{ url_for('measurement_scatter', job_id=job_id, feature_num=feature_num) }}"></img>
 
 <h2>Details by tuning parameter</h2>
 

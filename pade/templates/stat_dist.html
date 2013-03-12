@@ -9,9 +9,9 @@
   values over the features. Each chart is drawn using a different value of the tuning parameter.
 </p>
 
-{% for i in range(db.tuning_params|length): %}
+{% for i in range(job.settings.tuning_params|length): %}
 <div class="{{ loop.cycle('grid_5 alpha', 'grid_5 omega') }}">
-  <img src="{{url_for('stat_dist_plot', tuning_param=i)}}"></img>
+  <img src="{{url_for('stat_dist_plot', job_id=job_id, tuning_param=i)}}"></img>
 </div>
 {% endfor %}
 

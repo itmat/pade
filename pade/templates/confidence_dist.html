@@ -2,7 +2,7 @@
 {% block title %}Statistic distributions{% endblock %}
 {% block content %}
 
-<img src="{{url_for('conf_dist_plot')}}"></img>
-<img src="{{url_for('score_dist_by_tuning_param')}}"></img>
+<img src="{{url_for('conf_dist_plot', job_id=job_id)}}"></img>
+<img src="{{url_for('score_dist_by_tuning_param', job_id=job_id)}}"></img>
 
 {% endblock %}
