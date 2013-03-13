@@ -18,7 +18,7 @@ class MetaDB(object):
 
     def _next_obj_id(self, type):
         key = ":".join(('pade', 'nextid', type))
-        return self.redis.incr(key)
+        return str(self.redis.incr(key))
 
     def _obj_key(self, obj_type, obj_id):
         return ':'.join(('pade', obj_type, str(obj_id)))
@@ -104,8 +104,10 @@ class MetaDB(object):
     def all_schemas(self):
         return self._all_objects(SchemaMeta)
 
-    def add_job(self, name, description):
+    def add_job(self, name, description, raw_file_meta, schema_meta):
         job_meta = self._add_obj(JobMeta, name=name, description=description)
+        job_meta = self._link_one_to_many(raw_file_meta, job_meta, 'raw_file_id')
+        job_meta = self._link_one_to_many(schema_meta, job_meta, 'schema_id')
         return job_meta
 
     def job(self, obj_id):
@@ -161,7 +163,8 @@ class JobMeta(ObjMeta):
     obj_type = 'job'
     collection_name = 'pade:jobs'
 
-    def __init__(self, obj_id, name, path, dt_created=None, description=None):
+    def __init__(self, obj_id, name, path, dt_created=None, description=None,
+                 raw_file_id=None, schema_id=None):
         super(JobMeta, self).__init__(obj_id, path, dt_created)
 
         self.name = name
@@ -169,6 +172,12 @@ class JobMeta(ObjMeta):
 
         self.description = description
         """Longer, free-form description of the object."""
+
+        self.raw_file_id = raw_file_id
+        """The ID of the InputFileMeta object used for this job."""
+
+        self.schema_id = schema_id
+        """The ID of the SchemaMeta object used for this job."""
 
 class SchemaMeta(ObjMeta):
     """Meta-data for a PADE schema YAML file."""

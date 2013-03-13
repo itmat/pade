@@ -85,18 +85,41 @@ class MetaDBTest(unittest.TestCase):
 
     def test_jobs(self):
         with temp_metadb() as mdb:
-            a = mdb.add_job("job1", "Some job")
-            b = mdb.add_job("job2", "Other job")
+
+            # Set up the raw file
+            raw_file_meta = mdb.add_input_file(name="test.txt", description="Some comments", stream=StringIO("a\nb\nc\n"))
+
+            schema = Schema()
+            schema.add_factor('treated', [False, True])
+            schema.set_columns(['id', 'a', 'b'],
+                                 ['feature_id', 'sample', 'sample'])
+            schema.set_factor('a', 'treated', False)
+            schema.set_factor('b', 'treated', True)
+
+            schema_meta = mdb.add_schema("First one", "The first one", schema, raw_file_meta)
+
+            a = mdb.add_job(name="job1", 
+                            description="Some job",
+                            raw_file_meta=raw_file_meta,
+                            schema_meta=schema_meta)
+            b = mdb.add_job(name="job2", description="Other job",
+                            raw_file_meta=raw_file_meta,
+                            schema_meta=schema_meta)
 
             # Make sure it returned the object appropriately
             self.assertEquals(a.name, "job1")
             self.assertEquals(a.description, "Some job")
+
+            a = mdb.job(a.obj_id)
+            self.assertEquals(a.raw_file_id, raw_file_meta.obj_id)
+            self.assertEquals(a.schema_id, schema_meta.obj_id)
 
             # Make sure we can list all input files
             jobs = mdb.all_jobs()
             self.assertEquals(len(jobs), 2)
             names = set(['job1', 'job2'])
             self.assertEquals(names, set([x.name for x in jobs]))
+
 
 
 if __name__ == '__main__':
