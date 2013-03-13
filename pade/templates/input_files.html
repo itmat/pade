@@ -19,36 +19,25 @@
 
 <h2>Or choose an existing raw file:</h2>
 
-<table>
-  <tr>
-    <th></th>
-    <th>Name</th>
-    <th>Size</th>
-    <th>Date created</th>
-    <th>Description</th>
-  </tr>
-  
-  {% for s in input_file_metas %}
-  <tr>
-    <td>
-      <a href="{{url_for('select_input_file', input_file_id=s.obj_id)}}">select</a>
-    </td>
-    <td>
-      {{ s.name }}
-    </td>
-    <td>
-      {{ s.size }}
-    </td>
-    <td>
-      {{ s.dt_created|datetime }}
-    </td>
-    <td>
-      {{ s.description }}
-    </td>
-  </tr>
+<ul>
 
+  {% for s in input_file_metas %}
+
+  <li>
+  
+  {{ s.name }} <br/>
+   {{ s.size }} bytes, uploaded {{ s.dt_created|datetime }} <br/>
+  <em>{{ s.description }}</em> <br/>
+  Jobs based on this file: 
+  {% for job_id in s.job_ids %}
+  <a href="{{url_for('job_details', job_id=job_id)}}">{{ job_id }}</a>
   {% endfor %}
 
-</table>
+  <br/>
+  <a href="{{url_for('select_input_file', input_file_id=s.obj_id)}}">Create job based on this file</a>  
+  </li>
+  {% endfor %}
+</ul>
+
 
 {% endblock %}

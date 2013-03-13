@@ -71,10 +71,14 @@ class MetaDB(object):
         return self._add_obj(InputFileMeta, name=name, description=description, stream=stream)
 
     def all_input_files(self):
-        return self._all_objects(InputFileMeta)
+        res = self._all_objects(InputFileMeta)
+        for obj in res:
+            obj.job_ids = self.jobs_for_raw_file(obj.obj_id)
+        return res
 
     def input_file(self, obj_id):
         res = self._load_obj(InputFileMeta, obj_id)
+        res.job_ids = self.jobs_for_raw_file(obj_id)
         return res
 
     def _link_one_to_many(self, one, many, field_name):

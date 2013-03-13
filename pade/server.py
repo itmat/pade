@@ -764,14 +764,16 @@ def score_dist_by_tuning_param(job_id):
 def submit_job():
     settings = job_scratch()['settings']
     schema   = current_scratch_schema()
-    schema_meta = app.mdb.add_schema('Schema', 'Comments', schema)
     infile_meta = current_scratch_input_file_meta()
+    schema_meta = app.mdb.add_schema('Schema', 'Comments', schema, infile_meta)
     
     job = Job(settings=settings,
               schema=schema,
               results=pade.model.Results())
 
-    job_meta = app.mdb.add_job('Job db', 'comments')
+    job_meta = app.mdb.add_job(name='', description='', 
+                               raw_file_meta=infile_meta,
+                               schema_meta=schema_meta)
     
     steps = pade.tasks.steps(
         infile_path=os.path.abspath(infile_meta.path),
