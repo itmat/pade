@@ -2,15 +2,22 @@
 {% block title %}Index{% endblock %}
 {% block content %}
 
+<h2>You can upload a new raw file:</h2>
+
 <form action="{{url_for('upload_input_file')}}" method="post" enctype="multipart/form-data">
   <p>
     {{ form.input_file()|safe }}
   </p>
+  <p>
+    {{ form.description.label }} <br/>
+    {{ form.description()|safe }}
+  </p>
+
   {{ form.submit }}
 </form>
 
 
-Or choose a previously uploaded input file:
+<h2>Or choose an existing raw file:</h2>
 
 <table>
   <tr>
@@ -18,7 +25,7 @@ Or choose a previously uploaded input file:
     <th>Name</th>
     <th>Size</th>
     <th>Date created</th>
-    <th>Comments</th>
+    <th>Description</th>
   </tr>
   
   {% for s in input_file_metas %}
@@ -33,10 +40,10 @@ Or choose a previously uploaded input file:
       {{ s.size }}
     </td>
     <td>
-      {{ s.dt_created }}
+      {{ s.dt_created|datetime }}
     </td>
     <td>
-      {{ s.comments }}
+      {{ s.description }}
     </td>
   </tr>
 

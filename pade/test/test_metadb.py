@@ -1,6 +1,7 @@
-import unittest
 import contextlib
+import datetime
 import redisconfig
+import unittest
 
 from StringIO import StringIO
 from pade.test.utils import tempdir
@@ -35,6 +36,8 @@ class MetaDBTest(unittest.TestCase):
             self.assertEquals(a.description, "Some comments")
             with open(a.path) as f:
                 self.assertEquals("a\nb\nc\n", f.read())
+
+            self.assertEquals(type(a.dt_created), datetime.datetime)
 
             # Make sure we can list all input files
             input_files = mdb.all_input_files()
@@ -89,7 +92,6 @@ class MetaDBTest(unittest.TestCase):
             names = set(['job1', 'job2'])
             self.assertEquals(names, set([x.name for x in jobs]))
 
-            
 
 if __name__ == '__main__':
     unittest.main()

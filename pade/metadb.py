@@ -6,6 +6,8 @@ import logging
 from StringIO import StringIO
 from pade.model import Schema
 
+DATE_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
+
 class MetaDB(object):
 
     def __init__(self, directory, redis):
@@ -59,6 +61,7 @@ class MetaDB(object):
         key    = self._obj_key(cls.obj_type, obj_id)
         kwargs = self.redis.hgetall(key)
         path   = self._path(cls.obj_type, obj_id)
+        kwargs['dt_created'] = dt.datetime.strptime(kwargs['dt_created'], DATE_FORMAT)
         return cls(obj_id, path=path, **kwargs)
 
     def add_input_file(self, name, stream, description=None):
@@ -68,7 +71,8 @@ class MetaDB(object):
         return self._all_objects(InputFileMeta)
 
     def input_file(self, obj_id):
-        return self._load_obj(InputFileMeta, obj_id)
+        res = self._load_obj(InputFileMeta, obj_id)
+        return res
 
     def add_schema(self, name, description, schema):
         out = StringIO()

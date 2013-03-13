@@ -25,7 +25,8 @@ from flask import (
     url_for, flash)
 from flask.ext.wtf import (
     Form, StringField, Required, FieldList, SelectField, 
-    FileField, SubmitField, BooleanField, IntegerField, FloatField)
+    FileField, SubmitField, BooleanField, IntegerField, FloatField,
+    TextAreaField)
 from werkzeug import secure_filename
 from pade.analysis import assignment_name
 from pade.stat import cumulative_hist, adjust_num_diff
@@ -49,6 +50,12 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.session_interface = pade.redis_session.RedisSessionInterface(
     Redis(db=redisconfig.DB_SESSION))
 app.mdb = MetaDB(UPLOAD_FOLDER, Redis(db=redisconfig.DB_METADB))
+
+def datetime_format(dt):
+    return dt.strftime('%F %R')
+    
+
+app.jinja_env.filters['datetime'] = datetime_format
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -83,10 +90,12 @@ def schema_list():
 
 @app.route("/inputfiles")
 def input_file_list():
+    files = app.mdb.all_input_files()
+    print "Date times are " + str([type(x.dt_created) for x in files])
     return render_template(
         'input_files.html',
         form=InputFileUploadForm(),
-        input_file_metas=app.mdb.all_input_files())
+        input_file_metas=files)
 
 ########################################################################
 ###
@@ -204,6 +213,7 @@ class ColumnRolesForm(Form):
 
 class InputFileUploadForm(Form):
     input_file = FileField('Input file')
+    description = TextAreaField('Description (optional)')
     submit     = SubmitField()
 
 class JobFactorForm(Form):
@@ -340,12 +350,14 @@ def upload_input_file():
     
     ensure_job_scratch()
     
+    form = InputFileUploadForm(request.form)
+
     file = request.files['input_file']
     filename = secure_filename(file.filename)
     session['job_scratch']['filename'] = filename
 
     logging.info("Adding input file to meta db")
-    meta = app.mdb.add_input_file(filename, "", file)
+    meta = app.mdb.add_input_file(name=filename, stream=file, description=form.description.data)
 
     return redirect(url_for('input_file_list'))
 
