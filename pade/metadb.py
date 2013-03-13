@@ -124,6 +124,15 @@ class MetaDB(object):
 
     def get_task_ids(self, obj):
         return self.redis.smembers(self.task_ids_key(obj))
+
+    def schemas_based_on_input_file(self, raw_file_id):
+        return self.redis.smembers(self._link_key(InputFileMeta.obj_type, SchemaMeta.obj_type, raw_file_id))
+
+    def jobs_for_schema(self, schema_id):
+        return self.redis.smembers(self._link_key(SchemaMeta.obj_type, JobMeta.obj_type, schema_id))
+
+    def jobs_for_raw_file(self, raw_file_id):
+        return self.redis.smembers(self._link_key(InputFileMeta.obj_type, JobMeta.obj_type, raw_file_id))
                         
 class ObjMeta(object):
     """Meta-data for an object we store on the filesystem."""

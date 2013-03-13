@@ -83,6 +83,11 @@ class MetaDBTest(unittest.TestCase):
             self.assertEquals(colnames, set(['id', 'a', 'b',
                                              'key', 'foo', 'bar']))
 
+            schema_ids = mdb.schemas_based_on_input_file(a.based_on_input_file_id)
+            self.assertTrue(a.obj_id in schema_ids)
+            self.assertTrue(b.obj_id in schema_ids)
+
+            
     def test_jobs(self):
         with temp_metadb() as mdb:
 
@@ -120,7 +125,13 @@ class MetaDBTest(unittest.TestCase):
             names = set(['job1', 'job2'])
             self.assertEquals(names, set([x.name for x in jobs]))
 
+            job_ids = mdb.jobs_for_schema(schema_meta.obj_id)
+            self.assertTrue(a.obj_id in job_ids)
+            self.assertTrue(b.obj_id in job_ids)
 
+            job_ids = mdb.jobs_for_raw_file(raw_file_meta.obj_id)
+            self.assertTrue(a.obj_id in job_ids)
+            self.assertTrue(b.obj_id in job_ids)
 
 if __name__ == '__main__':
     unittest.main()
