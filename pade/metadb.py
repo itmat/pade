@@ -29,9 +29,6 @@ class MetaDB(object):
 
     def _add_obj(self, cls, stream=None, **kwargs):
 
-        name = kwargs['name']
-        comments = kwargs['comments']
-
         obj_type = cls.obj_type
         obj_id = self._next_obj_id(obj_type)
 
@@ -111,17 +108,12 @@ class ObjMeta(object):
         self.obj_id = obj_id
         """Unique id of the object (unique for objects of this type)."""
 
-        self.name = name
-        """A short, descriptive name for the object."""
+        self.dt_created = dt_created
+        """datetime the object was created."""
 
-        self.comments = comments
-        """Longer, free-form description of the object."""
-        
         self.path = path
         """Path to the file containing the object."""
 
-        self.dt_created = dt_created
-        """datetime the object was created."""
 
 class InputFileMeta(ObjMeta):
     """Meta-data for an input file."""
@@ -132,6 +124,12 @@ class InputFileMeta(ObjMeta):
         super(InputFileMeta, self).__init__(obj_id, name, comments, path, 
                                             dt_created)
 
+        self.name = name
+        """A short, descriptive name for the object."""
+
+        self.comments = comments
+        """Longer, free-form description of the object."""
+        
     @property
     def size(self):
         return os.stat(self.path).st_size
@@ -141,6 +139,16 @@ class JobMeta(ObjMeta):
     obj_type = 'job'
     collection_name = 'pade:jobs'
 
+    def __init__(self, obj_id, name, comments, path, dt_created=None):
+        super(JobMeta, self).__init__(obj_id, name, comments, path, 
+                                            dt_created)
+
+        self.name = name
+        """A short, descriptive name for the object."""
+
+        self.comments = comments
+        """Longer, free-form description of the object."""
+
 class SchemaMeta(ObjMeta):
     """Meta-data for a PADE schema YAML file."""
     obj_type        = 'schema'
@@ -149,3 +157,13 @@ class SchemaMeta(ObjMeta):
     def load(self):
         with open(self.path) as f:
             return Schema.load(f)
+
+    def __init__(self, obj_id, name, comments, path, dt_created=None):
+        super(SchemaMeta, self).__init__(obj_id, name, comments, path, 
+                                            dt_created)
+
+        self.name = name
+        """A short, descriptive name for the object."""
+
+        self.comments = comments
+        """Longer, free-form description of the object."""
