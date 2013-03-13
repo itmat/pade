@@ -27,12 +27,12 @@ class MetaDBTest(unittest.TestCase):
     def test_input_files(self):
         with temp_metadb() as mdb:
 
-            a = mdb.add_input_file("test.txt", "Some comments", StringIO("a\nb\nc\n"))
-            b = mdb.add_input_file("foo.txt", "Other comments", StringIO("1\n2\n3\n"))
+            a = mdb.add_input_file(name="test.txt", description="Some comments", stream=StringIO("a\nb\nc\n"))
+            b = mdb.add_input_file(name="foo.txt", description="Other comments", stream=StringIO("1\n2\n3\n"))
 
             # Make sure it returned the object appropriately
             self.assertEquals(a.name, "test.txt")
-            self.assertEquals(a.comments, "Some comments")
+            self.assertEquals(a.description, "Some comments")
             with open(a.path) as f:
                 self.assertEquals("a\nb\nc\n", f.read())
 

@@ -61,8 +61,8 @@ class MetaDB(object):
         path   = self._path(cls.obj_type, obj_id)
         return cls(obj_id, path=path, **kwargs)
 
-    def add_input_file(self, name, comments, stream):
-        return self._add_obj(InputFileMeta, name=name, comments=comments, stream=stream)
+    def add_input_file(self, name, stream, description=None):
+        return self._add_obj(InputFileMeta, name=name, description=description, stream=stream)
 
     def all_input_files(self):
         return self._all_objects(InputFileMeta)
@@ -103,7 +103,7 @@ class MetaDB(object):
                         
 class ObjMeta(object):
     """Meta-data for an object we store on the filesystem."""
-    def __init__(self, obj_id, name, comments, path, dt_created=None):
+    def __init__(self, obj_id, path, dt_created=None):
 
         self.obj_id = obj_id
         """Unique id of the object (unique for objects of this type)."""
@@ -120,14 +120,13 @@ class InputFileMeta(ObjMeta):
     obj_type        = 'input_file'
     collection_name = 'pade:input_files'
 
-    def __init__(self, obj_id, name, comments, path, dt_created=None):
-        super(InputFileMeta, self).__init__(obj_id, name, comments, path, 
-                                            dt_created)
+    def __init__(self, obj_id, name, description, path, dt_created=None):
+        super(InputFileMeta, self).__init__(obj_id, path, dt_created)
 
         self.name = name
         """A short, descriptive name for the object."""
 
-        self.comments = comments
+        self.description = description
         """Longer, free-form description of the object."""
         
     @property
@@ -140,8 +139,7 @@ class JobMeta(ObjMeta):
     collection_name = 'pade:jobs'
 
     def __init__(self, obj_id, name, comments, path, dt_created=None):
-        super(JobMeta, self).__init__(obj_id, name, comments, path, 
-                                            dt_created)
+        super(JobMeta, self).__init__(obj_id, path, dt_created)
 
         self.name = name
         """A short, descriptive name for the object."""
@@ -159,8 +157,7 @@ class SchemaMeta(ObjMeta):
             return Schema.load(f)
 
     def __init__(self, obj_id, name, comments, path, dt_created=None):
-        super(SchemaMeta, self).__init__(obj_id, name, comments, path, 
-                                            dt_created)
+        super(SchemaMeta, self).__init__(obj_id, path, dt_created)
 
         self.name = name
         """A short, descriptive name for the object."""
