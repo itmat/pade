@@ -47,6 +47,9 @@ class MetaDBTest(unittest.TestCase):
 
     def test_schemas(self):
         with temp_metadb() as mdb:
+
+            rawfile = mdb.add_input_file(name="test.txt", description="Some comments", stream=StringIO("a\nb\nc\n"))
+
             schema_a = Schema()
             schema_a.add_factor('treated', [False, True])
             schema_a.set_columns(['id', 'a', 'b'],
@@ -61,14 +64,17 @@ class MetaDBTest(unittest.TestCase):
             schema_b.set_factor('foo', 'age', 'young')
             schema_b.set_factor('bar', 'age', 'old')
 
-            a = mdb.add_schema("First one", "The first one", schema_a)
-            b = mdb.add_schema("Second", "Other", schema_b)
+            a = mdb.add_schema("First one", "The first one", schema_a, rawfile)
+            b = mdb.add_schema("Second", "Other", schema_b, rawfile)
             
             self.assertEquals(a.name, "First one")
             self.assertEquals(a.description, "The first one")
             
             schemas = mdb.all_schemas()
             self.assertEquals(len(schemas), 2)
+
+            self.assertEquals(a.based_on_input_file_id, 
+                              rawfile.obj_id)
 
             colnames = set()
             for s in schemas:

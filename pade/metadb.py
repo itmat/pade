@@ -23,6 +23,9 @@ class MetaDB(object):
     def _obj_key(self, obj_type, obj_id):
         return ':'.join(('pade', obj_type, str(obj_id)))
 
+    def _link_key(self, from_obj_type, to_obj_type, from_obj_id):
+        return ':'.join(('pade', str(from_obj_type) + 'To' + str(to_obj_type), str(from_obj_id)))
+
     def _path(self, obj_type, obj_id):
         filename = "{obj_type}_{obj_id}.txt".format(
             obj_type=obj_type,
@@ -74,12 +77,26 @@ class MetaDB(object):
         res = self._load_obj(InputFileMeta, obj_id)
         return res
 
-    def add_schema(self, name, description, schema):
+    def _link_one_to_many(self, one, many, field_name):
+        many_key = self._obj_key(many.obj_type, many.obj_id)
+        link_key = self._link_key(one.obj_type, many.obj_type, one.obj_id)
+        pipe = self.redis.pipeline()
+        pipe.hset(many_key, field_name, one.obj_id)
+        pipe.sadd(link_key, many.obj_id)
+        pipe.execute()
+        many.__dict__[field_name] = one.obj_id
+        return many
+
+    def add_schema(self, name, description, schema, raw_file_meta):
         out = StringIO()
         schema.save(out)
         saved = out.getvalue()
         stream = StringIO(out.getvalue())
-        return self._add_obj(SchemaMeta, name=name, description=description, stream=stream)
+
+        schema_meta = self._add_obj(SchemaMeta, name=name, description=description, 
+                             stream=stream)
+
+        return self._link_one_to_many(raw_file_meta, schema_meta, 'based_on_input_file_id')
 
     def schema(self, obj_id):
         return self._load_obj(SchemaMeta, obj_id)
@@ -88,7 +105,8 @@ class MetaDB(object):
         return self._all_objects(SchemaMeta)
 
     def add_job(self, name, description):
-        return self._add_obj(JobMeta, name=name, description=description)
+        job_meta = self._add_obj(JobMeta, name=name, description=description)
+        return job_meta
 
     def job(self, obj_id):
         return self._load_obj(JobMeta, obj_id)
@@ -123,6 +141,7 @@ class InputFileMeta(ObjMeta):
     """Meta-data for an input file."""
     obj_type        = 'input_file'
     collection_name = 'pade:input_files'
+    input_file_to_schemas = 'pade:input_file_to_schemas'
 
     def __init__(self, obj_id, name, description, path, dt_created=None):
         super(InputFileMeta, self).__init__(obj_id, path, dt_created)
@@ -160,7 +179,8 @@ class SchemaMeta(ObjMeta):
         with open(self.path) as f:
             return Schema.load(f)
 
-    def __init__(self, obj_id, name, description, path, dt_created=None):
+    def __init__(self, obj_id, name, description, path, dt_created=None, 
+                 based_on_input_file_id=None):
         super(SchemaMeta, self).__init__(obj_id, path, dt_created)
 
         self.name = name
@@ -168,3 +188,5 @@ class SchemaMeta(ObjMeta):
 
         self.description = description
         """Longer, free-form description of the object."""
+
+        self.based_on_input_file_id = based_on_input_file_id
