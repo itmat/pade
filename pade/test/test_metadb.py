@@ -62,7 +62,7 @@ class MetaDBTest(unittest.TestCase):
             b = mdb.add_schema("Second", "Other", schema_b)
             
             self.assertEquals(a.name, "First one")
-            self.assertEquals(a.comments, "The first one")
+            self.assertEquals(a.description, "The first one")
             
             schemas = mdb.all_schemas()
             self.assertEquals(len(schemas), 2)
@@ -81,7 +81,7 @@ class MetaDBTest(unittest.TestCase):
 
             # Make sure it returned the object appropriately
             self.assertEquals(a.name, "job1")
-            self.assertEquals(a.comments, "Some job")
+            self.assertEquals(a.description, "Some job")
 
             # Make sure we can list all input files
             jobs = mdb.all_jobs()

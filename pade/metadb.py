@@ -70,12 +70,12 @@ class MetaDB(object):
     def input_file(self, obj_id):
         return self._load_obj(InputFileMeta, obj_id)
 
-    def add_schema(self, name, comments, schema):
+    def add_schema(self, name, description, schema):
         out = StringIO()
         schema.save(out)
         saved = out.getvalue()
         stream = StringIO(out.getvalue())
-        return self._add_obj(SchemaMeta, name=name, comments=comments, stream=stream)
+        return self._add_obj(SchemaMeta, name=name, description=description, stream=stream)
 
     def schema(self, obj_id):
         return self._load_obj(SchemaMeta, obj_id)
@@ -83,8 +83,8 @@ class MetaDB(object):
     def all_schemas(self):
         return self._all_objects(SchemaMeta)
 
-    def add_job(self, name, comments):
-        return self._add_obj(JobMeta, name=name, comments=comments)
+    def add_job(self, name, description):
+        return self._add_obj(JobMeta, name=name, description=description)
 
     def job(self, obj_id):
         return self._load_obj(JobMeta, obj_id)
@@ -138,13 +138,13 @@ class JobMeta(ObjMeta):
     obj_type = 'job'
     collection_name = 'pade:jobs'
 
-    def __init__(self, obj_id, name, comments, path, dt_created=None):
+    def __init__(self, obj_id, name, path, dt_created=None, description=None):
         super(JobMeta, self).__init__(obj_id, path, dt_created)
 
         self.name = name
         """A short, descriptive name for the object."""
 
-        self.comments = comments
+        self.description = description
         """Longer, free-form description of the object."""
 
 class SchemaMeta(ObjMeta):
@@ -156,11 +156,11 @@ class SchemaMeta(ObjMeta):
         with open(self.path) as f:
             return Schema.load(f)
 
-    def __init__(self, obj_id, name, comments, path, dt_created=None):
+    def __init__(self, obj_id, name, description, path, dt_created=None):
         super(SchemaMeta, self).__init__(obj_id, path, dt_created)
 
         self.name = name
         """A short, descriptive name for the object."""
 
-        self.comments = comments
+        self.description = description
         """Longer, free-form description of the object."""
