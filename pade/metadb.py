@@ -27,7 +27,10 @@ class MetaDB(object):
             obj_id=obj_id)
         return os.path.join(self.directory, filename)
 
-    def _add_obj(self, cls, name, comments, stream=None):
+    def _add_obj(self, cls, stream=None, **kwargs):
+
+        name = kwargs['name']
+        comments = kwargs['comments']
 
         obj_type = cls.obj_type
         obj_id = self._next_obj_id(obj_type)
@@ -38,16 +41,15 @@ class MetaDB(object):
             with open(path, 'w') as out:
                 shutil.copyfileobj(stream, out)
 
-        meta = cls(obj_id, name, comments, path)
-        mapping = {
-            'name'       : meta.name,
-            'comments'   : meta.comments,
-            'dt_created' : str(meta.dt_created) }
+        dt_created = dt.datetime.now()
+        kwargs['dt_created'] = dt_created
+
+        meta = cls(obj_id, path=path, **kwargs)
 
         key = self._obj_key(meta.obj_type, meta.obj_id)
 
         pipe = self.redis.pipeline()
-        pipe.hmset(key, mapping)
+        pipe.hmset(key, kwargs)
         pipe.sadd(cls.collection_name, meta.obj_id)
         pipe.execute()        
         return meta
@@ -57,15 +59,13 @@ class MetaDB(object):
         return [ self._load_obj(cls, obj_id) for obj_id in ids ]
 
     def _load_obj(self, cls, obj_id):
-        key        = self._obj_key(cls.obj_type, obj_id)
-        name       = self.redis.hget(key, 'name')
-        comments   = self.redis.hget(key, 'comments')
-        dt_created = self.redis.hget(key, 'dt_created')
-        path       = self._path(cls.obj_type, obj_id)
-        return cls(obj_id, name, comments, path, dt_created)
+        key    = self._obj_key(cls.obj_type, obj_id)
+        kwargs = self.redis.hgetall(key)
+        path   = self._path(cls.obj_type, obj_id)
+        return cls(obj_id, path=path, **kwargs)
 
     def add_input_file(self, name, comments, stream):
-        return self._add_obj(InputFileMeta, name, comments, stream)
+        return self._add_obj(InputFileMeta, name=name, comments=comments, stream=stream)
 
     def all_input_files(self):
         return self._all_objects(InputFileMeta)
@@ -78,7 +78,7 @@ class MetaDB(object):
         schema.save(out)
         saved = out.getvalue()
         stream = StringIO(out.getvalue())
-        return self._add_obj(SchemaMeta, name, comments, stream)
+        return self._add_obj(SchemaMeta, name=name, comments=comments, stream=stream)
 
     def schema(self, obj_id):
         return self._load_obj(SchemaMeta, obj_id)
@@ -87,7 +87,7 @@ class MetaDB(object):
         return self._all_objects(SchemaMeta)
 
     def add_job(self, name, comments):
-        return self._add_obj(JobMeta, name, comments)
+        return self._add_obj(JobMeta, name=name, comments=comments)
 
     def job(self, obj_id):
         return self._load_obj(JobMeta, obj_id)
@@ -106,7 +106,7 @@ class MetaDB(object):
                         
 class ObjMeta(object):
     """Meta-data for an object we store on the filesystem."""
-    def __init__(self, obj_id, name, comments, path, dt_created=dt.datetime.now()):
+    def __init__(self, obj_id, name, comments, path, dt_created=None):
 
         self.obj_id = obj_id
         """Unique id of the object (unique for objects of this type)."""
@@ -127,6 +127,10 @@ class InputFileMeta(ObjMeta):
     """Meta-data for an input file."""
     obj_type        = 'input_file'
     collection_name = 'pade:input_files'
+
+    def __init__(self, obj_id, name, comments, path, dt_created=None):
+        super(InputFileMeta, self).__init__(obj_id, name, comments, path, 
+                                            dt_created)
 
     @property
     def size(self):
