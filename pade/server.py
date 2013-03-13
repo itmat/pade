@@ -88,6 +88,14 @@ def schema_list():
         'schemas.html',
         schema_metas=app.mdb.all_schemas())
 
+@app.route("/raw_files/<raw_file_id>")
+def input_file_details(raw_file_id):
+    
+    return render_template(
+        'input_file.html',
+        raw_file=app.mdb.input_file(raw_file_id))
+        
+
 @app.route("/inputfiles")
 def input_file_list():
     files = app.mdb.all_input_files()

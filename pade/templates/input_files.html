@@ -25,7 +25,7 @@
 
   <li>
   
-  {{ s.name }} <br/>
+    <a href="{{url_for('input_file_details', raw_file_id=s.obj_id)}}">{{ s.name }}</a> <br/>
    {{ s.size }} bytes, uploaded {{ s.dt_created|datetime }} <br/>
   <em>{{ s.description }}</em> <br/>
   Jobs based on this file: 

@@ -2,20 +2,13 @@
 {% block title %}Index{% endblock %}
 {% block content %}
 
-<table>
-  
-  <tr>
-    <th>ID</th>
-    <th>Created</th>
-  </tr>
-  
+<ul>
   {% for job in jobs %}
-  <tr>
-    <td><a href="{{ url_for('job_details', job_id=job.obj_id) }}">{{ job.obj_id }}</a></td>
-    <td>{{ job.dt_created }}</td>
-  </tr>
+  <li>
+    Job id <a href="{{ url_for('job_details', job_id=job.obj_id) }}">{{ job.obj_id }}</a>, created {{ job.dt_created }}.
+  </li>
   {% endfor %}
-</table>
+</ul>
 
 <p>
   <a href="{{url_for('input_file_list')}}">New job</a>
