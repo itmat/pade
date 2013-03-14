@@ -1,9 +1,19 @@
 """Code for grouping samples together.
 
-A layout is simply a list of sets of numbers. Each number represents a
-a column number in the (feature x sample) table. Each set represents a
-group of samples that share the same value of some attribute. So the
-whole layout represents some grouping of samples.
+A layout is simply a list of collections of numbers. Each number
+represents a a column number in the (feature x sample) table. Each of
+the inner collections represents a group of samples that share the
+same value of some attribute. So the whole layout represents some
+grouping of samples.
+
+For example, this layout represents four groups, each with three columns::
+
+  [ [0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11] ]
+
+The order of the groups is very important and should be preserved by
+any functions that operate on layouts. The order of the indexes within
+a single group is not important, and so the inner groups may be
+represented as lists, tuples, or sets.
 
 """
 
@@ -12,12 +22,10 @@ from itertools import combinations, product
 from scipy.misc import comb
 
 class InvalidLayoutException(Exception):
-    """Thrown when a layout is supplied that is invalid in some way."""
-
-
+    """Raised when a layout is supplied that is invalid in some way."""
 
 def as_layout(layout):
-    res = []
+    """Return layout as list of sets, and validate it."""
 
     try:
         for group in layout:
@@ -29,7 +37,6 @@ def as_layout(layout):
     return map(set, layout)
 
 def intersect_layouts(layout0, layout1):
-
     """Return a layout where each group is the intersection of a group in
     layout0 with a group in layout1.
 
@@ -84,6 +91,8 @@ def layout_is_paired(layout):
         if len(grp) != 2:
             return False
     return True
+
+### Code review stops here
 
 def num_orderings(condition_layout, block_layout=None):
     """Return the number of orderings for the pair of layouts.

@@ -20,7 +20,7 @@ class UnsupportedLayoutException(Exception):
     pass
 
 def double_sum(data):
-    """Returns the sum of data over the first two axes."""
+    """Returns the sum of data over the last two axes."""
     return np.sum(np.sum(data, axis=-1), axis=-1)
 
 
@@ -116,6 +116,8 @@ def rss(data, layout=None):
         return np.sum(rs, axis=-1)
 
 class LayoutPairTest(object):
+    """Base class for a statistic that needs a pair of layouts."""
+
     def __init__(self, condition_layout, block_layout):
         self.condition_layout = condition_layout
         self.block_layout = block_layout
@@ -364,6 +366,8 @@ class OneSampleDifferenceTTest(LayoutPairTest):
         # Now just get the differences between the two sets of values
         # and call the child statistic on those values.
         return self.child(values[0] - values[1])
+
+### Code review stops here
 
 
 class GroupSymbols(object):
