@@ -263,18 +263,22 @@ class MeansRatio(LayoutPairTest):
         c1_blocks = intersect_layouts(blocks, [ conds[1] ])
 
         # Get the mean for each block for both conditions.
-        means = np.array([group_means(data, c0_blocks),
-                          group_means(data, c1_blocks)])
+        means0 = group_means(data, c0_blocks)
+        means1 = group_means(data, c1_blocks)
 
         # If we have tuning params, add another dimension to the front
-        # of each ndarray to vary the tuning param.  First add the
-        # alpha dimension to the front of means, then swap it so the
-        # dimensionality becomes (alpha, condition, ...)
+        # of each ndarray to vary the tuning param.
         if self.alphas is not None:
-            means = np.array([ means + x for x in self.alphas ])
-            means = means.swapaxes(0, 1)
+            shape = (len(self.alphas),) + np.shape(means0)
+            old0 = means0
+            old1 = means1
+            means0 = np.zeros(shape)
+            means1 = np.zeros(shape)
+            for i, a in enumerate(self.alphas):
+                means0[i] = old0 + a
+                means1[i] = old1 + a
 
-        ratio = means[0] / means[1]
+        ratio = means0 / means1
 
         # If we have more than one block, we combine their ratios
         # using the geometric mean.
