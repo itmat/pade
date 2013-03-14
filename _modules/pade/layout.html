@@ -1,0 +1,388 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pade.layout &mdash; PADE 6.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '6.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="PADE 6.0 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">PADE 6.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for pade.layout</h1><div class="highlight"><pre>
+<span class="sd">&quot;&quot;&quot;Code for grouping samples together.</span>
+
+<span class="sd">A layout is simply a list of collections of numbers. Each number</span>
+<span class="sd">represents a a column number in the (feature x sample) table. Each of</span>
+<span class="sd">the inner collections represents a group of samples that share the</span>
+<span class="sd">same value of some attribute. So the whole layout represents some</span>
+<span class="sd">grouping of samples.</span>
+
+<span class="sd">For example, this layout represents four groups, each with three columns::</span>
+
+<span class="sd">  [ [0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11] ]</span>
+
+<span class="sd">The order of the groups is very important and should be preserved by</span>
+<span class="sd">any functions that operate on layouts. The order of the indexes within</span>
+<span class="sd">a single group is not important, and so the inner groups may be</span>
+<span class="sd">represented as lists, tuples, or sets.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">combinations</span><span class="p">,</span> <span class="n">product</span>
+<span class="kn">from</span> <span class="nn">scipy.misc</span> <span class="kn">import</span> <span class="n">comb</span>
+
+<div class="viewcode-block" id="InvalidLayoutException"><a class="viewcode-back" href="../../generated/pade.html#pade.layout.InvalidLayoutException">[docs]</a><span class="k">class</span> <span class="nc">InvalidLayoutException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Raised when a layout is supplied that is invalid in some way.&quot;&quot;&quot;</span>
+</div>
+<div class="viewcode-block" id="as_layout"><a class="viewcode-back" href="../../generated/pade.html#pade.layout.as_layout">[docs]</a><span class="k">def</span> <span class="nf">as_layout</span><span class="p">(</span><span class="n">layout</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return layout as list of sets, and validate it.&quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">layout</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">([</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">long</span><span class="p">))</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">group</span><span class="p">]):</span>
+                <span class="k">raise</span> <span class="n">InvalidLayoutException</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">layout</span><span class="p">))</span>
+    <span class="k">except</span> <span class="ne">TypeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidLayoutException</span><span class="p">(</span><span class="s">&quot;Invalid layout &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">layout</span><span class="p">),</span> <span class="n">e</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="nb">map</span><span class="p">(</span><span class="nb">set</span><span class="p">,</span> <span class="n">layout</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="intersect_layouts"><a class="viewcode-back" href="../../generated/pade.html#pade.layout.intersect_layouts">[docs]</a><span class="k">def</span> <span class="nf">intersect_layouts</span><span class="p">(</span><span class="n">layout0</span><span class="p">,</span> <span class="n">layout1</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return a layout where each group is the intersection of a group in</span>
+<span class="sd">    layout0 with a group in layout1.</span>
+
+<span class="sd">    &gt;&gt;&gt; block_layout = [[0, 1, 2, 3], [4, 5, 6, 7]]</span>
+<span class="sd">    &gt;&gt;&gt; condition_layout = [[0, 1, 4, 5], [2, 3, 6, 7]]    </span>
+<span class="sd">    &gt;&gt;&gt; intersect_layouts(block_layout, condition_layout)</span>
+<span class="sd">    [[0, 1], [2, 3], [4, 5], [6, 7]]</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">layout</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">as_layout</span><span class="p">(</span><span class="n">layout0</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">as_layout</span><span class="p">(</span><span class="n">layout1</span><span class="p">):</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">layout</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">c</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">layout</span>
+    
+</div>
+<div class="viewcode-block" id="apply_layout"><a class="viewcode-back" href="../../generated/pade.html#pade.layout.apply_layout">[docs]</a><span class="k">def</span> <span class="nf">apply_layout</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">layout</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Splits data into groups based on layout.</span>
+
+<span class="sd">    1d data:</span>
+<span class="sd">    </span>
+<span class="sd">    &gt;&gt;&gt; data = np.array([9, 8, 7, 6])</span>
+<span class="sd">    &gt;&gt;&gt; layout = [ [0, 1], [2, 3] ]</span>
+<span class="sd">    &gt;&gt;&gt; apply_layout(data, layout) # doctest: +NORMALIZE_WHITESPACE</span>
+<span class="sd">    [array([9, 8]), array([7, 6])]</span>
+
+<span class="sd">    2d data:</span>
+<span class="sd">    </span>
+<span class="sd">    &gt;&gt;&gt; data = np.array([[9, 8, 7, 6], [5, 4, 3, 2]])</span>
+<span class="sd">    &gt;&gt;&gt; layout = [ [0, 1], [2, 3] ]</span>
+<span class="sd">    &gt;&gt;&gt; apply_layout(data, layout) # doctest: +NORMALIZE_WHITESPACE</span>
+<span class="sd">    [array([[9, 8], [5, 4]]), array([[7, 6], [3, 2]])]</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">[</span> <span class="n">data</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">idxs</span><span class="p">)]</span> <span class="k">for</span> <span class="n">idxs</span> <span class="ow">in</span> <span class="n">layout</span><span class="p">]</span>
+</div>
+<div class="viewcode-block" id="layout_is_paired"><a class="viewcode-back" href="../../generated/pade.html#pade.layout.layout_is_paired">[docs]</a><span class="k">def</span> <span class="nf">layout_is_paired</span><span class="p">(</span><span class="n">layout</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns true of the layout appears to be &#39;paired&#39;.</span>
+
+<span class="sd">    A paired layout is one where each group contains two values.</span>
+
+<span class="sd">    :param layout:</span>
+<span class="sd">       A :term:`layout`      </span>
+
+<span class="sd">    :return:</span>
+<span class="sd">      Boolean indicating if layout appears to be paired.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">grp</span> <span class="ow">in</span> <span class="n">layout</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">grp</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">False</span>
+    <span class="k">return</span> <span class="bp">True</span>
+
+<span class="c">### Code review stops here</span>
+</div>
+<div class="viewcode-block" id="num_orderings"><a class="viewcode-back" href="../../generated/pade.html#pade.layout.num_orderings">[docs]</a><span class="k">def</span> <span class="nf">num_orderings</span><span class="p">(</span><span class="n">condition_layout</span><span class="p">,</span> <span class="n">block_layout</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return the number of orderings for the pair of layouts.</span>
+
+<span class="sd">    Returns the number of distinct permutations of the indexes that</span>
+<span class="sd">    are valid within the given block layout and result in distinct</span>
+<span class="sd">    labelling of samples with conditions.</span>
+
+<span class="sd">    :param condition_layout: </span>
+<span class="sd">      Layout grouping the samples by condition.</span>
+
+<span class="sd">    :param block_layout:</span>
+<span class="sd">      Optional layout that groups the samples together by blocking</span>
+<span class="sd">      variables.</span>
+
+<span class="sd">      &quot;&quot;&quot;</span>
+    <span class="c"># If there is no block layout, just find the number of</span>
+    <span class="c"># orderings of indexes in the full layout.</span>
+    <span class="k">if</span> <span class="n">block_layout</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">block_layout</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+
+        <span class="c"># If we only have one group in the full layout, there&#39;s only</span>
+        <span class="c"># one ordering of the indexes in that group.</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">condition_layout</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">1</span>
+
+        <span class="c"># Otherwise say N is the total number of items in the full</span>
+        <span class="c"># layout and k is the number in the 0th group of the full</span>
+        <span class="c"># layout. The number of orderings is (N choose k) times the</span>
+        <span class="c"># number of orderings for the rest of the groups.</span>
+        <span class="n">N</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">len</span><span class="p">,</span> <span class="n">condition_layout</span><span class="p">))</span>
+        <span class="n">k</span>   <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">condition_layout</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">comb</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span> <span class="o">*</span> <span class="n">num_orderings</span><span class="p">(</span><span class="n">condition_layout</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+
+    <span class="c"># Since we got a block layout, we need to find the number of</span>
+    <span class="c"># orderings *within* the first group in the block layout, then</span>
+    <span class="c"># multiply that by the orderings in the rest of the block_layout</span>
+    <span class="c"># layout. First find the number of groups in the full layout that</span>
+    <span class="c"># correspond to the first group in the block_layout layout.</span>
+
+    <span class="c"># First find the number of groups in the full layout that fit in</span>
+    <span class="c"># the first group of the block_layout layout.</span>
+
+    <span class="n">prefix</span> <span class="o">=</span> <span class="n">intersect_layouts</span><span class="p">(</span><span class="n">condition_layout</span><span class="p">,</span> <span class="n">block_layout</span><span class="p">[:</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">suffix</span> <span class="o">=</span> <span class="n">intersect_layouts</span><span class="p">(</span><span class="n">condition_layout</span><span class="p">,</span> <span class="n">block_layout</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+
+    <span class="n">num_arr_first</span> <span class="o">=</span> <span class="n">num_orderings</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+    <span class="n">num_arr_rest</span>  <span class="o">=</span> <span class="n">num_orderings</span><span class="p">(</span><span class="n">suffix</span><span class="p">,</span> <span class="n">block_layout</span><span class="p">[</span><span class="mi">1</span> <span class="p">:</span> <span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">num_arr_first</span> <span class="o">*</span> <span class="n">num_arr_rest</span>
+
+</div>
+<div class="viewcode-block" id="all_orderings_within_group"><a class="viewcode-back" href="../../generated/pade.html#pade.layout.all_orderings_within_group">[docs]</a><span class="k">def</span> <span class="nf">all_orderings_within_group</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="n">sizes</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return all combinations of permutations of the given items within</span>
+<span class="sd">    groups that have the given sizes.</span>
+
+<span class="sd">    One index, one group of size one:</span>
+
+<span class="sd">    &gt;&gt;&gt; list(all_orderings_within_group([0], [1]))</span>
+<span class="sd">    [[0]]</span>
+
+<span class="sd">    Two indexes, one group of size two:</span>
+
+<span class="sd">    &gt;&gt;&gt; list(all_orderings_within_group([0, 1], [2]))</span>
+<span class="sd">    [[0, 1]]</span>
+
+<span class="sd">    Two indexes, two groups of size one:</span>
+<span class="sd">    </span>
+<span class="sd">    &gt;&gt;&gt; list(all_orderings_within_group([0, 1], [1, 1]))</span>
+<span class="sd">    [[0, 1], [1, 0]]</span>
+
+<span class="sd">    &gt;&gt;&gt; list(all_orderings_within_group([0, 1, 2, 3], [2, 2])) # doctest: +NORMALIZE_WHITESPACE</span>
+<span class="sd">    [[0, 1, 2, 3], </span>
+<span class="sd">     [0, 2, 1, 3],</span>
+<span class="sd">     [0, 3, 1, 2],</span>
+<span class="sd">     [1, 2, 0, 3],</span>
+<span class="sd">     [1, 3, 0, 2],</span>
+<span class="sd">     [2, 3, 0, 1]]</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">items</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">items</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">items</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">sizes</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">InvalidLayoutException</span><span class="p">(</span><span class="s">&quot;Layout is bad, because length of items &quot;</span> <span class="o">+</span>
+                                     <span class="s">&quot;does not equal sizes. Layout is &quot;</span> <span class="o">+</span> 
+                                     <span class="nb">str</span><span class="p">(</span><span class="n">items</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot; and sizes is &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">sizes</span><span class="p">))</span>
+
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">map</span><span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="n">combinations</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="n">sizes</span><span class="p">[</span><span class="mi">0</span><span class="p">])):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sizes</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">c</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">arr</span> <span class="ow">in</span> <span class="n">all_orderings_within_group</span><span class="p">(</span>
+                <span class="n">items</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="n">c</span><span class="p">),</span> <span class="n">sizes</span><span class="p">[</span><span class="mi">1</span><span class="p">:]):</span>
+                <span class="k">yield</span> <span class="n">c</span> <span class="o">+</span> <span class="n">arr</span>
+</div>
+<div class="viewcode-block" id="all_orderings"><a class="viewcode-back" href="../../generated/pade.html#pade.layout.all_orderings">[docs]</a><span class="k">def</span> <span class="nf">all_orderings</span><span class="p">(</span><span class="n">condition_layout</span><span class="p">,</span> <span class="n">block_layout</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return all valid orderings based on the given layouts.</span>
+
+<span class="sd">    :param condition_layout: </span>
+<span class="sd">      Layout grouping the samples by condition.</span>
+
+<span class="sd">    :param block_layout:</span>
+<span class="sd">      Optional layout that groups the samples together by blocking</span>
+<span class="sd">      variables.</span>
+
+<span class="sd">    Each ordering returned has a distinct assignment of the indexes</span>
+<span class="sd">    into the groups defined by condition_layout. In addition each</span>
+<span class="sd">    ordering preserves the grouping defined by block layout.</span>
+<span class="sd">      </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">grouped</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">block</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">as_layout</span><span class="p">(</span><span class="n">block_layout</span><span class="p">)):</span>
+
+        <span class="n">cond_groups</span> <span class="o">=</span> <span class="n">intersect_layouts</span><span class="p">([</span> <span class="n">block</span> <span class="p">],</span> <span class="n">condition_layout</span> <span class="p">)</span>
+        <span class="n">sizes</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="nb">len</span><span class="p">,</span> <span class="n">cond_groups</span><span class="p">)</span>
+        <span class="n">grouped</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">all_orderings_within_group</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">block</span><span class="p">),</span> <span class="n">sizes</span><span class="p">))</span>
+
+    <span class="k">for</span> <span class="n">prod</span> <span class="ow">in</span> <span class="n">product</span><span class="p">(</span><span class="o">*</span><span class="n">grouped</span><span class="p">):</span>
+        <span class="n">row</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="n">prod</span><span class="p">:</span>
+            <span class="n">row</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">block</span><span class="p">)</span>
+        <span class="k">yield</span> <span class="n">row</span>
+</div>
+<div class="viewcode-block" id="random_ordering"><a class="viewcode-back" href="../../generated/pade.html#pade.layout.random_ordering">[docs]</a><span class="k">def</span> <span class="nf">random_ordering</span><span class="p">(</span><span class="n">layout</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return a randomized ordering of the indexes within each group of</span>
+<span class="sd">    the given layout.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">row</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">grp</span> <span class="ow">in</span> <span class="n">layout</span><span class="p">:</span>
+        <span class="n">grp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">grp</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">grp</span><span class="p">)</span>
+        <span class="n">row</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">grp</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">row</span>
+</div>
+<div class="viewcode-block" id="random_orderings"><a class="viewcode-back" href="../../generated/pade.html#pade.layout.random_orderings">[docs]</a><span class="k">def</span> <span class="nf">random_orderings</span><span class="p">(</span><span class="n">condition_layout</span><span class="p">,</span> <span class="n">block_layout</span><span class="p">,</span> <span class="n">R</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Get an iterator over at most R random index shuffles.</span>
+
+<span class="sd">    :param full: the :term:`layout`</span>
+<span class="sd">    :param reduced: the reduced :term:`layout`</span>
+<span class="sd">    :param R: the maximum number of orderings to return</span>
+
+<span class="sd">    :return: iterator over random orderings of indexes</span>
+
+<span class="sd">    Each item in the resulting iterator will be an ndarray of the</span>
+<span class="sd">    indexes in the given layouts. The indexes within each group of the</span>
+<span class="sd">    reduced layout will be shuffled.</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">full</span> <span class="o">=</span> <span class="n">intersect_layouts</span><span class="p">(</span><span class="n">block_layout</span><span class="p">,</span> <span class="n">condition_layout</span><span class="p">)</span>
+
+    <span class="c"># Set of random orderings we&#39;ve returned so far</span>
+    <span class="n">orderings</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    
+    <span class="c"># The total number of orderings of indexes within the groups of</span>
+    <span class="c"># the reduced layout that result in a distinct assignment of</span>
+    <span class="c"># indexes into the groups defined by the full layout.</span>
+    <span class="n">N</span> <span class="o">=</span> <span class="n">num_orderings</span><span class="p">(</span><span class="n">condition_layout</span><span class="p">,</span> <span class="n">block_layout</span><span class="p">)</span>
+    
+    <span class="c"># If the number of orderings requested is greater than the number</span>
+    <span class="c"># of distinct orderings that actually exist, just return all of</span>
+    <span class="c"># them.</span>
+    <span class="k">if</span> <span class="n">R</span> <span class="o">&gt;=</span> <span class="n">N</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">arr</span> <span class="ow">in</span> <span class="n">all_orderings</span><span class="p">(</span><span class="n">condition_layout</span><span class="p">,</span> <span class="n">block_layout</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="n">arr</span>
+
+    <span class="c"># Otherwise repeatedly find a random ordering, and if it&#39;s not one</span>
+    <span class="c"># we&#39;ve already yielded, yield it.</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">orderings</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">R</span><span class="p">:</span>
+
+            <span class="n">arr</span> <span class="o">=</span> <span class="n">random_ordering</span><span class="p">(</span><span class="n">block_layout</span><span class="p">)</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">orderings</span><span class="p">:</span>
+                <span class="n">orderings</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+                <span class="k">yield</span> <span class="n">arr</span>
+</div>
+<div class="viewcode-block" id="random_indexes"><a class="viewcode-back" href="../../generated/pade.html#pade.layout.random_indexes">[docs]</a><span class="k">def</span> <span class="nf">random_indexes</span><span class="p">(</span><span class="n">layout</span><span class="p">,</span> <span class="n">R</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Generates R samplings of indexes based on the given layout.</span>
+
+<span class="sd">    &gt;&gt;&gt; indexes = random_indexes([[0, 1], [2, 3]], 10)</span>
+<span class="sd">    &gt;&gt;&gt; np.shape(indexes)</span>
+<span class="sd">    (10, 4)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">layout</span> <span class="o">=</span> <span class="p">[</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">grp</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="k">for</span> <span class="n">grp</span> <span class="ow">in</span> <span class="n">layout</span> <span class="p">]</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([</span> <span class="nb">len</span><span class="p">(</span><span class="n">grp</span><span class="p">)</span> <span class="k">for</span> <span class="n">grp</span> <span class="ow">in</span> <span class="n">layout</span> <span class="p">])</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">R</span><span class="p">,</span> <span class="n">n</span><span class="p">),</span> <span class="nb">int</span><span class="p">)</span>
+    
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">R</span><span class="p">):</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">grp</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">layout</span><span class="p">):</span>
+            <span class="n">nj</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">grp</span><span class="p">)</span>
+            <span class="n">q</span>  <span class="o">=</span> <span class="n">p</span> <span class="o">+</span> <span class="n">nj</span>
+            <span class="n">res</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">p</span> <span class="p">:</span> <span class="n">q</span><span class="p">]</span> <span class="o">=</span> <span class="n">grp</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random_integers</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">nj</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nj</span><span class="p">)]</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">q</span>
+
+    <span class="k">return</span> <span class="n">res</span>
+</pre></div></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">PADE 6.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, University of Pennsylvania.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.2.
+    </div>
+  </body>
+</html>

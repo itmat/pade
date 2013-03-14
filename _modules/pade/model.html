@@ -8,7 +8,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>pade.model &mdash; PaGE 6.0 documentation</title>
+    <title>pade.model &mdash; PADE 6.0 documentation</title>
     
     <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
@@ -26,7 +26,7 @@
     <script type="text/javascript" src="../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../_static/doctools.js"></script>
     <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    <link rel="top" title="PaGE 6.0 documentation" href="../../index.html" />
+    <link rel="top" title="PADE 6.0 documentation" href="../../index.html" />
     <link rel="up" title="Module code" href="../index.html" /> 
   </head>
   <body>
@@ -39,7 +39,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li><a href="../../index.html">PaGE 6.0 documentation</a> &raquo;</li>
+        <li><a href="../../index.html">PADE 6.0 documentation</a> &raquo;</li>
           <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
       </ul>
     </div>  
@@ -50,38 +50,40 @@
           <div class="body">
             
   <h1>Source code for pade.model</h1><div class="highlight"><pre>
+<span class="sd">&quot;&quot;&quot;Classes used to model PADE data and jobs.&quot;&quot;&quot;</span>
+
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">namedtuple</span>
-<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">combinations</span><span class="p">,</span> <span class="n">product</span>
-<span class="kn">import</span> <span class="nn">StringIO</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">namedtuple</span><span class="p">,</span> <span class="n">OrderedDict</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">product</span>
+
+<span class="kn">from</span> <span class="nn">StringIO</span> <span class="kn">import</span> <span class="n">StringIO</span>
 <span class="kn">import</span> <span class="nn">tokenize</span>
 <span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">csv</span>
+<span class="kn">import</span> <span class="nn">yaml</span>
+<span class="kn">import</span> <span class="nn">textwrap</span>
 
-<div class="viewcode-block" id="ModelExpressionException"><a class="viewcode-back" href="../../api.html#pade.model.ModelExpressionException">[docs]</a><span class="k">class</span> <span class="nc">ModelExpressionException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<span class="n">DEFAULT_STATISTIC</span> <span class="o">=</span> <span class="s">&#39;f_test&#39;</span>
+<span class="n">DEFAULT_NUM_BINS</span> <span class="o">=</span> <span class="mi">1000</span>
+<span class="n">DEFAULT_NUM_SAMPLES</span> <span class="o">=</span> <span class="mi">1000</span>
+<span class="n">DEFAULT_SAMPLE_WITH_REPLACEMENT</span> <span class="o">=</span> <span class="bp">False</span>
+<span class="n">DEFAULT_SAMPLE_FROM_RESIDUALS</span> <span class="o">=</span> <span class="bp">False</span>
+<span class="n">DEFAULT_MIN_CONF</span> <span class="o">=</span> <span class="mf">0.25</span>
+<span class="n">DEFAULT_CONF_INTERVAL</span> <span class="o">=</span> <span class="mf">0.05</span>
+<span class="n">DEFAULT_EQUALIZE_MEANS</span> <span class="o">=</span> <span class="bp">True</span>
+<span class="n">DEFAULT_TUNING_PARAMS</span><span class="o">=</span><span class="p">[</span><span class="mf">0.001</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">300</span><span class="p">,</span> <span class="mi">1000</span><span class="p">,</span> <span class="mi">3000</span><span class="p">]</span>
+
+<span class="n">TableWithHeader</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s">&#39;TableWithHeader&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s">&#39;header&#39;</span><span class="p">,</span> <span class="s">&#39;table&#39;</span><span class="p">])</span>
+
+<div class="viewcode-block" id="ModelExpressionException"><a class="viewcode-back" href="../../generated/pade.html#pade.model.ModelExpressionException">[docs]</a><span class="k">class</span> <span class="nc">ModelExpressionException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Thrown when a model expression is invalid.&quot;&quot;&quot;</span>
     <span class="k">pass</span>
 
 </div>
-<span class="n">DummyVarTable</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span>
-    <span class="s">&quot;DummyVarTable&quot;</span><span class="p">,</span>
-    <span class="p">[</span><span class="s">&quot;names&quot;</span><span class="p">,</span> <span class="s">&quot;rows&quot;</span><span class="p">])</span>
-
-<span class="n">DummyVarAssignment</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span>
-    <span class="s">&quot;DummyVarAssignment&quot;</span><span class="p">,</span>
-    <span class="p">[</span><span class="s">&quot;factor_values&quot;</span><span class="p">,</span>
-     <span class="s">&quot;bits&quot;</span><span class="p">,</span>
-     <span class="s">&quot;indexes&quot;</span><span class="p">])</span>
-
-<span class="n">FittedModel</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span>
-    <span class="s">&quot;FittedModel&quot;</span><span class="p">,</span>
-    <span class="p">[</span><span class="s">&quot;labels&quot;</span><span class="p">,</span>
-     <span class="s">&quot;x&quot;</span><span class="p">,</span>
-     <span class="s">&quot;y_indexes&quot;</span><span class="p">,</span>
-     <span class="s">&quot;params&quot;</span><span class="p">])</span>
+<div class="viewcode-block" id="ModelExpression"><a class="viewcode-back" href="../../generated/pade.html#pade.model.ModelExpression">[docs]</a><span class="k">class</span> <span class="nc">ModelExpression</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Represents a list of variables and an operator.&quot;&quot;&quot;</span>
 
 
-<span class="k">class</span> <span class="nc">ModelExpression</span><span class="p">:</span>
-    
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
                  <span class="n">operator</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                  <span class="n">variables</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
@@ -101,7 +103,7 @@
 
         
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">string</span><span class="p">):</span>
+<div class="viewcode-block" id="ModelExpression.parse"><a class="viewcode-back" href="../../generated/pade.html#pade.model.ModelExpression.parse">[docs]</a>    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">string</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Parse a model from a string.</span>
 
 <span class="sd">        string can either be &quot;VARIABLE&quot;, &quot;VARIABLE * VARIABLE&quot;, or</span>
@@ -116,7 +118,7 @@
         <span class="n">operator</span> <span class="o">=</span> <span class="bp">None</span>
         <span class="n">variables</span> <span class="o">=</span> <span class="p">[]</span>
 
-        <span class="n">io</span> <span class="o">=</span> <span class="n">StringIO</span><span class="o">.</span><span class="n">StringIO</span><span class="p">(</span><span class="n">string</span><span class="p">)</span>
+        <span class="n">io</span> <span class="o">=</span> <span class="n">StringIO</span><span class="p">(</span><span class="n">string</span><span class="p">)</span>
         <span class="n">toks</span> <span class="o">=</span> <span class="n">tokenize</span><span class="o">.</span><span class="n">generate_tokens</span><span class="p">(</span><span class="k">lambda</span> <span class="p">:</span> <span class="n">io</span><span class="o">.</span><span class="n">readline</span><span class="p">())</span>
 
         <span class="c"># First token should always be a variable</span>
@@ -149,9 +151,7 @@
 
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">variables</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">ModelExpression</span><span class="p">(</span><span class="n">operator</span><span class="o">=</span><span class="n">operator</span><span class="p">,</span> <span class="n">variables</span><span class="o">=</span><span class="n">variables</span><span class="p">)</span>
-
-
-
+</div>
     <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">return</span> <span class="s">&quot;&quot;</span>
@@ -161,123 +161,577 @@
             <span class="n">op</span> <span class="o">=</span> <span class="s">&quot; &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">operator</span> <span class="o">+</span> <span class="s">&quot; &quot;</span>
             <span class="k">return</span> <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="p">)</span>
 
-
-<span class="k">class</span> <span class="nc">Model</span><span class="p">:</span>
+</div>
+<div class="viewcode-block" id="Model"><a class="viewcode-back" href="../../generated/pade.html#pade.model.Model">[docs]</a><span class="k">class</span> <span class="nc">Model</span><span class="p">:</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">schema</span><span class="p">,</span> <span class="n">expr</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">schema</span> <span class="o">=</span> <span class="n">schema</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">expr</span> <span class="o">=</span> <span class="n">ModelExpression</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">validate_model</span><span class="p">()</span>
-
-    <span class="k">def</span> <span class="nf">validate_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Validate the model against the given schema.</span>
-
-<span class="sd">        Raises an exception if the model refers to any variables that are</span>
-<span class="sd">        not defined in schema.</span>
-<span class="sd">        </span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        
         <span class="k">for</span> <span class="n">factor</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">expr</span><span class="o">.</span><span class="n">variables</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">factor</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">factors</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;Factor &#39;&quot;</span> <span class="o">+</span> <span class="n">factor</span> <span class="o">+</span> <span class="s">&quot;&#39; is not defined in the schema. Valid factors are &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">factors</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                    <span class="s">&quot;Factor &#39;&quot;</span> <span class="o">+</span> <span class="n">factor</span> <span class="o">+</span> 
+                    <span class="s">&quot;&#39; is not defined in the schema. Valid factors are &quot;</span> <span class="o">+</span> 
+                    <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">factors</span><span class="p">))</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">layout</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Model.layout"><a class="viewcode-back" href="../../generated/pade.html#pade.model.Model.layout">[docs]</a>    <span class="k">def</span> <span class="nf">layout</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">s</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span>
         <span class="k">return</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">indexes_with_assignments</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
                 <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">s</span><span class="o">.</span><span class="n">possible_assignments</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">expr</span><span class="o">.</span><span class="n">variables</span><span class="p">)]</span>
 
+</div></div>
+<div class="viewcode-block" id="Summary"><a class="viewcode-back" href="../../generated/pade.html#pade.model.Summary">[docs]</a><span class="k">class</span> <span class="nc">Summary</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Summarizes the results of a job by confidence level.&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bins</span><span class="p">,</span> <span class="n">best_param_idxs</span><span class="p">,</span> <span class="n">counts</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bins</span> <span class="o">=</span> <span class="n">bins</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">best_param_idxs</span> <span class="o">=</span> <span class="n">best_param_idxs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">counts</span> <span class="o">=</span> <span class="n">counts</span>
+</div>
+<div class="viewcode-block" id="Input"><a class="viewcode-back" href="../../generated/pade.html#pade.model.Input">[docs]</a><span class="k">class</span> <span class="nc">Input</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Computing coefficients using least squares for &quot;</span> <span class="o">+</span>
-                 <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">))</span> <span class="o">+</span> <span class="s">&quot; rows&quot;</span><span class="p">)</span>
+    <span class="sd">&quot;&quot;&quot;Raw(ish) input for the job.</span>
 
-        <span class="n">effect_level</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">expr</span><span class="o">.</span><span class="n">operator</span> <span class="o">==</span> <span class="s">&#39;+&#39;</span> <span class="k">else</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">expr</span><span class="o">.</span><span class="n">variables</span><span class="p">)</span>
+<span class="sd">    Consists only of a 2d array of the intensity values, and a 1d</span>
+<span class="sd">    array of feature ids. Grouping if the columns is handled elsewhere.</span>
 
-        <span class="n">dummies</span> <span class="o">=</span> <span class="n">dummy_vars</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="n">effect_level</span><span class="p">,</span> <span class="n">factors</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">expr</span><span class="o">.</span><span class="n">variables</span><span class="p">)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">,</span> <span class="n">feature_ids</span><span class="p">):</span>
+        <span class="n">assert_ndarray</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s">&#39;table&#39;</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">assert_ndarray</span><span class="p">(</span><span class="n">feature_ids</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s">&#39;feature_ids&#39;</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">table</span> <span class="o">=</span> <span class="n">table</span>
+        <span class="sd">&quot;&quot;&quot;The raw data</span>
 
-        <span class="n">x</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">indexes</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="sd">        (feature x sample) ndarray.</span>
 
-        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">dummies</span><span class="o">.</span><span class="n">rows</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">row</span><span class="o">.</span><span class="n">indexes</span><span class="p">:</span>
-                <span class="n">x</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">bits</span><span class="p">)</span>
-                <span class="n">indexes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">sample_name_index</span><span class="p">[</span><span class="n">index</span><span class="p">])</span>
+<span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">feature_ids</span> <span class="o">=</span> <span class="n">feature_ids</span>
+        <span class="sd">&quot;&quot;&quot;Array of feature ids&quot;&quot;&quot;</span>
 
-        <span class="n">num_vars</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-        <span class="n">shape</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="n">num_vars</span><span class="p">))</span>
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="Input.from_raw_file"><a class="viewcode-back" href="../../generated/pade.html#pade.model.Input.from_raw_file">[docs]</a>    <span class="k">def</span> <span class="nf">from_raw_file</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">schema</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Load the given input file into memory.</span>
 
-        <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+<span class="sd">        :param path:</span>
+<span class="sd">          Path to an input file, which must be a tab-delimited file</span>
+<span class="sd">          with a header line.</span>
+<span class="sd">        </span>
+<span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
-            <span class="n">y</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">indexes</span><span class="p">]</span>
-            <span class="p">(</span><span class="n">coeffs</span><span class="p">,</span> <span class="n">residuals</span><span class="p">,</span> <span class="n">rank</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">lstsq</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
-            <span class="n">result</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">coeffs</span>
+        <span class="n">ids</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="p">[]</span>
 
-        <span class="k">return</span> <span class="n">FittedModel</span><span class="p">(</span><span class="n">dummies</span><span class="o">.</span><span class="n">names</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">indexes</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
+        <span class="n">log_interval</span> <span class="o">=</span> <span class="mi">100000</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+            <span class="n">csvfile</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">DictReader</span><span class="p">(</span><span class="n">fh</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s">&quot;</span><span class="se">\t</span><span class="s">&quot;</span><span class="p">)</span>
+            <span class="n">headers</span> <span class="o">=</span> <span class="n">csvfile</span><span class="o">.</span><span class="n">fieldnames</span>
+
+            <span class="n">sample_names</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">sample_column_names</span>
+
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">rec</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">csvfile</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">limit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="n">limit</span><span class="p">:</span>
+                    <span class="k">break</span>
+                <span class="n">table</span><span class="o">.</span><span class="n">append</span><span class="p">([</span> <span class="nb">float</span><span class="p">(</span><span class="n">rec</span><span class="p">[</span><span class="n">name</span><span class="p">])</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">sample_names</span> <span class="p">])</span>
+                <span class="n">ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rec</span><span class="p">[</span><span class="n">schema</span><span class="o">.</span><span class="n">feature_id_column_names</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span>
+
+                <span class="k">if</span> <span class="p">(</span><span class="n">i</span> <span class="o">%</span> <span class="n">log_interval</span><span class="p">)</span> <span class="o">==</span> <span class="n">log_interval</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Copied {0} rows&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+
+        <span class="n">table</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+        <span class="n">ids</span>   <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+            <span class="s">&quot;Input has {features} features and {samples} samples&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">features</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                <span class="n">samples</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
+
+        <span class="k">return</span> <span class="n">Input</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">ids</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="dummy_vars"><a class="viewcode-back" href="../../api.html#pade.model.dummy_vars">[docs]</a><span class="k">def</span> <span class="nf">dummy_vars</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">factors</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    level=0 is intercept only</span>
-<span class="sd">    level=1 is intercept plus main effects</span>
-<span class="sd">    level=2 is intercept, main effects, interactions between two variables</span>
-<span class="sd">    ...</span>
-<span class="sd">    level=n is intercept, main effects, interactions between n variables</span>
+</div></div>
+<div class="viewcode-block" id="Settings"><a class="viewcode-back" href="../../generated/pade.html#pade.model.Settings">[docs]</a><span class="k">class</span> <span class="nc">Settings</span><span class="p">:</span>
 
-<span class="sd">    &quot;&quot;&quot;</span> 
-    <span class="n">factors</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">_check_factors</span><span class="p">(</span><span class="n">factors</span><span class="p">)</span>
+    <span class="sd">&quot;&quot;&quot;The settings that control how the job is run.&quot;&quot;&quot;</span>
 
-    <span class="k">if</span> <span class="n">level</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">dummy_vars</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">factors</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">factors</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">stat_name</span><span class="o">=</span><span class="n">DEFAULT_STATISTIC</span><span class="p">,</span>
+        <span class="n">num_bins</span><span class="o">=</span><span class="n">DEFAULT_NUM_BINS</span><span class="p">,</span>
+        <span class="n">num_samples</span><span class="o">=</span><span class="n">DEFAULT_NUM_SAMPLES</span><span class="p">,</span>
+        <span class="n">sample_from_residuals</span><span class="o">=</span><span class="n">DEFAULT_SAMPLE_FROM_RESIDUALS</span><span class="p">,</span>
+        <span class="n">sample_with_replacement</span><span class="o">=</span><span class="n">DEFAULT_SAMPLE_WITH_REPLACEMENT</span><span class="p">,</span>
+        <span class="n">condition_variables</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+        <span class="n">block_variables</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+        <span class="n">min_conf</span><span class="o">=</span><span class="n">DEFAULT_MIN_CONF</span><span class="p">,</span>
+        <span class="n">equalize_means</span><span class="o">=</span><span class="n">DEFAULT_EQUALIZE_MEANS</span><span class="p">,</span>
+        <span class="n">conf_interval</span><span class="o">=</span><span class="n">DEFAULT_CONF_INTERVAL</span><span class="p">,</span>
+        <span class="n">tuning_params</span><span class="o">=</span><span class="n">DEFAULT_TUNING_PARAMS</span><span class="p">,</span>
+        <span class="n">equalize_means_ids</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
 
-    <span class="k">if</span> <span class="n">level</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">names</span> <span class="o">=</span> <span class="p">({},)</span>
-        <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">schema</span><span class="o">.</span><span class="n">possible_assignments</span><span class="p">(</span><span class="n">factors</span><span class="p">):</span>
-            <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                <span class="n">DummyVarAssignment</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">values</span><span class="p">(),</span> <span class="p">(</span><span class="bp">True</span><span class="p">,),</span> <span class="n">schema</span><span class="o">.</span><span class="n">samples_with_assignments</span><span class="p">(</span><span class="n">a</span><span class="p">)))</span>
-        <span class="k">return</span> <span class="n">DummyVarTable</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="n">rows</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stat_name</span> <span class="o">=</span> <span class="n">stat_name</span>
+        <span class="sd">&quot;&quot;&quot;Name of the statistic to use.&quot;&quot;&quot;</span>
 
-    <span class="n">res</span> <span class="o">=</span> <span class="n">dummy_vars</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">factors</span><span class="p">,</span> <span class="n">level</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">=</span> <span class="n">num_samples</span>
+        <span class="sd">&quot;&quot;&quot;Max number of samples to use for permutation test or bootstrapping&quot;&quot;&quot;</span>
 
-    <span class="n">col_names</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">names</span><span class="p">)</span>
-    <span class="n">rows</span>      <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">rows</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sample_from_residuals</span> <span class="o">=</span> <span class="n">sample_from_residuals</span>
+        <span class="sd">&quot;&quot;&quot;If true, sample from residuals rather than raw values.&quot;&quot;&quot;</span>
 
-    <span class="c"># Get col names</span>
-    <span class="k">for</span> <span class="n">interacting</span> <span class="ow">in</span> <span class="n">combinations</span><span class="p">(</span><span class="n">factors</span><span class="p">,</span> <span class="n">level</span><span class="p">):</span>
-        <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">schema</span><span class="o">.</span><span class="n">factor_combinations</span><span class="p">(</span><span class="n">interacting</span><span class="p">):</span>
-            <span class="k">if</span> <span class="n">schema</span><span class="o">.</span><span class="n">has_baseline</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">interacting</span><span class="p">,</span> <span class="n">a</span><span class="p">))):</span>
-                <span class="k">continue</span>
-            <span class="n">col_names</span> <span class="o">+=</span> <span class="p">({</span> <span class="n">interacting</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="p">:</span> <span class="n">a</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">interacting</span><span class="p">))</span> <span class="p">},)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sample_with_replacement</span> <span class="o">=</span> <span class="n">sample_with_replacement</span>
+        <span class="sd">&quot;&quot;&quot;If true, do sampling with replacement (bootstrapping).</span>
 
-    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">dummy</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">rows</span><span class="p">):</span>
-        <span class="p">(</span><span class="n">factor_values</span><span class="p">,</span> <span class="n">bits</span><span class="p">,</span> <span class="n">indexes</span><span class="p">)</span> <span class="o">=</span> <span class="n">dummy</span>
+<span class="sd">        If false, do permutation test.</span>
 
-        <span class="c"># For each subset of factors of size level</span>
-        <span class="k">for</span> <span class="n">interacting</span> <span class="ow">in</span> <span class="n">combinations</span><span class="p">(</span><span class="n">factors</span><span class="p">,</span> <span class="n">level</span><span class="p">):</span>
+<span class="sd">        &quot;&quot;&quot;</span>
 
-            <span class="n">my_vals</span> <span class="o">=</span> <span class="p">()</span>
-            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">factors</span><span class="p">)):</span>
-                <span class="k">if</span> <span class="n">factors</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="ow">in</span> <span class="n">interacting</span><span class="p">:</span>
-                    <span class="n">my_vals</span> <span class="o">+=</span> <span class="p">(</span><span class="n">factor_values</span><span class="p">[</span><span class="n">j</span><span class="p">],)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_bins</span> <span class="o">=</span> <span class="n">num_bins</span>
+        <span class="sd">&quot;&quot;&quot;Number of bins used to discretize statistic space&quot;&quot;&quot;</span>
 
-            <span class="c"># For each possible assignment of values to these factors</span>
-            <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">schema</span><span class="o">.</span><span class="n">factor_combinations</span><span class="p">(</span><span class="n">interacting</span><span class="p">):</span>
-                <span class="k">if</span> <span class="n">schema</span><span class="o">.</span><span class="n">has_baseline</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">interacting</span><span class="p">,</span> <span class="n">a</span><span class="p">))):</span>
-                    <span class="k">continue</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">block_variables</span> <span class="o">=</span> <span class="n">block_variables</span>
+        <span class="sd">&quot;&quot;&quot;List of &quot;blocking&quot; or &quot;nuisance&quot; variables.&quot;&quot;&quot;</span>
 
-                <span class="c"># Test if this row of the result table has all the</span>
-                <span class="c"># values in this assignment</span>
-                <span class="n">matches</span> <span class="o">=</span> <span class="n">my_vals</span> <span class="o">==</span> <span class="n">a</span>
-                <span class="n">bits</span> <span class="o">=</span> <span class="n">bits</span> <span class="o">+</span> <span class="p">(</span><span class="n">matches</span><span class="p">,)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">condition_variables</span> <span class="o">=</span> <span class="n">condition_variables</span>
+        <span class="sd">&quot;&quot;&quot;List of variables you want to test for differential effects.&quot;&quot;&quot;</span>
 
-        <span class="n">rows</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">DummyVarAssignment</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">factor_values</span><span class="p">),</span> <span class="n">bits</span><span class="p">,</span> <span class="n">indexes</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tuning_params</span> <span class="o">=</span> <span class="n">tuning_params</span>
+        <span class="sd">&quot;&quot;&quot;Optional list of tuning parameters for statistic.&quot;&quot;&quot;</span>
 
-    <span class="k">return</span> <span class="n">DummyVarTable</span><span class="p">(</span><span class="n">col_names</span><span class="p">,</span> <span class="n">rows</span><span class="p">)</span>
-</pre></div></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">equalize_means</span> <span class="o">=</span> <span class="n">equalize_means</span>
+        <span class="sd">&quot;&quot;&quot;If true, shift the values so the mean of each group is 0.&quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_conf</span> <span class="o">=</span> <span class="n">min_conf</span>
+        <span class="sd">&quot;&quot;&quot;Minimum confidence level to report on.&quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">conf_interval</span> <span class="o">=</span> <span class="n">conf_interval</span>
+        <span class="sd">&quot;&quot;&quot;Interval of confidence values to report on.&quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">equalize_means_ids</span> <span class="o">=</span> <span class="n">equalize_means_ids</span>
+        <span class="sd">&quot;&quot;&quot;List of ids of features to equalize means for.&quot;&quot;&quot;</span>
+
+</div>
+<div class="viewcode-block" id="Results"><a class="viewcode-back" href="../../generated/pade.html#pade.model.Results">[docs]</a><span class="k">class</span> <span class="nc">Results</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;The bulk of the results of the job.&quot;&quot;&quot;</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    
+        <span class="bp">self</span><span class="o">.</span><span class="n">bins</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bin_to_unperm_count</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bin_to_mean_perm_count</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bin_to_score</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">feature_to_score</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">raw_stats</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sample_indexes</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">group_means</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">coeff_values</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fold_change</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">order_by_foldchange_original</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">order_by_score_original</span> <span class="o">=</span> <span class="bp">None</span>
+
+</div>
+<div class="viewcode-block" id="Job"><a class="viewcode-back" href="../../generated/pade.html#pade.model.Job">[docs]</a><span class="k">class</span> <span class="nc">Job</span><span class="p">:</span>
+
+    <span class="sd">&quot;&quot;&quot;Bundle of things that make up a PADE analysis.</span>
+<span class="sd">    </span>
+<span class="sd">    Contains the raw input, the schema describing the input, the</span>
+<span class="sd">    settings that control how the job was executed, the results of the</span>
+<span class="sd">    job, and a summary of those results.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
+                 <span class="n">job_id</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                 <span class="nb">input</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                 <span class="n">schema</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                 <span class="n">settings</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                 <span class="n">results</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                 <span class="n">summary</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">job_id</span>   <span class="o">=</span> <span class="n">job_id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input</span>    <span class="o">=</span> <span class="nb">input</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">settings</span> <span class="o">=</span> <span class="n">settings</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">schema</span>   <span class="o">=</span> <span class="n">schema</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">results</span>  <span class="o">=</span> <span class="n">results</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">summary</span>  <span class="o">=</span> <span class="n">summary</span>
+
+<div class="viewcode-block" id="Job.layout"><a class="viewcode-back" href="../../generated/pade.html#pade.model.Job.layout">[docs]</a>    <span class="k">def</span> <span class="nf">layout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">variables</span><span class="p">):</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span>
+        <span class="n">assignments</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">possible_assignments</span><span class="p">(</span><span class="n">variables</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">indexes_with_assignments</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">assignments</span><span class="p">]</span>
+        <span class="n">seen</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">grp</span> <span class="ow">in</span> <span class="n">result</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">grp</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">seen</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;The schema seems be be corrupt, because &quot;</span> <span class="o">+</span>
+                                    <span class="s">&quot;column &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot; appears more &quot;</span> <span class="o">+</span>
+                                    <span class="s">&quot;than once in the layout defined by &quot;</span> <span class="o">+</span>
+                                    <span class="s">&quot;variables &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">variables</span><span class="p">)</span> <span class="o">+</span> 
+                                    <span class="s">&quot; with assignments &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">assignments</span><span class="p">))</span>
+                <span class="n">seen</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="Job.full_model"><a class="viewcode-back" href="../../generated/pade.html#pade.model.Job.full_model">[docs]</a>    <span class="k">def</span> <span class="nf">full_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">Model</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">,</span> <span class="s">&quot;*&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">block_variables</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">condition_variables</span><span class="p">))</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="Job.reduced_model"><a class="viewcode-back" href="../../generated/pade.html#pade.model.Job.reduced_model">[docs]</a>    <span class="k">def</span> <span class="nf">reduced_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">Model</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">,</span> <span class="s">&quot;*&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">block_variables</span><span class="p">))</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="Job.condition_layout"><a class="viewcode-back" href="../../generated/pade.html#pade.model.Job.condition_layout">[docs]</a>    <span class="k">def</span> <span class="nf">condition_layout</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">layout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">condition_variables</span><span class="p">)</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="Job.block_layout"><a class="viewcode-back" href="../../generated/pade.html#pade.model.Job.block_layout">[docs]</a>    <span class="k">def</span> <span class="nf">block_layout</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">layout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">block_variables</span><span class="p">)</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="Job.full_layout"><a class="viewcode-back" href="../../generated/pade.html#pade.model.Job.full_layout">[docs]</a>    <span class="k">def</span> <span class="nf">full_layout</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">layout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">block_variables</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">condition_variables</span><span class="p">)</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="Job.full_variables"><a class="viewcode-back" href="../../generated/pade.html#pade.model.Job.full_variables">[docs]</a>    <span class="k">def</span> <span class="nf">full_variables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">block_variables</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">condition_variables</span>
+
+</div></div>
+<div class="viewcode-block" id="assert_ndarray"><a class="viewcode-back" href="../../generated/pade.html#pade.model.assert_ndarray">[docs]</a><span class="k">def</span> <span class="nf">assert_ndarray</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">ndim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">array</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="n">ndim</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s">&quot;Array argument {name} must be {ndim}-dimensional, &quot;</span> <span class="o">+</span>
+                   <span class="s">&quot;but it has shape {shape}&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+                    <span class="n">ndim</span><span class="o">=</span><span class="n">ndim</span><span class="p">,</span>
+                    <span class="n">shape</span><span class="o">=</span><span class="n">array</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
+                </div>
+<div class="viewcode-block" id="write_yaml_block_comment"><a class="viewcode-back" href="../../generated/pade.html#pade.model.write_yaml_block_comment">[docs]</a><span class="k">def</span> <span class="nf">write_yaml_block_comment</span><span class="p">(</span><span class="n">fh</span><span class="p">,</span> <span class="n">comment</span><span class="p">):</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="s">&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">comment</span><span class="o">.</span><span class="n">splitlines</span><span class="p">():</span>
+        <span class="n">result</span> <span class="o">+=</span> <span class="n">textwrap</span><span class="o">.</span><span class="n">fill</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">initial_indent</span> <span class="o">=</span> <span class="s">&quot;# &quot;</span><span class="p">,</span> <span class="n">subsequent_indent</span><span class="o">=</span><span class="s">&quot;# &quot;</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">+=</span> <span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span>
+    <span class="n">fh</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">unicode</span><span class="p">(</span><span class="n">result</span><span class="p">))</span>
+
+</div>
+<div class="viewcode-block" id="Schema"><a class="viewcode-back" href="../../generated/pade.html#pade.model.Schema">[docs]</a><span class="k">class</span> <span class="nc">Schema</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;Describes a PADE input file.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
+                 <span class="n">column_names</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                 <span class="n">column_roles</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+        <span class="sd">&quot;&quot;&quot;Construct a Schema. </span>
+
+<span class="sd">        :param column_names:</span>
+<span class="sd">          List of strings, giving names for the columns.</span>
+
+<span class="sd">        :param is_feature_id:</span>
+<span class="sd">          List of booleans of the same length as</span>
+<span class="sd">          column_names. is_feature_id[i] indicates if the ith column</span>
+<span class="sd">          contains feature ids (e.g. gene names).</span>
+
+<span class="sd">        :param is_sample:</span>
+<span class="sd">          List of booleans of the same length as</span>
+<span class="sd">          column_names. is_sample[i] indicates if the ith column</span>
+<span class="sd">          contains a sample.</span>
+
+<span class="sd">          Any columns for which is_feature_id is true will be treated</span>
+<span class="sd">          as feature ids, and any for which is_sample is true will be</span>
+<span class="sd">          assumed to contain intensity values. No column should have</span>
+<span class="sd">          both is_feature_id and is_sample set to true. Any columns</span>
+<span class="sd">          where both is_feature_id and is_sample are false will simply</span>
+<span class="sd">          be ignored.</span>
+
+<span class="sd">          &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">factor_values</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">sample_to_factor_values</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="sd">&quot;&quot;&quot;Maps a column name to a dict which maps factor name to value.&quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">column_roles</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="sd">&quot;&quot;&quot;Nth item is true if Nth column is a sample.&quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">column_names</span>  <span class="o">=</span> <span class="bp">None</span>
+        <span class="sd">&quot;&quot;&quot;List of column names.&quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">sample_name_index</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">if</span> <span class="n">column_names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_columns</span><span class="p">(</span><span class="n">column_names</span><span class="p">,</span> <span class="n">column_roles</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="Schema.factors"><a class="viewcode-back" href="../../generated/pade.html#pade.model.Schema.factors">[docs]</a>    <span class="k">def</span> <span class="nf">factors</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;List of the factor names for this schema.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">factor_values</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+            </div>
+<div class="viewcode-block" id="Schema.set_columns"><a class="viewcode-back" href="../../generated/pade.html#pade.model.Schema.set_columns">[docs]</a>    <span class="k">def</span> <span class="nf">set_columns</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="n">roles</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sample_to_factor_values</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">column_roles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">roles</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">column_names</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">names</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sample_name_index</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Setting sample name index, which is &quot;</span> <span class="o">+</span> 
+                     <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sample_name_index</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot; of length &quot;</span> <span class="o">+</span> 
+                     <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sample_name_index</span><span class="p">)))</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">names</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">roles</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;sample&#39;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">sample_name_index</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sample_name_index</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">sample_to_factor_values</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span> <span class="n">f</span> <span class="p">:</span> <span class="bp">None</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">factors</span> <span class="p">}</span>
+            
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="Schema.sample_column_names"><a class="viewcode-back" href="../../generated/pade.html#pade.model.Schema.sample_column_names">[docs]</a>    <span class="k">def</span> <span class="nf">sample_column_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;List of the names of columns that contain intensities.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">column_names</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">column_roles</span> <span class="o">==</span> <span class="s">&#39;sample&#39;</span><span class="p">]</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="Schema.feature_id_column_names"><a class="viewcode-back" href="../../generated/pade.html#pade.model.Schema.feature_id_column_names">[docs]</a>    <span class="k">def</span> <span class="nf">feature_id_column_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Name of column that contains feature ids.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">column_names</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">column_roles</span> <span class="o">==</span> <span class="s">&#39;feature_id&#39;</span><span class="p">]</span>
+</div>
+    <span class="k">def</span> <span class="nf">_check_factors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">factors</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="n">factors</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">factors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">factors</span>
+
+        <span class="n">factors</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">factors</span><span class="p">)</span>
+        <span class="n">correct_order</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">factors</span> <span class="k">if</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">factors</span><span class="p">]</span>
+        
+<span class="c">#        if factors != correct_order:</span>
+<span class="c">#            raise Exception(&quot;Please request factors in correct order: &quot;</span>
+<span class="c">#                            + str(correct_order) + &quot;, not &quot; + str(factors))</span>
+
+        <span class="k">return</span> <span class="n">factors</span>
+
+<div class="viewcode-block" id="Schema.factor_combinations"><a class="viewcode-back" href="../../generated/pade.html#pade.model.Schema.factor_combinations">[docs]</a>    <span class="k">def</span> <span class="nf">factor_combinations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">factors</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return list of possible combinations of values for given factors.</span>
+
+<span class="sd">        Each item of the returned list is a tuple of values, where</span>
+<span class="sd">        value i is one of the values defined in the schema for factor i.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">factors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_check_factors</span><span class="p">(</span><span class="n">factors</span><span class="p">)</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">factor_values</span><span class="p">[</span><span class="n">f</span><span class="p">]</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">factors</span><span class="p">]</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">product</span><span class="p">(</span><span class="o">*</span><span class="n">values</span><span class="p">))</span>
+</div>
+<div class="viewcode-block" id="Schema.are_baseline"><a class="viewcode-back" href="../../generated/pade.html#pade.model.Schema.are_baseline">[docs]</a>    <span class="k">def</span> <span class="nf">are_baseline</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">assignments</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span> <span class="n">v</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">baseline_value</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="n">assignments</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="p">]</span>
+</div>
+<div class="viewcode-block" id="Schema.baseline_value"><a class="viewcode-back" href="../../generated/pade.html#pade.model.Schema.baseline_value">[docs]</a>    <span class="k">def</span> <span class="nf">baseline_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">factor</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the first value listed in the schema for given factor.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">factor_values</span><span class="p">[</span><span class="n">factor</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+</div>
+<div class="viewcode-block" id="Schema.baseline_values"><a class="viewcode-back" href="../../generated/pade.html#pade.model.Schema.baseline_values">[docs]</a>    <span class="k">def</span> <span class="nf">baseline_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">factors</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return first value defined for each of the factors given.&quot;&quot;&quot;</span>        
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">baseline_value</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">factors</span><span class="p">]</span>
+</div>
+<div class="viewcode-block" id="Schema.has_baseline"><a class="viewcode-back" href="../../generated/pade.html#pade.model.Schema.has_baseline">[docs]</a>    <span class="k">def</span> <span class="nf">has_baseline</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">assignment</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return true if any of the variables is assigned to their baseline.</span>
+
+<span class="sd">        assignment must be a dictionary mapping factors in this schema to</span>
+<span class="sd">        a valid value for that factor. Returns true if any of those mappings</span>
+<span class="sd">        is to the &#39;baseline&#39; value for that factor.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">are_baseline</span><span class="p">(</span><span class="n">assignment</span><span class="p">))</span>
+</div>
+<div class="viewcode-block" id="Schema.sample_matches_assignments"><a class="viewcode-back" href="../../generated/pade.html#pade.model.Schema.sample_matches_assignments">[docs]</a>    <span class="k">def</span> <span class="nf">sample_matches_assignments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_name</span><span class="p">,</span> <span class="n">assignments</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return true if the sample with the given has the given assignments.</span>
+
+<span class="sd">        sample_name - must be the name of one of the samples in this schema.</span>
+<span class="sd">        assignments - must be a mapping from factor name to value</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">matches</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">f</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_factor</span><span class="p">(</span><span class="n">sample_name</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span> <span class="o">==</span> <span class="n">assignments</span><span class="p">[</span><span class="n">f</span><span class="p">]</span>
+        <span class="k">return</span> <span class="nb">all</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">matches</span><span class="p">,</span> <span class="n">assignments</span><span class="p">))</span>
+</div>
+<div class="viewcode-block" id="Schema.samples_with_assignments"><a class="viewcode-back" href="../../generated/pade.html#pade.model.Schema.samples_with_assignments">[docs]</a>    <span class="k">def</span> <span class="nf">samples_with_assignments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">assignments</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return list of sample names that have the given assignments.</span>
+
+<span class="sd">        assignments - must be a mapping from factor name to value</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_column_names</span>
+        <span class="n">matches</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_matches_assignments</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">assignments</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">filter</span><span class="p">(</span><span class="n">matches</span><span class="p">,</span> <span class="n">names</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Schema.indexes_with_assignments"><a class="viewcode-back" href="../../generated/pade.html#pade.model.Schema.indexes_with_assignments">[docs]</a>    <span class="k">def</span> <span class="nf">indexes_with_assignments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">assignments</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return list of indexes that have the given assignments.</span>
+<span class="sd">        </span>
+<span class="sd">        assignments - must be a mapping from factor name to value</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">samples</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">samples_with_assignments</span><span class="p">(</span><span class="n">assignments</span><span class="p">)</span>
+        <span class="n">indexes</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">sample_num</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">samples</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">indexes</span>
+</div>
+<div class="viewcode-block" id="Schema.possible_assignments"><a class="viewcode-back" href="../../generated/pade.html#pade.model.Schema.possible_assignments">[docs]</a>    <span class="k">def</span> <span class="nf">possible_assignments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">factors</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a list of all possible mappings from factor name to value.</span>
+
+<span class="sd">        Optionally provide the factors argument to limit combinations</span>
+<span class="sd">        to those factors.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">factors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_check_factors</span><span class="p">(</span><span class="n">factors</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="n">OrderedDict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">factors</span><span class="p">,</span> <span class="n">values</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">values</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">factor_combinations</span><span class="p">(</span><span class="n">factors</span><span class="p">)]</span>
+</div>
+<div class="viewcode-block" id="Schema.add_factor"><a class="viewcode-back" href="../../generated/pade.html#pade.model.Schema.add_factor">[docs]</a>    <span class="k">def</span> <span class="nf">add_factor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="p">[]):</span>
+        <span class="sd">&quot;&quot;&quot;Add a factor with the given name and values.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">factor_values</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_to_factor_values</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sample_to_factor_values</span><span class="p">[</span><span class="n">sample</span><span class="p">][</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">None</span>
+</div>
+<div class="viewcode-block" id="Schema.remove_factor"><a class="viewcode-back" href="../../generated/pade.html#pade.model.Schema.remove_factor">[docs]</a>    <span class="k">def</span> <span class="nf">remove_factor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">factor</span><span class="p">):</span>
+        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">factor_values</span><span class="p">[</span><span class="n">factor</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_to_factor_values</span><span class="p">:</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_to_factor_values</span><span class="p">[</span><span class="n">factor</span><span class="p">]</span>
+</div>
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="Schema.load"><a class="viewcode-back" href="../../generated/pade.html#pade.model.Schema.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">stream</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Load a schema from the specified stream.</span>
+
+<span class="sd">        The stream can be any type accepted by yaml.load, and must</span>
+<span class="sd">        represent a YAML document in the format produced by</span>
+<span class="sd">        Schema.dump.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Loading schema from &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">stream</span><span class="p">))</span>
+        <span class="n">doc</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">stream</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">doc</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;Didn&#39;t find a YAML schema document in &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">stream</span><span class="p">))</span>
+
+        <span class="n">col_names</span> <span class="o">=</span> <span class="n">doc</span><span class="p">[</span><span class="s">&#39;headers&#39;</span><span class="p">]</span>
+
+        <span class="c"># Build the arrays of column names, feature id booleans, and</span>
+        <span class="c"># sample booleans</span>
+        <span class="n">feature_id_cols</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">doc</span><span class="p">[</span><span class="s">&#39;feature_id_columns&#39;</span><span class="p">])</span>
+
+        <span class="n">roles</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">col_names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">feature_id_cols</span><span class="p">:</span>
+                <span class="n">role</span> <span class="o">=</span> <span class="s">&#39;feature_id&#39;</span>
+            <span class="k">elif</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">doc</span><span class="p">[</span><span class="s">&#39;sample_factor_mapping&#39;</span><span class="p">]:</span>
+                <span class="n">role</span> <span class="o">=</span> <span class="s">&#39;sample&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">role</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="n">roles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">role</span><span class="p">)</span>
+
+        <span class="n">schema</span> <span class="o">=</span> <span class="n">Schema</span><span class="p">(</span>
+            <span class="n">column_names</span><span class="o">=</span><span class="n">col_names</span><span class="p">,</span>
+            <span class="n">column_roles</span><span class="o">=</span><span class="n">roles</span><span class="p">)</span>
+
+        <span class="c"># Now add all the factors and their types</span>
+        <span class="n">factors</span> <span class="o">=</span> <span class="n">doc</span><span class="p">[</span><span class="s">&#39;factors&#39;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">factor</span> <span class="ow">in</span> <span class="n">factors</span><span class="p">:</span>
+            <span class="n">schema</span><span class="o">.</span><span class="n">add_factor</span><span class="p">(</span><span class="n">factor</span><span class="p">[</span><span class="s">&#39;name&#39;</span><span class="p">],</span> <span class="n">factor</span><span class="p">[</span><span class="s">&#39;values&#39;</span><span class="p">])</span>
+
+        <span class="k">for</span> <span class="n">sample</span><span class="p">,</span> <span class="n">attrs</span> <span class="ow">in</span> <span class="n">doc</span><span class="p">[</span><span class="s">&#39;sample_factor_mapping&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">attrs</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+                <span class="n">schema</span><span class="o">.</span><span class="n">set_factor</span><span class="p">(</span><span class="n">sample</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">schema</span>
+    </div>
+<div class="viewcode-block" id="Schema.save"><a class="viewcode-back" href="../../generated/pade.html#pade.model.Schema.save">[docs]</a>    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">out</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Save the schema to the specified file.&quot;&quot;&quot;</span>
+
+        <span class="c"># Need to convert column names to strings, from whatever numpy</span>
+        <span class="c"># type they&#39;re stored as.</span>
+        <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">column_names</span><span class="p">]</span>
+
+        <span class="n">sample_cols</span>     <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">feature_id_cols</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">names</span><span class="p">):</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">column_roles</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;feature_id&#39;</span><span class="p">:</span>
+                <span class="n">feature_id_cols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">column_roles</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;sample&#39;</span><span class="p">:</span>
+
+                <span class="n">sample_cols</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="k">for</span> <span class="n">factor</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">factors</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">factor</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_to_factor_values</span><span class="p">[</span><span class="n">name</span><span class="p">]:</span>
+                        <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_factor</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">factor</span><span class="p">)</span>
+                        <span class="n">sample_cols</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="n">factor</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+        <span class="n">factors</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">values</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">factor_values</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">factors</span><span class="o">.</span><span class="n">append</span><span class="p">({</span> <span class="s">&quot;name&quot;</span> <span class="p">:</span> <span class="n">name</span><span class="p">,</span> <span class="s">&quot;values&quot;</span> <span class="p">:</span> <span class="n">values</span> <span class="p">})</span>
+
+        <span class="n">doc</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s">&#39;headers&#39;</span>               <span class="p">:</span> <span class="n">names</span><span class="p">,</span>
+            <span class="s">&quot;factors&quot;</span>               <span class="p">:</span> <span class="n">factors</span><span class="p">,</span>
+            <span class="s">&quot;feature_id_columns&quot;</span>    <span class="p">:</span> <span class="n">feature_id_cols</span><span class="p">,</span>
+            <span class="s">&quot;sample_factor_mapping&quot;</span> <span class="p">:</span> <span class="n">sample_cols</span><span class="p">,</span>
+            <span class="p">}</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="n">default_flow_style</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">splitlines</span><span class="p">():</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">line</span> <span class="o">==</span> <span class="s">&quot;factors:&quot;</span><span class="p">):</span>
+                <span class="n">write_yaml_block_comment</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="s">&quot;&quot;&quot;This lists all the factors defined for this file.</span>
+<span class="s">&quot;&quot;&quot;</span><span class="p">)</span>
+
+            <span class="k">elif</span> <span class="p">(</span><span class="n">line</span> <span class="o">==</span> <span class="s">&quot;feature_id_columns:&quot;</span><span class="p">):</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">unicode</span><span class="p">(</span><span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">))</span>
+                <span class="n">write_yaml_block_comment</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="s">&quot;&quot;&quot;This lists all of the columns that contain feature IDs (for example gene ids).&quot;&quot;&quot;</span><span class="p">)</span>
+
+            <span class="k">elif</span> <span class="p">(</span><span class="n">line</span> <span class="o">==</span> <span class="s">&quot;headers:&quot;</span><span class="p">):</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">unicode</span><span class="p">(</span><span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">))</span>
+                <span class="n">write_yaml_block_comment</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="s">&quot;&quot;&quot;These are the headers in the input file. YOU MUST NOT CHANGE THESE!&quot;&quot;&quot;</span><span class="p">)</span>
+
+            <span class="k">elif</span> <span class="p">(</span><span class="n">line</span> <span class="o">==</span> <span class="s">&quot;sample_factor_mapping:&quot;</span><span class="p">):</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">unicode</span><span class="p">(</span><span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">))</span>
+                <span class="n">write_yaml_block_comment</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="s">&quot;&quot;&quot;This sets all of the factors for all columns that represent samples. You should fill out this section to set each factor for each sample. For example, if you had a sample called sample1 that recieved some kind of treatment, and one called sample2 that did not, you might have:</span>
+
+<span class="s">sample_factor_mapping:</span>
+<span class="s">  sample1:</span>
+<span class="s">    treated: yes</span>
+<span class="s">  sample2:</span>
+<span class="s">    treated: no</span>
+
+<span class="s">&quot;&quot;&quot;</span><span class="p">)</span>
+
+            <span class="n">out</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">unicode</span><span class="p">(</span><span class="n">line</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="Schema.set_factor"><a class="viewcode-back" href="../../generated/pade.html#pade.model.Schema.set_factor">[docs]</a>    <span class="k">def</span> <span class="nf">set_factor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_name</span><span class="p">,</span> <span class="n">factor</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set a factor for a sample, identified by sample name.&quot;&quot;&quot;</span>
+        <span class="n">allowed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">factor_values</span><span class="p">[</span><span class="n">factor</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">allowed</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;&quot;&quot;</span><span class="se">\</span>
+<span class="s">                Value &#39;{value}&#39; is not allowed for factor {factor};</span>
+<span class="s">                allowable values are {allowed}.</span>
+<span class="s">                &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="n">factor</span><span class="o">=</span><span class="n">factor</span><span class="p">,</span> <span class="n">allowed</span><span class="o">=</span><span class="n">allowed</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">sample_to_factor_values</span><span class="p">[</span><span class="n">sample_name</span><span class="p">][</span><span class="n">factor</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+</div>
+<div class="viewcode-block" id="Schema.get_factor"><a class="viewcode-back" href="../../generated/pade.html#pade.model.Schema.get_factor">[docs]</a>    <span class="k">def</span> <span class="nf">get_factor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_name</span><span class="p">,</span> <span class="n">factor</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get an factor for a sample, identified by sample</span>
+<span class="sd">        name.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">sample_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_to_factor_values</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;No sample called &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">sample_name</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot;. &quot;</span> <span class="o">+</span>
+                            <span class="s">&quot;The samples I have are &quot;</span> <span class="o">+</span> 
+                            <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sample_to_factor_values</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+                            
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_to_factor_values</span><span class="p">[</span><span class="n">sample_name</span><span class="p">][</span><span class="n">factor</span><span class="p">]</span>
+
+</div>
+<div class="viewcode-block" id="Schema.sample_num"><a class="viewcode-back" href="../../generated/pade.html#pade.model.Schema.sample_num">[docs]</a>    <span class="k">def</span> <span class="nf">sample_num</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the sample number for sample with the given</span>
+<span class="sd">        name. The sample number is the index into the table for the</span>
+<span class="sd">        sample.&quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_name_index</span><span class="p">[</span><span class="n">sample_name</span><span class="p">]</span></div></div>
+</pre></div>
 
           </div>
         </div>
@@ -310,7 +764,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li><a href="../../index.html">PaGE 6.0 documentation</a> &raquo;</li>
+        <li><a href="../../index.html">PADE 6.0 documentation</a> &raquo;</li>
           <li><a href="../index.html" >Module code</a> &raquo;</li> 
       </ul>
     </div>

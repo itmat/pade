@@ -8,7 +8,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Status Updates &mdash; PADE 6.0 documentation</title>
+    <title>Glossary &mdash; PADE 6.0 documentation</title>
     
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -27,8 +27,7 @@
     <script type="text/javascript" src="_static/doctools.js"></script>
     <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="top" title="PADE 6.0 documentation" href="index.html" />
-    <link rel="next" title="2013-01-15 Status" href="2013-01-15_status.html" />
-    <link rel="prev" title="tools Package" href="generated/pade.tools.html" /> 
+    <link rel="prev" title="2013-01-15 Status" href="2013-01-15_status.html" /> 
   </head>
   <body>
     <div class="related">
@@ -42,9 +41,6 @@
              >modules</a> |</li>
         <li class="right" >
           <a href="2013-01-15_status.html" title="2013-01-15 Status"
-             accesskey="N">next</a> |</li>
-        <li class="right" >
-          <a href="generated/pade.tools.html" title="tools Package"
              accesskey="P">previous</a> |</li>
         <li><a href="index.html">PADE 6.0 documentation</a> &raquo;</li> 
       </ul>
@@ -55,19 +51,32 @@
         <div class="bodywrapper">
           <div class="body">
             
-  <div class="section" id="status-updates">
-<h1>Status Updates<a class="headerlink" href="#status-updates" title="Permalink to this headline">¶</a></h1>
-<div class="toctree-wrapper compound">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="2013-01-15_status.html">2013-01-15 Status</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="2013-01-15_status.html#completed">Completed</a></li>
-<li class="toctree-l2"><a class="reference internal" href="2013-01-15_status.html#outstanding">Outstanding</a></li>
-<li class="toctree-l2"><a class="reference internal" href="2013-01-15_status.html#performance-metrics">Performance metrics</a></li>
-<li class="toctree-l2"><a class="reference internal" href="2013-01-15_status.html#takeaways">Takeaways</a></li>
-</ul>
-</li>
-</ul>
+  <div class="section" id="glossary">
+<h1>Glossary<a class="headerlink" href="#glossary" title="Permalink to this headline">¶</a></h1>
+<dl class="glossary docutils">
+<dt id="term-layout">layout</dt>
+<dd><p class="first">A list of lists that specifies groups of indexes into the data
+table. For example:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="p">[[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">],</span>
+ <span class="p">[</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">7</span><span class="p">],</span>
+ <span class="p">[</span><span class="mi">8</span><span class="p">,</span><span class="mi">9</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">11</span><span class="p">]]</span>
+</pre></div>
 </div>
+<p class="last">specifies three groups, each with four columns.</p>
+</dd>
+<dt id="term-factor">factor</dt>
+<dd>The name of a variable associated with one of the sample
+columns. For example, you might have factors called &#8220;treated&#8221;,
+&#8220;sex&#8221;, &#8220;age&#8221;, or &#8220;batch&#8221;.</dd>
+<dt id="term-factor-value">factor value</dt>
+<dd>A value that one of the factors can take on. For example, &#8220;sex&#8221;
+might take on values &#8220;male&#8221; and &#8220;female&#8221;.</dd>
+<dt id="term-schema">schema</dt>
+<dd>Describes the column structure of the input files. Specifies which
+column contains feature ids (such as gene names), and which columns
+contain expression counts or intensities. Defines the factor of
+interest and associates factor value with each sample.</dd>
+</dl>
 </div>
 
 
@@ -77,14 +86,11 @@
       <div class="sphinxsidebar">
         <div class="sphinxsidebarwrapper">
   <h4>Previous topic</h4>
-  <p class="topless"><a href="generated/pade.tools.html"
-                        title="previous chapter">tools Package</a></p>
-  <h4>Next topic</h4>
   <p class="topless"><a href="2013-01-15_status.html"
-                        title="next chapter">2013-01-15 Status</a></p>
+                        title="previous chapter">2013-01-15 Status</a></p>
   <h3>This Page</h3>
   <ul class="this-page-menu">
-    <li><a href="_sources/status_updates.txt"
+    <li><a href="_sources/glossary.txt"
            rel="nofollow">Show Source</a></li>
   </ul>
 <div id="searchbox" style="display: none">
@@ -115,9 +121,6 @@
              >modules</a> |</li>
         <li class="right" >
           <a href="2013-01-15_status.html" title="2013-01-15 Status"
-             >next</a> |</li>
-        <li class="right" >
-          <a href="generated/pade.tools.html" title="tools Package"
              >previous</a> |</li>
         <li><a href="index.html">PADE 6.0 documentation</a> &raquo;</li> 
       </ul>

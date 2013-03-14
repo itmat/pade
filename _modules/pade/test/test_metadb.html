@@ -1,0 +1,232 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pade.test.test_metadb &mdash; PADE 6.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '6.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="PADE 6.0 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">PADE 6.0 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for pade.test.test_metadb</h1><div class="highlight"><pre>
+<span class="kn">import</span> <span class="nn">contextlib</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">import</span> <span class="nn">redisconfig</span>
+<span class="kn">import</span> <span class="nn">unittest</span>
+
+<span class="kn">from</span> <span class="nn">StringIO</span> <span class="kn">import</span> <span class="n">StringIO</span>
+<span class="kn">from</span> <span class="nn">pade.test.utils</span> <span class="kn">import</span> <span class="n">tempdir</span>
+<span class="kn">from</span> <span class="nn">pade.model</span> <span class="kn">import</span> <span class="n">Schema</span>
+<span class="kn">from</span> <span class="nn">pade.metadb</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">redis</span> <span class="kn">import</span> <span class="n">Redis</span>
+
+
+<span class="nd">@contextlib.contextmanager</span>
+<div class="viewcode-block" id="temp_metadb"><a class="viewcode-back" href="../../../generated/pade.test.html#pade.test.test_metadb.temp_metadb">[docs]</a><span class="k">def</span> <span class="nf">temp_metadb</span><span class="p">():</span>
+    <span class="k">with</span> <span class="n">tempdir</span><span class="p">()</span> <span class="k">as</span> <span class="n">d</span><span class="p">:</span>
+        <span class="n">mdb</span> <span class="o">=</span> <span class="n">MetaDB</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">Redis</span><span class="p">(</span><span class="n">db</span><span class="o">=</span><span class="n">redisconfig</span><span class="o">.</span><span class="n">DB_METADB_TEST</span><span class="p">))</span>
+        <span class="n">mdb</span><span class="o">.</span><span class="n">redis</span><span class="o">.</span><span class="n">flushdb</span><span class="p">()</span>
+        <span class="k">yield</span> <span class="n">mdb</span>
+</div>
+<div class="viewcode-block" id="MetaDBTest"><a class="viewcode-back" href="../../../generated/pade.test.html#pade.test.test_metadb.MetaDBTest">[docs]</a><span class="k">class</span> <span class="nc">MetaDBTest</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+
+<div class="viewcode-block" id="MetaDBTest.test_next_obj_id"><a class="viewcode-back" href="../../../generated/pade.test.html#pade.test.test_metadb.MetaDBTest.test_next_obj_id">[docs]</a>    <span class="k">def</span> <span class="nf">test_next_obj_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">temp_metadb</span><span class="p">()</span> <span class="k">as</span> <span class="n">mdb</span><span class="p">:</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">mdb</span><span class="o">.</span><span class="n">_next_obj_id</span><span class="p">(</span><span class="s">&#39;input_file&#39;</span><span class="p">)</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="n">mdb</span><span class="o">.</span><span class="n">_next_obj_id</span><span class="p">(</span><span class="s">&#39;input_file&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertGreater</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="MetaDBTest.test_input_files"><a class="viewcode-back" href="../../../generated/pade.test.html#pade.test.test_metadb.MetaDBTest.test_input_files">[docs]</a>    <span class="k">def</span> <span class="nf">test_input_files</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">temp_metadb</span><span class="p">()</span> <span class="k">as</span> <span class="n">mdb</span><span class="p">:</span>
+
+            <span class="n">a</span> <span class="o">=</span> <span class="n">mdb</span><span class="o">.</span><span class="n">add_input_file</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&quot;test.txt&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s">&quot;Some comments&quot;</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="n">StringIO</span><span class="p">(</span><span class="s">&quot;a</span><span class="se">\n</span><span class="s">b</span><span class="se">\n</span><span class="s">c</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">))</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="n">mdb</span><span class="o">.</span><span class="n">add_input_file</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&quot;foo.txt&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s">&quot;Other comments&quot;</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="n">StringIO</span><span class="p">(</span><span class="s">&quot;1</span><span class="se">\n</span><span class="s">2</span><span class="se">\n</span><span class="s">3</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">))</span>
+
+            <span class="c"># Make sure it returned the object appropriately</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s">&quot;test.txt&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">description</span><span class="p">,</span> <span class="s">&quot;Some comments&quot;</span><span class="p">)</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="s">&quot;a</span><span class="se">\n</span><span class="s">b</span><span class="se">\n</span><span class="s">c</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">dt_created</span><span class="p">),</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">)</span>
+
+            <span class="c"># Make sure we can list all input files</span>
+            <span class="n">input_files</span> <span class="o">=</span> <span class="n">mdb</span><span class="o">.</span><span class="n">all_input_files</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">input_files</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="n">names</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="s">&#39;test.txt&#39;</span><span class="p">,</span> <span class="s">&#39;foo.txt&#39;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="nb">set</span><span class="p">([</span><span class="n">x</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">input_files</span><span class="p">]))</span>
+</div>
+<div class="viewcode-block" id="MetaDBTest.test_schemas"><a class="viewcode-back" href="../../../generated/pade.test.html#pade.test.test_metadb.MetaDBTest.test_schemas">[docs]</a>    <span class="k">def</span> <span class="nf">test_schemas</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">temp_metadb</span><span class="p">()</span> <span class="k">as</span> <span class="n">mdb</span><span class="p">:</span>
+
+            <span class="n">rawfile</span> <span class="o">=</span> <span class="n">mdb</span><span class="o">.</span><span class="n">add_input_file</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&quot;test.txt&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s">&quot;Some comments&quot;</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="n">StringIO</span><span class="p">(</span><span class="s">&quot;a</span><span class="se">\n</span><span class="s">b</span><span class="se">\n</span><span class="s">c</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">))</span>
+
+            <span class="n">schema_a</span> <span class="o">=</span> <span class="n">Schema</span><span class="p">()</span>
+            <span class="n">schema_a</span><span class="o">.</span><span class="n">add_factor</span><span class="p">(</span><span class="s">&#39;treated&#39;</span><span class="p">,</span> <span class="p">[</span><span class="bp">False</span><span class="p">,</span> <span class="bp">True</span><span class="p">])</span>
+            <span class="n">schema_a</span><span class="o">.</span><span class="n">set_columns</span><span class="p">([</span><span class="s">&#39;id&#39;</span><span class="p">,</span> <span class="s">&#39;a&#39;</span><span class="p">,</span> <span class="s">&#39;b&#39;</span><span class="p">],</span>
+                                 <span class="p">[</span><span class="s">&#39;feature_id&#39;</span><span class="p">,</span> <span class="s">&#39;sample&#39;</span><span class="p">,</span> <span class="s">&#39;sample&#39;</span><span class="p">])</span>
+            <span class="n">schema_a</span><span class="o">.</span><span class="n">set_factor</span><span class="p">(</span><span class="s">&#39;a&#39;</span><span class="p">,</span> <span class="s">&#39;treated&#39;</span><span class="p">,</span> <span class="bp">False</span><span class="p">)</span>
+            <span class="n">schema_a</span><span class="o">.</span><span class="n">set_factor</span><span class="p">(</span><span class="s">&#39;b&#39;</span><span class="p">,</span> <span class="s">&#39;treated&#39;</span><span class="p">,</span> <span class="bp">True</span><span class="p">)</span>
+
+            <span class="n">schema_b</span> <span class="o">=</span> <span class="n">Schema</span><span class="p">()</span>
+            <span class="n">schema_b</span><span class="o">.</span><span class="n">add_factor</span><span class="p">(</span><span class="s">&#39;age&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s">&#39;young&#39;</span><span class="p">,</span> <span class="s">&#39;old&#39;</span><span class="p">])</span>
+            <span class="n">schema_b</span><span class="o">.</span><span class="n">set_columns</span><span class="p">([</span><span class="s">&#39;key&#39;</span><span class="p">,</span> <span class="s">&#39;foo&#39;</span><span class="p">,</span> <span class="s">&#39;bar&#39;</span><span class="p">],</span>
+                                 <span class="p">[</span><span class="s">&#39;feature_id&#39;</span><span class="p">,</span> <span class="s">&#39;sample&#39;</span><span class="p">,</span> <span class="s">&#39;sample&#39;</span><span class="p">])</span>
+            <span class="n">schema_b</span><span class="o">.</span><span class="n">set_factor</span><span class="p">(</span><span class="s">&#39;foo&#39;</span><span class="p">,</span> <span class="s">&#39;age&#39;</span><span class="p">,</span> <span class="s">&#39;young&#39;</span><span class="p">)</span>
+            <span class="n">schema_b</span><span class="o">.</span><span class="n">set_factor</span><span class="p">(</span><span class="s">&#39;bar&#39;</span><span class="p">,</span> <span class="s">&#39;age&#39;</span><span class="p">,</span> <span class="s">&#39;old&#39;</span><span class="p">)</span>
+
+            <span class="n">a</span> <span class="o">=</span> <span class="n">mdb</span><span class="o">.</span><span class="n">add_schema</span><span class="p">(</span><span class="s">&quot;First one&quot;</span><span class="p">,</span> <span class="s">&quot;The first one&quot;</span><span class="p">,</span> <span class="n">schema_a</span><span class="p">,</span> <span class="n">rawfile</span><span class="p">)</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="n">mdb</span><span class="o">.</span><span class="n">add_schema</span><span class="p">(</span><span class="s">&quot;Second&quot;</span><span class="p">,</span> <span class="s">&quot;Other&quot;</span><span class="p">,</span> <span class="n">schema_b</span><span class="p">,</span> <span class="n">rawfile</span><span class="p">)</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s">&quot;First one&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">description</span><span class="p">,</span> <span class="s">&quot;The first one&quot;</span><span class="p">)</span>
+            
+            <span class="n">schemas</span> <span class="o">=</span> <span class="n">mdb</span><span class="o">.</span><span class="n">all_schemas</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">schemas</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">based_on_input_file_id</span><span class="p">,</span> 
+                              <span class="n">rawfile</span><span class="o">.</span><span class="n">obj_id</span><span class="p">)</span>
+
+            <span class="n">colnames</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">schemas</span><span class="p">:</span>
+                <span class="n">schema</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+                <span class="n">colnames</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">column_names</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">colnames</span><span class="p">,</span> <span class="nb">set</span><span class="p">([</span><span class="s">&#39;id&#39;</span><span class="p">,</span> <span class="s">&#39;a&#39;</span><span class="p">,</span> <span class="s">&#39;b&#39;</span><span class="p">,</span>
+                                             <span class="s">&#39;key&#39;</span><span class="p">,</span> <span class="s">&#39;foo&#39;</span><span class="p">,</span> <span class="s">&#39;bar&#39;</span><span class="p">]))</span>
+
+            <span class="n">schema_ids</span> <span class="o">=</span> <span class="n">mdb</span><span class="o">.</span><span class="n">schemas_based_on_input_file</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">based_on_input_file_id</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">obj_id</span> <span class="ow">in</span> <span class="n">schema_ids</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">obj_id</span> <span class="ow">in</span> <span class="n">schema_ids</span><span class="p">)</span>
+
+            </div>
+<div class="viewcode-block" id="MetaDBTest.test_jobs"><a class="viewcode-back" href="../../../generated/pade.test.html#pade.test.test_metadb.MetaDBTest.test_jobs">[docs]</a>    <span class="k">def</span> <span class="nf">test_jobs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">temp_metadb</span><span class="p">()</span> <span class="k">as</span> <span class="n">mdb</span><span class="p">:</span>
+
+            <span class="c"># Set up the raw file</span>
+            <span class="n">raw_file_meta</span> <span class="o">=</span> <span class="n">mdb</span><span class="o">.</span><span class="n">add_input_file</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&quot;test.txt&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s">&quot;Some comments&quot;</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="n">StringIO</span><span class="p">(</span><span class="s">&quot;a</span><span class="se">\n</span><span class="s">b</span><span class="se">\n</span><span class="s">c</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">))</span>
+
+            <span class="n">schema</span> <span class="o">=</span> <span class="n">Schema</span><span class="p">()</span>
+            <span class="n">schema</span><span class="o">.</span><span class="n">add_factor</span><span class="p">(</span><span class="s">&#39;treated&#39;</span><span class="p">,</span> <span class="p">[</span><span class="bp">False</span><span class="p">,</span> <span class="bp">True</span><span class="p">])</span>
+            <span class="n">schema</span><span class="o">.</span><span class="n">set_columns</span><span class="p">([</span><span class="s">&#39;id&#39;</span><span class="p">,</span> <span class="s">&#39;a&#39;</span><span class="p">,</span> <span class="s">&#39;b&#39;</span><span class="p">],</span>
+                                 <span class="p">[</span><span class="s">&#39;feature_id&#39;</span><span class="p">,</span> <span class="s">&#39;sample&#39;</span><span class="p">,</span> <span class="s">&#39;sample&#39;</span><span class="p">])</span>
+            <span class="n">schema</span><span class="o">.</span><span class="n">set_factor</span><span class="p">(</span><span class="s">&#39;a&#39;</span><span class="p">,</span> <span class="s">&#39;treated&#39;</span><span class="p">,</span> <span class="bp">False</span><span class="p">)</span>
+            <span class="n">schema</span><span class="o">.</span><span class="n">set_factor</span><span class="p">(</span><span class="s">&#39;b&#39;</span><span class="p">,</span> <span class="s">&#39;treated&#39;</span><span class="p">,</span> <span class="bp">True</span><span class="p">)</span>
+
+            <span class="n">schema_meta</span> <span class="o">=</span> <span class="n">mdb</span><span class="o">.</span><span class="n">add_schema</span><span class="p">(</span><span class="s">&quot;First one&quot;</span><span class="p">,</span> <span class="s">&quot;The first one&quot;</span><span class="p">,</span> <span class="n">schema</span><span class="p">,</span> <span class="n">raw_file_meta</span><span class="p">)</span>
+
+            <span class="n">a</span> <span class="o">=</span> <span class="n">mdb</span><span class="o">.</span><span class="n">add_job</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&quot;job1&quot;</span><span class="p">,</span> 
+                            <span class="n">description</span><span class="o">=</span><span class="s">&quot;Some job&quot;</span><span class="p">,</span>
+                            <span class="n">raw_file_meta</span><span class="o">=</span><span class="n">raw_file_meta</span><span class="p">,</span>
+                            <span class="n">schema_meta</span><span class="o">=</span><span class="n">schema_meta</span><span class="p">)</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="n">mdb</span><span class="o">.</span><span class="n">add_job</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&quot;job2&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s">&quot;Other job&quot;</span><span class="p">,</span>
+                            <span class="n">raw_file_meta</span><span class="o">=</span><span class="n">raw_file_meta</span><span class="p">,</span>
+                            <span class="n">schema_meta</span><span class="o">=</span><span class="n">schema_meta</span><span class="p">)</span>
+
+            <span class="c"># Make sure it returned the object appropriately</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s">&quot;job1&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">description</span><span class="p">,</span> <span class="s">&quot;Some job&quot;</span><span class="p">)</span>
+
+            <span class="n">a</span> <span class="o">=</span> <span class="n">mdb</span><span class="o">.</span><span class="n">job</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">obj_id</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">raw_file_id</span><span class="p">,</span> <span class="n">raw_file_meta</span><span class="o">.</span><span class="n">obj_id</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">schema_id</span><span class="p">,</span> <span class="n">schema_meta</span><span class="o">.</span><span class="n">obj_id</span><span class="p">)</span>
+
+            <span class="c"># Make sure we can list all input files</span>
+            <span class="n">jobs</span> <span class="o">=</span> <span class="n">mdb</span><span class="o">.</span><span class="n">all_jobs</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">jobs</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="n">names</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="s">&#39;job1&#39;</span><span class="p">,</span> <span class="s">&#39;job2&#39;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="nb">set</span><span class="p">([</span><span class="n">x</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">jobs</span><span class="p">]))</span>
+
+            <span class="n">job_ids</span> <span class="o">=</span> <span class="n">mdb</span><span class="o">.</span><span class="n">jobs_for_schema</span><span class="p">(</span><span class="n">schema_meta</span><span class="o">.</span><span class="n">obj_id</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">obj_id</span> <span class="ow">in</span> <span class="n">job_ids</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">obj_id</span> <span class="ow">in</span> <span class="n">job_ids</span><span class="p">)</span>
+
+            <span class="n">job_ids</span> <span class="o">=</span> <span class="n">mdb</span><span class="o">.</span><span class="n">jobs_for_raw_file</span><span class="p">(</span><span class="n">raw_file_meta</span><span class="o">.</span><span class="n">obj_id</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">obj_id</span> <span class="ow">in</span> <span class="n">job_ids</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">obj_id</span> <span class="ow">in</span> <span class="n">job_ids</span><span class="p">)</span>
+</div></div>
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">unittest</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">PADE 6.0 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, University of Pennsylvania.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.2.
+    </div>
+  </body>
+</html>

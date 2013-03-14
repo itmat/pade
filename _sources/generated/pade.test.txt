@@ -1,0 +1,75 @@
+test Package
+============
+
+:mod:`test` Package
+-------------------
+
+.. automodule:: pade.test
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`test_common` Module
+-------------------------
+
+.. automodule:: pade.test.test_common
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`test_job` Module
+----------------------
+
+.. automodule:: pade.test.test_job
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`test_metadb` Module
+-------------------------
+
+.. automodule:: pade.test.test_metadb
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`test_model` Module
+------------------------
+
+.. automodule:: pade.test.test_model
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`test_profile` Module
+--------------------------
+
+.. automodule:: pade.test.test_profile
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`test_schema` Module
+-------------------------
+
+.. automodule:: pade.test.test_schema
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`test_stat` Module
+-----------------------
+
+.. automodule:: pade.test.test_stat
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`utils` Module
+-------------------
+
+.. automodule:: pade.test.utils
+    :members:
+    :undoc-members:
+    :show-inheritance:
+

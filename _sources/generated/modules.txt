@@ -1,0 +1,7 @@
+pade
+====
+
+.. toctree::
+   :maxdepth: 4
+
+   pade

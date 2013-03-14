@@ -1,0 +1,358 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pade.tools.perlvspython &mdash; PADE 6.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '6.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="PADE 6.0 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">PADE 6.0 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for pade.tools.perlvspython</h1><div class="highlight"><pre>
+<span class="c">#!/usr/bin/env python</span>
+
+<span class="kn">import</span> <span class="nn">matplotlib</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">argparse</span> 
+<span class="kn">import</span> <span class="nn">unittest</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="kn">import</span> <span class="nn">StringIO</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">shutil</span>
+
+<span class="n">REPORT_FILENAME</span> <span class="o">=</span> <span class="s">&#39;report.tex&#39;</span>
+
+<span class="c">########################################################################</span>
+<span class="c">###</span>
+<span class="c">### Functions assigned to command-line actions</span>
+<span class="c">###</span>
+
+<div class="viewcode-block" id="setup"><a class="viewcode-back" href="../../../generated/pade.tools.html#pade.tools.perlvspython.setup">[docs]</a><span class="k">def</span> <span class="nf">setup</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">in_filename</span> <span class="o">=</span> <span class="s">&#39;sample_data/2_class_testdata_header1.txt&#39;</span>
+    <span class="n">header</span> <span class="o">=</span> <span class="s">&quot;&quot;</span>
+    <span class="n">lines</span>  <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">line_counts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="mi">10</span> <span class="o">**</span> <span class="n">log_ns</span><span class="p">(</span><span class="n">args</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="nb">open</span> <span class="p">(</span><span class="n">in_filename</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">header</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+            <span class="p">(</span><span class="n">rownum</span><span class="p">,</span> <span class="n">rest</span><span class="p">)</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;</span><span class="se">\t</span><span class="s">&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rest</span><span class="p">)</span>
+        
+    <span class="k">for</span> <span class="n">line_count</span> <span class="ow">in</span> <span class="n">line_counts</span><span class="p">:</span>
+        <span class="n">make_sample_file</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">directory</span><span class="p">,</span> <span class="n">header</span><span class="p">,</span> <span class="n">lines</span><span class="p">,</span> <span class="n">line_count</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="log_time"><a class="viewcode-back" href="../../../generated/pade.tools.html#pade.tools.perlvspython.log_time">[docs]</a><span class="k">def</span> <span class="nf">log_time</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">fh</span><span class="p">,</span> <span class="n">directory</span><span class="p">):</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">time_proc</span><span class="p">(</span><span class="n">job</span><span class="p">[</span><span class="s">&#39;cmd&#39;</span><span class="p">],</span> <span class="n">directory</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">job</span><span class="p">:</span>
+        <span class="n">result</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">job</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+    <span class="n">fh</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">result</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+    <span class="n">fh</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="run_page"><a class="viewcode-back" href="../../../generated/pade.tools.html#pade.tools.perlvspython.run_page">[docs]</a><span class="k">def</span> <span class="nf">run_page</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+
+    <span class="n">filename</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">outfile</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">stats</span><span class="p">:</span>
+
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">times</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">log_n</span> <span class="ow">in</span> <span class="n">log_ns</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+
+                <span class="n">n</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mi">10</span> <span class="o">**</span> <span class="n">log_n</span><span class="p">)</span>
+
+                <span class="n">filename</span> <span class="o">=</span> <span class="n">sample_filename</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">directory</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+                <span class="n">directory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s">&#39;profile&#39;</span><span class="p">,</span> <span class="s">&#39;new_{0}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n</span><span class="p">))</span>
+
+                <span class="n">python_job</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s">&#39;n&#39;</span>       <span class="p">:</span> <span class="n">n</span><span class="p">,</span>
+                    <span class="s">&#39;version&#39;</span> <span class="p">:</span> <span class="s">&#39;python&#39;</span><span class="p">,</span>
+                    <span class="s">&#39;cmd&#39;</span>     <span class="p">:</span> <span class="p">[</span><span class="s">&#39;./page.py&#39;</span><span class="p">,</span> <span class="s">&#39;run&#39;</span><span class="p">,</span> <span class="s">&#39;--directory&#39;</span><span class="p">,</span> <span class="n">directory</span><span class="p">]</span>
+                    <span class="p">}</span>
+
+                <span class="n">perl_job</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s">&#39;n&#39;</span> <span class="p">:</span> <span class="n">n</span><span class="p">,</span>
+                    <span class="s">&#39;version&#39;</span> <span class="p">:</span> <span class="s">&#39;perl&#39;</span><span class="p">,</span>
+                    <span class="s">&#39;cmd&#39;</span> <span class="p">:</span> <span class="p">[</span><span class="s">&#39;perl&#39;</span><span class="p">,</span> <span class="s">&#39;PaGE_demo.pl&#39;</span><span class="p">,</span> 
+                             <span class="s">&#39;--infile&#39;</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span>
+                             <span class="s">&#39;--num_channels&#39;</span><span class="p">,</span> <span class="s">&#39;1&#39;</span><span class="p">,</span>
+                             <span class="s">&#39;--unpaired&#39;</span><span class="p">,</span> <span class="s">&#39;--data_not_logged&#39;</span><span class="p">,</span>
+                             <span class="s">&#39;--level_confidence&#39;</span><span class="p">,</span> <span class="s">&#39;L&#39;</span><span class="p">,</span>
+                             <span class="s">&#39;--min_presence&#39;</span><span class="p">,</span> <span class="s">&#39;4&#39;</span><span class="p">,</span>
+                             <span class="s">&#39;--tstat&#39;</span><span class="p">,</span> <span class="s">&#39;--use_unlogged_data&#39;</span><span class="p">]</span>
+                    <span class="p">}</span>
+
+                <span class="n">log_time</span><span class="p">(</span><span class="n">python_job</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">directory</span><span class="p">)</span>
+                <span class="n">log_time</span><span class="p">(</span><span class="n">perl_job</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">directory</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="make_report"><a class="viewcode-back" href="../../../generated/pade.tools.html#pade.tools.perlvspython.make_report">[docs]</a><span class="k">def</span> <span class="nf">make_report</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">infiles</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">eval</span><span class="p">(</span><span class="n">line</span><span class="p">))</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;Error eval&#39;ing &quot;</span> <span class="o">+</span> <span class="n">line</span> <span class="o">+</span> <span class="s">&quot; from &quot;</span> <span class="o">+</span> <span class="n">f</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+
+    <span class="n">n_set</span>       <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="n">x</span><span class="p">[</span><span class="s">&#39;n&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">results</span><span class="p">])</span>
+    <span class="n">version_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="n">x</span><span class="p">[</span><span class="s">&#39;version&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">results</span><span class="p">])</span>
+
+    <span class="n">make_index</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">S</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="bp">None</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">S</span><span class="p">))))</span>
+    
+    <span class="n">n_idx</span>       <span class="o">=</span> <span class="n">make_index</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">n_set</span><span class="p">))</span>
+    <span class="n">version_idx</span> <span class="o">=</span> <span class="n">make_index</span><span class="p">(</span><span class="n">version_set</span><span class="p">)</span>
+
+    <span class="n">times</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">n_idx</span><span class="p">)</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">version_idx</span><span class="p">))))</span>
+
+    <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">n_idx</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">version_idx</span><span class="p">),</span> <span class="n">times</span><span class="p">)</span>
+
+    <span class="n">real_times</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+    <span class="n">rss</span>        <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="p">(</span><span class="n">n_idx</span><span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="s">&#39;n&#39;</span><span class="p">]],</span>
+               <span class="n">version_idx</span><span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="s">&#39;version&#39;</span><span class="p">]],</span>
+               <span class="mi">0</span><span class="p">)</span>
+
+        <span class="n">real_times</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="s">&#39;elapsed_seconds&#39;</span><span class="p">]</span>
+        <span class="n">rss</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="s">&#39;rss_gb&#39;</span><span class="p">]</span>
+
+    <span class="n">real_times</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">real_times</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">rss</span>        <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">rss</span><span class="p">,</span>        <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="n">python</span> <span class="o">=</span> <span class="n">version_idx</span><span class="p">[</span><span class="s">&#39;python&#39;</span><span class="p">]</span>
+    <span class="n">perl</span>   <span class="o">=</span> <span class="n">version_idx</span><span class="p">[</span><span class="s">&#39;perl&#39;</span><span class="p">]</span>
+
+    <span class="n">ns</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">n_set</span><span class="p">))</span>
+    <span class="n">versions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">version_set</span><span class="p">)</span>
+
+    <span class="n">suffix</span> <span class="o">=</span> <span class="s">&#39;(2 classes, 4 reps per class)&#39;</span>
+
+    <span class="c"># Plot running times</span>
+    <span class="n">python_minutes</span> <span class="o">=</span> <span class="n">real_times</span><span class="p">[:,</span> <span class="n">python</span><span class="p">]</span> <span class="o">/</span> <span class="mf">60.0</span>
+    <span class="n">perl_minutes</span>   <span class="o">=</span> <span class="n">real_times</span><span class="p">[:,</span> <span class="n">perl</span><span class="p">]</span> <span class="o">/</span> <span class="mf">60.0</span>
+    <span class="n">idxs</span> <span class="o">=</span> <span class="n">perl_minutes</span> <span class="o">&gt;</span> <span class="mi">0</span>
+
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ns</span><span class="p">,</span> <span class="n">python_minutes</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">&#39;python&#39;</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s">&#39;o&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ns</span><span class="p">[</span><span class="n">idxs</span><span class="p">],</span> <span class="n">perl_minutes</span><span class="p">[</span><span class="n">idxs</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s">&#39;perl&#39;</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s">&#39;o&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">&#39;Running times &#39;</span> <span class="o">+</span> <span class="n">suffix</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">&#39;Features&#39;</span><span class="p">)</span>
+    <span class="c">#plt.semilogx()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">&#39;Minutes&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">directory</span><span class="p">,</span> <span class="s">&#39;runningtime&#39;</span><span class="p">))</span>
+
+    <span class="c"># Plot memory usage</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">clf</span><span class="p">()</span>
+    <span class="n">python_gigs</span> <span class="o">=</span> <span class="n">rss</span><span class="p">[:,</span> <span class="n">python</span><span class="p">]</span>
+    <span class="n">perl_gigs</span>   <span class="o">=</span> <span class="n">rss</span><span class="p">[:,</span> <span class="n">perl</span><span class="p">]</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ns</span><span class="p">,</span> <span class="n">python_gigs</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">&#39;python&#39;</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s">&#39;o&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ns</span><span class="p">[</span><span class="n">idxs</span><span class="p">],</span> <span class="n">perl_gigs</span><span class="p">[</span><span class="n">idxs</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s">&#39;perl&#39;</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s">&#39;o&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">&#39;Features&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">&#39;Memory (GB)&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="c">#plt.semilogx()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">&#39;Memory usage &#39;</span> <span class="o">+</span> <span class="n">suffix</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">directory</span><span class="p">,</span> <span class="s">&#39;rss&#39;</span><span class="p">))</span>
+
+    <span class="c"># Plot improvement of running time and memory usage</span>
+
+    <span class="n">rss_improvement</span> <span class="o">=</span> <span class="n">rss</span><span class="p">[:,</span> <span class="n">perl</span><span class="p">]</span> <span class="o">/</span> <span class="n">rss</span><span class="p">[:,</span><span class="n">python</span><span class="p">]</span>
+    <span class="n">time_improvement</span> <span class="o">=</span> <span class="n">real_times</span><span class="p">[:,</span> <span class="n">perl</span><span class="p">]</span> <span class="o">/</span> <span class="n">real_times</span><span class="p">[:,</span><span class="n">python</span><span class="p">]</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">clf</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ns</span><span class="p">[</span><span class="n">idxs</span><span class="p">],</span> <span class="n">rss_improvement</span><span class="p">[</span><span class="n">idxs</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s">&#39;Memory usage&#39;</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s">&#39;o&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ns</span><span class="p">[</span><span class="n">idxs</span><span class="p">],</span> <span class="n">time_improvement</span><span class="p">[</span><span class="n">idxs</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s">&#39;Running time&#39;</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s">&#39;o&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1000000</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">&#39;Features&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">&#39;perl / python&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="c">#plt.semilogx()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">&#39;Improvement (perl / python)&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">directory</span><span class="p">,</span> <span class="s">&#39;improvement&#39;</span><span class="p">))</span>
+
+<span class="c">########################################################################</span>
+<span class="c">###</span>
+<span class="c">### Other things</span>
+<span class="c">###</span>
+</div>
+<div class="viewcode-block" id="sample_filename"><a class="viewcode-back" href="../../../generated/pade.tools.html#pade.tools.perlvspython.sample_filename">[docs]</a><span class="k">def</span> <span class="nf">sample_filename</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="s">&#39;in_{0:d}.txt&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n</span><span class="p">))</span>
+</div>
+<div class="viewcode-block" id="make_sample_file"><a class="viewcode-back" href="../../../generated/pade.tools.html#pade.tools.perlvspython.make_sample_file">[docs]</a><span class="k">def</span> <span class="nf">make_sample_file</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="n">header</span><span class="p">,</span> <span class="n">lines</span><span class="p">,</span> <span class="n">num_lines</span><span class="p">):</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="n">sample_filename</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="n">num_lines</span><span class="p">)</span>
+    <span class="k">print</span> <span class="s">&quot;Writing {0}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+    <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">out</span><span class="p">:</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">header</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">counter</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_lines</span><span class="p">):</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;{0:d}</span><span class="se">\t</span><span class="s">{1:s}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">counter</span><span class="p">,</span> <span class="n">lines</span><span class="p">[</span><span class="n">counter</span> <span class="o">%</span> <span class="n">n</span><span class="p">]))</span>
+    <span class="n">out</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="n">directory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="s">&#39;new_{0}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">num_lines</span><span class="p">))</span>
+
+    <span class="n">retcode</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">([</span><span class="s">&#39;python&#39;</span><span class="p">,</span> <span class="s">&#39;page.py&#39;</span><span class="p">,</span> 
+                     <span class="s">&#39;setup&#39;</span><span class="p">,</span> 
+                     <span class="s">&#39;--factor&#39;</span><span class="p">,</span> <span class="s">&#39;treated&#39;</span><span class="p">,</span> 
+                     <span class="s">&#39;--directory&#39;</span><span class="p">,</span> <span class="n">directory</span><span class="p">,</span>
+                     <span class="n">filename</span>
+                     <span class="p">])</span>
+    <span class="k">if</span> <span class="n">retcode</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;Setup failed&quot;</span><span class="p">)</span>
+    <span class="n">shutil</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="s">&#39;sample_data/schema_2class.yaml&#39;</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="s">&#39;schema.yaml&#39;</span><span class="p">))</span>
+</div>
+<div class="viewcode-block" id="log_ns"><a class="viewcode-back" href="../../../generated/pade.tools.html#pade.tools.perlvspython.log_ns">[docs]</a><span class="k">def</span> <span class="nf">log_ns</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">max_log_n</span><span class="p">,</span> <span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">max_log_n</span> <span class="o">-</span> <span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="n">args</span><span class="o">.</span><span class="n">step</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="time_proc"><a class="viewcode-back" href="../../../generated/pade.tools.html#pade.tools.perlvspython.time_proc">[docs]</a><span class="k">def</span> <span class="nf">time_proc</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">directory</span><span class="p">):</span>
+    <span class="n">cmd</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;/usr/bin/time&#39;</span><span class="p">,</span> <span class="s">&#39;-f&#39;</span><span class="p">,</span> <span class="s">&#39;</span><span class="si">%e</span><span class="s"> %M&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">cmd</span>
+    <span class="k">print</span> <span class="s">&quot;Running &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+
+    <span class="n">stderr_filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="s">&quot;stderr&quot;</span><span class="p">)</span>
+    <span class="n">stdout_filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="s">&quot;stdout&quot;</span><span class="p">)</span>
+
+    <span class="n">stderr</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">stderr_filename</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span>
+    <span class="n">stdout</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">stdout_filename</span><span class="p">,</span> <span class="s">&#39;a&#39;</span><span class="p">)</span>
+    <span class="n">retcode</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">stderr</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">stdout</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">retcode</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;Call failed: &quot;</span><span class="p">)</span>
+    <span class="n">stderr</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="n">stderr</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">stderr_filename</span><span class="p">)</span>
+    <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">stderr</span><span class="p">]</span>
+    <span class="k">print</span> <span class="n">lines</span>
+    <span class="p">(</span><span class="n">elapsed_seconds</span><span class="p">,</span> <span class="n">rss_kb</span><span class="p">)</span> <span class="o">=</span> <span class="n">lines</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+    <span class="n">elapsed_seconds</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">elapsed_seconds</span><span class="p">)</span>
+    <span class="n">rss_gb</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">rss_kb</span><span class="p">)</span> <span class="o">/</span> <span class="mi">1000000</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s">&#39;elapsed_seconds&#39;</span> <span class="p">:</span> <span class="n">elapsed_seconds</span><span class="p">,</span>
+        <span class="s">&#39;rss_gb&#39;</span>          <span class="p">:</span> <span class="n">rss_gb</span>
+        <span class="p">}</span>
+    <span class="k">return</span> <span class="n">result</span>
+    </div>
+<div class="viewcode-block" id="main"><a class="viewcode-back" href="../../../generated/pade.tools.html#pade.tools.perlvspython.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
+
+    <span class="n">subs</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_subparsers</span><span class="p">(</span><span class="n">help</span><span class="o">=</span><span class="s">&#39;Action to perform&#39;</span><span class="p">)</span>
+
+    <span class="n">sim_parser</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">add_parser</span><span class="p">(</span><span class="s">&#39;setup&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&#39;Setup jobs for profiling&#39;</span><span class="p">)</span>
+    <span class="n">sim_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&#39;--max-log-n&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+    <span class="n">sim_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&#39;--step&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">sim_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&#39;--directory&#39;</span><span class="p">,</span> <span class="s">&#39;-d&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s">&#39;perf_report&#39;</span><span class="p">)</span>
+    <span class="n">sim_parser</span><span class="o">.</span><span class="n">set_defaults</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">setup</span><span class="p">)</span>
+
+
+    <span class="n">run_parser</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">add_parser</span><span class="p">(</span><span class="s">&#39;run&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&#39;Run page&#39;</span><span class="p">)</span>
+    <span class="n">run_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&#39;--max-log-n&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+    <span class="n">run_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&#39;--step&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">run_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&#39;--times&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">run_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&#39;--directory&#39;</span><span class="p">,</span> <span class="s">&#39;-d&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s">&#39;perf_report&#39;</span><span class="p">)</span>
+    <span class="n">run_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&#39;--outfile&#39;</span><span class="p">,</span> <span class="s">&#39;-o&#39;</span><span class="p">)</span>
+    <span class="n">run_parser</span><span class="o">.</span><span class="n">set_defaults</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">run_page</span><span class="p">)</span>
+
+    <span class="n">report_parser</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">add_parser</span><span class="p">(</span><span class="s">&#39;report&#39;</span><span class="p">)</span>
+    <span class="n">report_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&#39;--directory&#39;</span><span class="p">,</span> <span class="s">&#39;-d&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s">&#39;perf_report&#39;</span><span class="p">)</span>
+    <span class="n">report_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&#39;infiles&#39;</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s">&#39;+&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">file</span><span class="p">)</span>
+    <span class="n">report_parser</span><span class="o">.</span><span class="n">set_defaults</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">make_report</span><span class="p">)</span>
+
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+    <span class="n">args</span><span class="o">.</span><span class="n">func</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="run_tests"><a class="viewcode-back" href="../../../generated/pade.tools.html#pade.tools.perlvspython.run_tests">[docs]</a><span class="k">def</span> <span class="nf">run_tests</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">unittest</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
+    </div>
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">PADE 6.0 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, University of Pennsylvania.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.2.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,289 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pade.test.test_schema &mdash; PADE 6.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '6.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="PADE 6.0 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">PADE 6.0 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for pade.test.test_schema</h1><div class="highlight"><pre>
+<span class="kn">import</span> <span class="nn">unittest</span>
+<span class="kn">import</span> <span class="nn">io</span>
+
+<span class="kn">from</span> <span class="nn">pade.model</span> <span class="kn">import</span> <span class="o">*</span>
+
+<div class="viewcode-block" id="SchemaTest"><a class="viewcode-back" href="../../../generated/pade.test.html#pade.test.test_schema.SchemaTest">[docs]</a><span class="k">class</span> <span class="nc">SchemaTest</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+
+<div class="viewcode-block" id="SchemaTest.setUp"><a class="viewcode-back" href="../../../generated/pade.test.html#pade.test.test_schema.SchemaTest.setUp">[docs]</a>    <span class="k">def</span> <span class="nf">setUp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">sample_nums</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">13</span><span class="p">)</span>
+
+        <span class="n">colnames</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;gene_id&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="s">&quot;sample&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">sample_nums</span><span class="p">]</span>
+        
+        <span class="n">roles</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;feature_id&#39;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sample_nums</span><span class="p">)):</span>
+            <span class="n">roles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s">&#39;sample&#39;</span><span class="p">)</span>
+
+        <span class="n">schema</span> <span class="o">=</span> <span class="n">Schema</span><span class="p">(</span>
+            <span class="n">column_names</span><span class="o">=</span><span class="n">colnames</span><span class="p">,</span>
+            <span class="n">column_roles</span><span class="o">=</span><span class="n">roles</span><span class="p">)</span>
+
+        <span class="n">schema</span><span class="o">.</span><span class="n">add_factor</span><span class="p">(</span><span class="s">&#39;age&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">55</span><span class="p">])</span>
+        <span class="n">schema</span><span class="o">.</span><span class="n">add_factor</span><span class="p">(</span><span class="s">&#39;sex&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s">&#39;male&#39;</span><span class="p">,</span> <span class="s">&#39;female&#39;</span><span class="p">])</span>
+        <span class="n">schema</span><span class="o">.</span><span class="n">add_factor</span><span class="p">(</span><span class="s">&#39;treated&#39;</span><span class="p">,</span> <span class="p">[</span><span class="bp">False</span><span class="p">,</span> <span class="bp">True</span><span class="p">])</span>
+
+        <span class="n">counter</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">sample_num</span><span class="p">(</span><span class="s">&quot;sample1&quot;</span><span class="p">),</span> <span class="mi">0</span><span class="p">);</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">sample_num</span><span class="p">(</span><span class="s">&quot;sample7&quot;</span><span class="p">),</span> <span class="mi">6</span><span class="p">);</span>
+
+        <span class="k">for</span> <span class="n">sex</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;male&#39;</span><span class="p">,</span> <span class="s">&#39;female&#39;</span><span class="p">]:</span>
+            <span class="k">for</span> <span class="n">age</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">55</span><span class="p">]:</span>
+                <span class="k">for</span> <span class="n">treated</span> <span class="ow">in</span> <span class="p">[</span><span class="bp">True</span><span class="p">,</span> <span class="bp">False</span><span class="p">]:</span>
+                    <span class="n">counter</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;sample&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">counter</span><span class="p">)</span>
+                    <span class="n">schema</span><span class="o">.</span><span class="n">set_factor</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="s">&#39;sex&#39;</span><span class="p">,</span>     <span class="n">sex</span><span class="p">)</span>
+                    <span class="n">schema</span><span class="o">.</span><span class="n">set_factor</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="s">&#39;age&#39;</span><span class="p">,</span>     <span class="n">age</span><span class="p">)</span>
+                    <span class="n">schema</span><span class="o">.</span><span class="n">set_factor</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="s">&#39;treated&#39;</span><span class="p">,</span> <span class="n">treated</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">schema</span> <span class="o">=</span> <span class="n">schema</span>
+</div>
+<div class="viewcode-block" id="SchemaTest.test_sample_matches_assignments"><a class="viewcode-back" href="../../../generated/pade.test.html#pade.test.test_schema.SchemaTest.test_sample_matches_assignments">[docs]</a>    <span class="k">def</span> <span class="nf">test_sample_matches_assignments</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">sample_matches_assignments</span><span class="p">(</span><span class="s">&quot;sample1&quot;</span><span class="p">,</span> <span class="p">{</span> <span class="p">}))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">sample_matches_assignments</span><span class="p">(</span><span class="s">&quot;sample1&quot;</span><span class="p">,</span> <span class="p">{</span> <span class="s">&#39;sex&#39;</span> <span class="p">:</span> <span class="s">&#39;male&#39;</span> <span class="p">}))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertFalse</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">sample_matches_assignments</span><span class="p">(</span><span class="s">&quot;sample1&quot;</span><span class="p">,</span> <span class="p">{</span> <span class="s">&#39;sex&#39;</span> <span class="p">:</span> <span class="s">&#39;female&#39;</span> <span class="p">}))</span>
+</div>
+<div class="viewcode-block" id="SchemaTest.test_samples_with_assignments"><a class="viewcode-back" href="../../../generated/pade.test.html#pade.test.test_schema.SchemaTest.test_samples_with_assignments">[docs]</a>    <span class="k">def</span> <span class="nf">test_samples_with_assignments</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">([</span><span class="s">&#39;sample5&#39;</span><span class="p">,</span> <span class="s">&#39;sample6&#39;</span><span class="p">],</span>
+                          <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">samples_with_assignments</span><span class="p">({</span><span class="s">&#39;sex&#39;</span> <span class="p">:</span> <span class="s">&#39;male&#39;</span><span class="p">,</span>
+                                                                <span class="s">&#39;age&#39;</span> <span class="p">:</span> <span class="mi">55</span><span class="p">}))</span>
+</div>
+<div class="viewcode-block" id="SchemaTest.test_factor_combinations"><a class="viewcode-back" href="../../../generated/pade.test.html#pade.test.test_schema.SchemaTest.test_factor_combinations">[docs]</a>    <span class="k">def</span> <span class="nf">test_factor_combinations</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">expected</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="mi">2</span><span class="p">,</span>  <span class="s">&#39;male&#39;</span><span class="p">,</span>   <span class="bp">False</span><span class="p">),</span> <span class="c"># 0 </span>
+            <span class="p">(</span><span class="mi">2</span><span class="p">,</span>  <span class="s">&#39;male&#39;</span><span class="p">,</span>   <span class="bp">True</span><span class="p">),</span>  <span class="c"># 1 (treated)</span>
+            <span class="p">(</span><span class="mi">2</span><span class="p">,</span>  <span class="s">&#39;female&#39;</span><span class="p">,</span> <span class="bp">False</span><span class="p">),</span> <span class="c"># 1 (sex)</span>
+            <span class="p">(</span><span class="mi">2</span><span class="p">,</span>  <span class="s">&#39;female&#39;</span><span class="p">,</span> <span class="bp">True</span><span class="p">),</span>  <span class="c"># 2 (sex, treated)</span>
+            <span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="s">&#39;male&#39;</span><span class="p">,</span>   <span class="bp">False</span><span class="p">),</span> <span class="c"># 1 (age)</span>
+            <span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="s">&#39;male&#39;</span><span class="p">,</span>   <span class="bp">True</span><span class="p">),</span>  <span class="c"># 2 (age, treated)</span>
+            <span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="s">&#39;female&#39;</span><span class="p">,</span> <span class="bp">False</span><span class="p">),</span> <span class="c"># 2 (age, sex)</span>
+            <span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="s">&#39;female&#39;</span><span class="p">,</span> <span class="bp">True</span><span class="p">),</span>  <span class="c"># 3 (age, sex, treated)</span>
+            <span class="p">(</span><span class="mi">55</span><span class="p">,</span> <span class="s">&#39;male&#39;</span><span class="p">,</span>   <span class="bp">False</span><span class="p">),</span> <span class="c"># 1 (age)</span>
+            <span class="p">(</span><span class="mi">55</span><span class="p">,</span> <span class="s">&#39;male&#39;</span><span class="p">,</span>   <span class="bp">True</span><span class="p">),</span>  <span class="c"># 2 (age, treated)</span>
+            <span class="p">(</span><span class="mi">55</span><span class="p">,</span> <span class="s">&#39;female&#39;</span><span class="p">,</span> <span class="bp">False</span><span class="p">),</span> <span class="c"># 2 (age, sex)</span>
+            <span class="p">(</span><span class="mi">55</span><span class="p">,</span> <span class="s">&#39;female&#39;</span><span class="p">,</span> <span class="bp">True</span><span class="p">)</span>   <span class="c"># 3 (age, sex, treated)</span>
+            <span class="p">]</span>
+        <span class="n">schema</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">([(</span><span class="s">&#39;male&#39;</span><span class="p">,</span> <span class="bp">False</span><span class="p">),</span>
+                           <span class="p">(</span><span class="s">&#39;male&#39;</span><span class="p">,</span> <span class="bp">True</span><span class="p">),</span>
+                           <span class="p">(</span><span class="s">&#39;female&#39;</span><span class="p">,</span> <span class="bp">False</span><span class="p">),</span>
+                           <span class="p">(</span><span class="s">&#39;female&#39;</span><span class="p">,</span> <span class="bp">True</span><span class="p">)],</span> 
+                          <span class="n">schema</span><span class="o">.</span><span class="n">factor_combinations</span><span class="p">([</span><span class="s">&#39;sex&#39;</span><span class="p">,</span> <span class="s">&#39;treated&#39;</span><span class="p">]))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">([(</span><span class="s">&#39;male&#39;</span><span class="p">,),</span>
+                           <span class="p">(</span><span class="s">&#39;female&#39;</span><span class="p">,)],</span> <span class="n">schema</span><span class="o">.</span><span class="n">factor_combinations</span><span class="p">([</span><span class="s">&#39;sex&#39;</span><span class="p">]))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">expected</span><span class="p">,</span> <span class="n">schema</span><span class="o">.</span><span class="n">factor_combinations</span><span class="p">())</span>
+            
+</div>
+<div class="viewcode-block" id="SchemaTest.test_factors"><a class="viewcode-back" href="../../../generated/pade.test.html#pade.test.test_schema.SchemaTest.test_factors">[docs]</a>    <span class="k">def</span> <span class="nf">test_factors</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">schema</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">get_factor</span><span class="p">(</span><span class="s">&quot;sample1&quot;</span><span class="p">,</span> <span class="s">&quot;sex&quot;</span><span class="p">),</span> <span class="s">&quot;male&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">get_factor</span><span class="p">(</span><span class="s">&quot;sample1&quot;</span><span class="p">,</span> <span class="s">&quot;age&quot;</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">get_factor</span><span class="p">(</span><span class="s">&quot;sample1&quot;</span><span class="p">,</span> <span class="s">&quot;treated&quot;</span><span class="p">),</span> <span class="bp">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">get_factor</span><span class="p">(</span><span class="s">&quot;sample11&quot;</span><span class="p">,</span> <span class="s">&quot;sex&quot;</span><span class="p">),</span> <span class="s">&quot;female&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">get_factor</span><span class="p">(</span><span class="s">&quot;sample10&quot;</span><span class="p">,</span> <span class="s">&quot;age&quot;</span><span class="p">),</span> <span class="mi">20</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">get_factor</span><span class="p">(</span><span class="s">&quot;sample10&quot;</span><span class="p">,</span> <span class="s">&quot;treated&quot;</span><span class="p">),</span> <span class="bp">False</span><span class="p">)</span>
+
+        <span class="n">names</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">factors</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">names</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s">&quot;age&quot;</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="SchemaTest.test_yaml"><a class="viewcode-back" href="../../../generated/pade.test.html#pade.test.test_schema.SchemaTest.test_yaml">[docs]</a>    <span class="k">def</span> <span class="nf">test_yaml</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">maxDiff</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="c"># Save the schema, load it, and save it again. Compare the two</span>
+        <span class="c"># versions to make sure they&#39;re the same, so that we know we</span>
+        <span class="c"># can round-trip.</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">StringIO</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+        <span class="n">loaded</span> <span class="o">=</span> <span class="n">Schema</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">getvalue</span><span class="p">())</span>
+
+        <span class="n">out2</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">StringIO</span><span class="p">()</span>
+        <span class="n">loaded</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">out2</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">getvalue</span><span class="p">(),</span>
+                          <span class="n">out2</span><span class="o">.</span><span class="n">getvalue</span><span class="p">())</span>
+
+</div>
+<div class="viewcode-block" id="SchemaTest.test_baseline_value"><a class="viewcode-back" href="../../../generated/pade.test.html#pade.test.test_schema.SchemaTest.test_baseline_value">[docs]</a>    <span class="k">def</span> <span class="nf">test_baseline_value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">baseline</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">factor</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">baseline_value</span><span class="p">(</span><span class="n">factor</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">baseline</span><span class="p">(</span><span class="s">&#39;sex&#39;</span><span class="p">),</span> <span class="s">&#39;male&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">baseline</span><span class="p">(</span><span class="s">&#39;treated&#39;</span><span class="p">),</span> <span class="bp">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">baseline</span><span class="p">(</span><span class="s">&#39;age&#39;</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="SchemaTest.test_has_baseline"><a class="viewcode-back" href="../../../generated/pade.test.html#pade.test.test_schema.SchemaTest.test_has_baseline">[docs]</a>    <span class="k">def</span> <span class="nf">test_has_baseline</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">baseline</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">factor</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">baseline_value</span><span class="p">(</span><span class="n">factor</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">has_baseline</span><span class="p">({</span><span class="s">&#39;sex&#39;</span> <span class="p">:</span> <span class="s">&#39;male&#39;</span><span class="p">,</span> <span class="s">&#39;treated&#39;</span><span class="p">:</span> <span class="bp">False</span><span class="p">}))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">has_baseline</span><span class="p">({</span><span class="s">&#39;sex&#39;</span> <span class="p">:</span> <span class="s">&#39;male&#39;</span><span class="p">,</span> <span class="s">&#39;treated&#39;</span><span class="p">:</span> <span class="bp">True</span><span class="p">}))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">has_baseline</span><span class="p">({</span><span class="s">&#39;sex&#39;</span> <span class="p">:</span> <span class="s">&#39;female&#39;</span><span class="p">,</span> <span class="s">&#39;treated&#39;</span><span class="p">:</span> <span class="bp">False</span><span class="p">}))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertFalse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">has_baseline</span><span class="p">({</span><span class="s">&#39;sex&#39;</span> <span class="p">:</span> <span class="s">&#39;female&#39;</span><span class="p">,</span> <span class="s">&#39;treated&#39;</span><span class="p">:</span> <span class="bp">True</span><span class="p">}))</span>
+
+</div>
+<div class="viewcode-block" id="SchemaTest.test_possible_assignments"><a class="viewcode-back" href="../../../generated/pade.test.html#pade.test.test_schema.SchemaTest.test_possible_assignments">[docs]</a>    <span class="k">def</span> <span class="nf">test_possible_assignments</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">possible_assignments</span><span class="p">((</span><span class="s">&#39;sex&#39;</span><span class="p">,</span> <span class="s">&#39;treated&#39;</span><span class="p">)),</span>
+                          <span class="p">[</span>
+                <span class="n">OrderedDict</span><span class="p">([(</span><span class="s">&#39;sex&#39;</span><span class="p">,</span> <span class="s">&#39;male&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;treated&#39;</span><span class="p">,</span> <span class="bp">False</span><span class="p">)]),</span>
+                <span class="n">OrderedDict</span><span class="p">([(</span><span class="s">&#39;sex&#39;</span><span class="p">,</span> <span class="s">&#39;male&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;treated&#39;</span><span class="p">,</span> <span class="bp">True</span><span class="p">)]),</span>
+                <span class="n">OrderedDict</span><span class="p">([(</span><span class="s">&#39;sex&#39;</span><span class="p">,</span> <span class="s">&#39;female&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;treated&#39;</span><span class="p">,</span> <span class="bp">False</span><span class="p">)]),</span>
+                <span class="n">OrderedDict</span><span class="p">([(</span><span class="s">&#39;sex&#39;</span><span class="p">,</span> <span class="s">&#39;female&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;treated&#39;</span><span class="p">,</span> <span class="bp">True</span><span class="p">)]),</span>
+                <span class="p">])</span>
+</div>
+<div class="viewcode-block" id="SchemaTest.test_ignore_columns"><a class="viewcode-back" href="../../../generated/pade.test.html#pade.test.test_schema.SchemaTest.test_ignore_columns">[docs]</a>    <span class="k">def</span> <span class="nf">test_ignore_columns</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    
+        <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;gene_id&quot;</span><span class="p">]</span> 
+        <span class="n">roles</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;feature_id&#39;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">8</span><span class="p">):</span>
+            <span class="n">names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s">&#39;sample_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">i</span> <span class="o">%</span> <span class="mi">2</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">roles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s">&#39;sample&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">roles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">None</span><span class="p">)</span>
+
+        <span class="n">schema</span> <span class="o">=</span> <span class="n">Schema</span><span class="p">(</span>
+            <span class="n">column_names</span><span class="o">=</span><span class="n">names</span><span class="p">,</span>
+            <span class="n">column_roles</span><span class="o">=</span><span class="n">roles</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">sample_column_names</span><span class="p">),</span> <span class="mi">4</span><span class="p">)</span>
+
+
+        <span class="n">schema</span><span class="o">.</span><span class="n">add_factor</span><span class="p">(</span><span class="s">&#39;treated&#39;</span><span class="p">,</span> <span class="p">[</span><span class="bp">False</span><span class="p">,</span> <span class="bp">True</span><span class="p">])</span>
+
+        <span class="n">schema</span><span class="o">.</span><span class="n">set_factor</span><span class="p">(</span><span class="s">&#39;sample_0&#39;</span><span class="p">,</span> <span class="s">&#39;treated&#39;</span><span class="p">,</span> <span class="bp">False</span><span class="p">)</span>
+        <span class="n">schema</span><span class="o">.</span><span class="n">set_factor</span><span class="p">(</span><span class="s">&#39;sample_2&#39;</span><span class="p">,</span> <span class="s">&#39;treated&#39;</span><span class="p">,</span> <span class="bp">False</span><span class="p">)</span>
+        <span class="n">schema</span><span class="o">.</span><span class="n">set_factor</span><span class="p">(</span><span class="s">&#39;sample_4&#39;</span><span class="p">,</span> <span class="s">&#39;treated&#39;</span><span class="p">,</span> <span class="bp">True</span><span class="p">)</span>
+        <span class="n">schema</span><span class="o">.</span><span class="n">set_factor</span><span class="p">(</span><span class="s">&#39;sample_6&#39;</span><span class="p">,</span> <span class="s">&#39;treated&#39;</span><span class="p">,</span> <span class="bp">True</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+            <span class="n">schema</span><span class="o">.</span><span class="n">set_factor</span><span class="p">(</span><span class="s">&#39;sample_1&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="s">&#39;treated&#39;</span><span class="p">,</span> <span class="bp">True</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">possible_assignments</span><span class="p">([</span><span class="s">&#39;treated&#39;</span><span class="p">]),</span>
+                          <span class="p">[</span><span class="n">OrderedDict</span><span class="p">([(</span><span class="s">&#39;treated&#39;</span><span class="p">,</span> <span class="bp">False</span><span class="p">)]),</span> 
+                           <span class="n">OrderedDict</span><span class="p">([(</span><span class="s">&#39;treated&#39;</span><span class="p">,</span> <span class="bp">True</span> <span class="p">)])])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">indexes_with_assignments</span><span class="p">(</span>
+                <span class="n">OrderedDict</span><span class="p">([(</span><span class="s">&#39;treated&#39;</span><span class="p">,</span> <span class="bp">False</span><span class="p">)])),</span>
+                          <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">indexes_with_assignments</span><span class="p">(</span>
+                <span class="n">OrderedDict</span><span class="p">([(</span><span class="s">&#39;treated&#39;</span><span class="p">,</span> <span class="bp">True</span><span class="p">)])),</span>
+                          <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">samples_with_assignments</span><span class="p">(</span>
+                <span class="n">OrderedDict</span><span class="p">([(</span><span class="s">&#39;treated&#39;</span><span class="p">,</span> <span class="bp">False</span><span class="p">)])),</span>
+                          <span class="p">[</span><span class="s">&#39;sample_0&#39;</span><span class="p">,</span> <span class="s">&#39;sample_2&#39;</span><span class="p">])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">samples_with_assignments</span><span class="p">(</span>
+                <span class="n">OrderedDict</span><span class="p">([(</span><span class="s">&#39;treated&#39;</span><span class="p">,</span> <span class="bp">True</span><span class="p">)])),</span>
+                          <span class="p">[</span><span class="s">&#39;sample_4&#39;</span><span class="p">,</span> <span class="s">&#39;sample_6&#39;</span><span class="p">])</span>
+        
+        <span class="n">out</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">StringIO</span><span class="p">()</span>
+
+        <span class="n">schema</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+        <span class="n">loaded</span> <span class="o">=</span> <span class="n">Schema</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">getvalue</span><span class="p">())</span>
+
+        <span class="n">out2</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">StringIO</span><span class="p">()</span>
+        <span class="n">loaded</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">out2</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">maxDiff</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">getvalue</span><span class="p">(),</span>
+                          <span class="n">out2</span><span class="o">.</span><span class="n">getvalue</span><span class="p">())</span>        
+
+</div></div>
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">unittest</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
+    
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">PADE 6.0 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, University of Pennsylvania.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.2.
+    </div>
+  </body>
+</html>

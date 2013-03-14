@@ -1,0 +1,108 @@
+pade Package
+============
+
+:mod:`pade` Package
+-------------------
+
+.. automodule:: pade.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`analysis` Module
+----------------------
+
+.. automodule:: pade.analysis
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`celery` Module
+--------------------
+
+.. automodule:: pade.celery
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`layout` Module
+--------------------
+
+.. automodule:: pade.layout
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`main` Module
+------------------
+
+.. automodule:: pade.main
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`metadb` Module
+--------------------
+
+.. automodule:: pade.metadb
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`model` Module
+-------------------
+
+.. automodule:: pade.model
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`performance` Module
+-------------------------
+
+.. automodule:: pade.performance
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`redis_session` Module
+---------------------------
+
+.. automodule:: pade.redis_session
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`server` Module
+--------------------
+
+.. automodule:: pade.server
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`stat` Module
+------------------
+
+.. automodule:: pade.stat
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`tasks` Module
+-------------------
+
+.. automodule:: pade.tasks
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+Subpackages
+-----------
+
+.. toctree::
+
+    pade.templates
+    pade.test
+    pade.tools
+

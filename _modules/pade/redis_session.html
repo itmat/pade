@@ -1,0 +1,159 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pade.redis_session &mdash; PADE 6.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '6.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="PADE 6.0 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">PADE 6.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for pade.redis_session</h1><div class="highlight"><pre>
+<span class="kn">import</span> <span class="nn">pickle</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">timedelta</span>
+<span class="kn">from</span> <span class="nn">uuid</span> <span class="kn">import</span> <span class="n">uuid4</span>
+<span class="kn">from</span> <span class="nn">redis</span> <span class="kn">import</span> <span class="n">Redis</span>
+<span class="kn">from</span> <span class="nn">werkzeug.datastructures</span> <span class="kn">import</span> <span class="n">CallbackDict</span>
+<span class="kn">from</span> <span class="nn">flask.sessions</span> <span class="kn">import</span> <span class="n">SessionInterface</span><span class="p">,</span> <span class="n">SessionMixin</span>
+
+
+<div class="viewcode-block" id="RedisSession"><a class="viewcode-back" href="../../generated/pade.html#pade.redis_session.RedisSession">[docs]</a><span class="k">class</span> <span class="nc">RedisSession</span><span class="p">(</span><span class="n">CallbackDict</span><span class="p">,</span> <span class="n">SessionMixin</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">initial</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">sid</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">new</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">on_update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">modified</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="n">CallbackDict</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">initial</span><span class="p">,</span> <span class="n">on_update</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sid</span> <span class="o">=</span> <span class="n">sid</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">new</span> <span class="o">=</span> <span class="n">new</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">modified</span> <span class="o">=</span> <span class="bp">False</span>
+
+</div>
+<div class="viewcode-block" id="RedisSessionInterface"><a class="viewcode-back" href="../../generated/pade.html#pade.redis_session.RedisSessionInterface">[docs]</a><span class="k">class</span> <span class="nc">RedisSessionInterface</span><span class="p">(</span><span class="n">SessionInterface</span><span class="p">):</span>
+    <span class="n">serializer</span> <span class="o">=</span> <span class="n">pickle</span>
+    <span class="n">session_class</span> <span class="o">=</span> <span class="n">RedisSession</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">redis</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="s">&#39;session:&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">redis</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">redis</span> <span class="o">=</span> <span class="n">Redis</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">redis</span> <span class="o">=</span> <span class="n">redis</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="n">prefix</span>
+
+<div class="viewcode-block" id="RedisSessionInterface.generate_sid"><a class="viewcode-back" href="../../generated/pade.html#pade.redis_session.RedisSessionInterface.generate_sid">[docs]</a>    <span class="k">def</span> <span class="nf">generate_sid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid4</span><span class="p">())</span>
+</div>
+<div class="viewcode-block" id="RedisSessionInterface.get_redis_expiration_time"><a class="viewcode-back" href="../../generated/pade.html#pade.redis_session.RedisSessionInterface.get_redis_expiration_time">[docs]</a>    <span class="k">def</span> <span class="nf">get_redis_expiration_time</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">app</span><span class="p">,</span> <span class="n">session</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">session</span><span class="o">.</span><span class="n">permanent</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">app</span><span class="o">.</span><span class="n">permanent_session_lifetime</span>
+        <span class="k">return</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="RedisSessionInterface.open_session"><a class="viewcode-back" href="../../generated/pade.html#pade.redis_session.RedisSessionInterface.open_session">[docs]</a>    <span class="k">def</span> <span class="nf">open_session</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">app</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+        <span class="n">sid</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">cookies</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session_cookie_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">sid</span><span class="p">:</span>
+            <span class="n">sid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_sid</span><span class="p">()</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_class</span><span class="p">(</span><span class="n">sid</span><span class="o">=</span><span class="n">sid</span><span class="p">)</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">redis</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span> <span class="o">+</span> <span class="n">sid</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">val</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">serializer</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_class</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">sid</span><span class="o">=</span><span class="n">sid</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_class</span><span class="p">(</span><span class="n">sid</span><span class="o">=</span><span class="n">sid</span><span class="p">,</span> <span class="n">new</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="RedisSessionInterface.save_session"><a class="viewcode-back" href="../../generated/pade.html#pade.redis_session.RedisSessionInterface.save_session">[docs]</a>    <span class="k">def</span> <span class="nf">save_session</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">app</span><span class="p">,</span> <span class="n">session</span><span class="p">,</span> <span class="n">response</span><span class="p">):</span>
+        <span class="n">domain</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_cookie_domain</span><span class="p">(</span><span class="n">app</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">session</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">redis</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span> <span class="o">+</span> <span class="n">session</span><span class="o">.</span><span class="n">sid</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">session</span><span class="o">.</span><span class="n">modified</span><span class="p">:</span>
+                <span class="n">response</span><span class="o">.</span><span class="n">delete_cookie</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session_cookie_name</span><span class="p">,</span>
+                                       <span class="n">domain</span><span class="o">=</span><span class="n">domain</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="n">redis_exp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_redis_expiration_time</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">session</span><span class="p">)</span>
+        <span class="n">cookie_exp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_expiration_time</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">session</span><span class="p">)</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">serializer</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">session</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">redis</span><span class="o">.</span><span class="n">setex</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span> <span class="o">+</span> <span class="n">session</span><span class="o">.</span><span class="n">sid</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span>
+                         <span class="nb">int</span><span class="p">(</span><span class="n">redis_exp</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">()))</span>
+        <span class="n">response</span><span class="o">.</span><span class="n">set_cookie</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">session_cookie_name</span><span class="p">,</span> <span class="n">session</span><span class="o">.</span><span class="n">sid</span><span class="p">,</span>
+                            <span class="n">expires</span><span class="o">=</span><span class="n">cookie_exp</span><span class="p">,</span> <span class="n">httponly</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+                            <span class="n">domain</span><span class="o">=</span><span class="n">domain</span><span class="p">)</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">PADE 6.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, University of Pennsylvania.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.2.
+    </div>
+  </body>
+</html>

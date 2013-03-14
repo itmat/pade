@@ -1,0 +1,35 @@
+tools Package
+=============
+
+:mod:`tools` Package
+--------------------
+
+.. automodule:: pade.tools
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`make_perf_input` Module
+-----------------------------
+
+.. automodule:: pade.tools.make_perf_input
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`perlvspython` Module
+--------------------------
+
+.. automodule:: pade.tools.perlvspython
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`profile` Module
+---------------------
+
+.. automodule:: pade.tools.profile
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
