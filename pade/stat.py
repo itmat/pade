@@ -251,6 +251,8 @@ class MeansRatio(LayoutPairTest):
 
     def __call__(self, data):
 
+        logging.debug("Calculating means ratio")
+
         conds  = self.condition_layout
         blocks = self.block_layout
 
