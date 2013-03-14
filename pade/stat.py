@@ -165,7 +165,9 @@ class Ftest(LayoutPairTest):
         full_layout = intersect_layouts(block_layout, condition_layout)
         if min(map(len, full_layout)) < 2:
             raise UnsupportedLayoutException(
-                """I can't use an FTest with the specified layouts, because the intersection between those layouts results in some groups that contain fewer than two samples.""")
+                "I can't use an FTest with the specified layouts, because " +
+                "the intersection between those layouts results in some " +
+                "groups that contain fewer than two samples.")
 
         self.layout_full = full_layout
         self.alphas = alphas
@@ -244,7 +246,9 @@ class MeansRatio(LayoutPairTest):
 
         if conditions != 2:
             raise UnsupportedLayoutException(
-                """MeansRatio only supports configurations where there are two conditions and n blocks. You have {conditions} conditions and {blocks} blocks.""".format(
+                ("MeansRatio only supports configurations where there are " +
+                 "two conditions and n blocks. You have {conditions} " +
+                 "conditions and {blocks} blocks.").format(
                     conditions=conditions,
                     blocks=blocks))
 
