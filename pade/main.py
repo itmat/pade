@@ -137,7 +137,8 @@ Analyzing {filename}, which is described by the schema {schema}.
         schema=load_schema(args.schema),
         settings=args_to_settings(args),
         sample_indexes_path=args.sample_indexes,
-        path=db)
+        path=db,
+        job_id=0)
 
     if args.distrib:
         celery.chain(steps)().get()
