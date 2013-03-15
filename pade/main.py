@@ -144,9 +144,12 @@ Analyzing {filename}, which is described by the schema {schema}.
         celery.chain(steps)().get()
     else:
         for step in steps:
+            start = time.time()
             res = step.apply()
+            end = time.time()
             if not res.successful():
                 raise Exception(res.traceback)
+            logging.info("Task " + str(step) + " completed in " + str(end - start) + " seconds")
 
     job = pade.tasks.load_job(db)
     print_summary(job)
@@ -377,6 +380,7 @@ def main():
     setup_logging(args)
     logging.info('Pade starting')
 
+    start = time.time()
     try:
         args.func(args)
 
@@ -384,9 +388,9 @@ def main():
         logging.fatal("Pade exiting because of usage error")
         print fix_newlines(e.message)
         exit(1)
+    end = time.time()
     
-    logging.info('Pade finishing')    
-
+    logging.info('Pade finished in ' + str(end - start) + ' seconds')
 
 def init_schema(infile=None):
     """Creates a new schema based on the given infile.
