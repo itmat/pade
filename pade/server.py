@@ -294,7 +294,7 @@ def add_factor():
 
     if request.method == 'GET':
         form = NewFactorForm()
-        for i in range(10):
+        for i in range(20):
             form.possible_values.append_entry()
         factors = schema.factors
         allow_next = len(factors) > 0
