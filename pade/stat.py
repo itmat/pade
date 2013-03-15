@@ -261,19 +261,14 @@ class MeansRatio(LayoutPairTest):
         conds  = self.condition_layout
         blocks = self.block_layout
 
-        logging.debug("Calculating means ratio, blocks are " + str(blocks) + " and conds are " + str(conds))
-
         # Build two new layouts. c0 is a list of lists of indexes into
         # the data that represent condition 0 for each block. c1 is
         # the same for data that represent condition 1 for each block.
         c0_blocks = intersect_layouts(blocks, [ conds[0] ])
         c1_blocks = intersect_layouts(blocks, [ conds[1] ])
-        logging.debug("c0 blocks are " + str(c0_blocks) + " and c1 are " + str(c1_blocks))
 
         # Get the mean for each block for both conditions.
-        logging.debug("Getting means0")
         means0 = group_means(data, c0_blocks)
-        logging.debug("Getting means1")
         means1 = group_means(data, c1_blocks)
 
         # If we have tuning params, add another dimension to the front
@@ -282,32 +277,26 @@ class MeansRatio(LayoutPairTest):
             shape = (len(self.alphas),) + np.shape(means0)
             old0 = means0
             old1 = means1
-            logging.info("re-initializing means0 and means1")
             means0 = np.zeros(shape)
             means1 = np.zeros(shape)
             for i, a in enumerate(self.alphas):
-                logging.info("Doing alpha " + str(a))
                 means0[i] = old0 + a
                 means1[i] = old1 + a
 
-        logging.info("Computing ratio")
         means0 /= means1
         ratio = means0
 
         # If we have more than one block, we combine their ratios
         # using the geometric mean.
-        logging.info("Computing gmean")
         ratio = gmean(ratio, axis=-1)
 
         # 'Symmetric' means that the order of the conditions does not
         # matter, so we should always return a ratio >= 1. So for any
         # ratios that are < 1, use the inverse.
         if self.symmetric:
-            logging.info("Computing inverse")
             # Add another dimension to the front where and 1 is its
             # inverse, then select the max across that dimension
             ratio_and_inverse = np.array([ratio, 1.0 / ratio])
-            logging.info("Computing max")
             ratio = np.max(ratio_and_inverse, axis=0)
 
         return ratio
@@ -480,6 +469,7 @@ def bootstrap(data,
       falling in the range associated with the corresponding bin.
 
       """
+
     if residuals is None:
         build_sample = lambda idxs: data[..., idxs]
     else:
@@ -505,8 +495,8 @@ def bootstrap(data,
     else:
         initial_value = np.zeros(cumulative_hist_shape(bins))
         reduce_fn = lambda res, val : res + cumulative_hist(val, bins)
-        finalize_fn = lambda res : res / len(permutations)
-        
+        finalize_fn = lambda res : res / float(len(permutations))
+
     # We'll return an R x n array, where n is the number of
     # features. Each row is the array of statistics for all the
     # features, using a different random sampling.
@@ -515,8 +505,9 @@ def bootstrap(data,
     stats   = (stat_fn(s)      for s in samples)
 
     reduced = reduce(reduce_fn, stats, initial_value)
+    res = finalize_fn(reduced)
 
-    return finalize_fn(reduced)
+    return res
 
 def cumulative_hist_shape(bins):
     """Returns the shape of the histogram with the given bins.
