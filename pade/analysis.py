@@ -227,6 +227,7 @@ def compute_mean_perm_count(job):
         # Shift all values in the data by the means of the groups from
         # the full model, so that the mean of each group is 0.
         if job.settings.equalize_means:
+            logging.info("Equalizing means")
             shifted = residuals(table, job.full_layout)
             data = np.zeros_like(table)
             if job.settings.equalize_means_ids is None:
@@ -249,6 +250,7 @@ def compute_mean_perm_count(job):
             return bootstrap(data, stat_fn, permutations=perms,bins=bins)
 
         else:
+            logging.info("Not equalizing means")
             return bootstrap(table, stat_fn, permutations=perms,bins=bins)
 
 
