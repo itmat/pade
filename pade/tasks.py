@@ -43,7 +43,7 @@ def copy_input(path, input_path, schema, settings, job_id):
         dt = h5py.special_dtype(vlen=str)
         db.create_dataset("table", data=input.table)
         db.create_dataset("feature_ids", (len(ids),), dt)
-        print "Ids are ", ids
+
         for i, fid in enumerate(ids):
             input.feature_ids[i] = fid
             db['feature_ids'][i] = fid
