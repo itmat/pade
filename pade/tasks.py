@@ -60,6 +60,7 @@ def copy_input(path, input_path, schema, settings, job_id):
         db.attrs['block_variables'] = settings.block_variables
         db.attrs['min_conf'] = settings.min_conf
         db.attrs['conf_interval'] = settings.conf_interval
+        db.attrs['equalize_means'] = settings.equalize_means
 
         # Save the schema object
         schema_str = StringIO()
@@ -262,7 +263,8 @@ def load_settings(db):
         min_conf = db.attrs['min_conf'],
         conf_interval = db.attrs['conf_interval'],
         tuning_params = db['tuning_params'][...],
-        equalize_means_ids = equalize_means_ids)
+        equalize_means_ids = equalize_means_ids,
+        equalize_means = db.attrs['equalize_means'])
 
 def load_table(db, name):
     if name in db:
