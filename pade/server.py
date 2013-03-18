@@ -102,7 +102,6 @@ def input_file_list():
     print "Date times are " + str([type(x.dt_created) for x in files])
     return render_template(
         'input_files.html',
-        form=InputFileUploadForm(),
         input_file_metas=files)
 
 ########################################################################
@@ -199,7 +198,7 @@ def column_roles():
 
     elif request.method == 'POST':
         update_schema_with_column_roles(schema, ColumnRolesForm(request.form))
-        return redirect(url_for('add_factor'))
+        return redirect(url_for('factor_list'))
     
 
 ########################################################################
@@ -287,6 +286,18 @@ def update_schema_with_new_factor(schema, form):
             values.append(value)
     schema.add_factor(factor, values)    
 
+@app.route("/factor_list")
+def factor_list():
+    schema = current_scratch_schema()
+
+    if len(schema.factors) == 0:
+        return redirect(url_for('add_factor'))
+
+    return render_template('factors.html',
+                           factors=schema.factors,
+                           allow_next=len(schema.factors) > 0,
+                           factor_values=schema.factor_values)
+
 @app.route("/add_factor", methods=['GET', 'POST'])
 def add_factor():
 
@@ -294,7 +305,7 @@ def add_factor():
 
     if request.method == 'GET':
         form = NewFactorForm()
-        for i in range(20):
+        for i in range(len(schema.sample_column_names) / 2):
             form.possible_values.append_entry()
         factors = schema.factors
         allow_next = len(factors) > 0
@@ -309,7 +320,7 @@ def add_factor():
         form = NewFactorForm(request.form)
         update_schema_with_new_factor(schema, form)
         session.modified = True
-        return redirect(url_for('add_factor'))
+        return redirect(url_for('factor_list'))
 
 
 @app.route("/column_labels", methods=['GET', 'POST'])
@@ -329,7 +340,6 @@ def column_labels():
         
         schema.modified = True
         return redirect(url_for('setup_job_factors'))
-
 
     schema = current_scratch_schema()
 
@@ -353,21 +363,27 @@ def current_job_id():
 
 
 
-@app.route("/upload_input_file", methods=['POST'])
-def upload_input_file():
-    
-    ensure_job_scratch()
-    
+@app.route("/upload_raw_file", methods=['GET', 'POST'])
+def upload_raw_file():
+
     form = InputFileUploadForm(request.form)
+    
+    if request.method == 'GET':
+        return render_template('upload_raw_file.html',
+                               form=form)
 
-    file = request.files['input_file']
-    filename = secure_filename(file.filename)
-    session['job_scratch']['filename'] = filename
+    elif request.method == 'POST':
 
-    logging.info("Adding input file to meta db")
-    meta = app.mdb.add_input_file(name=filename, stream=file, description=form.description.data)
+        ensure_job_scratch()
+    
+        file = request.files['input_file']
+        filename = secure_filename(file.filename)
+        session['job_scratch']['filename'] = filename
 
-    return redirect(url_for('input_file_list'))
+        logging.info("Adding input file to meta db")
+        meta = app.mdb.add_input_file(name=filename, stream=file, description=form.description.data)
+
+        return redirect(url_for('input_file_list'))
 
 @app.route("/setup_job_factors", methods=['GET', 'POST'])
 def setup_job_factors():
@@ -375,10 +391,35 @@ def setup_job_factors():
 
     if request.method == 'GET':
 
+        scratch = job_scratch()
+        if 'settings' not in scratch:
+            conditions = []
+            blocks = []
+
+            for i, factor in enumerate(schema.factors):
+                if i == 0:
+                    conditions.append(factor)
+                else:
+                    blocks.append(factor)
+            settings = Settings(
+                condition_variables=conditions,
+                block_variables=blocks)
+            scratch['settings'] = settings
+        else:
+            settings = scratch['settings']
+
         form = JobFactorForm()
+
         for factor in schema.factors:
             entry = form.factor_roles.append_entry()
             entry.label = factor
+            if factor in settings.condition_variables:
+                entry.data = 'condition'
+            elif factor in settings.block_variables:
+                entry.data = 'block'
+            else:
+                entry.data = 'ignore'
+
         return render_template(
             'setup_job_factors.html',
             form=form,
@@ -411,14 +452,13 @@ def setup_job_factors():
 
 def settings_to_form(settings):
     form = JobSettingsForm()
-    
+
     form.bins.data = settings.num_bins
     form.permutations.data = settings.num_samples
     form.sample_from_residuals.data = settings.sample_from_residuals
     form.sample_with_replacement.data = settings.sample_with_replacement
     form.min_conf_level.data = settings.min_conf
     form.conf_interval.data = settings.conf_interval
-    print "Tuning params are", settings.tuning_params
     form.tuning_params.data = " ".join(map(str, settings.tuning_params))
     
     return form

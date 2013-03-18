@@ -34,17 +34,12 @@ Working with input file {{filename}}.
     {% endfor %}
   </table>
   <p>
-    {{ form.submit }}
+    {{ forms.cancel() }} | <a href="{{url_for('input_file_list')}}">Previous</a> | {{ form.submit }}
   </p>
 
 </form>
 
 {% endif %}
 
-<p>
-<a href="{{url_for('input_file_list')}}">Previous step</a> (select input file)
-</p>
-
-<a href="{{url_for('clear_job_scratch')}}">Cancel</a>
 {% endblock %}
 

@@ -2,6 +2,8 @@
 {% block title %}Index{% endblock %}
 {% block content %}
 
+<h2>Add factor</h2>
+
 You need to define at least one "factor" that will be used to group
 the samples together. Please enter the name of a factor, and list the
 possible values for that factor. For example, you might have a factor
@@ -9,37 +11,21 @@ called "gender" with possible values "male" and "female", or one
 called "treated" with possible values "yes" and "no".
 
 <form action="{{url_for('add_factor')}}" method="post">
+  {{ form.factor_name.label }}: {{ form.factor_name()|safe }} 
+  <br/>
+  Possible values:
   
   <ul>
-    {% for factor in factors %}
-    <li>{{ factor }}</li>
-    <ul>
-      {% for value in factor_values[factor] %}
-      <li>{{value}}</li>
-      {% endfor %}
-    </ul>
+    {% for entry in form.possible_values %}
+    <li>{{ entry|safe }}</li>
     {% endfor %}
-  
-    <li>{{ form.factor_name.label }}: {{ form.factor_name()|safe }} 
-      <br/>
-    Possible values:
-
-    <ul>
-      {% for entry in form.possible_values %}
-      <li>{{ entry|safe }}</li>
-      {% endfor %}
-    </ul>
-    </li>
   </ul>
 
-  {{ form.submit }}
+  {{ forms.cancel() }} | <a href="{{url_for('column_roles')}}">Previous</a> |   {{ form.submit }}
+  {% if allow_next %}
+  | <a href="{{url_for('factor_list')}}">Cancel factor addition</a>
+  {% endif %}
 </form>
-
-<a href="{{url_for('column_roles')}}">Previous (column roles)</a>
-
-{% if allow_next %}
-<a href="{{url_for('column_labels')}}">Next (label columns)</a>
-{% endif %}
 
 <p>
   <em>TODO: Allow flexible number of factor values</em>

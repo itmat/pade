@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Index{% endblock %}
+{% block content %}
+
+<h2>Choose a file to upload:</h2>
+
+<form action="{{url_for('upload_raw_file')}}" method="post" enctype="multipart/form-data">
+  <p>
+    {{ form.input_file()|safe }}
+  </p>
+  <p>
+    {{ form.description.label }} <br/>
+    {{ form.description()|safe }}
+  </p>
+
+  {{ form.submit }}
+</form>
+
+{% endblock %}

@@ -29,7 +29,9 @@
       {{form.conf_interval.label}}: {{ form.conf_interval(size=5)|safe }}
     </p>
 
-    {{form.submit}}
+    {{ forms.cancel() }}
+    | <a href="{{url_for('setup_job_factors')}}">Previous</a>
+    | {{form.submit}}
 
   </fieldset>
 
