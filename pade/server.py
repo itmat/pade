@@ -42,7 +42,6 @@ class PadeApp(Flask):
         super(PadeApp, self).__init__(__name__)
         self.job = None
         self.mdb = None
-        self.secret_key = 'asdf'
 
 
 app = PadeApp()
@@ -54,7 +53,6 @@ app.mdb = MetaDB(UPLOAD_FOLDER, Redis(db=redisconfig.DB_METADB))
 def datetime_format(dt):
     return dt.strftime('%F %R')
     
-
 app.jinja_env.filters['datetime'] = datetime_format
 
 def allowed_file(filename):
