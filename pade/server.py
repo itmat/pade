@@ -42,7 +42,7 @@ class PadeApp(Flask):
         super(PadeApp, self).__init__(__name__)
         self.job = None
         self.mdb = None
-
+        self.secret_key = ""
 
 app = PadeApp()
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -76,9 +76,29 @@ def load_job(job_id):
 
 @app.route("/jobs/<job_id>")
 def job_details(job_id):
-    job = load_job(job_id)
-    print "Job id is ", job.job_id
-    return render_template("job.html", job_id=job.job_id, job=job)
+
+    job_meta = app.mdb.job(job_id)
+
+    task_ids = app.mdb.get_task_ids(job_meta)
+
+    tasks = [ AsyncResult(x) for x in task_ids ]
+
+    if len(tasks) != 1:
+        raise Exception("I got " + str(len(tasks)) +
+                        " tasks for job " + 
+                        str(job_id) + "; this should never happen")
+    task = tasks[0]
+
+    if task.status == 'SUCCESS':
+        job = load_job(job_id)
+        return render_template("job.html", job_id=job.job_id, job=job)
+
+    else:
+        return render_template(
+            'job_status.html',
+            job_id=job_id,
+            status=task.status)
+
 
 @app.route("/schemas")
 def schema_list():
@@ -833,28 +853,7 @@ def submit_job():
     result = chained.apply_async((job,))
     app.mdb.add_task_id(job_meta, result.task_id)
 
-    return redirect(url_for('job_status', job_id=job_meta.obj_id))
-
-@app.route("/job/<job_id>")
-def job_status(job_id):
-
-    job_meta = app.mdb.job(job_id)
-
-    task_ids = app.mdb.get_task_ids(job_meta)
-    print "Got task ids ", task_ids
-
-    tasks = [ AsyncResult(x) for x in task_ids ]
-
-    if len(tasks) != 1:
-        raise Exception("I got " + str(len(tasks)) +
-                        " tasks for job " + 
-                        str(job_id) + "; this should never happen")
-    task = tasks[0]
-
-    return render_template(
-        'job_status.html',
-        job_id=job_id,
-        status=task.status)
+    return redirect(url_for('job_details', job_id=job_meta.obj_id))
 
 @app.route("/jobs")
 def job_list():

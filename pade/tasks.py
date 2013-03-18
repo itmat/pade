@@ -9,8 +9,6 @@ together.
 """
 from __future__ import absolute_import
 
-
-
 import logging
 import pade.analysis as an
 import numpy as np

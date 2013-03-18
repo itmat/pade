@@ -2,7 +2,7 @@
 {% block title %}Index{% endblock %}
 {% block content %}
 
-<h2>Or choose an existing raw file:</h2>
+<h2>Available raw files:</h2>
 
 <ul>
 
@@ -10,9 +10,11 @@
 
   <li>
   
-    <a href="{{url_for('input_file_details', raw_file_id=s.obj_id)}}">{{ s.name }}</a> <br/>
+    <a href="{{url_for('input_file_details', raw_file_id=s.obj_id)}}">{{ s.name }}</a>
+    : <em>{{ s.description }}</em> 
+    <br/>
    {{ s.size }} bytes, uploaded {{ s.dt_created|datetime }} <br/>
-  <em>{{ s.description }}</em> <br/>
+
   Jobs based on this file: 
   {% for job_id in s.job_ids %}
   <a href="{{url_for('job_details', job_id=job_id)}}">{{ job_id }}</a>

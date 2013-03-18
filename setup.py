@@ -7,7 +7,7 @@ setup(name='pade',
       url='https://github.com/itmat/pade',
       scripts=['bin/pade'],
       packages=['pade', 'pade.static.css', 'pade.templates'],
-      requires=['jinja2', 'matplotlib', 'scipy', 'numpy', 'yaml'],
+      requires=['jinja2', 'matplotlib', 'scipy', 'numpy', 'yaml', 'celery', 'redis'],
       package_data={
         'pade.static.css' : ['*.css'],
         'pade.templates' : ['*']}
