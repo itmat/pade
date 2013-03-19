@@ -2,6 +2,8 @@
 {% block title %}Index{% endblock %}
 {% block content %}
 
+<h2>Jobs</h2>
+
 <ul>
   {% for job in jobs %}
   <li>
@@ -11,7 +13,7 @@
 </ul>
 
 <p>
-  <a href="{{url_for('input_file_list')}}">New job</a>
+  <a href="{{url_for('input_file_list')}}" class="button">New job</a>
 </p>
 
 {% endblock %}

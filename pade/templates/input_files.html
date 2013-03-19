@@ -2,9 +2,7 @@
 {% block title %}Index{% endblock %}
 {% block content %}
 
-<h2>Available raw files:</h2>
-
-
+<h2>Raw input files</h2>
 
   {% for s in input_file_metas %}
 
@@ -27,6 +25,6 @@
 
 
 <div class="input_file_summary">
-<a href="{{url_for('upload_raw_file')}}">Upload new file</a>
+  <a href="{{url_for('upload_raw_file')}}" class="button">Upload new file</a>
 </div>
 {% endblock %}

@@ -1,4 +1,17 @@
 
+td.numeric {
+  text-align: right;          
+}
+
+.pade_title {
+  font-size: 200%;           
+}
+
+a.pade_header {
+  color: #000000;
+  text-decoration: none;
+}
+
 body {
    font-family: "Baskerville", "Georgia", "Times New Roman", serif;
 }
@@ -90,3 +103,4 @@ a.button:hover {
       -moz-box-shadow: 0px 0px 0px 0px rgba(0,0,0,1);
            box-shadow: 0px 0px 0px 0px rgba(0,0,0,1);
 }
+

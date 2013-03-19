@@ -2,14 +2,18 @@
 {% block title %}Index{% endblock %}
 {% block content %}
 
-<h2>Raw input file:</h2>
+<h2>Job confirmation</h2>
+
+Please review the settings for the job.
+
+<h3>Raw input file:</h3>
 <p>
   Analyzing {{input_file_meta.name}}, {{input_file_meta.size}} bytes, uploaded {{ input_file_meta.dt_created|datetime }}
 </p>
 
-<h2>
+<h3>
 Schema:
-</h2>
+</h3>
 
 Feature ids are in column <em>{{schema.feature_id_column_names|join(', ')}}</em>.
 
@@ -41,7 +45,7 @@ The columns are labeled as follows:
 
 
 
-<h2>Other settings</h2>
+<h3>Other settings</h3>
 <p>
 Using statistic {{settings.stat_name}} with tuning params {{settings.tuning_params|join(', ')}}.
 </p>

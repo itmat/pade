@@ -2,7 +2,9 @@
 {% block title %}Job {{ job_id }} {% endblock %}
 {% block content %}
 
-<h2>Job settings</h2>
+<h2>Details for job {{ job_id }} </h2>
+
+<h3>Settings</h3>
 
 <table>
   <tr>
@@ -61,7 +63,9 @@
 
 </table>
 
-<h2>Num. features by confidence level</h2>
+<h3>Features by confidence level</h3>
+
+<div class="grid_3 alpha">
 
 <table>
   <tr>
@@ -71,12 +75,20 @@
 
   {% for i in range(job.summary.counts | length) %}
   <tr>
-    <td>{{ job.summary.bins[i] }}</td>
-    <td><a href="{{url_for('details', job_id=job_id, conf_level=i)}}">{{ job.summary.counts[i] }}</a></td>
+    <td class="numeric">{{ "%.0f%%"|format(job.summary.bins[i]*100) }}</td>
+    <td class="numeric"><a href="{{url_for('details', job_id=job_id, conf_level=i)}}">{{ job.summary.counts[i] }}</a></td>
   </tr>
   {% endfor %}
 
 </table>
+
+</div>
+
+<div class="grid_9 omega">
+  <img src="{{url_for('conf_dist_plot', job_id=job_id)}}" width="80%"></img>
+</div>
+
+<div class="grid_12 alpha omega">
 
 <h3>Plots</h3>
 <ul>
@@ -87,7 +99,7 @@
 </ul>
 
 
-<img src="counts_by_stat.png"></img>
-<img src="conf_by_stat.png"></img>
+</div>
+
 
 {% endblock %}

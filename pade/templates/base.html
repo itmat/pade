@@ -35,19 +35,13 @@
   <div class="container">
 
     <div class="grid_12">
-      <h1>PADE</h1>
+      <a href="{{url_for('index')}}" class="pade_header">
+        <span class="pade_title">PADE | </span>
+        Parallel Analysis of Differential Effects
+      </a>
     </div>
 
-    <div class="grid_2">
-      <ul>
-        <li><a href="{{url_for('job_list')}}">Jobs</a></li>
-        <li><a href="{{url_for('input_file_list')}}">Input Files</a></li>
-      </ul>
-
-    </div>
-
-
-    <div class="grid_10" id="content">
+    <div class="grid_12" id="content">
       {% with messages = get_flashed_messages() %}
       {% if messages %}
       <ul class=flashes>

@@ -4,11 +4,13 @@
 
 <h2>Add factor</h2>
 
-You need to define at least one "factor" that will be used to group
-the samples together. Please enter the name of a factor, and list the
-possible values for that factor. For example, you might have a factor
-called "gender" with possible values "male" and "female", or one
-called "treated" with possible values "yes" and "no".
+<p>
+  You need to define at least one "factor" that will be used to group
+  the samples together. Please enter the name of a factor, and list the
+  possible values for that factor. For example, you might have a factor
+  called "gender" with possible values "male" and "female", or one
+  called "treated" with possible values "yes" and "no".
+</p>
 
 <form action="{{url_for('add_factor')}}" method="post">
   {{ form.factor_name.label }}: {{ form.factor_name()|safe }} 

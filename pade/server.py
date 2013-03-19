@@ -3,6 +3,7 @@
 from __future__ import absolute_import, print_function, division
 import matplotlib
 matplotlib.use("Agg")
+from matplotlib.ticker import FuncFormatter
 import matplotlib.pyplot as plt
 
 import numpy as np
@@ -795,6 +796,7 @@ def conf_dist_plot(job_id):
         xlabel="Confidence score",
         ylabel="Features")
     ax.plot(job.summary.bins, job.summary.counts)
+    ax.xaxis.set_major_formatter(FuncFormatter(lambda x, pos=0: "{:.0f}%".format(x * 100)))
     return figure_response(fig)
     
 
@@ -856,6 +858,7 @@ def submit_job():
 @app.route("/jobs")
 def job_list():
     job_metas = app.mdb.all_jobs()
+    job_metas = sorted(job_metas, key=lambda f:f.dt_created, reverse=True)
     return render_template('jobs.html', jobs=job_metas)
 
 @contextlib.contextmanager
