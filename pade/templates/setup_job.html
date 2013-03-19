@@ -30,8 +30,8 @@
     </p>
 
     {{ forms.cancel() }}
-    | <a href="{{url_for('setup_job_factors')}}">Previous</a>
-    | {{form.submit}}
+    {{ forms.previous(url_for('setup_job_factors')) }}
+    {{ form.submit(class='button') }}
 
   </fieldset>
 

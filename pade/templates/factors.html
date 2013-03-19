@@ -2,7 +2,7 @@
 {% block title %}Index{% endblock %}
 {% block content %}
 
-<h2>Add factor</h2>
+<h2>Factors</h2>
 
 Here are the factors you've defined so far. If you have more factors,
 you should <a href="{{url_for('add_factor')}}">add them now</a>,
@@ -18,10 +18,14 @@ the next step</a>.
     {% endfor %}
   </ul>
   {% endfor %}
-  <li><a href="{{url_for('add_factor')}}">Add another factor</a></li>
 
 </ul>
 
-{{ forms.cancel() }} | <a href="{{url_for('column_roles')}}">Previous</a> | <a href="{{url_for('column_labels')}}">Next</a>
+<p>
+  {{ forms.cancel() }} 
+  {{ forms.previous(url_for('column_roles')) }}
+  <a href="{{url_for('add_factor')}}" class="button">Add another factor</a>
+  <a href="{{url_for('column_labels')}}" class="button">Next</a>
+</p>
 
 {% endblock %}

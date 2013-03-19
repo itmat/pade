@@ -28,7 +28,9 @@
     {% endfor %}
   </table>
   <p>
-    {{ forms.cancel() }} | <a href="{{url_for('input_file_list')}}">Previous</a> | {{ form.submit }}
+    {{ forms.cancel() }}
+    {{ forms.previous(url_for('input_file_list')) }}
+    {{ form.submit(class='button') }}
   </p>
 
 </form>

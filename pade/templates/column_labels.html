@@ -57,9 +57,9 @@ Editing factor {{factor}}.
     
   </table>
   <p>
-    {{ forms.cancel() }}
-    | <a href="{{url_for('factor_list')}}">Previous</a>
-    | <input type="submit" value="Update"></input>  
+    {{ forms.cancel() }} {{ forms.previous(url_for('factor_list'))}}
+    <input type="submit" value="Update" class="button"></input>  
+
   </p>
 
 </form>

@@ -35,7 +35,7 @@ females.
   </table>
 
 <p>
-{{ forms.cancel() }} | <a href="{{url_for('column_labels')}}">Previous</a> |   {{form.submit}}
+{{ forms.cancel() }} {{forms.previous(url_for('column_labels'))}} {{form.submit(class='button')}}
 </p>
   
 

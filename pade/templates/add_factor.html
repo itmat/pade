@@ -21,9 +21,12 @@ called "treated" with possible values "yes" and "no".
     {% endfor %}
   </ul>
 
-  {{ forms.cancel() }} | <a href="{{url_for('column_roles')}}">Previous</a> |   {{ form.submit }}
+  {{ forms.cancel() }} 
+  {{ forms.previous(url_for('column_roles')) }}
+  {{ form.submit(class='button') }}
+
   {% if allow_next %}
-  | <a href="{{url_for('factor_list')}}">Cancel factor addition</a>
+  | <a href="{{url_for('factor_list')}}" class="button">Cancel factor addition</a>
   {% endif %}
 </form>
 

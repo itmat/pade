@@ -1,4 +1,12 @@
 
+body {
+   font-family: "Baskerville", "Georgia", "Times New Roman", serif;
+}
+
+div.input_file_summary {
+    padding: 0.1in 0.1in
+}
+
 .up_regulated {
     color: green;
 }
@@ -45,3 +53,40 @@ fieldset {
   border-style: solid;
   border-color: #000000;
 }        
+
+a.button {
+  color: #000000;
+  text-decoration: none;
+}
+
+a.button:hover {
+  color: #000000;
+  text-decoration: none;  
+}
+
+.button {
+   background-color: rgba(216,227,202,1);
+   -webkit-box-shadow: 0px 0px 2px 0px rgba(0,0,0,1);
+      -moz-box-shadow: 0px 0px 2px 0px rgba(0,0,0,1);
+           box-shadow: 0px 0px 2px 0px rgba(0,0,0,1);
+   border: solid 1px rgba(0,0,0,1);
+   -webkit-border-radius: 3px;
+      -moz-border-radius: 3px;
+           border-radius: 3px;
+
+   margin: 4px;
+   padding: 6px;
+
+   font-family: Baskerville, Georgia, Times New Roman, serif;
+
+   text-align: center;
+   color: rgba(0,0,0,1);
+}
+.button:hover {
+   background-color: rgba(184,194,187,1);
+}
+.button:active {
+   -webkit-box-shadow: 0px 0px 0px 0px rgba(0,0,0,1);
+      -moz-box-shadow: 0px 0px 0px 0px rgba(0,0,0,1);
+           box-shadow: 0px 0px 0px 0px rgba(0,0,0,1);
+}

@@ -72,7 +72,7 @@ settings.conf_interval }} starting at {{ settings.min_conf }}.
 </p>
 
 {{ forms.cancel() }}
-| <a href="{{url_for('job_settings')}}">Previous</a>
-| <a href="{{url_for('submit_job')}}">Submit job</a>
+{{ forms.previous(url_for('job_settings')) }}
+<a href="{{url_for('submit_job')}}" class="button">Submit job</a>
 
 {% endblock %}

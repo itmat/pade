@@ -117,6 +117,7 @@ def input_file_details(raw_file_id):
 @app.route("/inputfiles")
 def input_file_list():
     files = app.mdb.all_input_files()
+    files = sorted(files, key=lambda f:f.obj_id, reverse=True)
     return render_template(
         'input_files.html',
         input_file_metas=files)
@@ -238,7 +239,7 @@ class ColumnRolesForm(Form):
 class InputFileUploadForm(Form):
     input_file = FileField('Input file')
     description = TextAreaField('Description (optional)')
-    submit     = SubmitField()
+    submit     = SubmitField("Upload")
 
 class JobFactorForm(Form):
     factor_roles = FieldList(
@@ -322,7 +323,7 @@ def add_factor():
 
     if request.method == 'GET':
         form = NewFactorForm()
-        for i in range(len(schema.sample_column_names) / 2):
+        for i in range(int(len(schema.sample_column_names) / 2)):
             form.possible_values.append_entry()
         factors = schema.factors
         allow_next = len(factors) > 0

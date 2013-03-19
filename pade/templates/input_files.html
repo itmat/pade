@@ -4,11 +4,11 @@
 
 <h2>Available raw files:</h2>
 
-<ul>
+
 
   {% for s in input_file_metas %}
 
-  <li>
+  <div class="input_file_summary">
   
     <a href="{{url_for('input_file_details', raw_file_id=s.obj_id)}}">{{ s.name }}</a>
     : <em>{{ s.description }}</em> 
@@ -22,11 +22,11 @@
 
   <br/>
   <a href="{{url_for('select_input_file', input_file_id=s.obj_id)}}">Create job based on this file</a>  
-  </li>
+  </div>
   {% endfor %}
-</ul>
 
 
+<div class="input_file_summary">
 <a href="{{url_for('upload_raw_file')}}">Upload new file</a>
-
+</div>
 {% endblock %}
