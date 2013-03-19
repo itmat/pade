@@ -9,7 +9,7 @@
 
 """The main program for pade."""
 
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 # External imports
 
@@ -59,17 +59,17 @@ def fix_newlines(msg):
 ###
 
 def print_summary(job):
-    print """
+    print("""
 Summary of features by confidence level:
 
 Confidence |   Num.   | Tuning
    Level   | Features | Param.
------------+----------+-------"""
+-----------+----------+-------""")
     for i in range(len(job.summary.counts) - 1):
-        print "{bin:10.1%} | {count:8d} | {param:0.4f}".format(
-            bin=job.summary.bins[i],
-            count=int(job.summary.counts[i]),
-            param=job.settings.tuning_params[job.summary.best_param_idxs[i]])
+        print("{bin:10.1%} | {count:8d} | {param:0.4f}".format(
+                bin=job.summary.bins[i],
+                count=int(job.summary.counts[i]),
+                param=job.settings.tuning_params[job.summary.best_param_idxs[i]]))
 
 
 
@@ -86,11 +86,11 @@ def do_setup(args):
         factors={f : None for f in args.factor},
         force=args.force)
 
-    print fix_newlines("""
+    print(fix_newlines("""
 I have generated a schema for your input file, with factors {factors}, and saved it to "{filename}". You should now edit that file to set the factors for each sample. The file contains instructions on how to edit it.
 
 Once you have finished the schema, you will need to run "pade run" to do the analysis. See "pade run -h" for its usage.
-""").format(factors=schema.factors, filename=args.schema)
+""").format(factors=schema.factors, filename=args.schema))
 
 def do_makesamples(args):
 
@@ -124,10 +124,9 @@ def do_makesamples(args):
 
 
 def do_run(args):
-    print """
-Analyzing {filename}, which is described by the schema {schema}.
-""".format(filename=args.infile,
-           schema=args.schema)
+    print("Analyzing {filename}, which is described by the schema {schema}."
+          .format(filename=args.infile,
+                  schema=args.schema))
 
     infile = os.path.abspath(args.infile)
     db     = os.path.abspath(args.db)
@@ -154,7 +153,7 @@ Analyzing {filename}, which is described by the schema {schema}.
     job = pade.tasks.load_job(db)
     print_summary(job)
 
-    print """<
+    print("""
 The results for the job are saved in {path}. To generate a text
 report, run:
 
@@ -163,7 +162,7 @@ report, run:
 To launch a small web server to generate the HTML reports, run:
 
   pade server --db {path}
-""".format(path=args.db)
+""".format(path=args.db))
 
 def do_server(args):
     import pade.server
@@ -176,13 +175,11 @@ def do_server(args):
 def do_report(args):
     path = args.db
 
-    print """
-Generating report for result database {job}.
-""".format(job=path)
+    print("Generating report for result database {job}.".format(job=path))
     job = load_job(path)
     filename = args.output
     save_text_output(job, filename=filename)
-    print "Saved text report to ", filename
+    print("Saved text report to ", filename)
 
 
 
@@ -386,7 +383,7 @@ def main():
 
     except UsageException as e:
         logging.fatal("Pade exiting because of usage error")
-        print fix_newlines(e.message)
+        print(fix_newlines(e.message))
         exit(1)
     end = time.time()
     

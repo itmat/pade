@@ -1,6 +1,6 @@
 # TODO:
 #  Pre-generate histograms of stat distributions
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -117,7 +117,6 @@ def input_file_details(raw_file_id):
 @app.route("/inputfiles")
 def input_file_list():
     files = app.mdb.all_input_files()
-    print "Date times are " + str([type(x.dt_created) for x in files])
     return render_template(
         'input_files.html',
         input_file_metas=files)
@@ -685,8 +684,6 @@ def details(job_id, conf_level):
 
     num_pages = int(np.ceil(float(len(filtered_idxs)) / float(rows_per_page)))
 
-    print "Feature ids are ", job.input.feature_ids[idxs]
-
     return render_template(
         "conf_level.html",
         job=job,
@@ -858,7 +855,6 @@ def submit_job():
 @app.route("/jobs")
 def job_list():
     job_metas = app.mdb.all_jobs()
-    print "Job metas are", job_metas
     return render_template('jobs.html', jobs=job_metas)
 
 @contextlib.contextmanager

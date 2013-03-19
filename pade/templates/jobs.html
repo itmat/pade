@@ -5,7 +5,7 @@
 <ul>
   {% for job in jobs %}
   <li>
-    Job id <a href="{{ url_for('job_details', job_id=job.obj_id) }}">{{ job.obj_id }}</a>, created {{ job.dt_created }}.
+    Job id <a href="{{ url_for('job_details', job_id=job.obj_id) }}">{{ job.obj_id }}</a>, created {{ job.dt_created|datetime }}
   </li>
   {% endfor %}
 </ul>

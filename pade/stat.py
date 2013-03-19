@@ -6,6 +6,8 @@ may use these functions outside of the standard PADE workflow.
 
 """
 
+from __future__ import absolute_import, print_function
+
 import itertools
 import logging
 import numpy as np
@@ -323,15 +325,15 @@ class OneSampleDifferenceTTest(LayoutPairTest):
 
     Apply it to 1d input (the first feature in the table):
 
-    >>> print round(test(table[0]), 7)
+    >>> round(test(table[0]), 7)
     4.472136
 
     Now 2d input (both features in the table):
 
     >>> results = test(table)
-    >>> print round(results[0], 7)
+    >>> round(results[0], 7)
     4.472136
-    >>> print round(results[1], 7)
+    >>> round(results[1], 7)
     0.5656854
 
     """
