@@ -70,7 +70,7 @@ def apply_layout(data, layout):
     return [ data[..., list(idxs)] for idxs in layout]
 
 def layout_is_paired(layout):
-    """Returns true of the layout appears to be 'paired'.
+    """Returns true if the layout appears to be 'paired'.
 
     A paired layout is one where each group contains two values.
 
