@@ -20,7 +20,12 @@ DEFAULT_ACCUMULATOR = Accumulator(
 def _binning_accumulator(bins, num_samples):
     initializer = np.zeros(cumulative_hist_shape(bins))
 
+    count = [0]
+
     def reduce_fn(res, val):
+        count[0] += 1
+        logging.debug("Done " + str(count[0]) + " rounds")
+
         hist = cumulative_hist(val, bins)
         return res + hist
     

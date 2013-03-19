@@ -254,6 +254,7 @@ class MeansRatio(LayoutPairTest):
         conds  = self.condition_layout
         blocks = self.block_layout
 
+
         # Build two new layouts. c0 is a list of lists of indexes into
         # the data that represent condition 0 for each block. c1 is
         # the same for data that represent condition 1 for each block.
@@ -276,7 +277,8 @@ class MeansRatio(LayoutPairTest):
                 means0[i] = old0 + a
                 means1[i] = old1 + a
 
-        ratio = means0 / means1
+        means0 /= means1
+        ratio = means0
 
         # If we have more than one block, we combine their ratios
         # using the geometric mean.
