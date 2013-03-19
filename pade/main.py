@@ -27,6 +27,7 @@ import scipy.stats
 import celery
 import pade.tasks
 import textwrap
+import time
 
 from numpy.lib.recfunctions import append_fields
 from pade.model import Job, Model, Settings, Input, Results, Schema
@@ -82,7 +83,7 @@ def do_setup(args):
     schema = init_job(
         infile=args.infile,
         schema_path=args.schema,
-        factors={f : None for f in args.factor},
+        factors={f : [] for f in args.factor},
         force=args.force)
 
     print(fix_newlines("""

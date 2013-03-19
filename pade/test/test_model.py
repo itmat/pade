@@ -1,100 +1,95 @@
 import unittest
 import numpy as np
-
-from pade.main import *
-from pade.analysis import *
-
+from pade.test.utils import sample_db
+from pade.model import Model, Schema, ModelExpression, ModelExpressionException
+from pade.main import init_schema
+from StringIO import StringIO
+from collections import OrderedDict
 
 class ModelTest(unittest.TestCase):
 
+    def test_parse_model_one_var(self):
+        m = ModelExpression.parse("treatment")
+        self.assertEquals(m.operator, None)
+        self.assertEquals(m.variables, ['treatment'])
+
+    def test_parse_model_two_vars(self):
+        m = ModelExpression.parse("treatment + sex")
+        self.assertEquals(m.operator, "+")
+        self.assertEquals(m.variables, ['treatment', 'sex'])
+        
+    def test_parse_op(self):
+        with self.assertRaises(ModelExpressionException):
+            ModelExpression.parse("+")
+
+    def test_parse_var_var(self):
+        with self.assertRaises(ModelExpressionException):
+            ModelExpression.parse("treatment sex")
+
+    def test_parse_var_op_var_op_var(self):
+        with self.assertRaises(ModelExpressionException):
+            ModelExpression.parse("treatment + sex + batch")
+
+    def test_str(self):
+        self.assertEquals(
+            str(ModelExpression.parse("treatment")), "treatment")
+        self.assertEquals(
+            str(ModelExpression.parse("treatment * sex")), "treatment * sex")
+
+class OtherTest(unittest.TestCase):
+
     def setUp(self):
-        sample_nums = range(1, 9)
+        self.sample_input_4_class = "sample_data/sample_data_4_class.txt"
 
-        colnames = ["gene_id"] + ["sample" + str(x) for x in sample_nums]
+    @property
+    def factor_map_treated_sex(self):
+        factor_map = { 'treated' : {},
+                       'sex'     : {} }
+        for c in range(4):
+            treated = False if c == 0 or c == 1 else True
+            sex = 'male' if c == 0 or c == 2 else 'female'
+            for r in range(1, 5):
+                col = 'c{0}r{1}'.format(c, r)
+                factor_map['treated'][col] = treated
+                factor_map['sex'][col] = sex
+        return factor_map
         
-        roles = ['feature_id']
-        for i in range(len(sample_nums)):
-            roles.append('sample')
 
-        schema = Schema(
-            column_names=colnames,
-            column_roles=roles)
-
-        schema.add_factor('treated', [False, True])
-        schema.add_factor('sex', ['male', 'female'])
+    def test_table(self):
+        schema = init_schema(self.sample_input_4_class)
         
-        factor_table = [
-                ('sample1', 'male',   False),
-                ('sample2', 'male',   False),
-                ('sample3', 'female', False),
-                ('sample4', 'female', False),
-                ('sample5', 'male',   True),
-                ('sample6', 'male',   True),
-                ('sample7', 'female', True),
-                ('sample8', 'female', True)]
+        with sample_db(self.sample_input_4_class,
+                        self.factor_map_treated_sex) as job:
 
-        for row in factor_table:
-            (name, sex, treated) = row
-            schema.set_factor(name, 'sex', sex)
-            schema.set_factor(name, 'treated', treated)
+            self.assertEquals(np.shape(job.input.table), (1000, 16))
 
-        self.schema = schema
 
-    def test_group_means(self):
+    def test_model_to_layout(self):
 
-        data = np.array(
-            [[ 1, 1, 3, 3, 4, 4,  6,  6 ],
-             [ 1, 1, 3, 3, 4, 4, 10, 10 ]])
+        with sample_db(self.sample_input_4_class,
+                        self.factor_map_treated_sex) as job:
 
-        expected_means = np.array([
-            [ 1, 3, 4,  6],
-            [ 1, 3, 4, 10]])
-        
-        means = get_group_means(self.schema, data, self.schema.factors)
-        np.testing.assert_almost_equal(means, expected_means)
+            # One class
+            model = Model(job.schema, 'treated')
+            self.assertEquals(
+                model.layout,
+                [[0, 1, 2, 3, 4, 5, 6, 7],
+                 [8, 9, 10, 11, 12, 13, 14, 15]])
 
-    def test_coeffs_with_interaction(self):
+            # No classes
+            model = Model(job.schema, '')
+            self.assertEquals(
+                model.layout,
+                [[0, 1, 2, 3, 4, 5, 6, 7,
+                  8, 9, 10, 11, 12, 13, 14, 15]])
 
-        model = Model(self.schema, "treated * sex")
+class SchemaTest(unittest.TestCase):
 
-        data = np.array(
-            [[ 1, 1, 3, 3, 4, 4,  6,  6 ],
-             [ 1, 1, 3, 3, 4, 4, 10, 10 ]])
-
-        expected_coeffs = np.array([
-            [ 1, 3, 2, 0],
-            [ 1, 3, 2, 4]])
-
-        expected_labels = ({}, {'treated' : True}, {'sex' : 'female'}, { 'sex': 'female', 'treated' : True})
-
-        fitted = fit_model(model, data)
-
-        self.assertEquals(expected_labels, fitted.labels)
-        np.testing.assert_almost_equal(expected_coeffs, fitted.params)
-
-    def test_coeffs_no_interaction(self):
-        
-        model = Model(self.schema, "treated + sex")
-
-        data = np.array([
-                [ 1, 1, 3, 3, 4, 4,  6,  6 ],
-                [ 1, 1, 3, 3, 4, 4, 10, 10 ]])
-                                       
-        expected_coeffs = np.array([
-                [ 1.0,  3, 2],
-                [ 0.0,  5, 4]])
-            
-
-        expected_labels = ({}, {'treated' : True}, {'sex' : 'female'})
-        fitted = fit_model(model, data)
-        self.assertEquals(expected_labels, fitted.labels)
-        np.testing.assert_almost_equal(expected_coeffs, fitted.params)
-
-    def test_model_dummy_vars_1(self):
-
+    def setUp(self):
         sample_nums = range(1, 13)
 
         colnames = ["gene_id"] + ["sample" + str(x) for x in sample_nums]
+        
         roles = ['feature_id']
         for i in range(len(sample_nums)):
             roles.append('sample')
@@ -120,19 +115,159 @@ class ModelTest(unittest.TestCase):
                     schema.set_factor(name, 'sex',     sex)
                     schema.set_factor(name, 'age',     age)
                     schema.set_factor(name, 'treated', treated)
+        self.schema = schema
 
-        dummies = dummy_vars(schema, ['age', 'treated'], level=2)
+    def test_sample_matches_assignments(self):
+        s = self.schema
+        self.assertTrue(s.sample_matches_assignments("sample1", { }))
+        self.assertTrue(s.sample_matches_assignments("sample1", { 'sex' : 'male' }))
+        self.assertFalse(s.sample_matches_assignments("sample1", { 'sex' : 'female' }))
 
-        expected = DummyVarTable(
-            ({}, {'age': 20}, {'age': 55}, {'treated': True}, {'age': 20, 'treated': True}, {'age': 55, 'treated': True}),
-            [
-                DummyVarAssignment(factor_values=(2, False),  bits=(True, False, False, False, False, False), indexes=['sample2', 'sample8']),
-                DummyVarAssignment(factor_values=(2, True),   bits=(True, False, False, True, False, False), indexes=['sample1', 'sample7']),
-                DummyVarAssignment(factor_values=(20, False), bits=(True, True, False, False, False, False), indexes=['sample4', 'sample10']),
-                DummyVarAssignment(factor_values=(20, True),  bits=(True, True, False, True, True, False), indexes=['sample3', 'sample9']),
-                DummyVarAssignment(factor_values=(55, False), bits=(True, False, True, False, False, False), indexes=['sample6', 'sample12']),
-                DummyVarAssignment(factor_values=(55, True), bits=(True, False, True, True, False, True), indexes=['sample5', 'sample11'])])
+    def test_samples_with_assignments(self):
+        self.assertEquals(['sample5', 'sample6'],
+                          self.schema.samples_with_assignments({'sex' : 'male',
+                                                                'age' : 55}))
 
-        self.assertEquals(dummies, expected)
+    def test_factor_combinations(self):
+        expected = [
+            (2,  'male',   False), # 0 
+            (2,  'male',   True),  # 1 (treated)
+            (2,  'female', False), # 1 (sex)
+            (2,  'female', True),  # 2 (sex, treated)
+            (20, 'male',   False), # 1 (age)
+            (20, 'male',   True),  # 2 (age, treated)
+            (20, 'female', False), # 2 (age, sex)
+            (20, 'female', True),  # 3 (age, sex, treated)
+            (55, 'male',   False), # 1 (age)
+            (55, 'male',   True),  # 2 (age, treated)
+            (55, 'female', False), # 2 (age, sex)
+            (55, 'female', True)   # 3 (age, sex, treated)
+            ]
+        schema = self.schema
+        self.assertEquals([('male', False),
+                           ('male', True),
+                           ('female', False),
+                           ('female', True)], 
+                          schema.factor_combinations(['sex', 'treated']))
+        self.assertEquals([('male',),
+                           ('female',)], schema.factor_combinations(['sex']))
+
+        self.assertEquals(expected, schema.factor_combinations())
+            
+
+    def test_factors(self):
+        schema = self.schema
+
+        self.assertEquals(schema.get_factor("sample1", "sex"), "male")
+        self.assertEquals(schema.get_factor("sample1", "age"), 2)
+        self.assertEquals(schema.get_factor("sample1", "treated"), True)
+        self.assertEquals(schema.get_factor("sample11", "sex"), "female")
+        self.assertEquals(schema.get_factor("sample10", "age"), 20)
+        self.assertEquals(schema.get_factor("sample10", "treated"), False)
+
+        names = sorted(schema.factors)
+        self.assertEquals(names[0], "age")
 
 
+    def test_yaml(self):
+        self.maxDiff = None
+        # Save the schema, load it, and save it again. Compare the two
+        # versions to make sure they're the same, so that we know we
+        # can round-trip.
+        out = StringIO()
+
+        self.schema.save(out)
+        loaded = Schema.load(out.getvalue())
+
+        out2 = StringIO()
+        loaded.save(out2)
+
+        self.assertEquals(out.getvalue(),
+                          out2.getvalue())
+
+
+    def test_baseline_value(self):
+        baseline = lambda factor: self.schema.baseline_value(factor)
+        self.assertEquals(baseline('sex'), 'male')
+        self.assertEquals(baseline('treated'), False)
+        self.assertEquals(baseline('age'), 2)
+
+    def test_has_baseline(self):
+        baseline = lambda factor: self.schema.baseline_value(factor)
+        self.assertTrue(self.schema.has_baseline({'sex' : 'male', 'treated': False}))
+        self.assertTrue(self.schema.has_baseline({'sex' : 'male', 'treated': True}))
+        self.assertTrue(self.schema.has_baseline({'sex' : 'female', 'treated': False}))
+        self.assertFalse(self.schema.has_baseline({'sex' : 'female', 'treated': True}))
+
+
+    def test_possible_assignments(self):
+        self.assertEquals(self.schema.possible_assignments(('sex', 'treated')),
+                          [
+                OrderedDict([('sex', 'male'), ('treated', False)]),
+                OrderedDict([('sex', 'male'), ('treated', True)]),
+                OrderedDict([('sex', 'female'), ('treated', False)]),
+                OrderedDict([('sex', 'female'), ('treated', True)]),
+                ])
+
+    def test_ignore_columns(self):
+    
+        names = ["gene_id"] 
+        roles = ['feature_id']
+        for i in range(8):
+            names.append('sample_' + str(i))
+            if (i % 2) == 0:
+                roles.append('sample')
+            else:
+                roles.append(None)
+
+        schema = Schema(
+            column_names=names,
+            column_roles=roles)
+        self.assertEquals(len(schema.sample_column_names), 4)
+
+
+        schema.add_factor('treated', [False, True])
+
+        schema.set_factor('sample_0', 'treated', False)
+        schema.set_factor('sample_2', 'treated', False)
+        schema.set_factor('sample_4', 'treated', True)
+        schema.set_factor('sample_6', 'treated', True)
+
+        with self.assertRaises(Exception):
+            schema.set_factor('sample_1' + str(i), 'treated', True)
+
+        self.assertEquals(schema.possible_assignments(['treated']),
+                          [OrderedDict([('treated', False)]), 
+                           OrderedDict([('treated', True )])])
+
+        self.assertEquals(schema.indexes_with_assignments(
+                OrderedDict([('treated', False)])),
+                          [0, 1])
+
+        self.assertEquals(schema.indexes_with_assignments(
+                OrderedDict([('treated', True)])),
+                          [2, 3])
+
+        self.assertEquals(schema.samples_with_assignments(
+                OrderedDict([('treated', False)])),
+                          ['sample_0', 'sample_2'])
+
+        self.assertEquals(schema.samples_with_assignments(
+                OrderedDict([('treated', True)])),
+                          ['sample_4', 'sample_6'])
+        
+        out = StringIO()
+
+        schema.save(out)
+        loaded = Schema.load(out.getvalue())
+
+        out2 = StringIO()
+        loaded.save(out2)
+
+        self.maxDiff = None
+        self.assertEquals(out.getvalue(),
+                          out2.getvalue())        
+
+
+if __name__ == '__main__':
+    unittest.main()
