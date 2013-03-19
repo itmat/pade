@@ -2,6 +2,41 @@
 {% block title %}Job {{ job_id }} {% endblock %}
 {% block content %}
 
-<h2>{{ raw_file.name }}</h2>
+<h2>Raw file "{{ raw_file.name }}"</h2>
 
+{{ raw_file.size }} bytes, uploaded {{ raw_file.dt_created|datetime }} <br/>
+
+{% if raw_file.job_ids|length() > 0 %}
+<p>
+Used in jobs
+{% for job_id in raw_file.job_ids %}
+<a href="{{url_for('job_details', job_id=job_id)}}">{{ job_id }}</a>
+{% endfor %}
+</p>
+{% endif %}
+
+<h3>Sample data</h3>
+
+<p>Here are the top few lines from the file:</p>
+
+<table class="raw_file_sample">
+  <tr>
+    {% for f in fieldnames %}
+    <th>{{ f }}</th>
+    {% endfor %}
+  </tr>
+
+  {% for row in sample_rows %}
+  <tr>
+    {% for field in fieldnames %}
+    <td>{{ row[field] }}</td>
+    {% endfor %}
+  </tr>
+  {% endfor %}
+  
+</table>
+
+<p>
+<a href="{{url_for('select_input_file', input_file_id=raw_file.obj_id)}}" class="button">Analyze this file</a>  
+</p>
 {% endblock %}

@@ -4,27 +4,26 @@
 
 <h2>Raw input files</h2>
 
-  {% for s in input_file_metas %}
+{% for s in input_file_metas %}
 
-  <div class="input_file_summary">
+<div class="grid_12 input_file_summary">
+
+<div class="grid_5 alpha">
   
-    <a href="{{url_for('input_file_details', raw_file_id=s.obj_id)}}">{{ s.name }}</a>
-    : <em>{{ s.description }}</em> 
-    <br/>
-   {{ s.size }} bytes, uploaded {{ s.dt_created|datetime }} <br/>
-
-  Jobs based on this file: 
-  {% for job_id in s.job_ids %}
-  <a href="{{url_for('job_details', job_id=job_id)}}">{{ job_id }}</a>
-  {% endfor %}
-
+  <a href="{{url_for('input_file_details', raw_file_id=s.obj_id)}}">{{ s.name }}</a>
   <br/>
-  <a href="{{url_for('select_input_file', input_file_id=s.obj_id)}}">Create job based on this file</a>  
-  </div>
-  {% endfor %}
+  {{ s.size }} bytes, uploaded {{ s.dt_created|datetime }} <br/>
 
+</div>
 
-<div class="input_file_summary">
+<div class="grid_7 omega">
+  <em>{{ s.description }}</em>
+</div>
+</div>
+
+{% endfor %}
+
+<div class="input_file_summary grid_12">
   <a href="{{url_for('upload_raw_file')}}" class="button">Upload new file</a>
 </div>
 {% endblock %}

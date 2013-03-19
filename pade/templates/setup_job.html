@@ -4,7 +4,6 @@
 
 <h2>Other settings</h2>
 
-You can probably leave these unchanged.
 
 <form action="job_settings" method="post">
 
@@ -14,22 +13,21 @@ You can probably leave these unchanged.
 
   <fieldset>
     <legend>Advanced options:</legend>
+    <em>(You can probably leave all these unchanged)</em>
     <p>
       {{form.tuning_params.label}}: {{ form.tuning_params()|safe }}
     </p>
     <p>
-      {{form.bins.label}}: {{ form.bins(size=6)|safe }}
-    </p>
-    <p>
+      {{form.bins.label}}: {{ form.bins(size=6)|safe }} |
       {{form.permutations.label}}: {{ form.permutations(size=6)|safe }}
     </p>
     <p>
-      {{ form.sample_from_residuals()|safe }} {{form.sample_from_residuals.label}} 
-      {{ form.sample_with_replacement()|safe }} {{form.sample_with_replacement.label}}
+      {{ form.sample_from_residuals()|safe }} {{form.sample_from_residuals.label}}  |
+      {{ form.sample_with_replacement()|safe }} {{form.sample_with_replacement.label}} |
       {{ form.equalize_means()|safe }} {{form.equalize_means.label}}
     </p>
     <p>
-      {{form.min_conf_level.label}}: {{ form.min_conf_level(size=5)|safe }}
+      {{form.min_conf_level.label}}: {{ form.min_conf_level(size=5)|safe }} |
       {{form.conf_interval.label}}: {{ form.conf_interval(size=5)|safe }}
     </p>
 

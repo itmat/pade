@@ -109,10 +109,25 @@ def schema_list():
 
 @app.route("/raw_files/<raw_file_id>")
 def input_file_details(raw_file_id):
+    raw_file = app.mdb.input_file(raw_file_id)
+
+    fieldnames = []
+    rows = []
+    max_rows = 10
+    with open(raw_file.path) as infile:
+        csvfile = csv.DictReader(infile, delimiter="\t")
+        fieldnames = csvfile.fieldnames    
+        for i, row in enumerate(csvfile):
+            rows.append(row)
+            if i == max_rows:
+                break
     
     return render_template(
         'input_file.html',
-        raw_file=app.mdb.input_file(raw_file_id))
+        raw_file=raw_file,
+        fieldnames=fieldnames,
+        sample_rows=rows)
+
         
 
 @app.route("/inputfiles")
@@ -740,7 +755,6 @@ def stat_dist_plot(job_id, tuning_param):
         xlabel=job.settings.stat_name + " value",
         ylabel="Features",
         xlim=(0, max_stat))
-
     plt.hist(job.results.raw_stats[tuning_param], log=False, bins=250)
     return figure_response(fig)
 

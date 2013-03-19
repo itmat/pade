@@ -1,4 +1,16 @@
 
+table.raw_file_sample {
+  font-family: "courier new";
+}
+
+table.raw_file_sample td {
+  padding: 0px 20px 0px 0px;
+}
+
+table.raw_file_sample th {
+  padding: 0px 20px 0px 0px;
+}
+
 td.numeric {
   text-align: right;          
 }
