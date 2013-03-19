@@ -39,7 +39,7 @@ class ModelTest(unittest.TestCase):
 class OtherTest(unittest.TestCase):
 
     def setUp(self):
-        self.sample_input_4_class = "sample_data/sample_data_4_class.txt"
+        self.sample_input_4_class = "sample_jobs/two_cond_nuisance/sample_data_2_cond_nuisance.txt"
 
     @property
     def factor_map_treated_sex(self):
