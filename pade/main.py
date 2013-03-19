@@ -9,7 +9,7 @@
 
 """The main program for pade."""
 
-from __future__ import absolute_import, print_function
+from __future__ import absolute_import, print_function, division
 
 # External imports
 
@@ -29,7 +29,6 @@ import pade.tasks
 import textwrap
 
 from numpy.lib.recfunctions import append_fields
-from pade.performance import *
 from pade.model import Job, Model, Settings, Input, Results, Schema
 from pade.stat import GroupSymbols
 
@@ -321,30 +320,6 @@ def save_text_output(job, filename):
                    fmt=[c.format for c in cols],
                    delimiter="\t")
 
-
-def print_profile(job):
-
-    walked = walk_profile()
-    env = jinja2.Environment(loader=jinja2.PackageLoader('pade'))
-    template = env.get_template('profile.html')
-    with open('profile.html', 'w') as out:
-        logging.info("Saving profile")
-        out.write(template.render(profile=walked))
-
-    fmt = []
-    fmt += ["%d", "%d", "%s", "%f", "%f", "%f", "%f", "%f", "%f"]
-    fmt += ["%d", "%d"]
-
-    features = [ len(job.input.table) for row in walked ]
-    samples  = [ len(job.input.table[0]) for row in walked ]
-
-    walked = append_fields(walked, names='features', data=features)
-    walked = append_fields(walked, names='samples', data=samples)
-
-
-    with open('../profile.txt', 'w') as out:
-        out.write("\t".join(walked.dtype.names) + "\n")
-        np.savetxt(out, walked, fmt=fmt)
 
 def setup_logging(args):
     logging.basicConfig(level=logging.DEBUG,

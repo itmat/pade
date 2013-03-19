@@ -1,6 +1,6 @@
 # TODO:
 #  Pre-generate histograms of stat distributions
-from __future__ import absolute_import, print_function
+from __future__ import absolute_import, print_function, division
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt

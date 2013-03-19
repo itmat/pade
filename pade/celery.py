@@ -1,6 +1,6 @@
 """Sets up Celery for PADE."""
 
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function, division
 
 from celery import Celery
 

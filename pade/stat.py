@@ -6,7 +6,7 @@ may use these functions outside of the standard PADE workflow.
 
 """
 
-from __future__ import absolute_import, print_function
+from __future__ import absolute_import, print_function, division
 
 import itertools
 import logging
@@ -497,7 +497,7 @@ def bootstrap(data,
     else:
         initial_value = np.zeros(cumulative_hist_shape(bins))
         reduce_fn = lambda res, val : res + cumulative_hist(val, bins)
-        finalize_fn = lambda res : res / float(len(permutations))
+        finalize_fn = lambda res : res / len(permutations)
 
     # We'll return an R x n array, where n is the number of
     # features. Each row is the array of statistics for all the

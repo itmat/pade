@@ -1,6 +1,6 @@
 """Classes used to model PADE data and jobs."""
 
-from __future__ import absolute_import, print_function
+from __future__ import absolute_import, print_function, division
 
 import numpy as np
 from collections import namedtuple, OrderedDict

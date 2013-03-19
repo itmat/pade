@@ -17,7 +17,7 @@ represented as lists, tuples, or sets.
 
 """
 
-from __future__ import absolute_import, print_function
+from __future__ import absolute_import, print_function, division
 
 import numpy as np
 from itertools import combinations, product

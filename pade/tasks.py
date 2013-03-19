@@ -7,7 +7,7 @@ the job structure, and return it. This allows us to chain the tasks
 together.
 
 """
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function, division
 
 import logging
 import pade.analysis as an
