@@ -47,3 +47,8 @@ deploy_site:
 	git push origin gh-pages
 	git checkout master
 
+redis :
+	redis-server redis.conf
+
+worker :
+	celery --app=pade worker -l info

@@ -148,7 +148,6 @@ def ensure_job_scratch():
         logging.info("Setting up job scratch")
         session['job_scratch'] = { 
             'schema' : Schema(),
-            'settings' : Settings()
             }
 
 def set_job_scratch_schema(schema):
@@ -266,9 +265,9 @@ class JobFactorForm(Form):
 
 class JobSettingsForm(Form):
 
-    statistic    = SelectField('Statistic', choices=[('f_test', 'F-test'), 
-                                                     ('one_sample_t_test', 'One-sample t-test'),
-                                                     ('means_ratio', 'Ratio of means')])
+    statistic    = SelectField('Statistic', choices=[('FStat', 'F'), 
+                                                     ('OneSampleDifferenceTStat', 'One-Sample T'),
+                                                     ('MeansRatio', 'Means Ratio')])
     bins = IntegerField(
         'Number of bins', 
         validators=[Required()],
@@ -422,37 +421,25 @@ def upload_raw_file():
 @app.route("/setup_job_factors", methods=['GET', 'POST'])
 def setup_job_factors():
     schema = current_scratch_schema()
+    scratch = job_scratch()
 
     if request.method == 'GET':
 
-        scratch = job_scratch()
-        if 'settings' not in scratch:
+        if 'job_factor_form' not in scratch:
             conditions = []
             blocks = []
-
+            form = JobFactorForm()
             for i, factor in enumerate(schema.factors):
+                entry = form.factor_roles.append_entry()
+                entry.label = factor
                 if i == 0:
-                    conditions.append(factor)
+                    entry.data = 'condition'
                 else:
-                    blocks.append(factor)
-            settings = Settings(
-                condition_variables=conditions,
-                block_variables=blocks)
-            scratch['settings'] = settings
-        else:
-            settings = scratch['settings']
+                    entry.data = 'block'
 
-        form = JobFactorForm()
+            scratch['job_factor_form'] = form
 
-        for factor in schema.factors:
-            entry = form.factor_roles.append_entry()
-            entry.label = factor
-            if factor in settings.condition_variables:
-                entry.data = 'condition'
-            elif factor in settings.block_variables:
-                entry.data = 'block'
-            else:
-                entry.data = 'ignore'
+        form = scratch['job_factor_form']
 
         return render_template(
             'setup_job_factors.html',
@@ -460,21 +447,8 @@ def setup_job_factors():
             schema=current_scratch_schema())
 
     elif request.method == 'POST':
-        form = JobFactorForm(request.form)
-        condition_vars = []
-        block_vars = []
-        for i, factor in enumerate(schema.factors):
-            value = form.factor_roles[i].data
-            if value == 'condition':
-                condition_vars.append(factor)
-            elif value == 'block':
-                block_vars.append(factor)
-
-        if 'settings' not in job_scratch():
-            job_scratch()['settings'] = Settings()
-        job_scratch()['settings'].condition_variables = condition_vars
-        job_scratch()['settings'].block_variables = block_vars
-
+        scratch['job_factor_form'] = JobFactorForm(request.form)
+        session.modified = True
         return redirect(url_for('job_settings'))
 
 
@@ -484,56 +458,74 @@ def setup_job_factors():
 # 3. Add factors (possibly multiple times)
 # 4. 
 
-def settings_to_form(settings):
-    form = JobSettingsForm()
+def scratch_settings():
+        
+    form = job_scratch()['other_settings_form']
+    job_factor_form = job_scratch()['job_factor_form']
 
-    form.bins.data = settings.num_bins
-    form.permutations.data = settings.num_samples
-    form.sample_from_residuals.data = settings.sample_from_residuals
-    form.sample_with_replacement.data = settings.sample_with_replacement
-    form.summary_min_conf_level.data = settings.summary_min_conf
-    form.summary_step_size.data = settings.summary_step_size
-    form.tuning_params.data = " ".join(map(str, settings.tuning_params))
-    form.equalize_means.data = settings.equalize_means
+    schema = current_scratch_schema()
+
+    tuning_params=[float(x) for x in form.tuning_params.data.split(" ")]
+
+    condition_vars = []
+    block_vars = []
     
-    return form
+    for i, factor in enumerate(schema.factors):
+        value = job_factor_form.factor_roles[i].data
+        if value == 'condition':
+            condition_vars.append(factor)
+        elif value == 'block':
+            block_vars.append(factor)    
+
+    return Settings(
+        condition_variables=condition_vars,
+        block_variables=block_vars,
+        stat_class = str(form.statistic.data),
+        num_bins = form.bins.data,
+        num_samples = form.permutations.data,
+        sample_from_residuals = form.sample_from_residuals.data,
+        sample_with_replacement = form.sample_with_replacement.data,
+        summary_min_conf = form.summary_min_conf_level.data,
+        summary_step_size = form.summary_step_size.data,
+        tuning_params = tuning_params)
 
 @app.route("/job_settings", methods=['GET', 'POST'])
 def job_settings():
 
+    scratch = job_scratch()
+
     if request.method == 'POST':
-        form = JobSettingsForm(request.form)
-        tuning_params=[float(x) for x in form.tuning_params.data.split(" ")]
-        settings = session['job_scratch']['settings']
-
-        settings.stat_name = str(form.statistic.data)
-
-        settings.num_bins = form.bins.data
-        settings.num_samples = form.permutations.data
-        settings.sample_from_residuals = form.sample_from_residuals.data
-        settings.sample_with_replacement = form.sample_with_replacement.data
-        settings.summary_min_conf = form.summary_min_conf_level.data
-        settings.summary_step_size = form.summary_step_size.data
-        settings.tuning_params = tuning_params
-
+        scratch['other_settings_form'] = JobSettingsForm(request.form)
+        scratch_settings()
         return redirect(url_for('job_confirmation'))
 
     else:
-        form = settings_to_form(job_scratch()['settings'])
-        return render_template(
-            'setup_job.html',
-            form=form)
+        if 'other_settings_form' not in scratch:
+            form = JobSettingsForm()
+
+            form.bins.data                    = pade.model.DEFAULT_NUM_BINS
+            form.permutations.data            = pade.model.DEFAULT_NUM_SAMPLES
+            form.sample_from_residuals.data   = False
+            form.sample_with_replacement.data = False
+            form.equalize_means.data = False
+            form.summary_min_conf_level.data  = pade.model.DEFAULT_SUMMARY_MIN_CONF
+            form.summary_step_size.data = pade.model.DEFAULT_SUMMARY_STEP_SIZE
+
+            form.tuning_params.data = " ".join(map(str, pade.model.DEFAULT_TUNING_PARAMS))
+            scratch['other_settings_form'] = form
+
+        return render_template('setup_job.html', form=scratch['other_settings_form'])
 
 @app.route("/job_confirmation")
 def job_confirmation():
     schema   = job_scratch()['schema']
-    settings = job_scratch()['settings']
+    settings = scratch_settings()
         
     return render_template(
         'job_confirmation.html',
         input_file_meta=current_scratch_input_file_meta(),
         schema=schema,
-        settings=settings)
+        settings=scratch_settings())
 
 @app.route("/jobs/<job_id>/features/<feature_num>/measurement_scatter")
 def measurement_scatter(job_id, feature_num):
@@ -843,7 +835,7 @@ def score_dist_by_tuning_param(job_id):
 
 @app.route("/submit_job")
 def submit_job():
-    settings = job_scratch()['settings']
+    settings = scratch_settings()
     schema   = current_scratch_schema()
     infile_meta = current_scratch_input_file_meta()
     schema_meta = app.mdb.add_schema('Schema', 'Comments', schema, infile_meta)
