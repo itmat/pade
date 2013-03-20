@@ -33,6 +33,12 @@ from numpy.lib.recfunctions import append_fields
 from pade.model import Job, Model, Settings, Input, Results, Schema
 from pade.stat import GroupSymbols
 
+STAT_NAME_TO_CLASS = {
+    'f' : 'FStat',
+    't' : 'OneSampleDifferenceTStat',
+    'means_ratio' : 'MeansRatio'
+}
+
 
 REAL_PATH = os.path.realpath(__file__)
 
@@ -194,7 +200,7 @@ def args_to_settings(args):
 
     # If they chose one_sample_t_test or means_ratio, we can't
     # equalize the means.
-    if stat in set(['one_sample_t_test', 'means_ratio']):
+    if stat in set(['one_sample_t', 'means_ratio']):
         logging.info("We're using stat " + stat + ", so I won't equalize means")
         equalize_means = False
     else:
@@ -240,7 +246,7 @@ def args_to_settings(args):
         tuning_params=tuning_params,
         block_variables=block_variables,
         condition_variables=condition_variables,
-        stat_name=stat,
+        stat_class=STAT_NAME_TO_CLASS[stat],
         equalize_means=equalize_means
         )
 
@@ -571,9 +577,8 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
         description="""These options control how we estimate the confidence levels. You can probably leave them unchanged, in which case I'll compute it using a permutation test with an f-test as the statistic, using a maximum of 1000 permutations.""")
     grp.add_argument(
         '--stat', '-s',
-#        choices=['f', 't', 'f_sqrt'],
-        choices=['f_test', 'one_sample_t_test', 'means_ratio'],
-        default=pade.model.DEFAULT_STATISTIC,
+        choices=STAT_NAME_TO_CLASS.keys(),
+        default='f',
         help="The statistic to use.")
 
     grp.add_argument(

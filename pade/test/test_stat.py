@@ -28,7 +28,7 @@ class StatTest(unittest.TestCase):
     def test_ftest_no_tuning_params(self):
 
         expected = 9.26470588235
-        ftest = Ftest(
+        ftest = FStat(
             condition_layout=[range(i, 18, 3) for i in range(3)],
             block_layout=[range(18)])
         self.assertAlmostEqual(expected, ftest(self.ftest_in))
@@ -46,7 +46,7 @@ class StatTest(unittest.TestCase):
         alphas = np.array([0.0, 0.01, 0.1, 1, 3])
 
         expected = 9.26470588235
-        ftest = Ftest(
+        ftest = FStat(
             condition_layout=[range(i, 18, 3) for i in range(3)],
             block_layout=[range(18)],
             alphas=alphas)

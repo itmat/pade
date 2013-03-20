@@ -49,7 +49,7 @@ def copy_input(path, input_path, schema, settings, job_id):
         # Save the settings object
         db.create_dataset("tuning_params", data=settings.tuning_params)
         db.attrs['job_id'] = job_id
-        db.attrs['stat_name'] = settings.stat_name
+        db.attrs['stat_class'] = settings.stat_class.__name__
         db.attrs['num_bins'] = settings.num_bins
         db.attrs['num_samples'] = settings.num_samples
         db.attrs['sample_from_residuals'] = settings.sample_from_residuals
@@ -87,7 +87,7 @@ def compute_raw_stats(path):
 
     job = load_job(path)
 
-    raw_stats    = an.get_stat_fn(job)(job.input.table)
+    raw_stats    = job.get_stat_fn()(job.input.table)
     coeff_values = an.compute_coeffs(job)
     fold_change  = an.compute_fold_change(job)
     group_means  = an.compute_means(job)
@@ -251,7 +251,7 @@ def load_settings(db):
         equalize_means_ids = None
 
     return Settings(
-        stat_name = db.attrs['stat_name'],
+        stat_class = db.attrs['stat_class'].split('.')[-1],
         num_bins = db.attrs['num_bins'],
         num_samples = db.attrs['num_samples'],
         sample_from_residuals = db.attrs['sample_from_residuals'],

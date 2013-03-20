@@ -13,10 +13,9 @@ import csv
 import yaml
 import textwrap
 
-from pade.stat import Ftest, OneSampleDifferenceTTest, MeansRatio
+import pade.stat
 from pade.layout import layout_is_paired
 
-DEFAULT_STATISTIC = 'f_test'
 DEFAULT_NUM_BINS = 1000
 DEFAULT_NUM_SAMPLES = 1000
 DEFAULT_SAMPLE_WITH_REPLACEMENT = False
@@ -215,7 +214,7 @@ class Settings:
 
     def __init__(
         self,
-        stat_name=DEFAULT_STATISTIC,
+        stat_class=None,
         num_bins=DEFAULT_NUM_BINS,
         num_samples=DEFAULT_NUM_SAMPLES,
         sample_from_residuals=DEFAULT_SAMPLE_FROM_RESIDUALS,
@@ -228,8 +227,16 @@ class Settings:
         tuning_params=DEFAULT_TUNING_PARAMS,
         equalize_means_ids=None):
 
-        self.stat_name = stat_name
-        """Name of the statistic to use."""
+        if stat_class is None:
+            raise Exception('stat_class is a required option')
+
+        try:
+            stat_class = getattr(pade.stat, stat_class)
+        except AttributeError:
+            raise UnknownStatisticException("Unknown statistic '" + str(stat_class) + "'")
+
+        self.stat_class = stat_class
+        """Statistic to use. Currently must be defined in pade.stat."""
 
         self.num_samples = num_samples
         """Max number of samples to use for permutation test or bootstrapping"""
@@ -318,23 +325,12 @@ class Job:
         stat = self.get_stat_fn()
         if self.settings.equalize_means and not stat.ALLOWS_EQUALIZED_MEANS:
             raise InvalidSettingsException(
-                "Can't equalize means with statistic " + stat.name)
+                "Can't equalize means with statistic " + str(stat))
 
     def get_stat_fn(self):
         """The statistic used for this job."""
 
-        name = self.settings.stat_name
-        
-        if name == 'one_sample_t_test':
-            constructor = OneSampleDifferenceTTest
-        elif name == 'f_test':
-            constructor = Ftest
-        elif name == 'means_ratio':
-            constructor = MeansRatio
-        else:
-            raise UnknownStatisticException("No statistic called " + str(self.settings.stat_name))
-
-        return constructor(
+        return self.settings.stat_class(
             condition_layout=self.condition_layout,
             block_layout=self.block_layout,
             alphas=self.settings.tuning_params)

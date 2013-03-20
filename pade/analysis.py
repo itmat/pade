@@ -8,7 +8,7 @@ from collections import OrderedDict, namedtuple
 from itertools import combinations
 
 from pade.stat import (
-    OneSampleDifferenceTTest, Ftest, MeansRatio, residuals, bootstrap)
+    OneSampleDifferenceTStat, FStat, MeansRatio, residuals, bootstrap)
 
 from pade.model import TableWithHeader, Summary
 from pade.layout import random_orderings, layout_is_paired
@@ -188,7 +188,7 @@ def compute_mean_perm_count(job):
     table = job.input.table
     bins  = job.results.bins
     perms = job.results.sample_indexes
-    stat_fn = get_stat_fn(job)
+    stat_fn = job.get_stat_fn()
 
     if job.settings.sample_from_residuals:
         prediction = predicted_values(job)

@@ -125,7 +125,7 @@ class LayoutPairTest(object):
         self.block_layout = block_layout
 
 
-class Ftest(LayoutPairTest):
+class FStat(LayoutPairTest):
     """Computes the F-test.
 
     Some sample data
@@ -143,7 +143,7 @@ class Ftest(LayoutPairTest):
     
     Construct one ftest based on our layouts
 
-    >>> ftest = Ftest(condition_layout, block_layout)
+    >>> ftest = FStat(condition_layout, block_layout)
     
     Test one row
 
@@ -160,7 +160,7 @@ class Ftest(LayoutPairTest):
 
     ALLOWS_EQUALIZED_MEANS = True
 
-    name = "F"
+    NAME = "f"
 
     def validate_layouts(cls, condition_layout, block_layout):
         full_layout = intersect_layouts(block_layout, condition_layout)
@@ -172,7 +172,7 @@ class Ftest(LayoutPairTest):
         
     def __init__(self, condition_layout, block_layout, alphas=None):
 
-        super(Ftest, self).__init__(condition_layout, block_layout)
+        super(FStat, self).__init__(condition_layout, block_layout)
 
         self.validate_layouts(condition_layout, block_layout)
         self.layout_full = intersect_layouts(block_layout, condition_layout)
@@ -247,7 +247,7 @@ class MeansRatio(LayoutPairTest):
 
     ALLOWS_EQUALIZED_MEANS = False
 
-    name = "means ratio"
+    NAME = "means_ratio"
 
     def validate_layouts(cls, condition_layout, block_layout):
         conditions = len(condition_layout)
@@ -316,7 +316,7 @@ class MeansRatio(LayoutPairTest):
         return ratio
         
 
-class OneSampleDifferenceTTest(LayoutPairTest):
+class OneSampleDifferenceTStat(LayoutPairTest):
     """A one-sample t-test where the input is given as pairs.
 
     Input with two features (one on each row), eight samples
@@ -333,7 +333,7 @@ class OneSampleDifferenceTTest(LayoutPairTest):
 
     Construct the test function with the condition and block layouts.
 
-    >>> test = OneSampleDifferenceTTest(condition_layout, block_layout)
+    >>> test = OneSampleDifferenceTStat(condition_layout, block_layout)
 
     Apply it to 1d input (the first feature in the table):
 
@@ -349,12 +349,12 @@ class OneSampleDifferenceTTest(LayoutPairTest):
     0.5656854
 
     """
-    name = "OneSampleDifferenceTTest"
+    NAME = "one_sample_t"
 
     ALLOWS_EQUALIZED_MEANS = False
 
     def __init__(self, condition_layout, block_layout, alphas=None):
-        super(OneSampleDifferenceTTest, self).__init__(condition_layout, block_layout)
+        super(OneSampleDifferenceTStat, self).__init__(condition_layout, block_layout)
 
         if not layout_is_paired(block_layout):
             raise UnsupportedLayoutException(
