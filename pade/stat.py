@@ -158,6 +158,8 @@ class Ftest(LayoutPairTest):
 
     """
 
+    ALLOWS_EQUALIZED_MEANS = True
+
     name = "F"
 
     def validate_layouts(cls, condition_layout, block_layout):
@@ -198,6 +200,9 @@ class Ftest(LayoutPairTest):
 
 
 class OneSampleTTest:
+
+    ALLOWS_EQUALIZED_MEANS = False
+
     def __init__(self, alphas=None):
         self.alphas = alphas
 
@@ -240,6 +245,8 @@ class MeansRatio(LayoutPairTest):
       greater than the other one.
       
     """
+
+    ALLOWS_EQUALIZED_MEANS = False
 
     name = "means ratio"
 
@@ -344,6 +351,8 @@ class OneSampleDifferenceTTest(LayoutPairTest):
 
     """
     name = "OneSampleDifferenceTTest"
+
+    ALLOWS_EQUALIZED_MEANS = False
 
     def __init__(self, condition_layout, block_layout, alphas=None):
         super(OneSampleDifferenceTTest, self).__init__(condition_layout, block_layout)

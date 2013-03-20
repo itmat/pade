@@ -35,6 +35,9 @@ class ModelExpressionException(Exception):
 class UnknownStatisticException(Exception):
     pass
 
+class InvalidSettingsException(Exception):
+    pass
+
 class ModelExpression:
     """Represents a list of variables and an operator."""
 
@@ -312,7 +315,10 @@ class Job:
         self.results  = results
         self.summary  = summary
 
-        self.get_stat_fn()
+        stat = self.get_stat_fn()
+        if self.settings.equalize_means and not stat.ALLOWS_EQUALIZED_MEANS:
+            raise InvalidSettingsException(
+                "Can't equalize means with statistic " + stat.name)
 
     def get_stat_fn(self):
         """The statistic used for this job."""

@@ -3,7 +3,7 @@ import numpy as np
 from pade.test.utils import sample_db
 from pade.model import (
     Model, Schema, ModelExpression, ModelExpressionException, Settings, Job,
-    UnknownStatisticException)
+    UnknownStatisticException, InvalidSettingsException)
 from pade.main import init_schema
 from pade.stat import UnsupportedLayoutException
 from StringIO import StringIO
@@ -353,6 +353,7 @@ class SettingValidationTest(unittest.TestCase):
         Job(schema=self.paired_schema, 
             settings=Settings(
                 stat_name='one_sample_t_test',
+                equalize_means=False,
                 block_variables=['person'],
                 condition_variables=['treated']))
         
@@ -360,18 +361,30 @@ class SettingValidationTest(unittest.TestCase):
         with self.assertRaisesRegexp(UnsupportedLayoutException, '.*pair.*'):
             Job(schema=self.paired_schema, 
                 settings=Settings(
+                    equalize_means=False,
                     stat_name='one_sample_t_test',
                     condition_variables=['treated']))
+
+        with self.assertRaisesRegexp(InvalidSettingsException, '.*equalize means.*'):
+            Job(schema=self.paired_schema, 
+                settings=Settings(
+                    stat_name='one_sample_t_test',
+                    equalize_means=True,
+                    block_variables=['person'],
+                    condition_variables=['treated']))
+
 
     def test_means_ratio_layouts(self):
 
         # We can use means ratio as long as we have only two conditions
         Job(schema=self.paired_schema, 
             settings=Settings(
+                equalize_means=False,
                 stat_name='means_ratio',
                 condition_variables=['treated']))
         Job(schema=self.paired_schema, 
             settings=Settings(
+                equalize_means=False,
                 stat_name='means_ratio',
                 block_variables=['person'],
                 condition_variables=['treated']))
@@ -380,15 +393,24 @@ class SettingValidationTest(unittest.TestCase):
         with self.assertRaises(UnsupportedLayoutException):
             Job(schema=self.three_cond_schema, 
                 settings=Settings(
+                    equalize_means=False,
                     stat_name='means_ratio',
                     condition_variables=['dosage']))        
         with self.assertRaises(UnsupportedLayoutException):
             Job(schema=self.three_cond_schema, 
                 settings=Settings(
+                    equalize_means=False,
                     stat_name='means_ratio',
                     block_variables=['gender'],
                     condition_variables=['dosage']))        
 
+        with self.assertRaises(InvalidSettingsException):
+            Job(schema=self.paired_schema, 
+                settings=Settings(
+                    equalize_means=True,
+                    stat_name='means_ratio',
+                    block_variables=['person'],
+                    condition_variables=['treated']))
 
     def test_unknown_statistic(self):
         with self.assertRaises(UnknownStatisticException):
