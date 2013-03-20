@@ -164,7 +164,6 @@ class Ftest(LayoutPairTest):
 
     def validate_layouts(cls, condition_layout, block_layout):
         full_layout = intersect_layouts(block_layout, condition_layout)
-        print("Cond is", condition_layout, "; block is", block_layout)
         if min(map(len, full_layout)) < 2:
             raise UnsupportedLayoutException(
                 "I can't use an FTest with the specified layouts, because " +
