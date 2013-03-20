@@ -1,0 +1,6 @@
+* Download the hdf5 file from the job results page
+* Import a hdf5 file
+* Use .pade file extension
+* Separate viewer from job runner
+* Don't require redis and celery for viewer or command-line job runner (unless it makes packaging harder)
+* Show on the UI whether redis and celery are running
