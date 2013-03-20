@@ -159,31 +159,6 @@ def get_group_means(schema, data, factors):
 
     return result
 
-def get_stat_fn(job):
-    """The statistic used for this job."""
-    name = job.settings.stat_name
-
-    if name == 'one_sample_t_test':
-        constructor = OneSampleDifferenceTTest
-    elif name == 'f_test':
-        constructor = Ftest
-    elif name == 'means_ratio':
-        constructor = MeansRatio
-    else:
-        raise Exception("No statistic called " + str(job.settings.stat_name))
-
-    if constructor == Ftest and layout_is_paired(job.block_layout):
-        raise Exception(
-"""I can't use the f-test with this data, because the reduced model
-you specified has groups with only one sample. It seems like you have
-a paired layout. If this is the case, please use the --paired option.
-""")        
-
-    return constructor(
-        condition_layout=job.condition_layout,
-        block_layout=job.block_layout,
-        alphas=job.settings.tuning_params)
-
 def new_sample_indexes(job):
 
     """Create array of sample indexes."""

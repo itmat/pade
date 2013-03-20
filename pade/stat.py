@@ -158,20 +158,23 @@ class Ftest(LayoutPairTest):
 
     """
 
-    name = "F-test"
+    name = "F"
 
-    def __init__(self, condition_layout, block_layout, alphas=None):
-
-        super(Ftest, self).__init__(condition_layout, block_layout)
-
+    def validate_layouts(cls, condition_layout, block_layout):
         full_layout = intersect_layouts(block_layout, condition_layout)
+        print("Cond is", condition_layout, "; block is", block_layout)
         if min(map(len, full_layout)) < 2:
             raise UnsupportedLayoutException(
                 "I can't use an FTest with the specified layouts, because " +
                 "the intersection between those layouts results in some " +
                 "groups that contain fewer than two samples.")
+        
+    def __init__(self, condition_layout, block_layout, alphas=None):
 
-        self.layout_full = full_layout
+        super(Ftest, self).__init__(condition_layout, block_layout)
+
+        self.validate_layouts(condition_layout, block_layout)
+        self.layout_full = intersect_layouts(block_layout, condition_layout)
         self.alphas = alphas
 
     def __call__(self, data):
@@ -240,9 +243,7 @@ class MeansRatio(LayoutPairTest):
 
     name = "means ratio"
 
-    def __init__(self, condition_layout, block_layout, alphas=None, symmetric=True):
-
-        super(MeansRatio, self).__init__(condition_layout, block_layout)
+    def validate_layouts(cls, condition_layout, block_layout):
         conditions = len(condition_layout)
         blocks     = len(block_layout)
 
@@ -253,7 +254,12 @@ class MeansRatio(LayoutPairTest):
                  "conditions and {blocks} blocks.").format(
                     conditions=conditions,
                     blocks=blocks))
+    
 
+    def __init__(self, condition_layout, block_layout, alphas=None, symmetric=True):
+
+        super(MeansRatio, self).__init__(condition_layout, block_layout)
+        self.validate_layouts(condition_layout, block_layout)
         self.alphas    = alphas
         self.symmetric = symmetric
 

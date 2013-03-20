@@ -1,10 +1,14 @@
 import unittest
 import numpy as np
 from pade.test.utils import sample_db
-from pade.model import Model, Schema, ModelExpression, ModelExpressionException
+from pade.model import (
+    Model, Schema, ModelExpression, ModelExpressionException, Settings, Job,
+    UnknownStatisticException)
 from pade.main import init_schema
+from pade.stat import UnsupportedLayoutException
 from StringIO import StringIO
 from collections import OrderedDict
+from itertools import product, repeat
 
 class ModelTest(unittest.TestCase):
 
@@ -268,6 +272,130 @@ class SchemaTest(unittest.TestCase):
         self.assertEquals(out.getvalue(),
                           out2.getvalue())        
 
+
+class SettingValidationTest(unittest.TestCase):
+
+
+    def setUp(self):
+        self.setup_paired_schema()
+        self.setup_three_cond_schema()
+
+    def setup_paired_schema(self):
+        persons = 'abc'
+        treateds = 'yn'
+
+        self.paired_schema = Schema(['id', 'ay', 'an', 'by', 'bn', 'cy', 'cn'],
+                                    ['feature_id', 'sample', 'sample', 'sample',
+                                     'sample', 'sample', 'sample'])
+
+        self.paired_schema.add_factor('person', list(persons))
+        self.paired_schema.add_factor('treated', list(treateds))
+
+        for p in persons:
+            for t in treateds:
+                col = p + t
+                self.paired_schema.set_factor(col, 'person', p)
+                self.paired_schema.set_factor(col, 'treated', t)
+
+    def setup_three_cond_schema(self):
+        genders = 'mf'
+        dosages = 'lmh'
+        repnums = map(str, range(4))
+
+        prod = list(product(genders, dosages, repnums))
+
+        col_names = ['id']         + [ "".join(x) for x in prod ]
+        col_roles = ['feature_id'] + list(repeat('sample', len(prod)))
+
+        self.three_cond_schema = Schema(col_names, col_roles)
+
+        self.three_cond_schema.add_factor('gender', list(genders))
+        self.three_cond_schema.add_factor('dosage', list(dosages))
+
+        for (g, d, r) in prod:
+            col = g + d + r
+            self.three_cond_schema.set_factor(col, 'gender', g)
+            self.three_cond_schema.set_factor(col, 'dosage', d)
+
+
+    def test_ftest_layouts(self):
+        
+        # Ftest can't be used when we have groups with only 1 replicate
+        with self.assertRaises(UnsupportedLayoutException):
+            Job(schema=self.paired_schema, 
+                settings=Settings(
+                    block_variables=['person'],
+                    condition_variables=['treated']))
+
+        # But it can be used if we take away blocking
+        Job(schema=self.paired_schema, 
+            settings=Settings(
+                condition_variables=['treated']))
+
+        # We can use F with three conditions, without blocking...
+        Job(schema=self.three_cond_schema, 
+            settings=Settings(
+                condition_variables=['dosage']))        
+
+        # ... and with blocking
+        Job(schema=self.three_cond_schema, 
+            settings=Settings(
+                block_variables=['gender'],
+                condition_variables=['dosage']))        
+
+
+    def test_one_sample_ttest_layouts(self):
+
+        # We can use one-sample t with a paired layout, where we have
+        # 1 condition factor with 2 values, 1 blocking factors with n
+        # values, and exactly 1 replicate for each combination of
+        # condition and block.
+        Job(schema=self.paired_schema, 
+            settings=Settings(
+                stat_name='one_sample_t_test',
+                block_variables=['person'],
+                condition_variables=['treated']))
+        
+        # If we take away the blocking factor it becomes invalid
+        with self.assertRaisesRegexp(UnsupportedLayoutException, '.*pair.*'):
+            Job(schema=self.paired_schema, 
+                settings=Settings(
+                    stat_name='one_sample_t_test',
+                    condition_variables=['treated']))
+
+    def test_means_ratio_layouts(self):
+
+        # We can use means ratio as long as we have only two conditions
+        Job(schema=self.paired_schema, 
+            settings=Settings(
+                stat_name='means_ratio',
+                condition_variables=['treated']))
+        Job(schema=self.paired_schema, 
+            settings=Settings(
+                stat_name='means_ratio',
+                block_variables=['person'],
+                condition_variables=['treated']))
+
+        # We can't use means ratio if there are three conditions
+        with self.assertRaises(UnsupportedLayoutException):
+            Job(schema=self.three_cond_schema, 
+                settings=Settings(
+                    stat_name='means_ratio',
+                    condition_variables=['dosage']))        
+        with self.assertRaises(UnsupportedLayoutException):
+            Job(schema=self.three_cond_schema, 
+                settings=Settings(
+                    stat_name='means_ratio',
+                    block_variables=['gender'],
+                    condition_variables=['dosage']))        
+
+
+    def test_unknown_statistic(self):
+        with self.assertRaises(UnknownStatisticException):
+            Job(schema=self.paired_schema, 
+                settings=Settings(
+                    stat_name='a statistic we don\'t have',
+                    condition_variables=['treated']))
 
 if __name__ == '__main__':
     unittest.main()

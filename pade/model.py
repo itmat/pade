@@ -13,6 +13,9 @@ import csv
 import yaml
 import textwrap
 
+from pade.stat import Ftest, OneSampleDifferenceTTest, MeansRatio
+from pade.layout import layout_is_paired
+
 DEFAULT_STATISTIC = 'f_test'
 DEFAULT_NUM_BINS = 1000
 DEFAULT_NUM_SAMPLES = 1000
@@ -29,10 +32,11 @@ class ModelExpressionException(Exception):
     """Thrown when a model expression is invalid."""
     pass
 
+class UnknownStatisticException(Exception):
+    pass
 
 class ModelExpression:
     """Represents a list of variables and an operator."""
-
 
     def __init__(self, 
                  operator=None,
@@ -298,12 +302,36 @@ class Job:
                  results=None,
                  summary=None):
         
+        if settings is None:
+            raise Exception("settings is a required argument")
+
         self.job_id   = job_id
         self.input    = input
         self.settings = settings
         self.schema   = schema
         self.results  = results
         self.summary  = summary
+
+        self.get_stat_fn()
+
+    def get_stat_fn(self):
+        """The statistic used for this job."""
+
+        name = self.settings.stat_name
+        
+        if name == 'one_sample_t_test':
+            constructor = OneSampleDifferenceTTest
+        elif name == 'f_test':
+            constructor = Ftest
+        elif name == 'means_ratio':
+            constructor = MeansRatio
+        else:
+            raise UnknownStatisticException("No statistic called " + str(self.settings.stat_name))
+
+        return constructor(
+            condition_layout=self.condition_layout,
+            block_layout=self.block_layout,
+            alphas=self.settings.tuning_params)
 
     def layout(self, variables):
         s = self.schema
@@ -420,6 +448,14 @@ class Schema(object):
         return self.factor_values.keys()
             
     def set_columns(self, names, roles):
+        if len(names) != len(roles):
+            raise Exception((
+                    "Must have same number of names and roles, " +
+                    "got names {names} and roles {roles}.")
+                            .format(
+                    names=names, 
+                    roles=roles))
+
         self.sample_to_factor_values.clear()
         self.column_roles = np.array(roles)
         self.column_names = np.array(names)
@@ -681,3 +717,6 @@ sample_factor_mapping:
         sample."""
 
         return self.sample_name_index[sample_name]
+
+    
+    
