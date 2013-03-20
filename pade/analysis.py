@@ -90,7 +90,7 @@ def compute_fold_change(job):
     test_factors     = job.settings.condition_variables
 
     if len(test_factors) > 1:
-        raise UsageException(
+        raise Exception(
             """You can only have one condition variable. We will change this soon.""")
 
     nuisance_assignments = job.schema.possible_assignments(nuisance_factors)
@@ -173,7 +173,7 @@ def get_stat_fn(job):
         raise Exception("No statistic called " + str(job.settings.stat_name))
 
     if constructor == Ftest and layout_is_paired(job.block_layout):
-        raise UsageException(
+        raise Exception(
 """I can't use the f-test with this data, because the reduced model
 you specified has groups with only one sample. It seems like you have
 a paired layout. If this is the case, please use the --paired option.

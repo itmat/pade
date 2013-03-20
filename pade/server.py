@@ -494,6 +494,7 @@ def settings_to_form(settings):
     form.min_conf_level.data = settings.min_conf
     form.conf_interval.data = settings.conf_interval
     form.tuning_params.data = " ".join(map(str, settings.tuning_params))
+    form.equalize_means.data = settings.equalize_means
     
     return form
 
