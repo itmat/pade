@@ -4,3 +4,41 @@
 * Separate viewer from job runner
 * Don't require redis and celery for viewer or command-line job runner (unless it makes packaging harder)
 * Show on the UI whether redis and celery are running
+Test that col numbers are distinct
+Replace stats 109 with call to residuals
+What conventions to use for class constants
+Document stat.name
+
+Make child private
+
+* Add "annotation" column
+* Have to have exactly one feature id
+* Don't allow multiple feature id types
+
+* Do we require unique feature ids?
+
+* Make sure we can ignore columns
+
+* F-stat instead of F-test
+* Statistic : "F" or "T", "means ratio"
+
+* Instead of "sample with replacement", do "use bootstrapping"
+* Instead of "sample from residuals", do (what?)
+
+* For min confidence , use 0.1
+* For confidence interval, call it "step size"
+* Reverse x axis on "Feature count by confidence score" plot
+* Reverse sort of table
+
+* Why are we showing scores of 1.0?
+
+* Add tuning parameter on summary table in HTML report
+
+* Use separate bar plots for paired mode
+* At the top of the details page, show the fitted values and residuals
+
+* Use an interaction plot
+* Only show the plots that make sense
+* Add annotation columns onto result page
+* Download result, upload result
+* Make 'view-only' version`

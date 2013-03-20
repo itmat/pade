@@ -6,6 +6,8 @@
 
 {{ raw_file.size }} bytes, uploaded {{ raw_file.dt_created|datetime }} <br/>
 
+<em>{{ raw_file.description }}</em>
+
 {% if raw_file.job_ids|length() > 0 %}
 <p>
 Used in jobs
