@@ -17,7 +17,7 @@ import redisconfig
 import celery
 import contextlib
 import os
-
+from itertools import repeat
 from celery.result import AsyncResult
 from redis import Redis
 from bisect import bisect
@@ -279,12 +279,12 @@ class JobSettingsForm(Form):
         default=pade.model.DEFAULT_NUM_SAMPLES)
 
     sample_from_residuals = BooleanField(
-        'Sample from residuals', 
+        'Sample from residuals',
         validators=[Required()],
         default=pade.model.DEFAULT_SAMPLE_FROM_RESIDUALS)
 
     sample_with_replacement = BooleanField(
-        'Sample with replacement', 
+        'Use bootstrapping (instead of permutation test)', 
         validators=[Required()],
         default=pade.model.DEFAULT_SAMPLE_WITH_REPLACEMENT)
 
@@ -426,10 +426,12 @@ def setup_job_factors():
     if request.method == 'GET':
 
         if 'job_factor_form' not in scratch:
+            logging.info("Adding job factor form")
             conditions = []
             blocks = []
             form = JobFactorForm()
             for i, factor in enumerate(schema.factors):
+                logging.info("Adding factor " + factor)
                 entry = form.factor_roles.append_entry()
                 entry.label = factor
                 if i == 0:
@@ -576,9 +578,50 @@ def mean_vs_std(job_id):
     ax.scatter(means, std)
     return figure_response(fig)
 
+@app.route("/jobs/<job_id>/features/<feature_num>/interaction_plot")
+def interaction_plot(job_id, feature_num):
+    job = load_job(job_id)
+    feature_num = int(feature_num)
+    schema = job.schema
+    measurements = job.input.table[feature_num]
+
+    x_var = job.settings.condition_variables[0]
+    series_var = job.settings.block_variables[0]
+    assignments = schema.possible_assignments([series_var, x_var])
+
+    ticks = schema.factor_values[x_var]
+
+    fig = plt.figure()
+    ax = fig.add_subplot(
+        111,
+        ylabel='Measurement')
+    
+    for series_name in schema.factor_values[series_var]:
+        y = []
+        yerr = []
+        for i, tick in enumerate(ticks):
+            a = { series_var : series_name,
+                  x_var : tick }
+            idxs = schema.indexes_with_assignments(a)
+            values = measurements[idxs]
+            y.append(np.mean(values))
+            yerr.append(np.std(values))
+
+        ax.errorbar(x=np.arange(len(ticks)), y=y, yerr=yerr, label=series_name)
+
+    margin = 0.25
+
+    ax.set_xlim(( 0 - margin, len(ticks) - 1 + margin))
+    ax.set_xticks(np.arange(len(ticks)))
+    ax.set_xticklabels(ticks)
+
+    ax.legend()
+    ax.xlabel = x_var
+    return figure_response(fig)
+
 @app.route("/jobs/<job_id>/features/<feature_num>/measurement_bars")
 def measurement_bars(job_id, feature_num):
-    job = load_job(job_id)    
+    job = load_job(job_id)
     feature_num = int(feature_num)
     schema = job.schema
     measurements = job.input.table[feature_num]
@@ -705,7 +748,7 @@ def details(job_id, conf_level):
         group_names=job.results.group_means.header,
         coeff_names=job.results.coeff_values.header,
         fold_change_group_names=job.results.fold_change.header,
-        stat_name=job.settings.stat_name,
+        stat_name=job.settings.stat_class.NAME,
         scores=scores[idxs],
         stats=scores[idxs],
         means=job.results.group_means.table[idxs],
@@ -744,8 +787,8 @@ def stat_dist_plot(job_id, tuning_param):
     fig = plt.figure()
     ax = fig.add_subplot(
         111,
-        title=job.settings.stat_name + " distribution over features, $\\alpha = " + str(tuning_param) + "$",
-        xlabel=job.settings.stat_name + " value",
+        title=job.settings.stat_class + " distribution over features, $\\alpha = " + str(tuning_param) + "$",
+        xlabel=job.settings.stat_class.NAME + " value",
         ylabel="Features",
         xlim=(0, max_stat))
     plt.hist(job.results.raw_stats[tuning_param], log=False, bins=250)
