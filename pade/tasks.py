@@ -56,8 +56,8 @@ def copy_input(path, input_path, schema, settings, job_id):
         db.attrs['sample_with_replacement'] = settings.sample_with_replacement
         db.attrs['condition_variables'] = settings.condition_variables
         db.attrs['block_variables'] = settings.block_variables
-        db.attrs['min_conf'] = settings.min_conf
-        db.attrs['conf_interval'] = settings.conf_interval
+        db.attrs['summary_min_conf'] = settings.summary_min_conf
+        db.attrs['summary_step_size'] = settings.summary_step_size
         db.attrs['equalize_means'] = settings.equalize_means
 
         # Save the schema object
@@ -258,8 +258,8 @@ def load_settings(db):
         sample_with_replacement = db.attrs['sample_with_replacement'],
         condition_variables = list(db.attrs['condition_variables']),
         block_variables = list(db.attrs['block_variables']),
-        min_conf = db.attrs['min_conf'],
-        conf_interval = db.attrs['conf_interval'],
+        summary_min_conf = db.attrs['summary_min_conf'],
+        summary_step_size = db.attrs['summary_step_size'],
         tuning_params = db['tuning_params'][...],
         equalize_means_ids = equalize_means_ids,
         equalize_means = db.attrs['equalize_means'])

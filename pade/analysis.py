@@ -44,7 +44,7 @@ def summary_by_conf_level(job):
 
     """
     
-    bins = np.arange(job.settings.min_conf, 1.0, job.settings.conf_interval)
+    bins = np.arange(job.settings.summary_min_conf, 1.0, job.settings.summary_step_size)
     best_param_idxs = np.zeros(len(bins))
     counts          = np.zeros(len(bins))
 

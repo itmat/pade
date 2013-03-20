@@ -20,8 +20,8 @@ DEFAULT_NUM_BINS = 1000
 DEFAULT_NUM_SAMPLES = 1000
 DEFAULT_SAMPLE_WITH_REPLACEMENT = False
 DEFAULT_SAMPLE_FROM_RESIDUALS = False
-DEFAULT_MIN_CONF = 0.1
-DEFAULT_CONF_INTERVAL = 0.05
+DEFAULT_SUMMARY_MIN_CONF = 0.1
+DEFAULT_SUMMARY_STEP_SIZE = 0.05
 DEFAULT_EQUALIZE_MEANS = True
 DEFAULT_TUNING_PARAMS=[0.001, 0.01, 0.1, 1, 3, 10, 30, 100, 300, 1000, 3000]
 
@@ -221,9 +221,9 @@ class Settings:
         sample_with_replacement=DEFAULT_SAMPLE_WITH_REPLACEMENT,
         condition_variables=[],
         block_variables=[],
-        min_conf=DEFAULT_MIN_CONF,
+        summary_min_conf=DEFAULT_SUMMARY_MIN_CONF,
         equalize_means=DEFAULT_EQUALIZE_MEANS,
-        conf_interval=DEFAULT_CONF_INTERVAL,
+        summary_step_size=DEFAULT_SUMMARY_STEP_SIZE,
         tuning_params=DEFAULT_TUNING_PARAMS,
         equalize_means_ids=None):
 
@@ -266,10 +266,10 @@ class Settings:
         self.equalize_means = equalize_means
         """If true, shift the values so the mean of each group is 0."""
 
-        self.min_conf = min_conf
+        self.summary_min_conf = summary_min_conf
         """Minimum confidence level to report on."""
 
-        self.conf_interval = conf_interval
+        self.summary_step_size = summary_step_size
         """Interval of confidence values to report on."""
 
         self.equalize_means_ids = equalize_means_ids

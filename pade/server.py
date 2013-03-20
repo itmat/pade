@@ -294,15 +294,15 @@ class JobSettingsForm(Form):
         validators=[Required()],
         default=pade.model.DEFAULT_EQUALIZE_MEANS)
 
-    min_conf_level = FloatField(
+    summary_min_conf_level = FloatField(
         'Minimum confidence level', 
         validators=[Required()],
-        default=pade.model.DEFAULT_MIN_CONF)
+        default=pade.model.DEFAULT_SUMMARY_MIN_CONF)
 
-    conf_interval = FloatField(
-        'Confidence interval', 
+    summary_step_size = FloatField(
+        'Summary step size', 
         validators=[Required()],
-        default=pade.model.DEFAULT_CONF_INTERVAL)
+        default=pade.model.DEFAULT_SUMMARY_STEP_SIZE)
     
     tuning_params = StringField(
         'Tuning parameters', 
@@ -491,8 +491,8 @@ def settings_to_form(settings):
     form.permutations.data = settings.num_samples
     form.sample_from_residuals.data = settings.sample_from_residuals
     form.sample_with_replacement.data = settings.sample_with_replacement
-    form.min_conf_level.data = settings.min_conf
-    form.conf_interval.data = settings.conf_interval
+    form.summary_min_conf_level.data = settings.summary_min_conf
+    form.summary_step_size.data = settings.summary_step_size
     form.tuning_params.data = " ".join(map(str, settings.tuning_params))
     form.equalize_means.data = settings.equalize_means
     
@@ -512,8 +512,8 @@ def job_settings():
         settings.num_samples = form.permutations.data
         settings.sample_from_residuals = form.sample_from_residuals.data
         settings.sample_with_replacement = form.sample_with_replacement.data
-        settings.min_conf = form.min_conf_level.data
-        settings.conf_interval = form.conf_interval.data
+        settings.summary_min_conf = form.summary_min_conf_level.data
+        settings.summary_step_size = form.summary_step_size.data
         settings.tuning_params = tuning_params
 
         return redirect(url_for('job_confirmation'))

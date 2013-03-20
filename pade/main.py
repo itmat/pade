@@ -240,8 +240,8 @@ def args_to_settings(args):
         num_samples=args.num_samples,
         sample_from_residuals=args.sample_from_residuals,
         sample_with_replacement=args.sample_with_replacement,
-        min_conf=args.min_conf,
-        conf_interval=args.conf_interval,
+        summary_min_conf=args.summary_min_conf,
+        summary_step_size=args.summary_step_size,
         equalize_means_ids=equalize_means_ids,
         tuning_params=tuning_params,
         block_variables=block_variables,
@@ -606,14 +606,14 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
         help="""Sample from residuals rather than raw data.""")
 
     grp.add_argument(
-        '--min-conf',
-        default=pade.model.DEFAULT_MIN_CONF,
+        '--summary-min-conf',
+        default=pade.model.DEFAULT_SUMMARY_MIN_CONF,
         type=float,
         help="Smallest confidence level to report")
 
     grp.add_argument(
-        '--conf-interval',
-        default=pade.model.DEFAULT_CONF_INTERVAL,
+        '--summary-step-size',
+        default=pade.model.DEFAULT_SUMMARY_STEP_SIZE,
         type=float,
         help="Interval of confidence levels")
 

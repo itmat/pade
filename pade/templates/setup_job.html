@@ -27,8 +27,8 @@
       {{ form.equalize_means()|safe }} {{form.equalize_means.label}}
     </p>
     <p>
-      {{form.min_conf_level.label}}: {{ form.min_conf_level(size=5)|safe }} |
-      {{form.conf_interval.label}}: {{ form.conf_interval(size=5)|safe }}
+      {{form.summary_min_conf_level.label}}: {{ form.summary_min_conf_level(size=5)|safe }} |
+      {{form.summary_step_size.label}}: {{ form.summary_step_size(size=5)|safe }}
     </p>
 
     {{ forms.cancel() }}
