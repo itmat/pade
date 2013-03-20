@@ -71,12 +71,14 @@
   <tr>
     <th>Score</th>
     <th>Features</th>
+    <th>Tuning param</th>
   </tr>
 
-  {% for i in range(job.summary.counts | length) %}
+  {% for i in range(job.summary.counts | length)|reverse() %}
   <tr>
     <td class="numeric">{{ "%.0f%%"|format(job.summary.bins[i]*100) }}</td>
     <td class="numeric"><a href="{{url_for('details', job_id=job_id, conf_level=i)}}">{{ job.summary.counts[i] }}</a></td>
+    <td class="numeric">{{ job.settings.tuning_params[job.summary.best_param_idxs[i]] }}</td>
   </tr>
   {% endfor %}
 
