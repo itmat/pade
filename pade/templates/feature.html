@@ -43,15 +43,13 @@
 
 <h2>Plots</h2>
 
-<h3>This shows the mean and standard deviation of the measurements for each group</h3>
+{% if job.settings.block_variables|length() > 0 %}
+
+<img src="{{ url_for('interaction_plot', job_id=job_id, feature_num=feature_num) }}"></img>
+
+{% else %}
 <img src="{{ url_for('measurement_bars', job_id=job_id, feature_num=feature_num) }}"></img>
-
-{% for v in factors %}
-<img src="{{ url_for('measurement_bars', job_id=job_id, feature_num=feature_num, variable=v) }}"></img>
-{% endfor %}
-
-<h3>This shows the actual measured values for each group</h3>
-<img src="{{ url_for('measurement_scatter', job_id=job_id, feature_num=feature_num) }}"></img>
+{% endif %}
 
 <h2>Details by tuning parameter</h2>
 

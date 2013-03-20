@@ -633,7 +633,7 @@ def measurement_bars(job_id, feature_num):
     fig = plt.figure()
     ax = fig.add_subplot(
         111,
-        title='Measurements for ' + job.input.feature_ids[feature_num] + " by " + ", ".join(variables),
+        title='Measurements for feature ' + job.input.feature_ids[feature_num] + " by " + ", ".join(variables),
         ylabel='Measurement')
     
     assignments = schema.possible_assignments(variables)
@@ -643,7 +643,7 @@ def measurement_bars(job_id, feature_num):
 
     y = []
     grps = [schema.indexes_with_assignments(a) for a in assignments]
-    names = [assignment_name(a) for a in assignments]
+    names = [", ".join(a.values()) for a in assignments]
     y = [ np.mean(measurements[g]) for g in grps]
     err = [ np.std(measurements[g]) for g in grps]
     ax.bar(x, y, yerr=err, color='y')
