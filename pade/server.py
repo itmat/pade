@@ -17,6 +17,8 @@ import redisconfig
 import celery
 import contextlib
 import os
+
+from collections import defaultdict, OrderedDict
 from itertools import repeat
 from celery.result import AsyncResult
 from redis import Redis
@@ -27,7 +29,7 @@ from flask import (
 from flask.ext.wtf import (
     Form, StringField, Required, FieldList, SelectField, 
     FileField, SubmitField, BooleanField, IntegerField, FloatField,
-    TextAreaField)
+    TextAreaField, FormField)
 from werkzeug import secure_filename
 from pade.analysis import assignment_name
 from pade.stat import cumulative_hist, adjust_num_diff
@@ -150,15 +152,84 @@ def ensure_job_scratch():
             'schema' : Schema(),
             }
 
-def set_job_scratch_schema(schema):
-    if 'job_scratch' not in session:
-        session['job_scratch'] = {}
-    session['job_scratch']['schema'] = schema
+class Workflow():
+    def __init__(self, input_file_id):
+        self.input_file_id = input_file_id
+        self.column_roles_form = None
+        self.factor_forms = []
+        self.column_labels_form = None
 
-def set_job_scratch_input_file_id(input_file_id):
-    if 'job_scratch' not in session:
-        session['job_scratch'] = {}
-    session['job_scratch']['input_file_id'] = input_file_id
+    @property
+    def field_names(self):
+        raw_file = app.mdb.input_file(self.input_file_id)
+
+        with open(raw_file.path) as infile:
+            csvfile = csv.DictReader(infile, delimiter="\t")
+            return csvfile.fieldnames    
+
+    @property
+    def can_continue_past_factors(self):
+        return len(self.factor_forms) > 0
+
+    def remove_factor(self, factor):
+        keep = lambda x: x.factor_name.data != factor
+        self.factor_forms = filter(keep, self.factor_forms)
+
+    @property
+    def column_roles(self):
+        return [ x.data for x in self.column_roles_form.roles ]
+
+    @property
+    def factor_values(self):
+        factor_to_values = OrderedDict()
+
+        for factor_form in self.factor_forms:
+            factor = factor_form.factor_name.data
+            values = [x.data for x in factor_form.possible_values if len(x.data) > 0]
+            factor_to_values[factor] = values
+        return factor_to_values
+
+    @property
+    def input_file_meta(self):
+        return app.mdb.input_file(self.input_file_id)
+
+    @property
+    def schema(self):
+
+        wf = current_workflow()
+        columns = np.array(wf.field_names)
+        roles   = np.array(wf.column_roles)
+        factors = self.factor_values.keys()
+        
+        logging.info("Initializing schema with columns " + str(columns) + " and roles " + str(roles))
+
+        if columns is None or roles is None or len(columns) == 0 or len(roles) == 0:
+            raise Exception("I can't create a schema without columns or roles")
+
+        schema = Schema(columns, wf.column_roles)
+
+        for factor, values in self.factor_values.items():
+            schema.add_factor(factor, values)
+
+        counter = 0
+        for i, c in enumerate(columns[roles == 'sample']):
+            for j, f in enumerate(factors):
+                value = self.column_label_form.assignments[counter].data
+                schema.set_factor(columns[i], factors[j], value)
+                counter += 1
+
+        return schema
+
+
+def current_workflow():
+    return session['workflow']
+
+def scratch_factor_forms():
+    scratch = job_scratch()
+    if 'factor_forms' not in scratch:
+        scratch['factor_forms'] = []
+
+    return scratch['factor_forms']
 
 def current_scratch_filename():
     scratch = job_scratch()
@@ -166,44 +237,21 @@ def current_scratch_filename():
         return scratch['filename']
     return None
 
-def current_scratch_schema():
-    scratch = job_scratch()
-    if 'schema' in scratch:
-        return scratch['schema']
-    return None
-
-def current_scratch_input_file_meta():
-    scratch = job_scratch()
-    if 'input_file_id' in scratch:
-        return app.mdb.input_file(scratch['input_file_id'])
-    return None
-
-
 @app.route("/clear_job_scratch")
 def clear_job_scratch():
     if 'job_scratch' in session:
         del session['job_scratch']
     return redirect(url_for('index'))
 
+
 @app.route("/select_input_file")
 def select_input_file():
     logging.info("Setting input file id\n")
 
     input_file_id = int(request.args.get('input_file_id'))
-    input_file_meta = app.mdb.input_file(input_file_id)
 
-    with open(input_file_meta.path) as infile:
-        csvfile = csv.DictReader(infile, delimiter="\t")
-        fieldnames = csvfile.fieldnames    
-
-        roles = [ 'sample' for x in fieldnames ]
-        if len(roles) > 0:
-            roles[0] = 'feature_id'
-
-        set_job_scratch_schema(Schema(fieldnames, roles))
-        set_job_scratch_input_file_id(input_file_id)
+    session['workflow'] = Workflow(input_file_id)
     return redirect(url_for('column_roles'))
-
 
 def schema_to_column_roles_form(schema):
     form = ColumnRolesForm()
@@ -221,16 +269,26 @@ def update_schema_with_column_roles(schema, form):
 
 @app.route("/column_roles", methods=['GET', 'POST'])
 def column_roles():
-    schema = current_scratch_schema()
+
+    wf = current_workflow()
 
     if request.method == 'GET':
+
+        fieldnames = current_workflow().field_names()
+
+        form = ColumnRolesForm()
+        for i, fieldname in enumerate(fieldnames):
+            entry = form.roles.append_entry()
+            entry.label = fieldname
+            entry.data = 'feature_id' if i == 0 else 'sample'
+
         return render_template(
             'column_roles.html',
-            form=schema_to_column_roles_form(schema),
-            filename=current_scratch_input_file_meta().name)
+            form=form,
+            filename=wf.input_file_meta.name)
 
     elif request.method == 'POST':
-        update_schema_with_column_roles(schema, ColumnRolesForm(request.form))
+        wf.column_roles_form = ColumnRolesForm(request.form)
         return redirect(url_for('factor_list'))
     
 
@@ -239,10 +297,10 @@ def column_roles():
 ### Form classes
 ###
 
-class NewFactorForm(Form):
-    factor_name = StringField('Factor name', validators=[Required()])
-    possible_values = FieldList(StringField(''))
-    submit = SubmitField()
+class InputFileUploadForm(Form):
+    input_file = FileField('Input file')
+    description = TextAreaField('Description (optional)')
+    submit     = SubmitField("Upload")
 
 class ColumnRolesForm(Form):
     roles = FieldList(
@@ -251,10 +309,20 @@ class ColumnRolesForm(Form):
                              ('ignored',    'Ignored')]))
     submit = SubmitField()
 
-class InputFileUploadForm(Form):
-    input_file = FileField('Input file')
-    description = TextAreaField('Description (optional)')
-    submit     = SubmitField("Upload")
+    def cols_with_role(self, role):
+        has_role = lambda x: x.data == role
+        return filter(has_role, self.roles)
+
+class NewFactorForm(Form):
+    factor_name = StringField('Factor name', validators=[Required()])
+    possible_values = FieldList(StringField(''))
+    submit = SubmitField()
+
+class ColumnLabelsForm(Form):
+    columns = None
+    factors = None
+    assignments = FieldList(SelectField())
+
 
 class JobFactorForm(Form):
     factor_roles = FieldList(
@@ -321,67 +389,77 @@ def update_schema_with_new_factor(schema, form):
 
 @app.route("/factor_list")
 def factor_list():
-    schema = current_scratch_schema()
 
-    if len(schema.factors) == 0:
+    wf = current_workflow()
+
+    if not wf.can_continue_past_factors:
         return redirect(url_for('add_factor'))
 
     return render_template('factors.html',
-                           factors=schema.factors,
-                           allow_next=len(schema.factors) > 0,
-                           factor_values=schema.factor_values)
+                           factor_forms=wf.factor_forms,
+                           allow_next=True)
 
 @app.route("/add_factor", methods=['GET', 'POST'])
 def add_factor():
 
-    schema = current_scratch_schema()
+    wf = current_workflow()
 
     if request.method == 'GET':
         form = NewFactorForm()
-        for i in range(int(len(schema.sample_column_names) / 2)):
+
+        sample_entries = wf.column_roles_form.cols_with_role('sample')
+
+        for i in range(len(sample_entries) // 2):
             form.possible_values.append_entry()
-        factors = schema.factors
-        allow_next = len(factors) > 0
+
         return render_template('add_factor.html',
                                form=form,
-                               factors=factors,
-                               factor_values=schema.factor_values,
-                               allow_next=allow_next)
+                               allow_next=wf.can_continue_past_factors)
 
     elif request.method == 'POST':
-        schema = current_scratch_schema()
-        form = NewFactorForm(request.form)
-        update_schema_with_new_factor(schema, form)
+        wf.factor_forms.append(NewFactorForm(request.form))
         session.modified = True
         return redirect(url_for('factor_list'))
+
+@app.route("/remove_factor")
+def remove_factor():
+
+    factor = request.args.get('factor')
+    wf = current_workflow()
+    wf.remove_factor(factor)
+    session.modified = True
+
+    return redirect(url_for('factor_list'))
 
 
 @app.route("/column_labels", methods=['GET', 'POST'])
 def column_labels():
 
-    schema = current_scratch_schema()
+    wf = current_workflow()
+    field_names = np.array(wf.field_names())
+    roles       = np.array(wf.column_roles())
+    sample_field_names = field_names[roles == 'sample']
 
     if request.method == 'POST':
-        
-        for i, col_name in enumerate(schema.column_names):
-            for j, factor in enumerate(schema.factors):
-                key = 'factor_value_{0}_{1}'.format(i, j)
-                if key in request.form:
-                    value = str(request.form[key])
-                    if len(value) > 0:
-                        schema.set_factor(col_name, factor, value)
-        
-        schema.modified = True
+        form = ColumnLabelsForm(request.form)
+        wf.column_label_form = form
         return redirect(url_for('setup_job_factors'))
 
-    schema = current_scratch_schema()
+    else:
+        factor_to_values = wf.factor_values()
 
-    factor = request.args.get('factor')
+        form = ColumnLabelsForm()
+        
+        for col in sample_field_names:
+            for factor in factor_to_values:
+                entry = form.assignments.append_entry()
+                entry.choices = [ (x, x) for x in factor_to_values[factor] ]
 
-    return render_template("column_labels.html",
-                           schema=current_scratch_schema(),
-                           input_file_meta=current_scratch_input_file_meta(),
-                           factor=factor)
+        return render_template("column_labels.html",
+                               form=form,
+                               column_names=sample_field_names,
+                               factors=factor_to_values.keys(),
+                               input_file_meta=wf.input_file_meta)
     
 def job_scratch():
     if 'job_scratch' not in session:
@@ -420,36 +498,33 @@ def upload_raw_file():
 
 @app.route("/setup_job_factors", methods=['GET', 'POST'])
 def setup_job_factors():
-    schema = current_scratch_schema()
-    scratch = job_scratch()
 
+    scratch = job_scratch()
+    wf = current_workflow()
     if request.method == 'GET':
 
-        if 'job_factor_form' not in scratch:
-            logging.info("Adding job factor form")
-            conditions = []
-            blocks = []
-            form = JobFactorForm()
-            for i, factor in enumerate(schema.factors):
-                logging.info("Adding factor " + factor)
-                entry = form.factor_roles.append_entry()
-                entry.label = factor
-                if i == 0:
-                    entry.data = 'condition'
-                else:
-                    entry.data = 'block'
+        conditions = []
+        blocks = []
+        form = JobFactorForm()
 
-            scratch['job_factor_form'] = form
+        for i, factor in enumerate(wf.factor_values()):
+            logging.info("Adding factor " + factor)
+            entry = form.factor_roles.append_entry()
+            entry.label = factor
+            if i == 0:
+                entry.data = 'condition'
+            else:
+                entry.data = 'block'
 
-        form = scratch['job_factor_form']
+        scratch['job_factor_form'] = form
 
         return render_template(
             'setup_job_factors.html',
             form=form,
-            schema=current_scratch_schema())
+            schema=wf.schema)
 
     elif request.method == 'POST':
-        scratch['job_factor_form'] = JobFactorForm(request.form)
+        wf.job_factor_form = JobFactorForm(request.form)
         session.modified = True
         return redirect(url_for('job_settings'))
 
@@ -464,8 +539,6 @@ def scratch_settings():
         
     form = job_scratch()['other_settings_form']
     job_factor_form = job_scratch()['job_factor_form']
-
-    schema = current_scratch_schema()
 
     tuning_params=[float(x) for x in form.tuning_params.data.split(" ")]
 
@@ -483,6 +556,7 @@ def scratch_settings():
         condition_variables=condition_vars,
         block_variables=block_vars,
         stat_class = str(form.statistic.data),
+        equalize_means = form.equalize_means.data,
         num_bins = form.bins.data,
         num_samples = form.permutations.data,
         sample_from_residuals = form.sample_from_residuals.data,
@@ -494,7 +568,7 @@ def scratch_settings():
 @app.route("/job_settings", methods=['GET', 'POST'])
 def job_settings():
 
-    scratch = job_scratch()
+    wf = current_workflow()
 
     if request.method == 'POST':
         scratch['other_settings_form'] = JobSettingsForm(request.form)
@@ -502,7 +576,11 @@ def job_settings():
         return redirect(url_for('job_confirmation'))
 
     else:
+
+        schema = wf.schema
+
         if 'other_settings_form' not in scratch:
+
             form = JobSettingsForm()
 
             form.bins.data                    = pade.model.DEFAULT_NUM_BINS
@@ -522,10 +600,11 @@ def job_settings():
 def job_confirmation():
     schema   = job_scratch()['schema']
     settings = scratch_settings()
-        
+    wf = current_workflow()
+
     return render_template(
         'job_confirmation.html',
-        input_file_meta=current_scratch_input_file_meta(),
+        input_file_meta=wf.input_file_meta,
         schema=schema,
         settings=scratch_settings())
 
@@ -878,9 +957,10 @@ def score_dist_by_tuning_param(job_id):
 
 @app.route("/submit_job")
 def submit_job():
+    wf = current_workflow()
     settings = scratch_settings()
     schema   = current_scratch_schema()
-    infile_meta = current_scratch_input_file_meta()
+    infile_meta = wf.input_file_meta
     schema_meta = app.mdb.add_schema('Schema', 'Comments', schema, infile_meta)
     
     job = Job(settings=settings,
@@ -902,7 +982,7 @@ def submit_job():
     chained = celery.chain(steps)
     result = chained.apply_async((job,))
     app.mdb.add_task_id(job_meta, result.task_id)
-
+    clear_job_scratch()
     return redirect(url_for('job_details', job_id=job_meta.obj_id))
 
 @app.route("/jobs")

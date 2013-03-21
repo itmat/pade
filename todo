@@ -20,7 +20,6 @@
 
 * Use separate bar plots for paired mode
 * At the top of the details page, show the fitted values and residuals
-* Use an interaction plot instead of bar chart for non-paired
 * Only show the plots that make sense
 * Add annotation columns onto result page
 * Validate settings and statistic

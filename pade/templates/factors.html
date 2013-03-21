@@ -12,11 +12,14 @@
 </p>
 
 <ul>
-  {% for factor in factors %}
-  <li>{{ factor }}</li>
+  {% for form in factor_forms %}
+  <li>
+    {{ form.factor_name.data }} (<a href="{{url_for('remove_factor', factor=form.factor_name.data)}}"> delete </a>)  </li>
   <ul>
-    {% for value in factor_values[factor] %}
-    <li>{{value}}</li>
+    {% for entry in form.possible_values %}
+    {% if entry.data|length() > 0 %}
+    <li>{{entry.data}}</li>
+    {% endif %}
     {% endfor %}
   </ul>
   {% endfor %}

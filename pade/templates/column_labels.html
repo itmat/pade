@@ -21,34 +21,23 @@ Editing factor {{factor}}.
   <table>
     <tr>
       <th>Field name</th>
-      <th>Role</th>
-      {% for f in schema.factors %}
+      {% for f in factors %}
       <th>{{f}}</th>
       {% endfor %}
     </tr>
     
-    {% for name in schema.column_names %}
-
-    {% set col_num = loop.index0 %}
-    {% set role    = schema.column_roles[col_num] %}
+    {% set entry_num = 0 %}
+    {% for col in column_names %}
 
     <tr>
-      <td>{{ name }}</td>
-      <td>{{ role }}</td>
+      <td>{{ col }}</td>
 
-      {% for f in schema.factors %}
-      {% set factor_num = loop.index0 %}
+      {% for f in factors %}
+
       <td>
 
-        {% if role == 'sample' %}
-        {% set selected_value = schema.get_factor(name, f) %}
-        <select name="factor_value_{{col_num}}_{{factor_num}}">
-          {% for v in schema.factor_values[f] %}
-          <option value="{{v}}" {% if selected_value == v %} selected="selected" {% endif %} >{{v}}</option>
-          {% endfor %}
-        </select>
-        {% endif %}
-
+        {{ form.assignments[entry_num]()|safe() }}
+        {% set entry_num = entry_num + 1 %}
       </td>
       {% endfor %}
 
