@@ -212,10 +212,14 @@ class Workflow():
             schema.add_factor(factor, values)
 
         counter = 0
+
         for i, c in enumerate(columns[roles == 'sample']):
             for j, f in enumerate(factors):
-                value = self.column_label_form.assignments[counter].data
-                schema.set_factor(columns[i], factors[j], value)
+                try:
+                    value = self.column_label_form.assignments[counter].data
+                except IndexError as e:
+                    raise Exception("No assignment " + str(counter))
+                schema.set_factor(c, f, value)
                 counter += 1
 
         return schema
@@ -274,7 +278,7 @@ def column_roles():
 
     if request.method == 'GET':
 
-        fieldnames = current_workflow().field_names()
+        fieldnames = current_workflow().field_names
 
         form = ColumnRolesForm()
         for i, fieldname in enumerate(fieldnames):
@@ -319,8 +323,6 @@ class NewFactorForm(Form):
     submit = SubmitField()
 
 class ColumnLabelsForm(Form):
-    columns = None
-    factors = None
     assignments = FieldList(SelectField())
 
 
@@ -436,17 +438,18 @@ def remove_factor():
 def column_labels():
 
     wf = current_workflow()
-    field_names = np.array(wf.field_names())
-    roles       = np.array(wf.column_roles())
+    field_names = np.array(wf.field_names)
+    roles       = np.array(wf.column_roles)
     sample_field_names = field_names[roles == 'sample']
 
     if request.method == 'POST':
         form = ColumnLabelsForm(request.form)
         wf.column_label_form = form
+        logging.info("I got " + str(len(form.assignments)) + " assignments")
         return redirect(url_for('setup_job_factors'))
 
     else:
-        factor_to_values = wf.factor_values()
+        factor_to_values = wf.factor_values
 
         form = ColumnLabelsForm()
         
@@ -507,7 +510,7 @@ def setup_job_factors():
         blocks = []
         form = JobFactorForm()
 
-        for i, factor in enumerate(wf.factor_values()):
+        for i, factor in enumerate(wf.factor_values):
             logging.info("Adding factor " + factor)
             entry = form.factor_roles.append_entry()
             entry.label = factor
