@@ -51,97 +51,6 @@ app.session_interface = pade.redis_session.RedisSessionInterface(
     Redis(db=padeconfig.DB_SESSION))
 app.mdb = MetaDB(padeconfig.METADB_DIR, Redis(db=padeconfig.DB_METADB))
 
-def datetime_format(dt):
-    return dt.strftime('%F %R')
-    
-app.jinja_env.filters['datetime'] = datetime_format
-
-def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
-
-def figure_response(fig):
-    png_output = StringIO.StringIO()
-    fig.savefig(png_output)
-    response = make_response(png_output.getvalue())
-    response.headers['Content-Type'] = 'image/png'
-    return response
-
-@app.route("/")
-def index():
-    return render_template("index.html")
-
-def load_job(job_id):
-    job_meta = app.mdb.job(job_id)
-    return pade.tasks.load_job(job_meta.path)
-
-@app.route("/jobs/<job_id>")
-def job_details(job_id):
-
-    job_meta = app.mdb.job(job_id)
-
-    task_ids = app.mdb.get_task_ids(job_meta)
-
-    tasks = [ AsyncResult(x) for x in task_ids ]
-
-    if len(tasks) != 1:
-        raise Exception("I got " + str(len(tasks)) +
-                        " tasks for job " + 
-                        str(job_id) + "; this should never happen")
-    task = tasks[0]
-
-    if task.status == 'SUCCESS':
-        job = load_job(job_id)
-        return render_template("job.html", job_id=job.job_id, job=job)
-
-    else:
-        return render_template(
-            'job_status.html',
-            job_id=job_id,
-            status=task.status)
-
-
-@app.route("/schemas")
-def schema_list():
-    return render_template(
-        'schemas.html',
-        schema_metas=app.mdb.all_schemas())
-
-@app.route("/raw_files/<raw_file_id>")
-def input_file_details(raw_file_id):
-    raw_file = app.mdb.input_file(raw_file_id)
-
-    fieldnames = []
-    rows = []
-    max_rows = 10
-    with open(raw_file.path) as infile:
-        csvfile = csv.DictReader(infile, delimiter="\t")
-        fieldnames = csvfile.fieldnames    
-        for i, row in enumerate(csvfile):
-            rows.append(row)
-            if i == max_rows:
-                break
-    
-    return render_template(
-        'input_file.html',
-        raw_file=raw_file,
-        fieldnames=fieldnames,
-        sample_rows=rows)
-
-        
-
-@app.route("/inputfiles")
-def input_file_list():
-    files = app.mdb.all_input_files()
-    files = sorted(files, key=lambda f:f.obj_id, reverse=True)
-    return render_template(
-        'input_files.html',
-        input_file_metas=files)
-
-########################################################################
-###
-### Accessing the session
-###
 
 class Workflow():
     def __init__(self, input_file_id):
@@ -249,65 +158,6 @@ class Workflow():
             summary_step_size = form.summary_step_size.data,
             tuning_params = tuning_params)
 
-def current_workflow():
-    return session['workflow']
-
-
-@app.route("/clear_workflow")
-def clear_workflow():
-    if 'workflow' in session:
-        del session['workflow']
-    return redirect(url_for('index'))
-
-
-@app.route("/select_input_file")
-def select_input_file():
-    logging.info("Setting input file id\n")
-
-    input_file_id = int(request.args.get('input_file_id'))
-
-    session['workflow'] = Workflow(input_file_id)
-    return redirect(url_for('column_roles'))
-
-def schema_to_column_roles_form(schema):
-    form = ColumnRolesForm()
-    for i, col in enumerate(schema.column_names):
-        entry = form.roles.append_entry()
-        entry.label = col
-        entry.data = schema.column_roles[i]
-    
-    return form
-
-def update_schema_with_column_roles(schema, form):
-    names = schema.column_names
-    roles = [ e.data for e in form.roles ]
-    schema.set_columns(names, roles)
-
-@app.route("/column_roles", methods=['GET', 'POST'])
-def column_roles():
-
-    wf = current_workflow()
-
-    if request.method == 'GET':
-
-        fieldnames = current_workflow().field_names
-
-        form = ColumnRolesForm()
-        for i, fieldname in enumerate(fieldnames):
-            entry = form.roles.append_entry()
-            entry.label = fieldname
-            entry.data = 'feature_id' if i == 0 else 'sample'
-
-        return render_template(
-            'column_roles.html',
-            form=form,
-            filename=wf.input_file_meta.name)
-
-    elif request.method == 'POST':
-        wf.column_roles_form = ColumnRolesForm(request.form)
-        return redirect(url_for('factor_list'))
-    
-
 ########################################################################
 ###
 ### Form classes
@@ -391,17 +241,149 @@ class JobSettingsForm(Form):
         default=' '.join(map(str, pade.model.DEFAULT_TUNING_PARAMS)))
 
     submit = SubmitField()
-    
-def update_schema_with_new_factor(schema, form):
-    factor = str(form.factor_name.data)
-    values = []
-    for val_field in form.possible_values:
-        value = str(val_field.data)
-        if len(value) > 0:
-            values.append(value)
-    schema.add_factor(factor, values)    
 
-@app.route("/factor_list")
+
+###
+### Helpers.
+### 
+
+
+def current_workflow():
+    """Return the Workflow stored in the session."""
+    return session['workflow']
+
+
+def datetime_format(dt):
+    """Jinja2 filter for formatting datetime objects."""
+
+    return dt.strftime('%F %R')
+    
+def figure_response(fig):
+    """Turns a matplotlib figure into an HTTP response."""
+    png_output = StringIO.StringIO()
+    fig.savefig(png_output)
+    response = make_response(png_output.getvalue())
+    response.headers['Content-Type'] = 'image/png'
+    return response
+
+def load_job(job_id):
+    """Load the Job object with the given meta job id."""
+    job_meta = app.mdb.job(job_id)
+    return pade.tasks.load_job(job_meta.path)
+
+
+app.jinja_env.filters['datetime'] = datetime_format
+
+
+@app.route("/")
+def index():
+    return render_template("index.html")
+
+@app.route("/jobs/<job_id>")
+def job_details(job_id):
+
+    job_meta = app.mdb.job(job_id)
+    task_ids = app.mdb.get_task_ids(job_meta)
+    tasks = [ AsyncResult(x) for x in task_ids ]
+
+    if len(tasks) != 1:
+        raise Exception("I got " + str(len(tasks)) +
+                        " tasks for job " + 
+                        str(job_id) + "; this should never happen")
+    task = tasks[0]
+
+    if task.status == 'SUCCESS':
+        job = load_job(job_id)
+        return render_template("job.html", job_id=job.job_id, job=job)
+
+    else:
+        return render_template(
+            'job_status.html',
+            job_id=job_id,
+            status=task.status)
+
+
+@app.route("/schemas")
+def schema_list():
+    return render_template(
+        'schemas.html',
+        schema_metas=app.mdb.all_schemas())
+
+
+@app.route("/raw_files/<raw_file_id>")
+def input_file_details(raw_file_id):
+    raw_file = app.mdb.input_file(raw_file_id)
+
+    fieldnames = []
+    rows = []
+    max_rows = 10
+    with open(raw_file.path) as infile:
+        csvfile = csv.DictReader(infile, delimiter="\t")
+        fieldnames = csvfile.fieldnames    
+        for i, row in enumerate(csvfile):
+            rows.append(row)
+            if i == max_rows:
+                break
+    
+    return render_template(
+        'input_file.html',
+        raw_file=raw_file,
+        fieldnames=fieldnames,
+        sample_rows=rows)
+        
+
+@app.route("/inputfiles")
+def input_file_list():
+    files = app.mdb.all_input_files()
+    files = sorted(files, key=lambda f:f.obj_id, reverse=True)
+    return render_template(
+        'input_files.html',
+        input_file_metas=files)
+
+
+@app.route("/new_job/clear_workflow")
+def clear_workflow():
+    if 'workflow' in session:
+        del session['workflow']
+    return redirect(url_for('index'))
+
+
+@app.route("/new_job/select_input_file")
+def select_input_file():
+    logging.info("Setting input file id\n")
+
+    input_file_id = int(request.args.get('input_file_id'))
+
+    session['workflow'] = Workflow(input_file_id)
+    return redirect(url_for('column_roles'))
+
+
+@app.route("/new_job/column_roles", methods=['GET', 'POST'])
+def column_roles():
+
+    wf = current_workflow()
+
+    if request.method == 'GET':
+
+        fieldnames = current_workflow().field_names
+
+        form = ColumnRolesForm()
+        for i, fieldname in enumerate(fieldnames):
+            entry = form.roles.append_entry()
+            entry.label = fieldname
+            entry.data = 'feature_id' if i == 0 else 'sample'
+
+        return render_template(
+            'column_roles.html',
+            form=form,
+            filename=wf.input_file_meta.name)
+
+    elif request.method == 'POST':
+        wf.column_roles_form = ColumnRolesForm(request.form)
+        return redirect(url_for('factor_list'))
+
+
+@app.route("/new_job/factor_list")
 def factor_list():
 
     wf = current_workflow()
@@ -413,7 +395,8 @@ def factor_list():
                            factor_forms=wf.factor_forms,
                            allow_next=True)
 
-@app.route("/add_factor", methods=['GET', 'POST'])
+
+@app.route("/new_job/add_factor", methods=['GET', 'POST'])
 def add_factor():
 
     wf = current_workflow()
@@ -435,7 +418,8 @@ def add_factor():
         session.modified = True
         return redirect(url_for('factor_list'))
 
-@app.route("/remove_factor")
+
+@app.route("/new_job/remove_factor")
 def remove_factor():
 
     factor = request.args.get('factor')
@@ -446,7 +430,7 @@ def remove_factor():
     return redirect(url_for('factor_list'))
 
 
-@app.route("/column_labels", methods=['GET', 'POST'])
+@app.route("/new_job/column_labels", methods=['GET', 'POST'])
 def column_labels():
 
     wf = current_workflow()
@@ -496,7 +480,8 @@ def upload_raw_file():
 
         return redirect(url_for('input_file_list'))
 
-@app.route("/setup_job_factors", methods=['GET', 'POST'])
+
+@app.route("/new_job/setup_job_factors", methods=['GET', 'POST'])
 def setup_job_factors():
 
     wf = current_workflow()
@@ -517,13 +502,7 @@ def setup_job_factors():
         return redirect(url_for('job_settings'))
 
 
-# Workflow:
-# 1. Choose input file
-# 2. Pick sample columns
-# 3. Add factors (possibly multiple times)
-# 4. 
-
-@app.route("/job_settings", methods=['GET', 'POST'])
+@app.route("/new_job/other_settings", methods=['GET', 'POST'])
 def job_settings():
 
     wf = current_workflow()
@@ -551,7 +530,7 @@ def job_settings():
 
         return render_template('setup_job.html', form=form)
 
-@app.route("/job_confirmation")
+@app.route("/new_job/confirmation")
 def job_confirmation():
     wf = current_workflow()
 
@@ -560,6 +539,7 @@ def job_confirmation():
         input_file_meta=wf.input_file_meta,
         schema=wf.schema,
         settings=wf.settings)
+
 
 @app.route("/jobs/<job_id>/features/<feature_num>/measurement_scatter")
 def measurement_scatter(job_id, feature_num):
@@ -595,6 +575,7 @@ def measurement_scatter(job_id, feature_num):
     ax.legend(loc='upper_right')
     return figure_response(fig)
 
+
 @app.route("/jobs/<job_id>/mean_vs_std")
 def mean_vs_std(job_id):
     job = load_job(job_id)
@@ -609,6 +590,7 @@ def mean_vs_std(job_id):
 
     ax.scatter(means, std)
     return figure_response(fig)
+
 
 @app.route("/jobs/<job_id>/features/<feature_num>/interaction_plot")
 def interaction_plot(job_id, feature_num):
@@ -650,6 +632,7 @@ def interaction_plot(job_id, feature_num):
     ax.legend()
     ax.xlabel = x_var
     return figure_response(fig)
+
 
 @app.route("/jobs/<job_id>/features/<feature_num>/measurement_bars")
 def measurement_bars(job_id, feature_num):
@@ -730,6 +713,7 @@ def feature(job_id, feature_num):
         new_scores=new_scores
         )
 
+
 @app.route("/jobs/<job_id>/conf_level/<conf_level>")
 def details(job_id, conf_level):
     job = load_job(job_id)
@@ -788,6 +772,7 @@ def details(job_id, conf_level):
         feature_ids=job.input.feature_ids[idxs],
         fold_change=job.results.fold_change.table[idxs],
         page_num=page_num)
+
 
 @app.route("/jobs/<job_id>/stat_dist")
 def stat_dist_plots_page(job_id):
@@ -908,7 +893,7 @@ def score_dist_by_tuning_param(job_id):
 
     return figure_response(fig)
 
-@app.route("/submit_job")
+@app.route("/new_job/submit")
 def submit_job():
     wf = current_workflow()
 
@@ -963,3 +948,12 @@ def figure(path):
     finally:
         plt.clf()
 
+
+#def schema_to_column_roles_form(schema):
+#    form = ColumnRolesForm()
+#    for i, col in enumerate(schema.column_names):
+#        entry = form.roles.append_entry()
+#        entry.label = col
+#        entry.data = schema.column_roles[i]
+#    
+#    return form
