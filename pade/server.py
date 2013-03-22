@@ -145,19 +145,14 @@ def input_file_list():
 ### Accessing the session
 ###
 
-def ensure_job_scratch():
-    if 'job_scratch' not in session:
-        logging.info("Setting up job scratch")
-        session['job_scratch'] = { 
-            'schema' : Schema(),
-            }
-
 class Workflow():
     def __init__(self, input_file_id):
         self.input_file_id = input_file_id
         self.column_roles_form = None
         self.factor_forms = []
         self.column_labels_form = None
+        self.job_factor_form = None
+        self.other_settings_form = None
 
     @property
     def field_names(self):
@@ -206,10 +201,11 @@ class Workflow():
         if columns is None or roles is None or len(columns) == 0 or len(roles) == 0:
             raise Exception("I can't create a schema without columns or roles")
 
-        schema = Schema(columns, wf.column_roles)
+        schema = Schema(map(str, columns),
+                        map(str, wf.column_roles))
 
         for factor, values in self.factor_values.items():
-            schema.add_factor(factor, values)
+            schema.add_factor(str(factor), map(str, values))
 
         counter = 0
 
@@ -219,32 +215,50 @@ class Workflow():
                     value = self.column_label_form.assignments[counter].data
                 except IndexError as e:
                     raise Exception("No assignment " + str(counter))
-                schema.set_factor(c, f, value)
+                schema.set_factor(str(c), str(f), str(value))
                 counter += 1
 
         return schema
 
+    @property
+    def settings(self):
+        
+        form            = self.other_settings_form
+        job_factor_form = self.job_factor_form
+
+        tuning_params=[float(x) for x in form.tuning_params.data.split(" ")]
+
+        condition_vars = []
+        block_vars = []
+    
+        for i, factor in enumerate(self.schema.factors):
+            value = job_factor_form.factor_roles[i].data
+            if value == 'condition':
+                condition_vars.append(factor)
+            elif value == 'block':
+                block_vars.append(factor)    
+
+        return Settings(
+            condition_variables=condition_vars,
+            block_variables=block_vars,
+            stat_class = str(form.statistic.data),
+            equalize_means = form.equalize_means.data,
+            num_bins = form.bins.data,
+            num_samples = form.permutations.data,
+            sample_from_residuals = form.sample_from_residuals.data,
+            sample_with_replacement = form.sample_with_replacement.data,
+            summary_min_conf = form.summary_min_conf_level.data,
+            summary_step_size = form.summary_step_size.data,
+            tuning_params = tuning_params)
 
 def current_workflow():
     return session['workflow']
 
-def scratch_factor_forms():
-    scratch = job_scratch()
-    if 'factor_forms' not in scratch:
-        scratch['factor_forms'] = []
 
-    return scratch['factor_forms']
-
-def current_scratch_filename():
-    scratch = job_scratch()
-    if 'filename' in scratch:
-        return scratch['filename']
-    return None
-
-@app.route("/clear_job_scratch")
-def clear_job_scratch():
-    if 'job_scratch' in session:
-        del session['job_scratch']
+@app.route("/clear_workflow")
+def clear_workflow():
+    if 'workflow' in session:
+        del session['workflow']
     return redirect(url_for('index'))
 
 
@@ -464,18 +478,6 @@ def column_labels():
                                factors=factor_to_values.keys(),
                                input_file_meta=wf.input_file_meta)
     
-def job_scratch():
-    if 'job_scratch' not in session:
-        return None
-    return session['job_scratch']
-
-def current_job_id():
-    scratch = job_scratch()
-    if scratch is None or 'job_id' not in scratch:
-        return None
-    return scratch['job_id']
-
-
 
 @app.route("/upload_raw_file", methods=['GET', 'POST'])
 def upload_raw_file():
@@ -488,11 +490,8 @@ def upload_raw_file():
 
     elif request.method == 'POST':
 
-        ensure_job_scratch()
-    
         file = request.files['input_file']
         filename = secure_filename(file.filename)
-        session['job_scratch']['filename'] = filename
 
         logging.info("Adding input file to meta db")
         meta = app.mdb.add_input_file(name=filename, stream=file, description=form.description.data)
@@ -502,29 +501,17 @@ def upload_raw_file():
 @app.route("/setup_job_factors", methods=['GET', 'POST'])
 def setup_job_factors():
 
-    scratch = job_scratch()
     wf = current_workflow()
     if request.method == 'GET':
 
-        conditions = []
-        blocks = []
         form = JobFactorForm()
 
         for i, factor in enumerate(wf.factor_values):
-            logging.info("Adding factor " + factor)
             entry = form.factor_roles.append_entry()
             entry.label = factor
-            if i == 0:
-                entry.data = 'condition'
-            else:
-                entry.data = 'block'
+            entry.data = 'condition' if i == 0 else 'block'
 
-        scratch['job_factor_form'] = form
-
-        return render_template(
-            'setup_job_factors.html',
-            form=form,
-            schema=wf.schema)
+        return render_template('setup_job_factors.html', form=form)
 
     elif request.method == 'POST':
         wf.job_factor_form = JobFactorForm(request.form)
@@ -538,78 +525,43 @@ def setup_job_factors():
 # 3. Add factors (possibly multiple times)
 # 4. 
 
-def scratch_settings():
-        
-    form = job_scratch()['other_settings_form']
-    job_factor_form = job_scratch()['job_factor_form']
-
-    tuning_params=[float(x) for x in form.tuning_params.data.split(" ")]
-
-    condition_vars = []
-    block_vars = []
-    
-    for i, factor in enumerate(schema.factors):
-        value = job_factor_form.factor_roles[i].data
-        if value == 'condition':
-            condition_vars.append(factor)
-        elif value == 'block':
-            block_vars.append(factor)    
-
-    return Settings(
-        condition_variables=condition_vars,
-        block_variables=block_vars,
-        stat_class = str(form.statistic.data),
-        equalize_means = form.equalize_means.data,
-        num_bins = form.bins.data,
-        num_samples = form.permutations.data,
-        sample_from_residuals = form.sample_from_residuals.data,
-        sample_with_replacement = form.sample_with_replacement.data,
-        summary_min_conf = form.summary_min_conf_level.data,
-        summary_step_size = form.summary_step_size.data,
-        tuning_params = tuning_params)
-
 @app.route("/job_settings", methods=['GET', 'POST'])
 def job_settings():
 
     wf = current_workflow()
 
     if request.method == 'POST':
-        scratch['other_settings_form'] = JobSettingsForm(request.form)
-        scratch_settings()
+        wf.other_settings_form = JobSettingsForm(request.form)
         return redirect(url_for('job_confirmation'))
 
     else:
 
         schema = wf.schema
 
-        if 'other_settings_form' not in scratch:
+        form = JobSettingsForm()
 
-            form = JobSettingsForm()
+        form.bins.data                    = pade.model.DEFAULT_NUM_BINS
+        form.permutations.data            = pade.model.DEFAULT_NUM_SAMPLES
+        form.sample_from_residuals.data   = False
+        form.sample_with_replacement.data = False
+        form.equalize_means.data = False
+        form.summary_min_conf_level.data  = pade.model.DEFAULT_SUMMARY_MIN_CONF
+        form.summary_step_size.data = pade.model.DEFAULT_SUMMARY_STEP_SIZE
 
-            form.bins.data                    = pade.model.DEFAULT_NUM_BINS
-            form.permutations.data            = pade.model.DEFAULT_NUM_SAMPLES
-            form.sample_from_residuals.data   = False
-            form.sample_with_replacement.data = False
-            form.equalize_means.data = False
-            form.summary_min_conf_level.data  = pade.model.DEFAULT_SUMMARY_MIN_CONF
-            form.summary_step_size.data = pade.model.DEFAULT_SUMMARY_STEP_SIZE
+        form.tuning_params.data = " ".join(map(str, pade.model.DEFAULT_TUNING_PARAMS))
+        wf.other_settings_form = form
 
-            form.tuning_params.data = " ".join(map(str, pade.model.DEFAULT_TUNING_PARAMS))
-            scratch['other_settings_form'] = form
-
-        return render_template('setup_job.html', form=scratch['other_settings_form'])
+        return render_template('setup_job.html', form=form)
 
 @app.route("/job_confirmation")
 def job_confirmation():
-    schema   = job_scratch()['schema']
-    settings = scratch_settings()
     wf = current_workflow()
 
     return render_template(
         'job_confirmation.html',
         input_file_meta=wf.input_file_meta,
-        schema=schema,
-        settings=scratch_settings())
+        schema=wf.schema,
+        settings=wf.settings)
 
 @app.route("/jobs/<job_id>/features/<feature_num>/measurement_scatter")
 def measurement_scatter(job_id, feature_num):
@@ -961,31 +913,28 @@ def score_dist_by_tuning_param(job_id):
 @app.route("/submit_job")
 def submit_job():
     wf = current_workflow()
-    settings = scratch_settings()
-    schema   = current_scratch_schema()
-    infile_meta = wf.input_file_meta
-    schema_meta = app.mdb.add_schema('Schema', 'Comments', schema, infile_meta)
-    
-    job = Job(settings=settings,
-              schema=schema,
-              results=pade.model.Results())
 
-    job_meta = app.mdb.add_job(name='', description='', 
-                               raw_file_meta=infile_meta,
-                               schema_meta=schema_meta)
+    # Create the file for the schema and add it to the db
+    schema_meta = app.mdb.add_schema(
+        'Schema', 'Comments', wf.schema, wf.input_file_meta)
+
+    # Add the job to the database
+    job_meta = app.mdb.add_job(
+        name='', description='', raw_file_meta=wf.input_file_meta,
+        schema_meta=schema_meta)
     
     steps = pade.tasks.steps(
-        infile_path=os.path.abspath(infile_meta.path),
-        schema=schema,
-        settings=settings,
+        infile_path=os.path.abspath(wf.input_file_meta.path),
+        schema=wf.schema,
+        settings=wf.settings,
         sample_indexes_path=None,
         path=os.path.abspath(job_meta.path),
         job_id=job_meta.obj_id)
 
     chained = celery.chain(steps)
-    result = chained.apply_async((job,))
+    result = chained.apply_async()
     app.mdb.add_task_id(job_meta, result.task_id)
-    clear_job_scratch()
+    clear_workflow()
     return redirect(url_for('job_details', job_id=job_meta.obj_id))
 
 @app.route("/jobs")

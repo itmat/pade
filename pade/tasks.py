@@ -54,7 +54,7 @@ def copy_input(path, input_path, schema, settings, job_id):
         db.attrs['num_samples'] = settings.num_samples
         db.attrs['sample_from_residuals'] = settings.sample_from_residuals
         db.attrs['sample_with_replacement'] = settings.sample_with_replacement
-        db.attrs['condition_variables'] = settings.condition_variables
+        db.attrs['condition_variables'] = map(str, settings.condition_variables)
         db.attrs['block_variables'] = settings.block_variables
         db.attrs['summary_min_conf'] = settings.summary_min_conf
         db.attrs['summary_step_size'] = settings.summary_step_size
