@@ -4,6 +4,7 @@ import datetime as dt
 import os
 import shutil
 import logging
+import errno
 
 from StringIO import StringIO
 from pade.model import Schema
@@ -15,6 +16,16 @@ class MetaDB(object):
     def __init__(self, directory, redis):
         logging.info("Initializing metadb for directory " +
                      str(directory) + ", redis " + str(redis))
+
+        try:
+            os.makedirs(directory)
+            logging.info("Created metadb directory " + str(directory))
+        except OSError as e:
+            if e.errno == errno.EEXIST:
+                logging.info("Metadb directory " + str(directory) + " already exists")
+            else:
+                raise e
+
         self.directory = directory
         self.redis     = redis
 
@@ -28,10 +39,11 @@ class MetaDB(object):
     def _link_key(self, from_obj_type, to_obj_type, from_obj_id):
         return ':'.join(('pade', str(from_obj_type) + 'To' + str(to_obj_type), str(from_obj_id)))
 
-    def _path(self, obj_type, obj_id):
-        filename = "{obj_type}_{obj_id}.txt".format(
-            obj_type=obj_type,
-            obj_id=obj_id)
+    def _path(self, cls, obj_id):
+        filename = "{obj_type}_{obj_id}.{ext}".format(
+            obj_type=cls.obj_type,
+            obj_id=obj_id,
+            ext=cls.extension)
         return os.path.join(self.directory, filename)
 
     def _add_obj(self, cls, stream=None, **kwargs):
@@ -39,7 +51,7 @@ class MetaDB(object):
         obj_type = cls.obj_type
         obj_id = self._next_obj_id(obj_type)
 
-        path = self._path(obj_type, obj_id)
+        path = self._path(cls, obj_id)
 
         if stream is not None:
             with open(path, 'w') as out:
@@ -65,7 +77,7 @@ class MetaDB(object):
     def _load_obj(self, cls, obj_id):
         key    = self._obj_key(cls.obj_type, obj_id)
         kwargs = self.redis.hgetall(key)
-        path   = self._path(cls.obj_type, obj_id)
+        path   = self._path(cls, obj_id)
         kwargs['dt_created'] = dt.datetime.strptime(kwargs['dt_created'], DATE_FORMAT)
         return cls(obj_id, path=path, **kwargs)
 
@@ -159,6 +171,7 @@ class InputFileMeta(ObjMeta):
     obj_type        = 'input_file'
     collection_name = 'pade:input_files'
     input_file_to_schemas = 'pade:input_file_to_schemas'
+    extension = "txt"
 
     def __init__(self, obj_id, name, description, path, dt_created=None):
         super(InputFileMeta, self).__init__(obj_id, path, dt_created)
@@ -177,6 +190,7 @@ class JobMeta(ObjMeta):
     """Meta-data for an HDF5 job database."""
     obj_type = 'job'
     collection_name = 'pade:jobs'
+    extension = "pade"
 
     def __init__(self, obj_id, name, path, dt_created=None, description=None,
                  raw_file_id=None, schema_id=None):
@@ -198,6 +212,7 @@ class SchemaMeta(ObjMeta):
     """Meta-data for a PADE schema YAML file."""
     obj_type        = 'schema'
     collection_name = 'pade:schemas'
+    extension = "yaml"
 
     def load(self):
         with open(self.path) as f:

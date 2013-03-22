@@ -13,7 +13,7 @@ import uuid
 import shutil
 import csv
 import pade.redis_session
-import redisconfig
+import padeconfig
 import celery
 import contextlib
 import os
@@ -25,7 +25,7 @@ from redis import Redis
 from bisect import bisect
 from flask import (
     Flask, render_template, make_response, request, session, redirect, 
-    url_for, flash)
+    url_for, flash, send_file)
 from flask.ext.wtf import (
     Form, StringField, Required, FieldList, SelectField, 
     FileField, SubmitField, BooleanField, IntegerField, FloatField,
@@ -37,7 +37,6 @@ from pade.model import Job, Settings, Schema
 from pade.metadb import MetaDB
 
 ALLOWED_EXTENSIONS = set(['txt', 'tab'])
-UPLOAD_FOLDER = 'uploads'
 
 class PadeApp(Flask):
 
@@ -48,10 +47,9 @@ class PadeApp(Flask):
         self.secret_key = ""
 
 app = PadeApp()
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.session_interface = pade.redis_session.RedisSessionInterface(
-    Redis(db=redisconfig.DB_SESSION))
-app.mdb = MetaDB(UPLOAD_FOLDER, Redis(db=redisconfig.DB_METADB))
+    Redis(db=padeconfig.DB_SESSION))
+app.mdb = MetaDB(padeconfig.METADB_DIR, Redis(db=padeconfig.DB_METADB))
 
 def datetime_format(dt):
     return dt.strftime('%F %R')
@@ -686,7 +684,7 @@ def measurement_bars(job_id, feature_num):
     return figure_response(fig)
 
 
-@app.route("/job/<job_id>/features/<feature_num>")
+@app.route("/jobs/<job_id>/features/<feature_num>")
 def feature(job_id, feature_num):
     job = load_job(job_id)
     schema = job.schema
@@ -942,6 +940,12 @@ def job_list():
     job_metas = app.mdb.all_jobs()
     job_metas = sorted(job_metas, key=lambda f:f.dt_created, reverse=True)
     return render_template('jobs.html', jobs=job_metas)
+
+@app.route("/jobs/<job_id>/result_db")
+def result_db(job_id):
+    job_meta = app.mdb.job(job_id)
+    logging.info("Job meta is " + str(job_meta))
+    return send_file(job_meta.path, as_attachment=True)
 
 @contextlib.contextmanager
 def figure(path):
