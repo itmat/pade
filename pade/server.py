@@ -49,10 +49,13 @@ app = PadeApp()
 app.session_interface = pade.redis_session.RedisSessionInterface(
     Redis(db=padeconfig.DB_SESSION))
 app.mdb = MetaDB(padeconfig.METADB_DIR, Redis(db=padeconfig.DB_METADB))
+pade.jobdetails.mdb = app.mdb
+pade.newjob.mdb = app.mdb
+
+
 app.register_blueprint(pade.jobdetails.bp, url_prefix="/jobs/<job_id>/")
 app.register_blueprint(pade.newjob.bp, url_prefix="/new_job/")
-pade.jobdetails.bp.mdb = app.mdb
-pade.newjob.bp.mdb = app.mdb
+
 
 
 def datetime_format(dt):

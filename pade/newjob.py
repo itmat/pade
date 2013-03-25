@@ -29,7 +29,7 @@ class Workflow():
 
     @property
     def field_names(self):
-        raw_file = bp.mdb.input_file(self.input_file_id)
+        raw_file = mdb.input_file(self.input_file_id)
 
         with open(raw_file.path) as infile:
             csvfile = csv.DictReader(infile, delimiter="\t")
@@ -59,7 +59,7 @@ class Workflow():
 
     @property
     def input_file_meta(self):
-        return bp.mdb.input_file(self.input_file_id)
+        return mdb.input_file(self.input_file_id)
 
     @property
     def schema(self):
@@ -409,11 +409,11 @@ def submit_job():
     wf = current_workflow()
 
     # Create the file for the schema and add it to the db
-    schema_meta = bp.mdb.add_schema(
+    schema_meta = mdb.add_schema(
         'Schema', 'Comments', wf.schema, wf.input_file_meta)
 
     # Add the job to the database
-    job_meta = bp.mdb.add_job(
+    job_meta = mdb.add_job(
         name='', description='', raw_file_meta=wf.input_file_meta,
         schema_meta=schema_meta)
     
@@ -427,6 +427,6 @@ def submit_job():
 
     chained = celery.chain(steps)
     result = chained.apply_async()
-    bp.mdb.add_task_id(job_meta, result.task_id)
+    mdb.add_task_id(job_meta, result.task_id)
     clear_workflow()
     return redirect(url_for('job.job_details', job_id=job_meta.obj_id))

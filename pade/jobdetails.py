@@ -20,18 +20,18 @@ bp = Blueprint(
 
 def load_job(job_id):
     """Load the Job object with the given meta job id."""
-    job_meta = bp.mdb.job(job_id)
+    job_meta = mdb.job(job_id)
     return pade.tasks.load_job(job_meta.path)
 
 @bp.route("/")
 def job_details(job_id):
 
-    job_meta = bp.mdb.job(job_id)
+    job_meta = mdb.job(job_id)
 
     if job_meta.imported:
         task = None
     else:
-        task_ids = bp.mdb.get_task_ids(job_meta)
+        task_ids = mdb.get_task_ids(job_meta)
         tasks = [ AsyncResult(x) for x in task_ids ]
 
         if len(tasks) != 1:
