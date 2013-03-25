@@ -2,8 +2,9 @@ from __future__ import absolute_import, print_function, division
 
 from flask.ext.wtf import (
     Form, FileField, TextAreaField, SubmitField)
-from flask import Blueprint, render_template, request, make_response
-import csv
+from flask import Blueprint, render_template, request, make_response, redirect, url_for
+import csv, logging
+from werkzeug import secure_filename
 
 bp = Blueprint(
     'inputfile', __name__,
@@ -63,5 +64,5 @@ def upload_raw_file():
         logging.info("Adding input file to meta db")
         meta = mdb.add_input_file(name=filename, stream=file, description=form.description.data)
 
-        return redirect(url_for('input_file_list'))
+        return redirect(url_for('.input_file_list'))
 

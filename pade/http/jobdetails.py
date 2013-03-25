@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pade.tasks 
 
-from flask import Blueprint, render_template, request, make_response
+from flask import Blueprint, render_template, request, make_response, send_file
 from celery.result import AsyncResult
 from bisect import bisect
 from pade.stat import cumulative_hist, adjust_num_diff
@@ -413,3 +413,7 @@ def figure_response(fig):
     response.headers['Content-Type'] = 'image/png'
     return response
 
+@bp.route("/result_db")
+def result_db(job_id):
+    job_meta = app.mdb.job(job_id)
+    return send_file(job_meta.path, as_attachment=True)

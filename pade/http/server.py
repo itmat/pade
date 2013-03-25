@@ -1,42 +1,25 @@
 # TODO:
 #  Pre-generate histograms of stat distributions
 from __future__ import absolute_import, print_function, division
-import matplotlib
-matplotlib.use("Agg")
-from matplotlib.ticker import FuncFormatter
-import matplotlib.pyplot as plt
 
-import numpy as np
 import logging 
-import StringIO
-import uuid
-import shutil
-import csv
+
 import pade.redis_session
 import padeconfig
-
-import contextlib
-import os
 
 from redis import Redis
 
 from flask import (
     Flask, render_template, make_response, request, session, redirect, 
-    url_for, flash, send_file)
+    url_for)
 
-from flask.ext.wtf import (
-    Form, StringField, Required, FieldList, SelectField, 
-    FileField, SubmitField, BooleanField, IntegerField, FloatField,
-    TextAreaField, FormField)
-from werkzeug import secure_filename
+
 from pade.stat import cumulative_hist, adjust_num_diff
 from pade.metadb import MetaDB
 
 import pade.http.jobdetails
 import pade.http.newjob
 import pade.http.inputfile
-
-ALLOWED_EXTENSIONS = set(['txt', 'tab'])
 
 class PadeApp(Flask):
 
@@ -99,8 +82,3 @@ def job_list():
     job_metas = sorted(job_metas, key=lambda f:f.dt_created, reverse=True)
     return render_template('jobs.html', jobs=job_metas)
 
-@app.route("/jobs/<job_id>/result_db")
-def result_db(job_id):
-    job_meta = app.mdb.job(job_id)
-    logging.info("Job meta is " + str(job_meta))
-    return send_file(job_meta.path, as_attachment=True)
