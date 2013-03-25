@@ -122,10 +122,14 @@ class MetaDB(object):
     def all_schemas(self):
         return self._all_objects(SchemaMeta)
 
-    def add_job(self, name, description, raw_file_meta, schema_meta):
-        job_meta = self._add_obj(JobMeta, name=name, description=description)
-        job_meta = self._link_one_to_many(raw_file_meta, job_meta, 'raw_file_id')
-        job_meta = self._link_one_to_many(schema_meta, job_meta, 'schema_id')
+    def add_job(self, name, description, raw_file_meta=None, schema_meta=None, stream=None):
+        job_meta = self._add_obj(JobMeta, name=name, description=description, stream=stream)
+
+        if raw_file_meta is not None:
+            job_meta = self._link_one_to_many(raw_file_meta, job_meta, 'raw_file_id')
+        if schema_meta is not None:
+            job_meta = self._link_one_to_many(schema_meta, job_meta, 'schema_id')
+
         return job_meta
 
     def job(self, obj_id):

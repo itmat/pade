@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Index{% endblock %}
+{% block content %}
+
+<h2>Choose a job to upload:</h2>
+
+<form action="{{url_for('import_job')}}" method="post" enctype="multipart/form-data">
+  <p>
+    {{ form.job_file()|safe }}
+  </p>
+  <p>
+    {{ form.description.label }} <br/>
+    {{ form.description()|safe }}
+  </p>
+
+  {{ form.submit(class='button') }}
+</form>
+
+{% endblock %}

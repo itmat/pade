@@ -133,5 +133,29 @@ class MetaDBTest(unittest.TestCase):
             self.assertTrue(a.obj_id in job_ids)
             self.assertTrue(b.obj_id in job_ids)
 
+
+    def test_import_job(self):
+        with temp_metadb() as mdb:
+
+            a = mdb.add_job(name="job1", 
+                            description="Some job",
+                            stream=StringIO("The job."))
+            b = mdb.add_job(name="job2", 
+                            description="Other job",
+                            stream=StringIO("The other job data."))
+
+            # Make sure it returned the object appropriately
+            self.assertEquals(a.name, "job1")
+            self.assertEquals(a.description, "Some job")
+
+            # Make sure we can list all input files
+            jobs = mdb.all_jobs()
+            self.assertEquals(len(jobs), 2)
+            names = set(['job1', 'job2'])
+            self.assertEquals(names, set([x.name for x in jobs]))
+
+            with open(a.path) as f:
+                self.assertEquals(f.next(), "The job.")
+
 if __name__ == '__main__':
     unittest.main()

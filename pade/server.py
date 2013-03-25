@@ -168,6 +168,12 @@ class InputFileUploadForm(Form):
     description = TextAreaField('Description (optional)')
     submit     = SubmitField("Upload")
 
+class JobImportForm(Form):
+    job_file = FileField('Job file:')
+    name        = StringField('Name')
+    description = TextAreaField('Description (optional)')
+    submit      = SubmitField("Upload")
+
 class ColumnRolesForm(Form):
     roles = FieldList(
         SelectField(choices=[('feature_id', 'Feature ID'),
@@ -467,19 +473,32 @@ def upload_raw_file():
     form = InputFileUploadForm(request.form)
     
     if request.method == 'GET':
-        return render_template('upload_raw_file.html',
-                               form=form)
+        return render_template('upload_raw_file.html', form=form)
 
     elif request.method == 'POST':
 
         file = request.files['input_file']
         filename = secure_filename(file.filename)
-
         logging.info("Adding input file to meta db")
         meta = app.mdb.add_input_file(name=filename, stream=file, description=form.description.data)
 
         return redirect(url_for('input_file_list'))
 
+
+@app.route("/import_job")
+def import_job():
+
+    form = JobImportForm(request.form)
+
+    if request.method == 'GET':
+        return render_template('import_job.html', form=form)
+
+    elif request.method == 'POST':
+        file = request.files['job_file']
+        filename = secure_filename(file.filename)        
+        app.mdb.add_job(name=form.name,
+                        description=form.description,
+                        stream=file)
 
 @app.route("/new_job/setup_job_factors", methods=['GET', 'POST'])
 def setup_job_factors():
@@ -931,6 +950,7 @@ def result_db(job_id):
     job_meta = app.mdb.job(job_id)
     logging.info("Job meta is " + str(job_meta))
     return send_file(job_meta.path, as_attachment=True)
+
 
 @contextlib.contextmanager
 def figure(path):
