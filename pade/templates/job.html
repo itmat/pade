@@ -77,7 +77,7 @@
   {% for i in range(job.summary.counts | length)|reverse() %}
   <tr>
     <td class="numeric">{{ "%.0f%%"|format(job.summary.bins[i]*100) }}</td>
-    <td class="numeric"><a href="{{url_for('details', job_id=job_id, conf_level=i)}}">{{ job.summary.counts[i] }}</a></td>
+    <td class="numeric"><a href="{{url_for('.details', job_id=job_id, conf_level=i)}}">{{ job.summary.counts[i] }}</a></td>
     <td class="numeric">{{ job.settings.tuning_params[job.summary.best_param_idxs[i]] }}</td>
   </tr>
   {% endfor %}
@@ -87,17 +87,17 @@
 </div>
 
 <div class="grid_9 omega">
-  <img src="{{url_for('conf_dist_plot', job_id=job_id)}}" width="80%"></img>
+  <img src="{{url_for('.conf_dist_plot', job_id=job_id)}}" width="80%"></img>
 </div>
 
 <div class="grid_12 alpha omega">
 
 <h3>Plots</h3>
 <ul>
-  <li><a href="{{url_for('confidence_dist', job_id=job_id)}}">Confidence score distribution</a></li>
-  <li><a href="{{url_for('stat_dist_plots_page', job_id=job_id)}}">Statistic distribution</a></li>
-  <li><a href="{{url_for('feature_count_and_score_by_stat', job_id=job_id)}}">Feature count and score by statistic</a></li>
-  <li><a href="{{url_for('mean_vs_std', job_id=job_id)}}">Mean vs standard deviation</a></li>
+  <li><a href="{{url_for('.confidence_dist', job_id=job_id)}}">Confidence score distribution</a></li>
+  <li><a href="{{url_for('.stat_dist_plots_page', job_id=job_id)}}">Statistic distribution</a></li>
+  <li><a href="{{url_for('.feature_count_and_score_by_stat', job_id=job_id)}}">Feature count and score by statistic</a></li>
+  <li><a href="{{url_for('.mean_vs_std', job_id=job_id)}}">Mean vs standard deviation</a></li>
 </ul>
 
 

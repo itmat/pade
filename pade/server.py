@@ -52,7 +52,7 @@ app = PadeApp()
 app.session_interface = pade.redis_session.RedisSessionInterface(
     Redis(db=padeconfig.DB_SESSION))
 app.mdb = MetaDB(padeconfig.METADB_DIR, Redis(db=padeconfig.DB_METADB))
-app.register_blueprint(pade.jobdetails.bp)
+app.register_blueprint(pade.jobdetails.bp, url_prefix="/jobs/<job_id>/")
 pade.jobdetails.bp.mdb = app.mdb
 
 print("URL map is ", app.url_map)
