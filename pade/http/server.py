@@ -32,8 +32,8 @@ from werkzeug import secure_filename
 from pade.stat import cumulative_hist, adjust_num_diff
 from pade.metadb import MetaDB
 
-import pade.jobdetails
-import pade.newjob
+import pade.http.jobdetails
+import pade.http.newjob
 
 ALLOWED_EXTENSIONS = set(['txt', 'tab'])
 
