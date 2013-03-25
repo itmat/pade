@@ -2,7 +2,7 @@
 {% block title %}Job {{ job_id }} | Feature {{ feature_id }} {% endblock %}
 {% block content %}
 
-<a href="{{url_for('job_details', job_id=job_id)}}">Back to job {{ job_id }}</a>
+<a href="{{url_for('.job_details', job_id=job_id)}}">Back to job {{ job_id }}</a>
 
 <p>Feature number: {{ feature_num }}</p>
 <p>Feature id: {{ feature_id }}</p>
@@ -45,10 +45,10 @@
 
 {% if job.settings.block_variables|length() > 0 %}
 
-<img src="{{ url_for('interaction_plot', job_id=job_id, feature_num=feature_num) }}"></img>
+<img src="{{ url_for('.interaction_plot', job_id=job_id, feature_num=feature_num) }}"></img>
 
 {% else %}
-<img src="{{ url_for('measurement_bars', job_id=job_id, feature_num=feature_num) }}"></img>
+<img src="{{ url_for('.measurement_bars', job_id=job_id, feature_num=feature_num) }}"></img>
 {% endif %}
 
 <h2>Details by tuning parameter</h2>

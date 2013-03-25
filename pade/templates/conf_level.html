@@ -14,9 +14,9 @@
   </tr>
 
   <tr>
-    <th class="details"><a href="{{url_for('details', job_id=job_id, conf_level=conf_level, page=page_num)}}">Feature id</a></th>
+    <th class="details"><a href="{{url_for('.details', job_id=job_id, conf_level=conf_level, page=page_num)}}">Feature id</a></th>
     
-    <th class="details"><a href="{{url_for('details', job_id=job_id, conf_level=conf_level, page=page_num, order='score_original')}}">Score</th>
+    <th class="details"><a href="{{url_for('.details', job_id=job_id, conf_level=conf_level, page=page_num, order='score_original')}}">Score</th>
     <th class="details">{{ stat_name }} stat</th>
 
     {% for name in group_names %}
@@ -24,7 +24,7 @@
     {% endfor %}
 
     {% for i in range(fold_change_group_names|length) %}
-    <th class="details"><a href="{{url_for('details', job_id=job_id, conf_level=conf_level, page=page_num, order='foldchange_original', groupnum=i)}}">{{ fold_change_group_names[i] }}</a></th>
+    <th class="details"><a href="{{url_for('.details', job_id=job_id, conf_level=conf_level, page=page_num, order='foldchange_original', groupnum=i)}}">{{ fold_change_group_names[i] }}</a></th>
     {% endfor %}
 
     {% for name in coeff_names %}
@@ -34,7 +34,7 @@
 
   {% for i in range(feature_ids|length) %}
   <tr>
-    <td class="details"><a href="{{url_for('feature', job_id=job_id, feature_num=indexes[i])}}">{{ feature_ids[i] }}</a></td>
+    <td class="details"><a href="{{url_for('.feature', job_id=job_id, feature_num=indexes[i])}}">{{ feature_ids[i] }}</a></td>
 
     <!-- Confidence score -->
     <td class="details">{{ "%.4f"|format(scores[i]) }}</td>
