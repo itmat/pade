@@ -110,7 +110,6 @@ class MetaDBTest(unittest.TestCase):
             b = mdb.add_job(name="job2", description="Other job",
                             raw_file_meta=raw_file_meta,
                             schema_meta=schema_meta)
-
             # Make sure it returned the object appropriately
             self.assertEquals(a.name, "job1")
             self.assertEquals(a.description, "Some job")
@@ -118,6 +117,7 @@ class MetaDBTest(unittest.TestCase):
             a = mdb.job(a.obj_id)
             self.assertEquals(a.raw_file_id, raw_file_meta.obj_id)
             self.assertEquals(a.schema_id, schema_meta.obj_id)
+            self.assertFalse(a.imported)
 
             # Make sure we can list all input files
             jobs = mdb.all_jobs()
@@ -144,9 +144,12 @@ class MetaDBTest(unittest.TestCase):
                             description="Other job",
                             stream=StringIO("The other job data."))
 
+            a = mdb.job(a.obj_id)
+
             # Make sure it returned the object appropriately
             self.assertEquals(a.name, "job1")
             self.assertEquals(a.description, "Some job")
+            self.assertTrue(a.imported)
 
             # Make sure we can list all input files
             jobs = mdb.all_jobs()

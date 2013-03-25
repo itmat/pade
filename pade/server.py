@@ -289,16 +289,20 @@ def index():
 def job_details(job_id):
 
     job_meta = app.mdb.job(job_id)
-    task_ids = app.mdb.get_task_ids(job_meta)
-    tasks = [ AsyncResult(x) for x in task_ids ]
 
-    if len(tasks) != 1:
-        raise Exception("I got " + str(len(tasks)) +
-                        " tasks for job " + 
-                        str(job_id) + "; this should never happen")
-    task = tasks[0]
+    if job_meta.imported:
+        task = None
+    else:
+        task_ids = app.mdb.get_task_ids(job_meta)
+        tasks = [ AsyncResult(x) for x in task_ids ]
 
-    if task.status == 'SUCCESS':
+        if len(tasks) != 1:
+            raise Exception("I got " + str(len(tasks)) +
+                            " tasks for job " + 
+                            str(job_id) + "; this should never happen")
+        task = tasks[0]
+
+    if job_meta.imported or task.status == 'SUCCESS':
         job = load_job(job_id)
         return render_template("job.html", job_id=job.job_id, job=job)
 
@@ -485,7 +489,7 @@ def upload_raw_file():
         return redirect(url_for('input_file_list'))
 
 
-@app.route("/import_job")
+@app.route("/import_job", methods=['GET', 'POST'])
 def import_job():
 
     form = JobImportForm(request.form)
@@ -495,10 +499,14 @@ def import_job():
 
     elif request.method == 'POST':
         file = request.files['job_file']
-        filename = secure_filename(file.filename)        
-        app.mdb.add_job(name=form.name,
-                        description=form.description,
-                        stream=file)
+        filename = secure_filename(file.filename)
+        logging.info("Importing job")
+        job_meta = app.mdb.add_job(name=form.name,
+                                   description=form.description,
+                                   stream=file)
+        
+        flash("Imported job")
+        return redirect(url_for('job_details', job_id=job_meta.obj_id))
 
 @app.route("/new_job/setup_job_factors", methods=['GET', 'POST'])
 def setup_job_factors():

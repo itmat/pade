@@ -42,11 +42,11 @@
     </div>
 
     <div class="grid_12" id="content">
-      {% with messages = get_flashed_messages() %}
+      {% with messages = get_flashed_messages(with_categories=True) %}
       {% if messages %}
       <ul class=flashes>
-        {% for message in messages %}
-        <li>{{ message }}</li>
+        {% for cat, message in messages %}
+        <li class="flash_{{cat}}">{{ message }}</li>
         {% endfor %}
       </ul>
       {% endif %}

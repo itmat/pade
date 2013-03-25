@@ -123,7 +123,11 @@ class MetaDB(object):
         return self._all_objects(SchemaMeta)
 
     def add_job(self, name, description, raw_file_meta=None, schema_meta=None, stream=None):
-        job_meta = self._add_obj(JobMeta, name=name, description=description, stream=stream)
+
+        imported = stream is not None
+
+        job_meta = self._add_obj(JobMeta, name=name, description=description, 
+                                 stream=stream, imported=imported)
 
         if raw_file_meta is not None:
             job_meta = self._link_one_to_many(raw_file_meta, job_meta, 'raw_file_id')
@@ -197,7 +201,7 @@ class JobMeta(ObjMeta):
     extension = "pade"
 
     def __init__(self, obj_id, name, path, dt_created=None, description=None,
-                 raw_file_id=None, schema_id=None):
+                 raw_file_id=None, schema_id=None, imported=None):
         super(JobMeta, self).__init__(obj_id, path, dt_created)
 
         self.name = name
@@ -211,6 +215,12 @@ class JobMeta(ObjMeta):
 
         self.schema_id = schema_id
         """The ID of the SchemaMeta object used for this job."""
+
+        self.imported = imported
+        if self.imported == 'True':
+            self.imported = True
+        elif self.imported == 'False':
+            self.imported = False
 
 class SchemaMeta(ObjMeta):
     """Meta-data for a PADE schema YAML file."""
