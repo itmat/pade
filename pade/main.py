@@ -171,11 +171,11 @@ To launch a small web server to generate the HTML reports, run:
 """.format(path=args.db))
 
 def do_server(args):
-    import pade.server
+    import pade.http.server
 
     if args.debug:
-        pade.server.app.debug = True
-    pade.server.app.run(port=args.port)
+        pade.http.server.app.debug = True
+    pade.http.server.app.run(port=args.port)
     
 
 def do_report(args):

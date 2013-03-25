@@ -129,11 +129,6 @@ class Workflow():
 ### Form classes
 ###
 
-class InputFileUploadForm(Form):
-    input_file = FileField('Input file')
-    description = TextAreaField('Description (optional)')
-    submit     = SubmitField("Upload")
-
 class JobImportForm(Form):
     job_file = FileField('Job file:')
     name        = StringField('Name')

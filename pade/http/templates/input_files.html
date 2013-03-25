@@ -10,7 +10,7 @@
 
 <div class="grid_5 alpha">
   
-  <a href="{{url_for('input_file_details', raw_file_id=s.obj_id)}}">{{ s.name }}</a>
+  <a href="{{url_for('.input_file_details', raw_file_id=s.obj_id)}}">{{ s.name }}</a>
   <br/>
   {{ s.size }} bytes, uploaded {{ s.dt_created|datetime }} <br/>
 
@@ -24,6 +24,6 @@
 {% endfor %}
 
 <div class="input_file_summary grid_12">
-  <a href="{{url_for('upload_raw_file')}}" class="button">Upload new file</a>
+  <a href="{{url_for('.upload_raw_file')}}" class="button">Upload new file</a>
 </div>
 {% endblock %}

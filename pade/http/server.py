@@ -34,6 +34,7 @@ from pade.metadb import MetaDB
 
 import pade.http.jobdetails
 import pade.http.newjob
+import pade.http.inputfile
 
 ALLOWED_EXTENSIONS = set(['txt', 'tab'])
 
@@ -49,12 +50,14 @@ app = PadeApp()
 app.session_interface = pade.redis_session.RedisSessionInterface(
     Redis(db=padeconfig.DB_SESSION))
 app.mdb = MetaDB(padeconfig.METADB_DIR, Redis(db=padeconfig.DB_METADB))
-pade.jobdetails.mdb = app.mdb
-pade.newjob.mdb = app.mdb
 
+pade.http.jobdetails.mdb = app.mdb
+pade.http.newjob.mdb = app.mdb
+pade.http.inputfile.mdb = app.mdb
 
-app.register_blueprint(pade.jobdetails.bp, url_prefix="/jobs/<job_id>/")
-app.register_blueprint(pade.newjob.bp, url_prefix="/new_job/")
+app.register_blueprint(pade.http.jobdetails.bp, url_prefix="/jobs/<job_id>/")
+app.register_blueprint(pade.http.newjob.bp,     url_prefix="/new_job/")
+app.register_blueprint(pade.http.inputfile.bp,  url_prefix="/input_files/")
 
 
 
@@ -68,62 +71,6 @@ app.jinja_env.filters['datetime'] = datetime_format
 @app.route("/")
 def index():
     return render_template("index.html")
-
-
-@app.route("/schemas")
-def schema_list():
-    return render_template(
-        'schemas.html',
-        schema_metas=app.mdb.all_schemas())
-
-
-@app.route("/raw_files/<raw_file_id>")
-def input_file_details(raw_file_id):
-    raw_file = app.mdb.input_file(raw_file_id)
-
-    fieldnames = []
-    rows = []
-    max_rows = 10
-    with open(raw_file.path) as infile:
-        csvfile = csv.DictReader(infile, delimiter="\t")
-        fieldnames = csvfile.fieldnames    
-        for i, row in enumerate(csvfile):
-            rows.append(row)
-            if i == max_rows:
-                break
-    
-    return render_template(
-        'input_file.html',
-        raw_file=raw_file,
-        fieldnames=fieldnames,
-        sample_rows=rows)
-        
-
-@app.route("/inputfiles")
-def input_file_list():
-    files = app.mdb.all_input_files()
-    files = sorted(files, key=lambda f:f.obj_id, reverse=True)
-    return render_template(
-        'input_files.html',
-        input_file_metas=files)
-
-
-@app.route("/upload_raw_file", methods=['GET', 'POST'])
-def upload_raw_file():
-
-    form = InputFileUploadForm(request.form)
-    
-    if request.method == 'GET':
-        return render_template('upload_raw_file.html', form=form)
-
-    elif request.method == 'POST':
-
-        file = request.files['input_file']
-        filename = secure_filename(file.filename)
-        logging.info("Adding input file to meta db")
-        meta = app.mdb.add_input_file(name=filename, stream=file, description=form.description.data)
-
-        return redirect(url_for('input_file_list'))
 
 
 @app.route("/import_job", methods=['GET', 'POST'])
