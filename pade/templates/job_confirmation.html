@@ -76,7 +76,7 @@ settings.summary_step_size }} starting at {{ settings.summary_min_conf }}.
 </p>
 
 {{ forms.cancel() }}
-{{ forms.previous(url_for('job_settings')) }}
-<a href="{{url_for('submit_job')}}" class="button">Submit job</a>
+{{ forms.previous(url_for('.job_settings')) }}
+<a href="{{url_for('.submit_job')}}" class="button">Submit job</a>
 
 {% endblock %}

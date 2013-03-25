@@ -12,7 +12,7 @@
 <p>
 Used in jobs
 {% for job_id in raw_file.job_ids %}
-<a href="{{url_for('job_details', job_id=job_id)}}">{{ job_id }}</a>
+<a href="{{url_for('job.job_details', job_id=job_id)}}">{{ job_id }}</a>
 {% endfor %}
 </p>
 {% endif %}
@@ -39,6 +39,6 @@ Used in jobs
 </table>
 
 <p>
-<a href="{{url_for('select_input_file', input_file_id=raw_file.obj_id)}}" class="button">Analyze this file</a>  
+<a href="{{url_for('new_job.select_input_file', input_file_id=raw_file.obj_id)}}" class="button">Analyze this file</a>  
 </p>
 {% endblock %}

@@ -5,7 +5,7 @@
 <h2>Other settings</h2>
 
 
-<form action="{{ url_for('job_settings') }}" method="post">
+<form action="{{ url_for('.job_settings') }}" method="post">
 
   <p>
     {{form.statistic.label}}: {{ form.statistic()|safe }}
@@ -32,7 +32,7 @@
     </p>
 
     {{ forms.cancel() }}
-    {{ forms.previous(url_for('setup_job_factors')) }}
+    {{ forms.previous(url_for('.setup_job_factors')) }}
     {{ form.submit(class='button') }}
 
   </fieldset>

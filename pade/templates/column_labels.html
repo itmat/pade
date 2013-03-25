@@ -16,7 +16,7 @@ Editing factor {{factor}}.
   columns with the factor values you created above.
 </p>
 
-<form action="{{url_for('column_labels')}}" method="post">
+<form action="{{url_for('.column_labels')}}" method="post">
 
   <table>
     <tr>
@@ -47,7 +47,7 @@ Editing factor {{factor}}.
 
 
   <p>
-    {{ forms.cancel() }} {{ forms.previous(url_for('factor_list'))}}
+    {{ forms.cancel() }} {{ forms.previous(url_for('.factor_list'))}}
     <input type="submit" value="Update" class="button"></input>  
 
   </p>
