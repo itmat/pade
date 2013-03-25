@@ -14,6 +14,7 @@ import shutil
 import csv
 import pade.redis_session
 import padeconfig
+
 import contextlib
 import os
 
@@ -59,14 +60,7 @@ def datetime_format(dt):
 
     return dt.strftime('%F %R')
     
-def load_job(job_id):
-    """Load the Job object with the given meta job id."""
-    job_meta = app.mdb.job(job_id)
-    return pade.tasks.load_job(job_meta.path)
-
-
 app.jinja_env.filters['datetime'] = datetime_format
-
 
 @app.route("/")
 def index():
