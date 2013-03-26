@@ -218,7 +218,6 @@ def measurement_scatter(job_meta, job_db, feature_num):
                rotation=70
                )
 
-    ax.legend(loc='upper_right')
     return figure_response(fig)
 
 

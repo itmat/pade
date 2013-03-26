@@ -34,7 +34,7 @@ class PadeViewerTestCase(unittest.TestCase):
 
         pade.http.jobdetails.job_dbs = [ 
             JobMeta(0, None, path, imported=True)
-            for path in [ 'padedb/job_8.pade' ] ]
+            for path in [ 'sample_jobs/test/server_test_job.pade' ] ]
 
     def assertOk(self, route):
         self.assertStatus(route, 200)
