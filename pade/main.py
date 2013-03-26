@@ -185,9 +185,14 @@ def do_view(args):
     app = pade.http.server.PadeViewer()
     if args.debug:
         app.debug = True
-    pade.http.jobdetails.job_dbs = [ 
-        JobMeta(0, None, path, imported=True)
-        for path in [ args.pade_results ] ]
+
+
+    job_dbs = []
+    for i, path in enumerate(args.pade_results):
+        job_dbs.append(
+            JobMeta(i, path, path, imported=True))
+    pade.http.jobdetails.job_dbs = job_dbs
+
     print("Routes are\n" + str(app.url_map))
     app.run(port=args.port)
     
@@ -506,6 +511,7 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
     db_in_parent = argparse.ArgumentParser(add_help=False)
     db_in_parent.add_argument(
         'pade_results', 
+        nargs='*',
         help="Path to the db file to read results from")
 
     ###
