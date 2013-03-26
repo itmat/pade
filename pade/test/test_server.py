@@ -228,6 +228,9 @@ class PadeRunnerTestCase(unittest.TestCase):
             elif time.time() - start_time > 60:
                 self.fail("Job is taking too long")
 
+        for route in ['/jobs/1/features/14/interaction_plot']:
+            self.assertOk(route)
+
     def test_setup_job(self):
         self.assertOk("/")
 
