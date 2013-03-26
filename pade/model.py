@@ -575,10 +575,6 @@ class Schema(object):
         for sample in self.sample_to_factor_values:
             self.sample_to_factor_values[sample][name] = None
 
-    def remove_factor(self, factor):
-        del self.factor_values[factor]
-        for sample in self.sample_to_factor_values:
-            del self.sample_to_factor_values[factor]
 
     @classmethod
     def load(cls, stream):

@@ -18,7 +18,7 @@ class InputFileUploadForm(Form):
     submit     = SubmitField("Upload")
 
 
-@bp.route("/raw_files/<raw_file_id>")
+@bp.route("/<raw_file_id>")
 def input_file_details(raw_file_id):
     raw_file = mdb.input_file(raw_file_id)
 

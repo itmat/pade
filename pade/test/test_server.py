@@ -6,6 +6,7 @@ import pade.http.jobdetails
 import pade.test.padeconfig
 import tempfile
 import shutil
+import time
 
 standard_routes = [
     '/',
@@ -81,6 +82,10 @@ class PadeRunnerTestCase(unittest.TestCase):
 
         with open('sample_jobs/two_cond_nuisance/sample_data_2_cond_nuisance.txt') as f:
             infile = self.mdb.add_input_file(name="test.txt", description="Some comments", stream=f)
+
+        r = self.app.get("/input_files/" + str(infile.obj_id))
+        self.assertEquals(r.status_code, 200)
+        self.assertTrue('c1r1' in r.data)
 
         with open(infile.path) as f:
             self.assertTrue('c1r2' in f.next())
@@ -212,7 +217,16 @@ class PadeRunnerTestCase(unittest.TestCase):
 
         r = self.app.get("/new_job/submit", follow_redirects=True)
         self.assertEquals(r.status_code, 200)
-        
+
+        start_time = time.time()
+        while True:
+            time.sleep(1)
+
+            r = self.app.get("/jobs/1/")
+            if 'Features by confidence level' in r.data:
+                break
+            elif time.time() - start_time > 60:
+                self.fail("Job is taking too long")
 
     def test_setup_job(self):
         self.assertOk("/")
