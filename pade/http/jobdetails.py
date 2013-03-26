@@ -18,6 +18,10 @@ bp = Blueprint(
     'job', __name__,
     template_folder='templates')
 
+joblist = Blueprint(
+    'joblist', __name__,
+    template_folder='templates')
+
 def load_job(job_id):
     """Load the Job object with the given meta job id."""
     job_meta = mdb.job(job_id)
@@ -417,3 +421,5 @@ def figure_response(fig):
 def result_db(job_id):
     job_meta = app.mdb.job(job_id)
     return send_file(job_meta.path, as_attachment=True)
+
+

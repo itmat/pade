@@ -129,12 +129,6 @@ class Workflow():
 ### Form classes
 ###
 
-class JobImportForm(Form):
-    job_file = FileField('Job file:')
-    name        = StringField('Name')
-    description = TextAreaField('Description (optional)')
-    submit      = SubmitField("Upload")
-
 class ColumnRolesForm(Form):
     roles = FieldList(
         SelectField(choices=[('feature_id', 'Feature ID'),
