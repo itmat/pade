@@ -17,7 +17,7 @@ class PadeServer(Flask):
     def __init__(self):
         super(PadeServer, self).__init__(__name__)
         self.jinja_env.filters['datetime'] = datetime_format
-        self.jinja_env.filters['job_label'] = job_label
+        self.jinja_env.filters['joblabel'] = job_label
 
 
 class PadeRunner(PadeServer):
@@ -59,7 +59,7 @@ def datetime_format(dt):
     return "" if dt is None else dt.strftime('%F %R')
 
 def job_label(job_meta):
-    if job_meta.name is not None:
+    if job_meta.name is not None and len(job_meta.name) > 0:
         return job_meta.name
     else:
         return "job " + str(job_meta.obj_id)

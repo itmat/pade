@@ -7,7 +7,7 @@
 <ul>
   {% for job in jobs %}
   <li>
-    <a href="{{ url_for('job.job_details', job_id=job.obj_id) }}">{{ job|job_label() }}</a>
+    <a href="{{ url_for('job.job_details', job_id=job.obj_id) }}">{{ job|joblabel() }}</a>
 
     {% if job.dt_created %}
     , {% if job.imported %} 
