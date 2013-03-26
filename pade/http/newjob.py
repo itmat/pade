@@ -217,7 +217,7 @@ def current_workflow():
 def clear_workflow():
     if 'workflow' in session:
         del session['workflow']
-    return redirect(url_for('index'))
+    return redirect(url_for('job_browser.index'))
 
 
 @bp.route("/select_input_file")

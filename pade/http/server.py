@@ -25,8 +25,6 @@ class PadeApp(Flask):
 
     def __init__(self):
         super(PadeApp, self).__init__(__name__)
-        self.job = None
-        self.mdb = None
         self.secret_key = ""
 
 app = PadeApp()
