@@ -187,6 +187,7 @@ def do_view(args):
     pade.http.jobdetails.job_dbs = [ 
         JobMeta(0, None, path, imported=True)
         for path in [ args.pade_results ] ]
+    print("Routes are\n" + str(app.url_map))
     app.run(port=args.port)
     
 def do_report(args):

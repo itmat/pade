@@ -67,7 +67,7 @@
   {% if i == page_num %}
   {{ page_num + 1}}
   {% else %}
-  <a href="{{url_for('details', job_id=job_id, conf_level=conf_level, page=i
+  <a href="{{url_for('.details', job_id=job_id, conf_level=conf_level, page=i
            )}}">{{ i + 1 }}</a>
   {% endif %}
   {% endfor %}

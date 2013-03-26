@@ -11,7 +11,7 @@
 
 {% for i in range(job.settings.tuning_params|length): %}
 <div class="{{ loop.cycle('grid_5 alpha', 'grid_5 omega') }}">
-  <img src="{{url_for('stat_dist_plot', job_id=job_id, tuning_param=i)}}"></img>
+  <img src="{{url_for('.stat_dist_plot', job_id=job_id, tuning_param=i)}}"></img>
 </div>
 {% endfor %}
 

@@ -26,9 +26,9 @@ class PadeRunner(PadeServer):
         super(PadeRunner, self).__init__()
         self.secret_key = ""
 
-        self.register_blueprint(pade.http.jobdetails.bp, url_prefix="/jobs/")
-        self.register_blueprint(pade.http.newjob.bp,     url_prefix="/new_job/")
-        self.register_blueprint(pade.http.inputfile.bp,  url_prefix="/input_files/")
+        self.register_blueprint(pade.http.jobdetails.bp)
+        self.register_blueprint(pade.http.newjob.bp,     url_prefix="/new_job")
+        self.register_blueprint(pade.http.inputfile.bp,  url_prefix="/input_files")
         self.register_blueprint(pade.http.jobbrowser.runner)
 
         self.session_interface = pade.redis_session.RedisSessionInterface(
@@ -49,7 +49,7 @@ class PadeRunner(PadeServer):
 class PadeViewer(PadeServer):
     def __init__(self):
         super(PadeViewer, self).__init__()
-        self.register_blueprint(pade.http.jobdetails.bp, url_prefix="/jobs/")
+        self.register_blueprint(pade.http.jobdetails.bp)
         self.add_url_rule('/', 'index', pade.http.jobdetails.job_list)
 
 def datetime_format(dt):
