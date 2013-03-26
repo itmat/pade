@@ -7,7 +7,7 @@ from flask.ext.wtf import (
     TextAreaField)
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash
 
-bp = Blueprint(
+runner = Blueprint(
     'job_browser', __name__,
     template_folder='templates')
 
@@ -19,12 +19,12 @@ class JobImportForm(Form):
     description = TextAreaField('Description (optional)')
     submit      = SubmitField("Upload")
 
-@bp.route("/")
+@runner.route("/")
 def index():
     return render_template("index.html")
 
 
-@bp.route("/import_job", methods=['GET', 'POST'])
+@runner.route("/import_job", methods=['GET', 'POST'])
 def import_job():
 
     form = JobImportForm(request.form)
@@ -44,8 +44,3 @@ def import_job():
         return redirect(url_for('job.job_details', job_id=job_meta.obj_id))
 
 
-@bp.route("/jobs/")
-def job_list():
-    job_metas = mdb.all_jobs()
-    job_metas = sorted(job_metas, key=lambda f:f.dt_created, reverse=True)
-    return render_template('jobs.html', jobs=job_metas)

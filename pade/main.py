@@ -32,6 +32,7 @@ import time
 from numpy.lib.recfunctions import append_fields
 from pade.model import Job, Model, Settings, Input, Results, Schema
 from pade.stat import GroupSymbols
+from pade.metadb import JobMeta
 
 STAT_NAME_TO_CLASS = {
     'f' : 'FStat',
@@ -176,8 +177,18 @@ def do_server(args):
     if args.debug:
         app.debug = True
     app.run(port=args.port)
-    
 
+def do_view(args):
+    print("Here I am!")
+    import pade.http.server
+    app = pade.http.server.PadeViewer()
+    if args.debug:
+        app.debug = True
+    pade.http.jobdetails.job_dbs = [ 
+        JobMeta(0, None, path, imported=True)
+        for path in [ args.pade_results ] ]
+    app.run(port=args.port)
+    
 def do_report(args):
     path = args.db
 
@@ -492,10 +503,8 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
 
     db_in_parent = argparse.ArgumentParser(add_help=False)
     db_in_parent.add_argument(
-        '--db', 
-        help="Path to the db file to read results from",
-        default="pade_db.h5")
-
+        'pade_results', 
+        help="Path to the db file to read results from")
 
     ###
     ### Add sub-parsers
@@ -524,6 +533,12 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
     server_parser = subparsers.add_parser(
         'server',
         help="""Start server to show results""",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[parents])
+
+    view_parser = subparsers.add_parser(
+        'view',
+        help="""View results of a job in a browser""",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         parents=[parents, db_in_parent])
 
@@ -647,17 +662,29 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
         '--port',
         type=int,
         help="Specify the port for the server to listen on")
+    view_parser.add_argument(
+        '--port',
+        type=int,
+        help="Specify the port for the server to listen on")
+
+    ###
+    ### Custom args for server parser
+    ###
 
     makesamples_parser.add_argument(
         '--output', '-o',
         type=argparse.FileType(mode='w'),
         help="File to write sample indexes to")
 
-    report_parser.set_defaults(func=do_report)
-    run_parser.set_defaults(func=do_run)
-    setup_parser.set_defaults(func=do_setup)
-    server_parser.set_defaults(func=do_server)
-    makesamples_parser.set_defaults(func=do_makesamples)
+    defaults = [ (report_parser,      do_report),
+                 (run_parser,         do_run),
+                 (setup_parser,       do_setup),
+                 (server_parser,      do_server),
+                 (view_parser,        do_view),
+                 (makesamples_parser, do_makesamples) ]
+                 
+    for (parser, fn) in defaults:
+        parser.set_defaults(func=fn)
     
     return uberparser.parse_args()
 

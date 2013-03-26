@@ -19,16 +19,17 @@ class PadeServer(Flask):
         super(PadeServer, self).__init__(__name__)
         self.jinja_env.filters['datetime'] = datetime_format
 
+
 class PadeRunner(PadeServer):
 
     def __init__(self):
         super(PadeRunner, self).__init__()
         self.secret_key = ""
 
-        self.register_blueprint(pade.http.jobdetails.bp, url_prefix="/jobs/<job_id>/")
+        self.register_blueprint(pade.http.jobdetails.bp, url_prefix="/jobs/")
         self.register_blueprint(pade.http.newjob.bp,     url_prefix="/new_job/")
         self.register_blueprint(pade.http.inputfile.bp,  url_prefix="/input_files/")
-        self.register_blueprint(pade.http.jobbrowser.bp)
+        self.register_blueprint(pade.http.jobbrowser.runner)
 
         self.session_interface = pade.redis_session.RedisSessionInterface(
             Redis(db=padeconfig.DB_SESSION))
@@ -43,15 +44,16 @@ class PadeRunner(PadeServer):
         for m in modules:
             m.mdb = mdb
 
+        self.add_url_rule('/', 'index', pade.http.jobbrowser.index)
 
 class PadeViewer(PadeServer):
     def __init__(self):
         super(PadeViewer, self).__init__()
-        self.register_blueprint(pade.http.jobdetails.bp)
-
+        self.register_blueprint(pade.http.jobdetails.bp, url_prefix="/jobs/")
+        self.add_url_rule('/', 'index', pade.http.jobdetails.job_list)
 
 def datetime_format(dt):
     """Jinja2 filter for formatting datetime objects."""
-
-    return dt.strftime('%F %R')
+    
+    return "" if dt is None else dt.strftime('%F %R')
     

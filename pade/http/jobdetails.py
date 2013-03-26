@@ -13,24 +13,43 @@ from celery.result import AsyncResult
 from bisect import bisect
 from pade.stat import cumulative_hist, adjust_num_diff
 from StringIO import StringIO
+from pade.metadb import JobMeta
 
 bp = Blueprint(
     'job', __name__,
     template_folder='templates')
 
-joblist = Blueprint(
-    'joblist', __name__,
-    template_folder='templates')
+mdb = None
+
+job_dbs = []
 
 def load_job(job_id):
     """Load the Job object with the given meta job id."""
-    job_meta = mdb.job(job_id)
+    job_meta = get_job_meta(job_id)
     return pade.tasks.load_job(job_meta.path)
 
+def get_job_meta(job_id):
+    job_id = int(job_id)
+    if mdb is not None:
+        return mdb.job(job_id)
+    else:
+        return job_dbs[job_id]
+
 @bp.route("/")
+def job_list():
+
+    if mdb is None:
+        job_metas = job_dbs
+    else:
+        job_metas = mdb.all_jobs()
+
+    job_metas = sorted(job_metas, key=lambda f:f.obj_id, reverse=True)
+    return render_template('jobs.html', jobs=job_metas, is_runner=False)
+
+@bp.route("/<job_id>/")
 def job_details(job_id):
 
-    job_meta = mdb.job(job_id)
+    job_meta = get_job_meta(job_id)
 
     if job_meta.imported:
         task = None
@@ -46,7 +65,7 @@ def job_details(job_id):
 
     if job_meta.imported or task.status == 'SUCCESS':
         job = load_job(job_id)
-        return render_template("job.html", job_id=job.job_id, job=job)
+        return render_template("job.html", job_id=job_meta.obj_id, job=job)
 
     else:
         return render_template(
@@ -55,7 +74,7 @@ def job_details(job_id):
             status=task.status)
 
 
-@bp.route("/conf_level/<conf_level>")
+@bp.route("/<job_id>/conf_level/<conf_level>")
 def details(job_id, conf_level):
     job = load_job(job_id)
 
@@ -114,7 +133,7 @@ def details(job_id, conf_level):
         fold_change=job.results.fold_change.table[idxs],
         page_num=page_num)
 
-@bp.route("/features/<feature_num>")
+@bp.route("/<job_id>/features/<feature_num>")
 def feature(job_id, feature_num):
     job = load_job(job_id)
     schema = job.schema
@@ -160,7 +179,7 @@ def feature(job_id, feature_num):
         new_scores=new_scores
         )
 
-@bp.route("/features/<feature_num>/measurement_scatter")
+@bp.route("/<job_id>/features/<feature_num>/measurement_scatter")
 def measurement_scatter(job_id, feature_num):
     job = load_job(job_id)    
     feature_num = int(feature_num)
@@ -195,7 +214,7 @@ def measurement_scatter(job_id, feature_num):
     return figure_response(fig)
 
 
-@bp.route("/mean_vs_std")
+@bp.route("/<job_id>/mean_vs_std")
 def mean_vs_std(job_id):
     job = load_job(job_id)
     means = np.mean(job.input.table, axis=-1)
@@ -211,7 +230,7 @@ def mean_vs_std(job_id):
     return figure_response(fig)
 
 
-@bp.route("/features/<feature_num>/interaction_plot")
+@bp.route("/<job_id>/features/<feature_num>/interaction_plot")
 def interaction_plot(job_id, feature_num):
     job = load_job(job_id)
     feature_num = int(feature_num)
@@ -253,7 +272,7 @@ def interaction_plot(job_id, feature_num):
     return figure_response(fig)
 
 
-@bp.route("/features/<feature_num>/measurement_bars")
+@bp.route("/<job_id>/features/<feature_num>/measurement_bars")
 def measurement_bars(job_id, feature_num):
     job = load_job(job_id)
     feature_num = int(feature_num)
@@ -288,7 +307,7 @@ def measurement_bars(job_id, feature_num):
 
 
 
-@bp.route("/stat_dist")
+@bp.route("/<job_id>/stat_dist")
 def stat_dist_plots_page(job_id):
     job = load_job(job_id)
     semilogx = request.args.get('semilogx') == 'True'
@@ -297,7 +316,7 @@ def stat_dist_plots_page(job_id):
                            job=job,
                            semilogx=semilogx)
 
-@bp.route("/feature_count_and_score_by_stat.html")
+@bp.route("/<job_id>/feature_count_and_score_by_stat.html")
 def feature_count_and_score_by_stat(job_id):
     job = load_job(job_id)
     semilogx = request.args.get('semilogx') == 'True'
@@ -306,12 +325,12 @@ def feature_count_and_score_by_stat(job_id):
                            job=job,
                            semilogx=semilogx)
 
-@bp.route("/confidence_dist")
+@bp.route("/<job_id>/confidence_dist")
 def confidence_dist(job_id):
     return render_template("confidence_dist.html", 
                            job_id=job_id)
 
-@bp.route("/stat_dist/<tuning_param>.png")
+@bp.route("/<job_id>/stat_dist/<tuning_param>.png")
 def stat_dist_plot(job_id, tuning_param):
     job = load_job(job_id)
     max_stat = np.max(job.results.raw_stats)
@@ -326,7 +345,7 @@ def stat_dist_plot(job_id, tuning_param):
     plt.hist(job.results.raw_stats[tuning_param], log=False, bins=250)
     return figure_response(fig)
 
-@bp.route("/bin_to_score.png")
+@bp.route("/<job_id>/bin_to_score.png")
 def bin_to_score_plot(job_id):
     job = load_job(job_id)
     data = job.results.bin_to_score
@@ -346,7 +365,7 @@ def bin_to_score_plot(job_id):
 
     return figure_response(fig)
 
-@bp.route("/bin_to_features.png")
+@bp.route("/<job_id>/bin_to_features.png")
 def bin_to_features_plot(job_id):
     job = load_job(job_id)
     params = job.settings.tuning_params
@@ -368,7 +387,7 @@ def bin_to_features_plot(job_id):
     ax.legend(loc='upper right')
     return figure_response(fig)
 
-@bp.route("/conf_dist")
+@bp.route("/<job_id>/conf_dist")
 def conf_dist_plot(job_id):
     job = load_job(job_id)
     fig = plt.figure()
@@ -382,7 +401,7 @@ def conf_dist_plot(job_id):
     return figure_response(fig)
     
 
-@bp.route("/score_dist_for_tuning_params.png")
+@bp.route("/<job_id>/score_dist_for_tuning_params.png")
 def score_dist_by_tuning_param(job_id):
     job = load_job(job_id)
     fig = plt.figure()
@@ -417,7 +436,7 @@ def figure_response(fig):
     response.headers['Content-Type'] = 'image/png'
     return response
 
-@bp.route("/result_db")
+@bp.route("/<job_id>/result_db")
 def result_db(job_id):
     job_meta = app.mdb.job(job_id)
     return send_file(job_meta.path, as_attachment=True)
