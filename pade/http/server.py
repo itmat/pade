@@ -4,7 +4,6 @@ from __future__ import absolute_import, print_function, division
 
 import logging 
 import pade.redis_session
-import padeconfig
 import pade.http.jobdetails
 import pade.http.newjob
 import pade.http.inputfile
@@ -22,7 +21,7 @@ class PadeServer(Flask):
 
 class PadeRunner(PadeServer):
 
-    def __init__(self):
+    def __init__(self, padeconfig):
         super(PadeRunner, self).__init__()
         self.secret_key = ""
 
@@ -49,6 +48,7 @@ class PadeRunner(PadeServer):
 class PadeViewer(PadeServer):
     def __init__(self):
         super(PadeViewer, self).__init__()
+        pade.http.jobdetails.mdb = None
         self.register_blueprint(pade.http.jobdetails.bp)
         self.add_url_rule('/', 'index', pade.http.jobdetails.job_list)
 

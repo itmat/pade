@@ -35,7 +35,11 @@ def job_context(f):
         else:
             job_meta = job_dbs[job_id]
         kwargs['job_meta'] = job_meta
-        kwargs['job_db']   = pade.tasks.load_job(job_meta.path)
+        try:
+            kwargs['job_db']   = pade.tasks.load_job(job_meta.path)
+        except IOError as e:
+            kwargs['job_db'] = None
+
         del kwargs['job_id']
         return f(*args, **kwargs)
     return decorated

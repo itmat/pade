@@ -40,7 +40,7 @@ def input_file_details(raw_file_id):
         sample_rows=rows)
         
 
-@bp.route("/inputfiles")
+@bp.route("/")
 def input_file_list():
     files = mdb.all_input_files()
     files = sorted(files, key=lambda f:f.obj_id, reverse=True)

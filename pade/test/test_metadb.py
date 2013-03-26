@@ -1,7 +1,7 @@
 import contextlib
 import datetime
 import unittest
-import padeconfig
+import pade.test.padeconfig
 
 from StringIO import StringIO
 from pade.test.utils import tempdir
@@ -13,7 +13,7 @@ from redis import Redis
 @contextlib.contextmanager
 def temp_metadb():
     with tempdir() as d:
-        mdb = MetaDB(d, Redis(db=padeconfig.DB_METADB_TEST))
+        mdb = MetaDB(d, Redis(db=pade.test.padeconfig.DB_METADB))
         mdb.redis.flushdb()
         yield mdb
 
