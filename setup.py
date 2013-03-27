@@ -1,4 +1,4 @@
-from distutils.core import setup
+from setuptools import setup
 
 setup(name='pade',
       version='0.2.0a5',
@@ -6,9 +6,9 @@ setup(name='pade',
       author_email='midel@upenn.edu',
       url='https://github.com/itmat/pade',
       scripts=['bin/pade'],
-      packages=['pade', 'pade.static.css', 'pade.templates'],
-      requires=['jinja2', 'matplotlib', 'scipy', 'numpy', 'yaml', 'celery', 'redis'],
+      packages=['pade', 'pade.http', 'pade.http.static.css', 'pade.http.templates'],
+      install_requires=['jinja2', 'matplotlib', 'scipy', 'numpy', 'redis', 'celery', 'h5py', 'flask', 'Flask-WTF'],
       package_data={
-        'pade.static.css' : ['*.css'],
-        'pade.templates' : ['*']}
+        'pade.http.static.css' : ['*.css'],
+        'pade.http.templates' : ['*']}
       )
