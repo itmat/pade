@@ -56,11 +56,11 @@ class PadeRunnerTestCase(unittest.TestCase):
     
     def setUp(self):
         (this_dir, this_file) = os.path.split(__file__)
-        config = pade.config.load(os.path.join(this_dir, 'padeconfig_test.yaml'))
-        self.mdb = MetaDB(config['metadb_dir'],
-                          Redis(host=config['redis']['metadb']['host'],
-                                port=config['redis']['metadb']['port'],
-                                db=config['redis']['metadb']['db']))
+        config = pade.config.test
+        self.mdb = MetaDB(config.metadb_dir,
+                          Redis(host=config.metadb_host,
+                                port=config.metadb_port,
+                                db=config.metadb_db))
         self.mdb.redis.flushdb()
         self.app = PadeRunner(config).test_client()
 

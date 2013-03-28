@@ -4,20 +4,17 @@
 # which basically links together jobs, input files, and schemas. For
 # each one, we need to specify host, port and database number.
 
-redis :
-  celery: 
-    host: localhost
-    port: 6379
-    db: 1
+session_host: localhost
+session_port: 6379
+session_db: 2
 
-  session: 
-    host: localhost     
-    port: 6379
-    db: 2
+metadb_host: localhost
+metadb_port: 6379
+metadb_db: 2
 
-  metadb: 
-    host: localhost     
-    port: 6379
-    db: 3
+celery_host: localhost
+celery_port: 6379
+celery_db: 2
 
-metadb_dir: padedb
+metadb_dir: /var/padedb
+

@@ -172,8 +172,12 @@ To launch a small web server to generate the HTML reports, run:
 
 def do_server(args):
     import pade.http.server
-    config = pade.config.load()
-    print("Config is " + str(config))
+
+    if args.prod:
+        config = pade.config.search()
+
+    else:
+        config = pade.config.default
     app = pade.http.server.PadeRunner(config)
     if args.debug:
         app.debug = True
@@ -669,6 +673,10 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
         '--port',
         type=int,
         help="Specify the port for the server to listen on")
+    server_parser.add_argument(
+        '--prod',
+        action='store_true',
+        help="Indicates that this is a 'production' instance")
     view_parser.add_argument(
         '--port',
         type=int,

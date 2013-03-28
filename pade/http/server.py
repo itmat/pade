@@ -19,10 +19,6 @@ class PadeServer(Flask):
         self.jinja_env.filters['datetime'] = datetime_format
         self.jinja_env.filters['joblabel'] = job_label
 
-def redis_db(config):
-    return Redis(host=config['host'],
-                 port=config['port'],
-                 db=config['db'])
 
 class PadeRunner(PadeServer):
 
@@ -35,10 +31,17 @@ class PadeRunner(PadeServer):
         self.register_blueprint(pade.http.inputfile.bp,  url_prefix="/input_files")
         self.register_blueprint(pade.http.jobbrowser.runner)
 
-        self.session_interface = pade.redis_session.RedisSessionInterface(
-            redis_db(config['redis']['session']))
+        session_db = Redis(host=config.session_host,
+                           port=config.session_port,
+                           db=config.session_db)
 
-        mdb = MetaDB(config['metadb_dir'], redis_db(config['redis']['metadb']))
+        metadb_db = Redis(host=config.metadb_host,
+                          port=config.metadb_port,
+                          db=config.metadb_db)
+
+        self.session_interface = pade.redis_session.RedisSessionInterface(session_db)
+
+        mdb = MetaDB(config.metadb_dir, metadb_db)
 
         modules = [pade.http.jobdetails,
                    pade.http.newjob,

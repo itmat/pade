@@ -10,5 +10,10 @@ setup(name='pade',
       install_requires=['jinja2', 'matplotlib', 'scipy', 'numpy', 'redis', 'celery', 'h5py', 'flask', 'Flask-WTF'],
       package_data={
         'pade.http.static.css' : ['*.css'],
-        'pade.http.templates' : ['*']}
+        'pade.http.templates' : ['*'],
+        },
+      
+      data_files=[
+        ('/etc/', ['pade/padeconfig.yaml'])
+        ]
       )
