@@ -28,7 +28,7 @@ import celery
 import pade.tasks
 import textwrap
 import time
-import padeconfig
+import pade.config
 
 from numpy.lib.recfunctions import append_fields
 from pade.model import Job, Model, Settings, Input, Results, Schema
@@ -172,7 +172,9 @@ To launch a small web server to generate the HTML reports, run:
 
 def do_server(args):
     import pade.http.server
-    app = pade.http.server.PadeRunner(padeconfig)
+    config = pade.config.load()
+    print("Config is " + str(config))
+    app = pade.http.server.PadeRunner(config)
     if args.debug:
         app.debug = True
     app.run(port=args.port)
@@ -183,7 +185,6 @@ def do_view(args):
     app = pade.http.server.PadeViewer()
     if args.debug:
         app.debug = True
-
 
     job_dbs = []
     for i, path in enumerate(args.pade_results):

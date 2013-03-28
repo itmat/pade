@@ -3,10 +3,11 @@ from pade.metadb import JobMeta, MetaDB
 from redis import Redis
 from pade.http.server import PadeViewer, PadeRunner
 import pade.http.jobdetails
-import pade.test.padeconfig
+import pade.config
 import tempfile
 import shutil
 import time
+import os
 
 standard_routes = [
     '/',
@@ -54,14 +55,15 @@ class PadeViewerTestCase(unittest.TestCase):
 class PadeRunnerTestCase(unittest.TestCase):
     
     def setUp(self):
-#        self.tempdir = tempfile.mkdtemp()
-#        pade.test.padeconfig.METADB_DIR = self.tempdir
-        self.mdb = MetaDB(pade.test.padeconfig.METADB_DIR, Redis(db=pade.test.padeconfig.DB_METADB))
+        (this_dir, this_file) = os.path.split(__file__)
+        config = pade.config.load(os.path.join(this_dir, 'padeconfig_test.yaml'))
+        self.mdb = MetaDB(config['metadb_dir'],
+                          Redis(host=config['redis']['metadb']['host'],
+                                port=config['redis']['metadb']['port'],
+                                db=config['redis']['metadb']['db']))
         self.mdb.redis.flushdb()
-        self.app = PadeRunner(pade.test.padeconfig).test_client()
+        self.app = PadeRunner(config).test_client()
 
-#    def tearDown(self):
-#        shutil.rmtree(pade.test.padeconfig.METADB_DIR)
 
     def assertOk(self, route):
         self.assertStatus(route, 200)
