@@ -6,6 +6,8 @@ export PYTHONPATH=../../
 # Path to pade executable
 PADE=../../bin/pade
 
+PADE=python -m cProfile -s time ../../pade/main.py 
+
 DB=pade_db.h5
 
 # Don't be verbose. Change to -v to be verbose, or -d to turn on

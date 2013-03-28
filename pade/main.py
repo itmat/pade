@@ -80,8 +80,6 @@ Confidence |   Num.   | Tuning
                 param=job.settings.tuning_params[job.summary.best_param_idxs[i]]))
 
 
-
-
 ########################################################################
 #
 # Handlers for command-line actions
