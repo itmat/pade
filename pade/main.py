@@ -38,7 +38,9 @@ from pade.metadb import JobMeta
 STAT_NAME_TO_CLASS = {
     'f' : 'FStat',
     't' : 'OneSampleDifferenceTStat',
-    'means_ratio' : 'MeansRatio'
+    'means_ratio' : 'MeansRatio',
+    'glm' : 'GLMFStat',
+    
 }
 
 
@@ -238,12 +240,6 @@ def args_to_settings(args):
         block_variables     = set(reduced_model.expr.variables)
         condition_variables = set(full_model.expr.variables).difference(block_vars)
 
-    elif len(factors) == 1:
-        condition_variables = factors
-        block_variables = []
-    
-    else:
-        raise Exception("Since you have multiple factors, please specify a full model")
 
     # Tuning params
     if args.tuning_param is None or len(args.tuning_param) == 0 :

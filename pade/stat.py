@@ -129,6 +129,12 @@ class LayoutPairTest(object):
         self.block_layout = block_layout
 
 
+ALLOWED_FAMILIES = { 
+    'gaussian', lambda: sm.families.Guassian(),
+    'poisson',  lambda: sm.families.Poisson()
+}
+
+
 class GLMFStat(LayoutPairTest):                                          
     """Computes an f-test using a generalized linear model.                  
     
@@ -161,13 +167,13 @@ class GLMFStat(LayoutPairTest):
     array([ 3.6,  1. ,  2.5])
 
     """                                                                      
-    def __init__(self, condition_layout, block_layout, alphas=None):         
-                                                                             
+    def __init__(self, condition_layout, block_layout, alphas=None):
+        
         super(GLMFStat, self).__init__(condition_layout, block_layout)       
                                                                              
         self.layout_full = intersect_layouts(block_layout, condition_layout) 
         self.alphas = alphas                                                 
-        
+
     @property
     def col_to_cat(self):
 
@@ -195,7 +201,7 @@ class GLMFStat(LayoutPairTest):
         >>> f = GLMFStat([[0, 3], [1, 4], [2, 5]], [[0, 1, 2, 3, 4, 5]])
         >>> f.x  # doctest: +NORMALIZE_WHITESPACE
         array([[ 1., 0., 0.],
-               [ 1., 1., 0.],
+x               [ 1., 1., 0.],
                [ 1., 0., 1.],
                [ 1., 0., 0.],
                [ 1., 1., 0.],
@@ -207,6 +213,7 @@ class GLMFStat(LayoutPairTest):
         
     def __call__(self, data):                                                
 
+        logging.info("Doing a model")
         num_regressors = len(self.layout_full)
         num_restrictions = num_regressors - 1
         contrast = np.zeros((num_regressors - 1, num_regressors))
@@ -216,12 +223,12 @@ class GLMFStat(LayoutPairTest):
         
         y = data
 
-        family = sm.families.Gaussian()
+        family = sm.families.Poisson()
 
         if np.ndim(y) == 1:
             model = sm.GLM(y, x, family)
             fitted = model.fit()
-            return fitted.f_test(contrast).fvalue[0, 0]
+            res = fitted.f_test(contrast).fvalue[0, 0]
 
         elif np.ndim(y) == 2:
             m = len(y)
@@ -230,9 +237,11 @@ class GLMFStat(LayoutPairTest):
                 model = sm.GLM(y[i], x, family)
                 fitted = model.fit()
                 res[i] = fitted.f_test(contrast).fvalue[0, 0]
-            return res
+            res = res
                 
-
+        if self.alphas is not None:
+            res = np.array([ res for a in self.alphas])
+        return res
 
 class FStat(LayoutPairTest):
     """Computes the F-test.

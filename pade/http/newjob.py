@@ -160,7 +160,8 @@ class JobSettingsForm(Form):
 
     statistic    = SelectField('Statistic', choices=[('FStat', 'F'), 
                                                      ('OneSampleDifferenceTStat', 'One-Sample T'),
-                                                     ('MeansRatio', 'Means Ratio')])
+                                                     ('MeansRatio', 'Means Ratio'),
+                                                     ('GLMFStat', 'GLM')])
     bins = IntegerField(
         'Number of bins', 
         validators=[Required()],
