@@ -8,6 +8,8 @@ import tempfile
 import shutil
 import time
 import os
+import redis.exceptions
+import logging
 
 standard_routes = [
     '/',
@@ -57,12 +59,23 @@ class PadeRunnerTestCase(unittest.TestCase):
     def setUp(self):
         (this_dir, this_file) = os.path.split(__file__)
         config = pade.config.test
-        self.mdb = MetaDB(config.metadb_dir,
-                          Redis(host=config.metadb_host,
-                                port=config.metadb_port,
-                                db=config.metadb_db))
+
+        try:
+            redis_db = Redis(host=config.metadb_host,
+                             port=config.metadb_port,
+                             db=config.metadb_db)
+            redis_db.flushdb()
+
+        except redis.exceptions.ConnectionError as e:
+            self.skipTest("No redis")
+            return
+
+        self.mdb = MetaDB(config.metadb_dir, redis_db)
         self.mdb.redis.flushdb()
         self.app = PadeRunner(config).test_client()
+
+    def test_setup_job(self):
+        self.assertOk("/")
 
 
     def assertOk(self, route):
@@ -233,8 +246,7 @@ class PadeRunnerTestCase(unittest.TestCase):
         for route in ['/jobs/1/features/14/interaction_plot']:
             self.assertOk(route)
 
-    def test_setup_job(self):
-        self.assertOk("/")
+
 
 
 

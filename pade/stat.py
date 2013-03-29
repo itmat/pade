@@ -11,11 +11,15 @@ from __future__ import absolute_import, print_function, division
 import itertools
 import logging
 import numpy as np
+import statsmodels.api as sm
 
+from collections import namedtuple
 from scipy.stats import gmean
 from bisect import bisect
+from itertools import repeat
 from pade.layout import (
     intersect_layouts, apply_layout, layout_is_paired)
+from statsmodels.tools.tools import categorical
 
 class UnsupportedLayoutException(Exception):
     """Thrown when a statistic is used with a layout that it can't support."""
@@ -125,6 +129,111 @@ class LayoutPairTest(object):
         self.block_layout = block_layout
 
 
+class GLMFStat(LayoutPairTest):                                          
+    """Computes an f-test using a generalized linear model.                  
+    
+    Some sample data                                                         
+    
+    >>> a = np.array([1., 2.,  3., 6.])                                      
+    >>> b = np.array([2., 1.,  1., 1.])                                      
+    >>> c = np.array([3., 1., 10., 4.])                                      
+    
+    The condition layout has the first two columns in one group and          
+    the second two in another. There is no blocking, so the block            
+    layout has all columns in one group.                                     
+    
+    >>> condition_layout = [[0, 1], [2, 3]]                                  
+    >>> block_layout     = [[0, 1, 2, 3]]                                    
+                                                                             
+    Construct one ftest based on our layouts                                 
+                                                                             
+    >>> f = GLMFStat(condition_layout, block_layout)                         
+                                                                             
+    Test one row                                                             
+                                                                             
+    >>> round(f(a), 1)
+    3.6
+                                                                     
+    Test multiple rows at once                                               
+                                                                             
+    >>> data = np.array([a, b, c])                                           
+    >>> f(data)                                                              
+    array([ 3.6,  1. ,  2.5])
+
+    """                                                                      
+    def __init__(self, condition_layout, block_layout, alphas=None):         
+                                                                             
+        super(GLMFStat, self).__init__(condition_layout, block_layout)       
+                                                                             
+        self.layout_full = intersect_layouts(block_layout, condition_layout) 
+        self.alphas = alphas                                                 
+        
+    @property
+    def col_to_cat(self):
+
+        """Return an array mapping a column number to its group in the full
+        layout.
+
+        >>> f = GLMFStat([[0, 3], [1, 4], [2, 5]], [[0, 1, 2, 3, 4, 5]])
+        >>> f.col_to_cat
+        [0, 1, 2, 0, 1, 2]
+        
+        """
+        
+        len = max(map(max, self.layout_full)) + 1
+        res = list(repeat(None, len))
+
+        for i, grp in enumerate(self.layout_full):
+            for idx in grp:
+                res[idx] = i
+
+        return res
+
+    @property
+    def x(self):
+        """
+        >>> f = GLMFStat([[0, 3], [1, 4], [2, 5]], [[0, 1, 2, 3, 4, 5]])
+        >>> f.x  # doctest: +NORMALIZE_WHITESPACE
+        array([[ 1., 0., 0.],
+               [ 1., 1., 0.],
+               [ 1., 0., 1.],
+               [ 1., 0., 0.],
+               [ 1., 1., 0.],
+               [ 1., 0., 1.]])
+         """
+        res = categorical(np.array(self.col_to_cat), drop=True)
+        res[:, 0] = 1
+        return res
+        
+    def __call__(self, data):                                                
+
+        num_regressors = len(self.layout_full)
+        num_restrictions = num_regressors - 1
+        contrast = np.zeros((num_regressors - 1, num_regressors))
+        contrast[:, 1:] = np.identity(num_restrictions)
+
+        x = self.x
+        
+        y = data
+
+        family = sm.families.Gaussian()
+
+        if np.ndim(y) == 1:
+            model = sm.GLM(y, x, family)
+            fitted = model.fit()
+            return fitted.f_test(contrast).fvalue[0, 0]
+
+        elif np.ndim(y) == 2:
+            m = len(y)
+            res = np.zeros(m)
+            for i in range(m):
+                model = sm.GLM(y[i], x, family)
+                fitted = model.fit()
+                res[i] = fitted.f_test(contrast).fvalue[0, 0]
+            return res
+                
+
+
 class FStat(LayoutPairTest):
     """Computes the F-test.
 
@@ -196,6 +305,7 @@ class FStat(LayoutPairTest):
         if self.alphas is not None:
             denom = np.array([denom + x for x in self.alphas])
         return numer / denom
+
 
 
 class OneSampleTTest:
@@ -673,3 +783,4 @@ def ensure_scores_increase(scores):
     for i in range(1, len(res)):
         res[i] = max(res[i], res[i - 1])
     return res
+
