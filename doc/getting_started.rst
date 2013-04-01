@@ -84,7 +84,7 @@ are differentially expressed due to some treatment, and we want to
 treat gender as a "nuisance" variables. So we have two factors:
 "treated" and "gender". We would setup the job as follows::
 
-  pade setup --factor gender --factor treated sample_data/sample_data_4_class.txt
+  pade setup --factor gender --factor treated sample_data/sample_data_4_class.txt -o schema.yaml
 
 This will read in the input file and create a skeleton "schema" file
 based on it, in pade_schema.yaml (this can be changed with the
@@ -156,7 +156,7 @@ Default settings
 
 The simplest Pade job for our 4-class sample input would be something like::
 
-  pade run --condition treated --block gender sample_data/sample_data_4_class.txt
+  pade run --condition treated --block gender --schema schema.yaml sample_data/sample_data_4_class.txt -o results.pade
 
 This should take less than a minute. Note that you need to provide the
 input file on the command line.
@@ -208,11 +208,11 @@ tab-delimited text file containing the reuslts, or launch a small web
 server to display the results in HTML format. To generate the text
 file output, run::
 
-  pade report --text
+  pade report results.pade
 
 To start the Pade server, run:
 
-  pade view DB1 DB2 ...
+  pade view results1.pade results2.pade ...
 
 It will take several seconds to start up. Then visit localhost:5000 in
 a browser to look at the reports.

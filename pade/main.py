@@ -7,6 +7,7 @@
 #  + pade_results.hdf5
 
 
+
 """The main program for pade."""
 
 from __future__ import absolute_import, print_function, division
@@ -29,12 +30,15 @@ import pade.tasks
 import textwrap
 import time
 import pade.config
+import webbrowser
+import urllib2
 
 from collections import namedtuple
 from numpy.lib.recfunctions import append_fields
 from pade.model import Job, Model, Settings, Input, Results, Schema
 from pade.stat import GroupSymbols, stat_names, glm_families
 from pade.metadb import JobMeta
+from threading import Thread
 
 STAT_NAME_TO_CLASS = {
     'f' : 'FStat',
@@ -229,8 +233,26 @@ def do_view(args):
             JobMeta(i, path, path, imported=True))
     pade.http.jobdetails.job_dbs = job_dbs
 
-    print("Routes are\n" + str(app.url_map))
+    def open_browser():
+        url = "http://localhost:5000"
+
+        for i in range(10):
+            code = 0
+            try:
+                resp = urllib2.urlopen(url)
+                code = resp.getcode()
+                webbrowser.open("http://localhost:5000")                    
+                return
+            except urllib2.URLError as e:
+                time.sleep(1)
+            
+        print("I can't seem to start the server")
+
+    t = Thread(target=open_browser)
+        
+    t.start()
     app.run(port=args.port)
+
     
 def do_report(args):
     path = args.pade_results
@@ -708,6 +730,8 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
         '--port',
         type=int,
         help="Specify the port for the server to listen on")
+
+    
 
     ###
     ### Custom args for server parser
