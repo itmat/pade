@@ -22,7 +22,7 @@ DEFAULT_SAMPLE_WITH_REPLACEMENT = False
 DEFAULT_SAMPLE_FROM_RESIDUALS = False
 DEFAULT_SUMMARY_MIN_CONF = 0.1
 DEFAULT_SUMMARY_STEP_SIZE = 0.05
-DEFAULT_EQUALIZE_MEANS = True
+DEFAULT_EQUALIZE_MEANS = False
 DEFAULT_TUNING_PARAMS=[0.001, 0.01, 0.1, 1, 3, 10, 30, 100, 300, 1000, 3000]
 
 TableWithHeader = namedtuple('TableWithHeader', ['header', 'table'])
@@ -462,9 +462,6 @@ class Schema(object):
         self.column_roles = np.array(roles)
         self.column_names = np.array(names)
         self.sample_name_index = {}
-        logging.info("Setting sample name index, which is " + 
-                     str(self.sample_name_index) + " of length " + 
-                     str(len(self.sample_name_index)))
         for i, name in enumerate(names):
             if roles[i] == 'sample':
                 self.sample_name_index[name] = len(self.sample_name_index)
@@ -585,7 +582,7 @@ class Schema(object):
         Schema.dump.
 
         """
-        logging.info("Loading schema from " + str(stream))
+        logging.debug("Loading schema from " + str(stream))
         doc = yaml.load(stream)
 
         if doc is None:

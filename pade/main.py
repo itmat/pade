@@ -221,14 +221,6 @@ def args_to_settings(args):
     else:
         stat = args.stat
 
-    # If they chose one_sample_t_test or means_ratio, we can't
-    # equalize the means.
-    if stat in set(['one_sample_t', 'means_ratio']):
-        logging.info("We're using stat " + stat + ", so I won't equalize means")
-        equalize_means = False
-    else:
-        equalize_means = args.equalize_means
-
     if stat == 'glm':
         if args.glm_family is None:
             raise UsageException(
@@ -270,7 +262,7 @@ def args_to_settings(args):
         block_variables=block_variables,
         condition_variables=condition_variables,
         stat_class=STAT_NAME_TO_CLASS[stat],
-        equalize_means=equalize_means
+        equalize_means=args.equalize_means
         )
 
 def load_schema(path):
@@ -651,8 +643,8 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
         help="Interval of confidence levels")
 
     grp.add_argument(
-        '--no-equalize-means',
-        action='store_false',
+        '--equalize-means',
+        action='store_true',
         dest='equalize_means',
         default=pade.model.DEFAULT_EQUALIZE_MEANS,
         help="""Shift values of samples within same group for same feature so that their mean is 0 before the permutation test. This will likely cause Pade to be more conservative in selecting features.""")
