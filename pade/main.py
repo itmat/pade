@@ -30,6 +30,7 @@ import textwrap
 import time
 import pade.config
 
+from collections import namedtuple
 from numpy.lib.recfunctions import append_fields
 from pade.model import Job, Model, Settings, Input, Results, Schema
 from pade.stat import GroupSymbols, stat_names, glm_families
@@ -90,15 +91,18 @@ Confidence |   Num.   | Tuning
 def do_setup(args):
     schema = init_job(
         infile=args.infile,
-        schema_path=args.schema,
-        factors={f : [] for f in args.factor},
-        force=args.force)
+        schema_path=args.output,
+        factors={f : [] for f in args.factor})
 
-    print(fix_newlines("""
-I have generated a schema for your input file, with factors {factors}, and saved it to "{filename}". You should now edit that file to set the factors for each sample. The file contains instructions on how to edit it.
+    print("""
+I have generated a schema for your input file, with factors {factors},
+and saved it to "{filename}". You should now edit that file to set the
+factors for each sample. The file contains instructions on how to edit
+it.
 
-Once you have finished the schema, you will need to run "pade run" to do the analysis. See "pade run -h" for its usage.
-""").format(factors=schema.factors, filename=args.schema))
+Once you have finished the schema, you will need to run "pade run" to
+do the analysis. See "pade run -h" for its usage.
+""".format(factors=schema.factors, filename=args.output))
 
 def do_makesamples(args):
 
@@ -130,6 +134,27 @@ def do_makesamples(args):
             output.write(' {:3d}'.format(x))
         output.write(" # " + test(np.array(row)) + "\n")
 
+def quote_and_join(xs):
+    xs = [ '"' + str(x) + '"' for x in xs ]
+    if len(xs) == 0:
+        return ""
+    if len(xs) == 1:
+        return xs[0]
+    elif len(xs) == 2:
+        return xs[0] + " and " + xs[1]
+    else:
+        xs[-1] = "and " + xs[-1]
+        return ", ".join(xs)
+
+
+def validate_settings(schema, settings):
+    vars = set(settings.condition_variables + settings.block_variables)
+    known_vars = set(schema.factors)
+    bad_vars = vars.difference(known_vars)
+    if len(bad_vars) > 0:
+        
+        raise UsageException(
+            "Unknown variables " + quote_and_join(bad_vars) + ".  Valid variables are " + quote_and_join(sorted(known_vars)) + "." )
 
 def do_run(args):
     print("Analyzing {filename}, which is described by the schema {schema}."
@@ -137,12 +162,17 @@ def do_run(args):
                   schema=args.schema))
 
     infile = os.path.abspath(args.infile)
-    db     = os.path.abspath(args.db)
+    db     = os.path.abspath(args.output)
+
+    schema = load_schema(args.schema)
+    settings = args_to_settings(args)
+
+    validate_settings(schema, settings)
 
     steps = pade.tasks.steps(
         infile_path=infile,
-        schema=load_schema(args.schema),
-        settings=args_to_settings(args),
+        schema=schema,
+        settings=settings,
         sample_indexes_path=args.sample_indexes,
         path=db,
         job_id=0)
@@ -165,12 +195,12 @@ def do_run(args):
 The results for the job are saved in {path}. To generate a text
 report, run:
 
-  pade report --db {path}
+  pade report --output REPORT_FILE {path}
 
-To launch a small web server to generate the HTML reports, run:
+To launch a small web server to generate HTML reports, run:
 
-  pade server --db {path}
-""".format(path=args.db))
+  pade view {path}
+""".format(path=args.output))
 
 def do_server(args):
     import pade.http.server
@@ -186,7 +216,7 @@ def do_server(args):
     app.run(port=args.port)
 
 def do_view(args):
-    print("Here I am!")
+
     import pade.http.server
     app = pade.http.server.PadeViewer()
     if args.debug:
@@ -202,10 +232,10 @@ def do_view(args):
     app.run(port=args.port)
     
 def do_report(args):
-    path = args.db
+    path = args.pade_results
 
     print("Generating report for result database {job}.".format(job=path))
-    job = load_job(path)
+    job = pade.tasks.load_job(path)
     filename = args.output
     save_text_output(job, filename=filename)
     print("Saved text report to ", filename)
@@ -399,7 +429,7 @@ def init_schema(infile=None):
     return Schema(column_names=csvfile.fieldnames, column_roles=roles)
 
 
-def init_job(infile, factors, schema_path=None, force=False):
+def init_job(infile, factors, schema_path=None):
 
     if isinstance(infile, str):
         infile = open(infile)
@@ -408,18 +438,10 @@ def init_job(infile, factors, schema_path=None, force=False):
     for name, values in factors.items():
         schema.add_factor(name, values)
 
-    mode = 'w' if force else 'wx'
-    try:
-        with open(schema_path, mode) as out:
-            logging.info("Saving schema to " + out.name)
-            schema.save(out)
-    except IOError as e:
-        if e.errno == errno.EEXIST:
-            raise UsageException("""\
-                   The schema file \"{}\" already exists. If you want to
-                   overwrite it, use the --force or -f argument.""".format(
-                    schema_path))
-        raise e
+    mode = 'w'
+    with open(schema_path, mode) as out:
+        logging.info("Saving schema to " + out.name)
+        schema.save(out)
 
     return schema
 
@@ -503,12 +525,12 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
     schema_in_parent.add_argument(
         '--schema', 
         help="The schema YAML file to load",
-        default="pade_schema.yaml")
+        required=True)
 
     db_in_parent = argparse.ArgumentParser(add_help=False)
     db_in_parent.add_argument(
         'pade_results', 
-        nargs='*',
+        nargs='+',
         help="Path to the db file to read results from")
 
     ###
@@ -533,7 +555,7 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
         'report',
         help="""Generate report""",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        parents=[parents, db_in_parent])
+        parents=[parents])
 
     server_parser = subparsers.add_parser(
         'server',
@@ -565,22 +587,18 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
         specify this option more than once, to use more than one
         class.""")
     setup_parser.add_argument(
-        '--force', '-f',
-        action='store_true',
-        help="""Overwrite any existing files""")
-    setup_parser.add_argument(
-        '--schema', 
+        '--output', '-o',
         help="Path to write the schema file to",
-        default="pade_schema.yaml")
+        required=True)
 
     ###
     ### Custom args for run parser
     ###
 
     run_parser.add_argument(
-        '--db', 
+        '--output', '-o',
         help="Path to the binary output file",
-        default="pade_db.h5")
+        required=True)
 
     run_parser.add_argument(
         '--distrib',
@@ -661,8 +679,11 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
 
     report_parser.add_argument(
         '--output', '-o',
-        default="pade_report.txt",
+        required=True,
         help="""Location to write report to""")
+    report_parser.add_argument(
+        'pade_results', 
+        help="Path to the db file to read results from")
 
     ###
     ### Custom args for server parser

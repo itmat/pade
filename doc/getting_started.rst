@@ -8,19 +8,23 @@ Pade requires a number of libraries that aren't built in to Python:
 
 * jinja2
 * matplotlib
-* numpy
 * scipy
-* yaml
+* numpy
+* redis
+* celery
+* h5py
+* flask
+* Flask-WTF
 
 If you are using Linux, you may be able to install these packages
 quite easily using pip (http://pypi.python.org/pypi/pip) or another
 package management tool.
 
-If you are using a Mac, installing scipy can be tricky. The easiest
-way to get up and running may be to use a Python distribution that has
-scientific computing libraries pre-packaged with it. You should be
-able to use the *Enthought Python Distribution*, available here:
-http://www.enthought.com/products/epd.php.
+If you are using a Mac, installing numpy, scipy and h5py can be
+tricky. The easiest way to get up and running may be to use a Python
+distribution that has scientific computing libraries pre-packaged with
+it. You should be able to use the *Enthought Python Distribution*,
+available here: http://www.enthought.com/products/epd.php.
 
 Obtaining
 ---------
@@ -35,17 +39,12 @@ Installing
 ----------
 
 Once you've obtained Pade, you can either run it from the directory
-where you've unpacked it, or install it globally. If you run it from a
-local directory, you'll need to update your PYTHONPATH environment
-variable to point to the root of the Pade directory. For example, if
-you've downloaded Pade to ~/projects/, you might want to add ::
+where you've unpacked it, or install it globally.
 
-  export PYTHONPATH=$PYTHONPATH:$HOME/projects/pade
-
-to your ~/.profile or ~/.bashrc file.
-
-You can install it simply by running ``python setup.py install``.  Note
-that you may need to run this as root or under sudo.
+You can install it simply by running ``python setup.py install``.
+Note that you may need to run this as root or under sudo. The
+installation process should attempt to install any dependencies you
+are missing.
    
 Running a sample job
 --------------------
@@ -60,15 +59,14 @@ in the ``sample_data`` directory.
 Input files
 ^^^^^^^^^^^
 
-The input to any pade job (at this time) is a tab-delimited file. The
-file must contain a header row, plus one row for each feature. There
-should be one column that contains a unique identifier for the
-features (for example a gene id). Then each of the samples should have
-their expression values for each feature in its own column. So for
-example if you 2 conditions, each with 4 replicates, and 1000
-features, you would have a tab file with a header row plus 1000 data
-rows, with 9 columns (1 for the feature id and 8 for the expression
-data).
+The input to any pade job is a tab-delimited file. The file must
+contain a header row, plus one row for each feature. There should be
+one column that contains a unique identifier for the features (for
+example a gene id). Then each of the samples should have their
+expression values for each feature in its own column. So for example
+if you 2 conditions, each with 4 replicates, and 1000 features, you
+would have a tab file with a header row plus 1000 data rows, with 9
+columns (1 for the feature id and 8 for the expression data).
 
 The names of the columns do not matter, except that each column's name
 must be unique. 
@@ -195,6 +193,11 @@ means_ratio:
   Ratio of means. Can only be used when there are two conditions. Can
   be used with or without blocking. Works with paired data also.
 
+glm: A generalized linear model. If you specify this statistic, you
+  must also specify a distribution family using the '--glm-family'
+  option. Please see ``pade help run`` for a list of the supported
+  families.
+
 Viewing reports
 ^^^^^^^^^^^^^^^
 
@@ -209,7 +212,7 @@ file output, run::
 
 To start the Pade server, run:
 
-  pade server
+  pade view DB1 DB2 ...
 
 It will take several seconds to start up. Then visit localhost:5000 in
 a browser to look at the reports.
