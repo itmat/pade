@@ -1,0 +1,167 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pade.http.server &mdash; PADE 6.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '6.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="PADE 6.0 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">PADE 6.0 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for pade.http.server</h1><div class="highlight"><pre>
+<span class="c"># TODO:</span>
+<span class="c">#  Pre-generate histograms of stat distributions</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span>
+
+<span class="kn">import</span> <span class="nn">logging</span> 
+<span class="kn">import</span> <span class="nn">pade.redis_session</span>
+<span class="kn">import</span> <span class="nn">pade.http.jobdetails</span>
+<span class="kn">import</span> <span class="nn">pade.http.newjob</span>
+<span class="kn">import</span> <span class="nn">pade.http.inputfile</span>
+<span class="kn">import</span> <span class="nn">pade.http.jobbrowser</span>
+
+<span class="kn">from</span> <span class="nn">redis</span> <span class="kn">import</span> <span class="n">Redis</span>
+<span class="kn">from</span> <span class="nn">flask</span> <span class="kn">import</span> <span class="n">Flask</span>
+<span class="kn">from</span> <span class="nn">pade.metadb</span> <span class="kn">import</span> <span class="n">MetaDB</span>
+
+<div class="viewcode-block" id="PadeServer"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.server.PadeServer">[docs]</a><span class="k">class</span> <span class="nc">PadeServer</span><span class="p">(</span><span class="n">Flask</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">PadeServer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">jinja_env</span><span class="o">.</span><span class="n">filters</span><span class="p">[</span><span class="s">&#39;datetime&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">datetime_format</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">jinja_env</span><span class="o">.</span><span class="n">filters</span><span class="p">[</span><span class="s">&#39;joblabel&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">job_label</span>
+
+</div>
+<div class="viewcode-block" id="PadeRunner"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.server.PadeRunner">[docs]</a><span class="k">class</span> <span class="nc">PadeRunner</span><span class="p">(</span><span class="n">PadeServer</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">PadeRunner</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">secret_key</span> <span class="o">=</span> <span class="s">&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_blueprint</span><span class="p">(</span><span class="n">pade</span><span class="o">.</span><span class="n">http</span><span class="o">.</span><span class="n">jobdetails</span><span class="o">.</span><span class="n">bp</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_blueprint</span><span class="p">(</span><span class="n">pade</span><span class="o">.</span><span class="n">http</span><span class="o">.</span><span class="n">newjob</span><span class="o">.</span><span class="n">bp</span><span class="p">,</span>     <span class="n">url_prefix</span><span class="o">=</span><span class="s">&quot;/new_job&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_blueprint</span><span class="p">(</span><span class="n">pade</span><span class="o">.</span><span class="n">http</span><span class="o">.</span><span class="n">inputfile</span><span class="o">.</span><span class="n">bp</span><span class="p">,</span>  <span class="n">url_prefix</span><span class="o">=</span><span class="s">&quot;/input_files&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_blueprint</span><span class="p">(</span><span class="n">pade</span><span class="o">.</span><span class="n">http</span><span class="o">.</span><span class="n">jobbrowser</span><span class="o">.</span><span class="n">runner</span><span class="p">)</span>
+
+        <span class="n">session_db</span> <span class="o">=</span> <span class="n">Redis</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">session_host</span><span class="p">,</span>
+                           <span class="n">port</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">session_port</span><span class="p">,</span>
+                           <span class="n">db</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">session_db</span><span class="p">)</span>
+
+        <span class="n">metadb_db</span> <span class="o">=</span> <span class="n">Redis</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">metadb_host</span><span class="p">,</span>
+                          <span class="n">port</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">metadb_port</span><span class="p">,</span>
+                          <span class="n">db</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">metadb_db</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">session_interface</span> <span class="o">=</span> <span class="n">pade</span><span class="o">.</span><span class="n">redis_session</span><span class="o">.</span><span class="n">RedisSessionInterface</span><span class="p">(</span><span class="n">session_db</span><span class="p">)</span>
+
+        <span class="n">mdb</span> <span class="o">=</span> <span class="n">MetaDB</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">metadb_dir</span><span class="p">,</span> <span class="n">metadb_db</span><span class="p">)</span>
+
+        <span class="n">modules</span> <span class="o">=</span> <span class="p">[</span><span class="n">pade</span><span class="o">.</span><span class="n">http</span><span class="o">.</span><span class="n">jobdetails</span><span class="p">,</span>
+                   <span class="n">pade</span><span class="o">.</span><span class="n">http</span><span class="o">.</span><span class="n">newjob</span><span class="p">,</span>
+                   <span class="n">pade</span><span class="o">.</span><span class="n">http</span><span class="o">.</span><span class="n">inputfile</span><span class="p">,</span>
+                   <span class="n">pade</span><span class="o">.</span><span class="n">http</span><span class="o">.</span><span class="n">jobbrowser</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">modules</span><span class="p">:</span>
+            <span class="n">m</span><span class="o">.</span><span class="n">mdb</span> <span class="o">=</span> <span class="n">mdb</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_url_rule</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">,</span> <span class="s">&#39;index&#39;</span><span class="p">,</span> <span class="n">pade</span><span class="o">.</span><span class="n">http</span><span class="o">.</span><span class="n">jobbrowser</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="PadeViewer"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.server.PadeViewer">[docs]</a><span class="k">class</span> <span class="nc">PadeViewer</span><span class="p">(</span><span class="n">PadeServer</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">PadeViewer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+        <span class="n">pade</span><span class="o">.</span><span class="n">http</span><span class="o">.</span><span class="n">jobdetails</span><span class="o">.</span><span class="n">mdb</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_blueprint</span><span class="p">(</span><span class="n">pade</span><span class="o">.</span><span class="n">http</span><span class="o">.</span><span class="n">jobdetails</span><span class="o">.</span><span class="n">bp</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_url_rule</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">,</span> <span class="s">&#39;index&#39;</span><span class="p">,</span> <span class="n">pade</span><span class="o">.</span><span class="n">http</span><span class="o">.</span><span class="n">jobdetails</span><span class="o">.</span><span class="n">job_list</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="datetime_format"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.server.datetime_format">[docs]</a><span class="k">def</span> <span class="nf">datetime_format</span><span class="p">(</span><span class="n">dt</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Jinja2 filter for formatting datetime objects.&quot;&quot;&quot;</span>
+    
+    <span class="k">return</span> <span class="s">&quot;&quot;</span> <span class="k">if</span> <span class="n">dt</span> <span class="ow">is</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">dt</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%F</span><span class="s"> %R&#39;</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="job_label"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.server.job_label">[docs]</a><span class="k">def</span> <span class="nf">job_label</span><span class="p">(</span><span class="n">job_meta</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">job_meta</span><span class="o">.</span><span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">job_meta</span><span class="o">.</span><span class="n">name</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">job_meta</span><span class="o">.</span><span class="n">name</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s">&quot;job &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">job_meta</span><span class="o">.</span><span class="n">obj_id</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">PADE 6.0 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, University of Pennsylvania.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

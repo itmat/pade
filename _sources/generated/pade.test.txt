@@ -9,18 +9,26 @@ test Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`test_common` Module
--------------------------
+:mod:`padeconfig` Module
+------------------------
 
-.. automodule:: pade.test.test_common
+.. automodule:: pade.test.padeconfig
     :members:
     :undoc-members:
     :show-inheritance:
 
-:mod:`test_job` Module
-----------------------
+:mod:`test_analysis` Module
+---------------------------
 
-.. automodule:: pade.test.test_job
+.. automodule:: pade.test.test_analysis
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`test_main` Module
+-----------------------
+
+.. automodule:: pade.test.test_main
     :members:
     :undoc-members:
     :show-inheritance:
@@ -41,18 +49,10 @@ test Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`test_profile` Module
---------------------------
-
-.. automodule:: pade.test.test_profile
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-:mod:`test_schema` Module
+:mod:`test_server` Module
 -------------------------
 
-.. automodule:: pade.test.test_schema
+.. automodule:: pade.test.test_server
     :members:
     :undoc-members:
     :show-inheritance:

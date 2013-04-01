@@ -1,0 +1,50 @@
+http Package
+============
+
+:mod:`inputfile` Module
+-----------------------
+
+.. automodule:: pade.http.inputfile
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`jobbrowser` Module
+------------------------
+
+.. automodule:: pade.http.jobbrowser
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`jobdetails` Module
+------------------------
+
+.. automodule:: pade.http.jobdetails
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`newjob` Module
+--------------------
+
+.. automodule:: pade.http.newjob
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`server` Module
+--------------------
+
+.. automodule:: pade.http.server
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+Subpackages
+-----------
+
+.. toctree::
+
+    pade.http.templates
+

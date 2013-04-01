@@ -28,7 +28,7 @@
     <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="top" title="PADE 6.0 documentation" href="../index.html" />
     <link rel="up" title="API Documentation" href="../api.html" />
-    <link rel="next" title="test Package" href="pade.test.html" />
+    <link rel="next" title="http Package" href="pade.http.html" />
     <link rel="prev" title="API Documentation" href="../api.html" /> 
   </head>
   <body>
@@ -42,7 +42,7 @@
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="pade.test.html" title="test Package"
+          <a href="pade.http.html" title="http Package"
              accesskey="N">next</a> |</li>
         <li class="right" >
           <a href="../api.html" title="API Documentation"
@@ -222,12 +222,6 @@ level=n is intercept, main effects, interactions between n variables</p>
 <dd></dd></dl>
 
 <dl class="function">
-<dt id="pade.analysis.get_stat_fn">
-<tt class="descclassname">pade.analysis.</tt><tt class="descname">get_stat_fn</tt><big>(</big><em>job</em><big>)</big><a class="reference internal" href="../_modules/pade/analysis.html#get_stat_fn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.analysis.get_stat_fn" title="Permalink to this definition">¶</a></dt>
-<dd><p>The statistic used for this job.</p>
-</dd></dl>
-
-<dl class="function">
 <dt id="pade.analysis.new_sample_indexes">
 <tt class="descclassname">pade.analysis.</tt><tt class="descname">new_sample_indexes</tt><big>(</big><em>job</em><big>)</big><a class="reference internal" href="../_modules/pade/analysis.html#new_sample_indexes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.analysis.new_sample_indexes" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create array of sample indexes.</p>
@@ -262,6 +256,25 @@ defined by the reduced model.</p>
 <div class="section" id="module-pade.celery">
 <span id="celery-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">celery</span></tt> Module<a class="headerlink" href="#module-pade.celery" title="Permalink to this headline">¶</a></h2>
 <p>Sets up Celery for PADE.</p>
+</div>
+<div class="section" id="module-pade.config">
+<span id="config-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">config</span></tt> Module<a class="headerlink" href="#module-pade.config" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="pade.config.PadeConfig">
+<em class="property">class </em><tt class="descclassname">pade.config.</tt><tt class="descname">PadeConfig</tt><big>(</big><em>metadb_host=None</em>, <em>metadb_port=None</em>, <em>metadb_db=None</em>, <em>session_host=None</em>, <em>session_port=None</em>, <em>session_db=None</em>, <em>celery_host=None</em>, <em>celery_port=None</em>, <em>celery_db=None</em>, <em>metadb_dir=None</em><big>)</big><a class="reference internal" href="../_modules/pade/config.html#PadeConfig"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.config.PadeConfig" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pade.config.load">
+<tt class="descclassname">pade.config.</tt><tt class="descname">load</tt><big>(</big><em>path</em><big>)</big><a class="reference internal" href="../_modules/pade/config.html#load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.config.load" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.config.search">
+<tt class="descclassname">pade.config.</tt><tt class="descname">search</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/config.html#search"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.config.search" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </div>
 <div class="section" id="module-pade.layout">
 <span id="layout-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">layout</span></tt> Module<a class="headerlink" href="#module-pade.layout" title="Permalink to this headline">¶</a></h2>
@@ -381,7 +394,7 @@ layout0 with a group in layout1.</p>
 <dl class="function">
 <dt id="pade.layout.layout_is_paired">
 <tt class="descclassname">pade.layout.</tt><tt class="descname">layout_is_paired</tt><big>(</big><em>layout</em><big>)</big><a class="reference internal" href="../_modules/pade/layout.html#layout_is_paired"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.layout.layout_is_paired" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns true of the layout appears to be &#8216;paired&#8217;.</p>
+<dd><p>Returns true if the layout appears to be &#8216;paired&#8217;.</p>
 <p>A paired layout is one where each group contains two values.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -502,6 +515,11 @@ reduced layout will be shuffled.</p>
 <dd></dd></dl>
 
 <dl class="function">
+<dt id="pade.main.do_view">
+<tt class="descclassname">pade.main.</tt><tt class="descname">do_view</tt><big>(</big><em>args</em><big>)</big><a class="reference internal" href="../_modules/pade/main.html#do_view"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.main.do_view" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
 <dt id="pade.main.fix_newlines">
 <tt class="descclassname">pade.main.</tt><tt class="descname">fix_newlines</tt><big>(</big><em>msg</em><big>)</big><a class="reference internal" href="../_modules/pade/main.html#fix_newlines"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.main.fix_newlines" title="Permalink to this definition">¶</a></dt>
 <dd><p>Attempt to wrap long lines as paragraphs.</p>
@@ -519,7 +537,7 @@ object.</p>
 
 <dl class="function">
 <dt id="pade.main.init_job">
-<tt class="descclassname">pade.main.</tt><tt class="descname">init_job</tt><big>(</big><em>infile</em>, <em>factors</em>, <em>schema_path=None</em>, <em>force=False</em><big>)</big><a class="reference internal" href="../_modules/pade/main.html#init_job"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.main.init_job" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pade.main.</tt><tt class="descname">init_job</tt><big>(</big><em>infile</em>, <em>factors</em>, <em>schema_path=None</em><big>)</big><a class="reference internal" href="../_modules/pade/main.html#init_job"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.main.init_job" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
@@ -542,13 +560,13 @@ system.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pade.main.print_profile">
-<tt class="descclassname">pade.main.</tt><tt class="descname">print_profile</tt><big>(</big><em>job</em><big>)</big><a class="reference internal" href="../_modules/pade/main.html#print_profile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.main.print_profile" title="Permalink to this definition">¶</a></dt>
+<dt id="pade.main.print_summary">
+<tt class="descclassname">pade.main.</tt><tt class="descname">print_summary</tt><big>(</big><em>job</em><big>)</big><a class="reference internal" href="../_modules/pade/main.html#print_summary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.main.print_summary" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
-<dt id="pade.main.print_summary">
-<tt class="descclassname">pade.main.</tt><tt class="descname">print_summary</tt><big>(</big><em>job</em><big>)</big><a class="reference internal" href="../_modules/pade/main.html#print_summary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.main.print_summary" title="Permalink to this definition">¶</a></dt>
+<dt id="pade.main.quote_and_join">
+<tt class="descclassname">pade.main.</tt><tt class="descname">quote_and_join</tt><big>(</big><em>xs</em><big>)</big><a class="headerlink" href="#pade.main.quote_and_join" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
@@ -559,6 +577,11 @@ system.</p>
 <dl class="function">
 <dt id="pade.main.setup_logging">
 <tt class="descclassname">pade.main.</tt><tt class="descname">setup_logging</tt><big>(</big><em>args</em><big>)</big><a class="reference internal" href="../_modules/pade/main.html#setup_logging"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.main.setup_logging" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.main.validate_settings">
+<tt class="descclassname">pade.main.</tt><tt class="descname">validate_settings</tt><big>(</big><em>schema</em>, <em>settings</em><big>)</big><a class="headerlink" href="#pade.main.validate_settings" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </div>
@@ -579,6 +602,11 @@ system.</p>
 <tt class="descname">description</tt><em class="property"> = None</em><a class="headerlink" href="#pade.metadb.InputFileMeta.description" title="Permalink to this definition">¶</a></dt>
 <dd><p>Longer, free-form description of the object.</p>
 </dd></dl>
+
+<dl class="attribute">
+<dt id="pade.metadb.InputFileMeta.extension">
+<tt class="descname">extension</tt><em class="property"> = 'txt'</em><a class="headerlink" href="#pade.metadb.InputFileMeta.extension" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="attribute">
 <dt id="pade.metadb.InputFileMeta.input_file_to_schemas">
@@ -605,7 +633,7 @@ system.</p>
 
 <dl class="class">
 <dt id="pade.metadb.JobMeta">
-<em class="property">class </em><tt class="descclassname">pade.metadb.</tt><tt class="descname">JobMeta</tt><big>(</big><em>obj_id</em>, <em>name</em>, <em>path</em>, <em>dt_created=None</em>, <em>description=None</em>, <em>raw_file_id=None</em>, <em>schema_id=None</em><big>)</big><a class="reference internal" href="../_modules/pade/metadb.html#JobMeta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.metadb.JobMeta" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">pade.metadb.</tt><tt class="descname">JobMeta</tt><big>(</big><em>obj_id</em>, <em>name</em>, <em>path</em>, <em>dt_created=None</em>, <em>description=None</em>, <em>raw_file_id=None</em>, <em>schema_id=None</em>, <em>imported=None</em><big>)</big><a class="reference internal" href="../_modules/pade/metadb.html#JobMeta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.metadb.JobMeta" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#pade.metadb.ObjMeta" title="pade.metadb.ObjMeta"><tt class="xref py py-class docutils literal"><span class="pre">pade.metadb.ObjMeta</span></tt></a></p>
 <p>Meta-data for an HDF5 job database.</p>
 <dl class="attribute">
@@ -618,6 +646,11 @@ system.</p>
 <tt class="descname">description</tt><em class="property"> = None</em><a class="headerlink" href="#pade.metadb.JobMeta.description" title="Permalink to this definition">¶</a></dt>
 <dd><p>Longer, free-form description of the object.</p>
 </dd></dl>
+
+<dl class="attribute">
+<dt id="pade.metadb.JobMeta.extension">
+<tt class="descname">extension</tt><em class="property"> = 'pade'</em><a class="headerlink" href="#pade.metadb.JobMeta.extension" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="attribute">
 <dt id="pade.metadb.JobMeta.name">
@@ -655,7 +688,7 @@ system.</p>
 
 <dl class="method">
 <dt id="pade.metadb.MetaDB.add_job">
-<tt class="descname">add_job</tt><big>(</big><em>name</em>, <em>description</em>, <em>raw_file_meta</em>, <em>schema_meta</em><big>)</big><a class="reference internal" href="../_modules/pade/metadb.html#MetaDB.add_job"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.metadb.MetaDB.add_job" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">add_job</tt><big>(</big><em>name</em>, <em>description</em>, <em>raw_file_meta=None</em>, <em>schema_meta=None</em>, <em>stream=None</em><big>)</big><a class="reference internal" href="../_modules/pade/metadb.html#MetaDB.add_job"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.metadb.MetaDB.add_job" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -766,6 +799,11 @@ system.</p>
 <dd><p>Longer, free-form description of the object.</p>
 </dd></dl>
 
+<dl class="attribute">
+<dt id="pade.metadb.SchemaMeta.extension">
+<tt class="descname">extension</tt><em class="property"> = 'yaml'</em><a class="headerlink" href="#pade.metadb.SchemaMeta.extension" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="method">
 <dt id="pade.metadb.SchemaMeta.load">
 <tt class="descname">load</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/metadb.html#SchemaMeta.load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.metadb.SchemaMeta.load" title="Permalink to this definition">¶</a></dt>
@@ -825,6 +863,12 @@ with a header line.</td>
 
 </dd></dl>
 
+<dl class="exception">
+<dt id="pade.model.InvalidSettingsException">
+<em class="property">exception </em><tt class="descclassname">pade.model.</tt><tt class="descname">InvalidSettingsException</tt><a class="reference internal" href="../_modules/pade/model.html#InvalidSettingsException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.model.InvalidSettingsException" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">exceptions.Exception</span></tt></p>
+</dd></dl>
+
 <dl class="class">
 <dt id="pade.model.Job">
 <em class="property">class </em><tt class="descclassname">pade.model.</tt><tt class="descname">Job</tt><big>(</big><em>job_id=None</em>, <em>input=None</em>, <em>schema=None</em>, <em>settings=None</em>, <em>results=None</em>, <em>summary=None</em><big>)</big><a class="reference internal" href="../_modules/pade/model.html#Job"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.model.Job" title="Permalink to this definition">¶</a></dt>
@@ -856,6 +900,12 @@ job, and a summary of those results.</p>
 <dt id="pade.model.Job.full_variables">
 <tt class="descname">full_variables</tt><a class="reference internal" href="../_modules/pade/model.html#Job.full_variables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.model.Job.full_variables" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="method">
+<dt id="pade.model.Job.get_stat_fn">
+<tt class="descname">get_stat_fn</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/model.html#Job.get_stat_fn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.model.Job.get_stat_fn" title="Permalink to this definition">¶</a></dt>
+<dd><p>The statistic used for this job.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="pade.model.Job.layout">
@@ -1007,11 +1057,6 @@ Schema.dump.</p>
 to those factors.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="pade.model.Schema.remove_factor">
-<tt class="descname">remove_factor</tt><big>(</big><em>factor</em><big>)</big><a class="reference internal" href="../_modules/pade/model.html#Schema.remove_factor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.model.Schema.remove_factor" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 <dl class="attribute">
 <dt id="pade.model.Schema.sample_column_names">
 <tt class="descname">sample_column_names</tt><a class="reference internal" href="../_modules/pade/model.html#Schema.sample_column_names"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.model.Schema.sample_column_names" title="Permalink to this definition">¶</a></dt>
@@ -1068,7 +1113,7 @@ sample.</p>
 
 <dl class="class">
 <dt id="pade.model.Settings">
-<em class="property">class </em><tt class="descclassname">pade.model.</tt><tt class="descname">Settings</tt><big>(</big><em>stat_name='f_test', num_bins=1000, num_samples=1000, sample_from_residuals=False, sample_with_replacement=False, condition_variables=None, block_variables=None, min_conf=0.25, equalize_means=True, conf_interval=0.05, tuning_params=[0.001, 0.01, 0.1, 1, 3, 10, 30, 100, 300, 1000, 3000], equalize_means_ids=None</em><big>)</big><a class="reference internal" href="../_modules/pade/model.html#Settings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.model.Settings" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">pade.model.</tt><tt class="descname">Settings</tt><big>(</big><em>stat=None, glm_family='', num_bins=1000, num_samples=1000, sample_from_residuals=False, sample_with_replacement=False, condition_variables=[], block_variables=[], summary_min_conf=0.1, equalize_means=False, summary_step_size=0.05, tuning_params=[0.001, 0.01, 0.1, 1, 3, 10, 30, 100, 300, 1000, 3000], equalize_means_ids=None</em><big>)</big><a class="reference internal" href="../_modules/pade/model.html#Settings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.model.Settings" title="Permalink to this definition">¶</a></dt>
 <dd><p>The settings that control how the job is run.</p>
 <dl class="attribute">
 <dt id="pade.model.Settings.block_variables">
@@ -1080,12 +1125,6 @@ sample.</p>
 <dt id="pade.model.Settings.condition_variables">
 <tt class="descname">condition_variables</tt><em class="property"> = None</em><a class="headerlink" href="#pade.model.Settings.condition_variables" title="Permalink to this definition">¶</a></dt>
 <dd><p>List of variables you want to test for differential effects.</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="pade.model.Settings.conf_interval">
-<tt class="descname">conf_interval</tt><em class="property"> = None</em><a class="headerlink" href="#pade.model.Settings.conf_interval" title="Permalink to this definition">¶</a></dt>
-<dd><p>Interval of confidence values to report on.</p>
 </dd></dl>
 
 <dl class="attribute">
@@ -1101,9 +1140,9 @@ sample.</p>
 </dd></dl>
 
 <dl class="attribute">
-<dt id="pade.model.Settings.min_conf">
-<tt class="descname">min_conf</tt><em class="property"> = None</em><a class="headerlink" href="#pade.model.Settings.min_conf" title="Permalink to this definition">¶</a></dt>
-<dd><p>Minimum confidence level to report on.</p>
+<dt id="pade.model.Settings.glm_family">
+<tt class="descname">glm_family</tt><em class="property"> = None</em><a class="headerlink" href="#pade.model.Settings.glm_family" title="Permalink to this definition">¶</a></dt>
+<dd><p>Name of statistic to use.</p>
 </dd></dl>
 
 <dl class="attribute">
@@ -1132,9 +1171,21 @@ sample.</p>
 </dd></dl>
 
 <dl class="attribute">
-<dt id="pade.model.Settings.stat_name">
-<tt class="descname">stat_name</tt><em class="property"> = None</em><a class="headerlink" href="#pade.model.Settings.stat_name" title="Permalink to this definition">¶</a></dt>
-<dd><p>Name of the statistic to use.</p>
+<dt id="pade.model.Settings.stat">
+<tt class="descname">stat</tt><em class="property"> = None</em><a class="headerlink" href="#pade.model.Settings.stat" title="Permalink to this definition">¶</a></dt>
+<dd><p>Name of statistic to use.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pade.model.Settings.summary_min_conf">
+<tt class="descname">summary_min_conf</tt><em class="property"> = None</em><a class="headerlink" href="#pade.model.Settings.summary_min_conf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Minimum confidence level to report on.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pade.model.Settings.summary_step_size">
+<tt class="descname">summary_step_size</tt><em class="property"> = None</em><a class="headerlink" href="#pade.model.Settings.summary_step_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Interval of confidence values to report on.</p>
 </dd></dl>
 
 <dl class="attribute">
@@ -1171,6 +1222,12 @@ sample.</p>
 
 </dd></dl>
 
+<dl class="exception">
+<dt id="pade.model.UnknownStatisticException">
+<em class="property">exception </em><tt class="descclassname">pade.model.</tt><tt class="descname">UnknownStatisticException</tt><a class="reference internal" href="../_modules/pade/model.html#UnknownStatisticException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.model.UnknownStatisticException" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">exceptions.Exception</span></tt></p>
+</dd></dl>
+
 <dl class="function">
 <dt id="pade.model.assert_ndarray">
 <tt class="descclassname">pade.model.</tt><tt class="descname">assert_ndarray</tt><big>(</big><em>array</em>, <em>name=None</em>, <em>ndim=None</em><big>)</big><a class="reference internal" href="../_modules/pade/model.html#assert_ndarray"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.model.assert_ndarray" title="Permalink to this definition">¶</a></dt>
@@ -1180,41 +1237,6 @@ sample.</p>
 <dt id="pade.model.write_yaml_block_comment">
 <tt class="descclassname">pade.model.</tt><tt class="descname">write_yaml_block_comment</tt><big>(</big><em>fh</em>, <em>comment</em><big>)</big><a class="reference internal" href="../_modules/pade/model.html#write_yaml_block_comment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.model.write_yaml_block_comment" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
-
-</div>
-<div class="section" id="module-pade.performance">
-<span id="performance-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">performance</span></tt> Module<a class="headerlink" href="#module-pade.performance" title="Permalink to this headline">¶</a></h2>
-<p>Utilities for measuring performance of PaGE.</p>
-<dl class="exception">
-<dt id="pade.performance.ProfileStackException">
-<em class="property">exception </em><tt class="descclassname">pade.performance.</tt><tt class="descname">ProfileStackException</tt><a class="reference internal" href="../_modules/pade/performance.html#ProfileStackException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.performance.ProfileStackException" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">exceptions.Exception</span></tt></p>
-<p>Thrown when the profile stack is corrupt.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="pade.performance.maxrss">
-<tt class="descclassname">pade.performance.</tt><tt class="descname">maxrss</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/performance.html#maxrss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.performance.maxrss" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return the current maximum RSS allocation in GB.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="pade.performance.profiled">
-<tt class="descclassname">pade.performance.</tt><tt class="descname">profiled</tt><big>(</big><em>method</em><big>)</big><a class="reference internal" href="../_modules/pade/performance.html#profiled"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.performance.profiled" title="Permalink to this definition">¶</a></dt>
-<dd><p>Decorator for profiling a function.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="pade.performance.profiling">
-<tt class="descclassname">pade.performance.</tt><tt class="descname">profiling</tt><big>(</big><em>*args</em>, <em>**kwds</em><big>)</big><a class="reference internal" href="../_modules/pade/performance.html#profiling"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.performance.profiling" title="Permalink to this definition">¶</a></dt>
-<dd><p>Context manager for capturing performance metrics of a block.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="pade.performance.walk_profile">
-<tt class="descclassname">pade.performance.</tt><tt class="descname">walk_profile</tt><big>(</big><em>profile_log=</em><span class="optional">[</span><span class="optional">]</span><big>)</big><a class="reference internal" href="../_modules/pade/performance.html#walk_profile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.performance.walk_profile" title="Permalink to this definition">¶</a></dt>
-<dd><p>Analyze the given list of events and return a table.</p>
-</dd></dl>
 
 </div>
 <div class="section" id="module-pade.redis_session">
@@ -1251,7 +1273,7 @@ sample.</p>
 
 <dl class="attribute">
 <dt id="pade.redis_session.RedisSessionInterface.serializer">
-<tt class="descname">serializer</tt><em class="property"> = &lt;module 'pickle' from '/Library/Frameworks/Python.framework/Versions/7.3/lib/python2.7/pickle.pyc'&gt;</em><a class="headerlink" href="#pade.redis_session.RedisSessionInterface.serializer" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">serializer</tt><em class="property"> = &lt;module 'pickle' from '/Library/Frameworks/EPD64.framework/Versions/7.3/lib/python2.7/pickle.pyc'&gt;</em><a class="headerlink" href="#pade.redis_session.RedisSessionInterface.serializer" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
@@ -1263,9 +1285,6 @@ sample.</p>
 </dd></dl>
 
 </div>
-<div class="section" id="server-module">
-<h2><tt class="xref py py-mod docutils literal"><span class="pre">server</span></tt> Module<a class="headerlink" href="#server-module" title="Permalink to this headline">¶</a></h2>
-</div>
 <div class="section" id="module-pade.stat">
 <span id="stat-module"></span><h2><a class="reference external" href="http://docs.python.org/library/stat.html#stat" title="(in Python v2.7)"><tt class="xref py py-mod docutils literal"><span class="pre">stat</span></tt></a> Module<a class="headerlink" href="#module-pade.stat" title="Permalink to this headline">¶</a></h2>
 <p>Low-level statistical methods.</p>
@@ -1273,8 +1292,8 @@ sample.</p>
 on the data model used in PADE or the workflow. The idea is that we
 may use these functions outside of the standard PADE workflow.</p>
 <dl class="class">
-<dt id="pade.stat.Ftest">
-<em class="property">class </em><tt class="descclassname">pade.stat.</tt><tt class="descname">Ftest</tt><big>(</big><em>condition_layout</em>, <em>block_layout</em>, <em>alphas=None</em><big>)</big><a class="reference internal" href="../_modules/pade/stat.html#Ftest"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.Ftest" title="Permalink to this definition">¶</a></dt>
+<dt id="pade.stat.FStat">
+<em class="property">class </em><tt class="descclassname">pade.stat.</tt><tt class="descname">FStat</tt><big>(</big><em>condition_layout</em>, <em>block_layout</em>, <em>alphas=None</em><big>)</big><a class="reference internal" href="../_modules/pade/stat.html#FStat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.FStat" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#pade.stat.LayoutPairTest" title="pade.stat.LayoutPairTest"><tt class="xref py py-class docutils literal"><span class="pre">pade.stat.LayoutPairTest</span></tt></a></p>
 <p>Computes the F-test.</p>
 <p>Some sample data</p>
@@ -1291,7 +1310,7 @@ layout has all columns in one group.</p>
 </pre></div>
 </div>
 <p>Construct one ftest based on our layouts</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">ftest</span> <span class="o">=</span> <span class="n">Ftest</span><span class="p">(</span><span class="n">condition_layout</span><span class="p">,</span> <span class="n">block_layout</span><span class="p">)</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">ftest</span> <span class="o">=</span> <span class="n">FStat</span><span class="p">(</span><span class="n">condition_layout</span><span class="p">,</span> <span class="n">block_layout</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Test one row</p>
@@ -1306,9 +1325,81 @@ layout has all columns in one group.</p>
 </pre></div>
 </div>
 <dl class="attribute">
-<dt id="pade.stat.Ftest.name">
-<tt class="descname">name</tt><em class="property"> = 'F-test'</em><a class="headerlink" href="#pade.stat.Ftest.name" title="Permalink to this definition">¶</a></dt>
+<dt id="pade.stat.FStat.ALLOWS_EQUALIZED_MEANS">
+<tt class="descname">ALLOWS_EQUALIZED_MEANS</tt><em class="property"> = True</em><a class="headerlink" href="#pade.stat.FStat.ALLOWS_EQUALIZED_MEANS" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pade.stat.FStat.NAME">
+<tt class="descname">NAME</tt><em class="property"> = 'f'</em><a class="headerlink" href="#pade.stat.FStat.NAME" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pade.stat.FStat.validate_layouts">
+<tt class="descname">validate_layouts</tt><big>(</big><em>condition_layout</em>, <em>block_layout</em><big>)</big><a class="reference internal" href="../_modules/pade/stat.html#FStat.validate_layouts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.FStat.validate_layouts" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pade.stat.GLMFStat">
+<em class="property">class </em><tt class="descclassname">pade.stat.</tt><tt class="descname">GLMFStat</tt><big>(</big><em>condition_layout</em>, <em>block_layout</em>, <em>alphas=None</em>, <em>family='gaussian'</em><big>)</big><a class="reference internal" href="../_modules/pade/stat.html#GLMFStat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.GLMFStat" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pade.stat.LayoutPairTest" title="pade.stat.LayoutPairTest"><tt class="xref py py-class docutils literal"><span class="pre">pade.stat.LayoutPairTest</span></tt></a></p>
+<p>Computes an f-test using a generalized linear model.</p>
+<p>Some sample data</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">2.</span><span class="p">,</span>  <span class="mf">3.</span><span class="p">,</span> <span class="mf">6.</span><span class="p">])</span>                                      
+<span class="gp">&gt;&gt;&gt; </span><span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">2.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span>  <span class="mf">1.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">])</span>                                      
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">3.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="mf">10.</span><span class="p">,</span> <span class="mf">4.</span><span class="p">])</span>                                      
+</pre></div>
+</div>
+<p>The condition layout has the first two columns in one group and          
+the second two in another. There is no blocking, so the block            
+layout has all columns in one group.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">condition_layout</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]]</span>                                  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">block_layout</span>     <span class="o">=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]]</span>                                    
+</pre></div>
+</div>
+<p>Construct one ftest based on our layouts</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">f</span> <span class="o">=</span> <span class="n">GLMFStat</span><span class="p">(</span><span class="n">condition_layout</span><span class="p">,</span> <span class="n">block_layout</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Test one row</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="nb">round</span><span class="p">(</span><span class="n">f</span><span class="p">(</span><span class="n">a</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
+<span class="go">3.6</span>
+</pre></div>
+</div>
+<p>Test multiple rows at once</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">])</span>                                           
+<span class="gp">&gt;&gt;&gt; </span><span class="n">f</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>                                                              
+<span class="go">array([ 3.6,  1. ,  2.5])</span>
+</pre></div>
+</div>
+<dl class="attribute">
+<dt id="pade.stat.GLMFStat.col_to_cat">
+<tt class="descname">col_to_cat</tt><a class="reference internal" href="../_modules/pade/stat.html#GLMFStat.col_to_cat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.GLMFStat.col_to_cat" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return an array mapping a column number to its group in the full
+layout.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">f</span> <span class="o">=</span> <span class="n">GLMFStat</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">]],</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">f</span><span class="o">.</span><span class="n">col_to_cat</span>
+<span class="go">[0, 1, 2, 0, 1, 2]</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pade.stat.GLMFStat.x">
+<tt class="descname">x</tt><a class="reference internal" href="../_modules/pade/stat.html#GLMFStat.x"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.GLMFStat.x" title="Permalink to this definition">¶</a></dt>
+<dd><div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">f</span> <span class="o">=</span> <span class="n">GLMFStat</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">]],</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">f</span><span class="o">.</span><span class="n">x</span>  
+<span class="go">array([[ 1., 0., 0.],</span>
+<span class="go">       [ 1., 1., 0.],</span>
+<span class="go">       [ 1., 0., 1.],</span>
+<span class="go">       [ 1., 0., 0.],</span>
+<span class="go">       [ 1., 1., 0.],</span>
+<span class="go">       [ 1., 0., 1.]])</span>
+</pre></div>
+</div>
+</dd></dl>
 
 </dd></dl>
 
@@ -1354,15 +1445,25 @@ greater than the other one.</li>
 </tbody>
 </table>
 <dl class="attribute">
-<dt id="pade.stat.MeansRatio.name">
-<tt class="descname">name</tt><em class="property"> = 'means ratio'</em><a class="headerlink" href="#pade.stat.MeansRatio.name" title="Permalink to this definition">¶</a></dt>
+<dt id="pade.stat.MeansRatio.ALLOWS_EQUALIZED_MEANS">
+<tt class="descname">ALLOWS_EQUALIZED_MEANS</tt><em class="property"> = False</em><a class="headerlink" href="#pade.stat.MeansRatio.ALLOWS_EQUALIZED_MEANS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pade.stat.MeansRatio.NAME">
+<tt class="descname">NAME</tt><em class="property"> = 'means_ratio'</em><a class="headerlink" href="#pade.stat.MeansRatio.NAME" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pade.stat.MeansRatio.validate_layouts">
+<tt class="descname">validate_layouts</tt><big>(</big><em>condition_layout</em>, <em>block_layout</em><big>)</big><a class="reference internal" href="../_modules/pade/stat.html#MeansRatio.validate_layouts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.MeansRatio.validate_layouts" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 <dl class="class">
-<dt id="pade.stat.OneSampleDifferenceTTest">
-<em class="property">class </em><tt class="descclassname">pade.stat.</tt><tt class="descname">OneSampleDifferenceTTest</tt><big>(</big><em>condition_layout</em>, <em>block_layout</em>, <em>alphas=None</em><big>)</big><a class="reference internal" href="../_modules/pade/stat.html#OneSampleDifferenceTTest"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.OneSampleDifferenceTTest" title="Permalink to this definition">¶</a></dt>
+<dt id="pade.stat.OneSampleDifferenceTStat">
+<em class="property">class </em><tt class="descclassname">pade.stat.</tt><tt class="descname">OneSampleDifferenceTStat</tt><big>(</big><em>condition_layout</em>, <em>block_layout</em>, <em>alphas=None</em><big>)</big><a class="reference internal" href="../_modules/pade/stat.html#OneSampleDifferenceTStat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.OneSampleDifferenceTStat" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#pade.stat.LayoutPairTest" title="pade.stat.LayoutPairTest"><tt class="xref py py-class docutils literal"><span class="pre">pade.stat.LayoutPairTest</span></tt></a></p>
 <p>A one-sample t-test where the input is given as pairs.</p>
 <p>Input with two features (one on each row), eight samples
@@ -1378,25 +1479,30 @@ are the other</p>
 </pre></div>
 </div>
 <p>Construct the test function with the condition and block layouts.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">test</span> <span class="o">=</span> <span class="n">OneSampleDifferenceTTest</span><span class="p">(</span><span class="n">condition_layout</span><span class="p">,</span> <span class="n">block_layout</span><span class="p">)</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">test</span> <span class="o">=</span> <span class="n">OneSampleDifferenceTStat</span><span class="p">(</span><span class="n">condition_layout</span><span class="p">,</span> <span class="n">block_layout</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Apply it to 1d input (the first feature in the table):</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="nb">round</span><span class="p">(</span><span class="n">test</span><span class="p">(</span><span class="n">table</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="mi">7</span><span class="p">)</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="nb">round</span><span class="p">(</span><span class="n">test</span><span class="p">(</span><span class="n">table</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="mi">7</span><span class="p">)</span>
 <span class="go">4.472136</span>
 </pre></div>
 </div>
 <p>Now 2d input (both features in the table):</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">results</span> <span class="o">=</span> <span class="n">test</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="nb">round</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">7</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">round</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">7</span><span class="p">)</span>
 <span class="go">4.472136</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="nb">round</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">7</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">round</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">7</span><span class="p">)</span>
 <span class="go">0.5656854</span>
 </pre></div>
 </div>
 <dl class="attribute">
-<dt id="pade.stat.OneSampleDifferenceTTest.name">
-<tt class="descname">name</tt><em class="property"> = 'OneSampleDifferenceTTest'</em><a class="headerlink" href="#pade.stat.OneSampleDifferenceTTest.name" title="Permalink to this definition">¶</a></dt>
+<dt id="pade.stat.OneSampleDifferenceTStat.ALLOWS_EQUALIZED_MEANS">
+<tt class="descname">ALLOWS_EQUALIZED_MEANS</tt><em class="property"> = False</em><a class="headerlink" href="#pade.stat.OneSampleDifferenceTStat.ALLOWS_EQUALIZED_MEANS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pade.stat.OneSampleDifferenceTStat.NAME">
+<tt class="descname">NAME</tt><em class="property"> = 'one_sample_t'</em><a class="headerlink" href="#pade.stat.OneSampleDifferenceTStat.NAME" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -1404,7 +1510,12 @@ are the other</p>
 <dl class="class">
 <dt id="pade.stat.OneSampleTTest">
 <em class="property">class </em><tt class="descclassname">pade.stat.</tt><tt class="descname">OneSampleTTest</tt><big>(</big><em>alphas=None</em><big>)</big><a class="reference internal" href="../_modules/pade/stat.html#OneSampleTTest"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.OneSampleTTest" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="pade.stat.OneSampleTTest.ALLOWS_EQUALIZED_MEANS">
+<tt class="descname">ALLOWS_EQUALIZED_MEANS</tt><em class="property"> = False</em><a class="headerlink" href="#pade.stat.OneSampleTTest.ALLOWS_EQUALIZED_MEANS" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+</dd></dl>
 
 <dl class="exception">
 <dt id="pade.stat.UnsupportedLayoutException">
@@ -1559,6 +1670,45 @@ has one less element.</p>
 </dd></dl>
 
 <dl class="function">
+<dt id="pade.stat.get_stat">
+<tt class="descclassname">pade.stat.</tt><tt class="descname">get_stat</tt><big>(</big><em>name</em>, <em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pade/stat.html#get_stat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.get_stat" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a statistic function by name.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">f</span> <span class="o">=</span> <span class="n">get_stat</span><span class="p">(</span><span class="s">&#39;f&#39;</span><span class="p">,</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]],</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">type</span><span class="p">(</span><span class="n">f</span><span class="p">)</span><span class="o">.</span><span class="n">__name__</span>
+<span class="go">&#39;FStat&#39;</span>
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">f</span><span class="o">.</span><span class="n">condition_layout</span>
+<span class="go">[[0, 1], [2, 3]]</span>
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">f</span><span class="o">.</span><span class="n">block_layout</span>
+<span class="go">[[0, 1, 2, 3]]</span>
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">get_stat</span><span class="p">(</span><span class="s">&#39;t&#39;</span><span class="p">,</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">OneSampleTTest</span><span class="p">)</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">mr</span> <span class="o">=</span> <span class="n">get_stat</span><span class="p">(</span><span class="s">&#39;means_ratio&#39;</span><span class="p">,</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]],</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">isinstance</span><span class="p">(</span><span class="n">mr</span><span class="p">,</span> <span class="n">MeansRatio</span><span class="p">)</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">glm</span> <span class="o">=</span> <span class="n">get_stat</span><span class="p">(</span><span class="s">&#39;glm&#39;</span><span class="p">,</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]],</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">isinstance</span><span class="p">(</span><span class="n">glm</span><span class="p">,</span> <span class="n">GLMFStat</span><span class="p">)</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="pade.stat.glm_families">
+<tt class="descclassname">pade.stat.</tt><tt class="descname">glm_families</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/stat.html#glm_families"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.glm_families" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
 <dt id="pade.stat.group_means">
 <tt class="descclassname">pade.stat.</tt><tt class="descname">group_means</tt><big>(</big><em>data</em>, <em>layout</em><big>)</big><a class="reference internal" href="../_modules/pade/stat.html#group_means"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.group_means" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get the means for each group defined by layout.</p>
@@ -1647,6 +1797,11 @@ no grouping will be used.</li>
 </div>
 </dd></dl>
 
+<dl class="function">
+<dt id="pade.stat.stat_names">
+<tt class="descclassname">pade.stat.</tt><tt class="descname">stat_names</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/stat.html#stat_names"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.stat_names" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </div>
 <div class="section" id="module-pade.tasks">
 <span id="tasks-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">tasks</span></tt> Module<a class="headerlink" href="#module-pade.tasks" title="Permalink to this headline">¶</a></h2>
@@ -1706,23 +1861,32 @@ together.</p>
 <h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this headline">¶</a></h2>
 <div class="toctree-wrapper compound">
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="pade.http.html">http Package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pade.http.html#module-pade.http.inputfile"><tt class="docutils literal"><span class="pre">inputfile</span></tt> Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pade.http.html#module-pade.http.jobbrowser"><tt class="docutils literal"><span class="pre">jobbrowser</span></tt> Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pade.http.html#module-pade.http.jobdetails"><tt class="docutils literal"><span class="pre">jobdetails</span></tt> Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pade.http.html#module-pade.http.newjob"><tt class="docutils literal"><span class="pre">newjob</span></tt> Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pade.http.html#module-pade.http.server"><tt class="docutils literal"><span class="pre">server</span></tt> Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pade.http.html#subpackages">Subpackages</a><ul class="simple">
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="pade.test.html">test Package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="pade.test.html#id1"><tt class="docutils literal"><span class="pre">test</span></tt> Package</a></li>
-<li class="toctree-l2"><a class="reference internal" href="pade.test.html#module-pade.test.test_common"><tt class="docutils literal"><span class="pre">test_common</span></tt> Module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="pade.test.html#module-pade.test.test_job"><tt class="docutils literal"><span class="pre">test_job</span></tt> Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pade.test.html#module-pade.test.padeconfig"><tt class="docutils literal"><span class="pre">padeconfig</span></tt> Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pade.test.html#module-pade.test.test_analysis"><tt class="docutils literal"><span class="pre">test_analysis</span></tt> Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pade.test.html#module-pade.test.test_main"><tt class="docutils literal"><span class="pre">test_main</span></tt> Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pade.test.html#module-pade.test.test_metadb"><tt class="docutils literal"><span class="pre">test_metadb</span></tt> Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pade.test.html#module-pade.test.test_model"><tt class="docutils literal"><span class="pre">test_model</span></tt> Module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="pade.test.html#module-pade.test.test_profile"><tt class="docutils literal"><span class="pre">test_profile</span></tt> Module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="pade.test.html#module-pade.test.test_schema"><tt class="docutils literal"><span class="pre">test_schema</span></tt> Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pade.test.html#module-pade.test.test_server"><tt class="docutils literal"><span class="pre">test_server</span></tt> Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pade.test.html#module-pade.test.test_stat"><tt class="docutils literal"><span class="pre">test_stat</span></tt> Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pade.test.html#module-pade.test.utils"><tt class="docutils literal"><span class="pre">utils</span></tt> Module</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="pade.tools.html">tools Package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="pade.tools.html#id1"><tt class="docutils literal"><span class="pre">tools</span></tt> Package</a></li>
-<li class="toctree-l2"><a class="reference internal" href="pade.tools.html#module-pade.tools.make_perf_input"><tt class="docutils literal"><span class="pre">make_perf_input</span></tt> Module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="pade.tools.html#module-pade.tools.perlvspython"><tt class="docutils literal"><span class="pre">perlvspython</span></tt> Module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="pade.tools.html#module-pade.tools.profile"><tt class="docutils literal"><span class="pre">profile</span></tt> Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pade.tools.html#module-pade.tools.time_stat"><tt class="docutils literal"><span class="pre">time_stat</span></tt> Module</a></li>
 </ul>
 </li>
 </ul>
@@ -1742,13 +1906,12 @@ together.</p>
 <li><a class="reference internal" href="#id1"><tt class="docutils literal"><span class="pre">pade</span></tt> Package</a></li>
 <li><a class="reference internal" href="#module-pade.analysis"><tt class="docutils literal"><span class="pre">analysis</span></tt> Module</a></li>
 <li><a class="reference internal" href="#module-pade.celery"><tt class="docutils literal"><span class="pre">celery</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-pade.config"><tt class="docutils literal"><span class="pre">config</span></tt> Module</a></li>
 <li><a class="reference internal" href="#module-pade.layout"><tt class="docutils literal"><span class="pre">layout</span></tt> Module</a></li>
 <li><a class="reference internal" href="#module-pade.main"><tt class="docutils literal"><span class="pre">main</span></tt> Module</a></li>
 <li><a class="reference internal" href="#module-pade.metadb"><tt class="docutils literal"><span class="pre">metadb</span></tt> Module</a></li>
 <li><a class="reference internal" href="#module-pade.model"><tt class="docutils literal"><span class="pre">model</span></tt> Module</a></li>
-<li><a class="reference internal" href="#module-pade.performance"><tt class="docutils literal"><span class="pre">performance</span></tt> Module</a></li>
 <li><a class="reference internal" href="#module-pade.redis_session"><tt class="docutils literal"><span class="pre">redis_session</span></tt> Module</a></li>
-<li><a class="reference internal" href="#server-module"><tt class="docutils literal"><span class="pre">server</span></tt> Module</a></li>
 <li><a class="reference internal" href="#module-pade.stat"><tt class="docutils literal"><span class="pre">stat</span></tt> Module</a></li>
 <li><a class="reference internal" href="#module-pade.tasks"><tt class="docutils literal"><span class="pre">tasks</span></tt> Module</a></li>
 <li><a class="reference internal" href="#subpackages">Subpackages</a><ul>
@@ -1762,8 +1925,8 @@ together.</p>
   <p class="topless"><a href="../api.html"
                         title="previous chapter">API Documentation</a></p>
   <h4>Next topic</h4>
-  <p class="topless"><a href="pade.test.html"
-                        title="next chapter">test Package</a></p>
+  <p class="topless"><a href="pade.http.html"
+                        title="next chapter">http Package</a></p>
   <h3>This Page</h3>
   <ul class="this-page-menu">
     <li><a href="../_sources/generated/pade.txt"
@@ -1796,7 +1959,7 @@ together.</p>
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="pade.test.html" title="test Package"
+          <a href="pade.http.html" title="http Package"
              >next</a> |</li>
         <li class="right" >
           <a href="../api.html" title="API Documentation"
@@ -1807,7 +1970,7 @@ together.</p>
     </div>
     <div class="footer">
         &copy; Copyright 2013, University of Pennsylvania.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.2.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
     </div>
   </body>
 </html>

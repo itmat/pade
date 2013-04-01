@@ -52,6 +52,8 @@
   <h1>Source code for pade.model</h1><div class="highlight"><pre>
 <span class="sd">&quot;&quot;&quot;Classes used to model PADE data and jobs.&quot;&quot;&quot;</span>
 
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span>
+
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">namedtuple</span><span class="p">,</span> <span class="n">OrderedDict</span>
 <span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">product</span>
@@ -63,14 +65,16 @@
 <span class="kn">import</span> <span class="nn">yaml</span>
 <span class="kn">import</span> <span class="nn">textwrap</span>
 
-<span class="n">DEFAULT_STATISTIC</span> <span class="o">=</span> <span class="s">&#39;f_test&#39;</span>
+<span class="kn">import</span> <span class="nn">pade.stat</span>
+<span class="kn">from</span> <span class="nn">pade.layout</span> <span class="kn">import</span> <span class="n">layout_is_paired</span>
+
 <span class="n">DEFAULT_NUM_BINS</span> <span class="o">=</span> <span class="mi">1000</span>
 <span class="n">DEFAULT_NUM_SAMPLES</span> <span class="o">=</span> <span class="mi">1000</span>
 <span class="n">DEFAULT_SAMPLE_WITH_REPLACEMENT</span> <span class="o">=</span> <span class="bp">False</span>
 <span class="n">DEFAULT_SAMPLE_FROM_RESIDUALS</span> <span class="o">=</span> <span class="bp">False</span>
-<span class="n">DEFAULT_MIN_CONF</span> <span class="o">=</span> <span class="mf">0.25</span>
-<span class="n">DEFAULT_CONF_INTERVAL</span> <span class="o">=</span> <span class="mf">0.05</span>
-<span class="n">DEFAULT_EQUALIZE_MEANS</span> <span class="o">=</span> <span class="bp">True</span>
+<span class="n">DEFAULT_SUMMARY_MIN_CONF</span> <span class="o">=</span> <span class="mf">0.1</span>
+<span class="n">DEFAULT_SUMMARY_STEP_SIZE</span> <span class="o">=</span> <span class="mf">0.05</span>
+<span class="n">DEFAULT_EQUALIZE_MEANS</span> <span class="o">=</span> <span class="bp">False</span>
 <span class="n">DEFAULT_TUNING_PARAMS</span><span class="o">=</span><span class="p">[</span><span class="mf">0.001</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">300</span><span class="p">,</span> <span class="mi">1000</span><span class="p">,</span> <span class="mi">3000</span><span class="p">]</span>
 
 <span class="n">TableWithHeader</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s">&#39;TableWithHeader&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s">&#39;header&#39;</span><span class="p">,</span> <span class="s">&#39;table&#39;</span><span class="p">])</span>
@@ -78,11 +82,15 @@
 <div class="viewcode-block" id="ModelExpressionException"><a class="viewcode-back" href="../../generated/pade.html#pade.model.ModelExpressionException">[docs]</a><span class="k">class</span> <span class="nc">ModelExpressionException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Thrown when a model expression is invalid.&quot;&quot;&quot;</span>
     <span class="k">pass</span>
-
+</div>
+<div class="viewcode-block" id="UnknownStatisticException"><a class="viewcode-back" href="../../generated/pade.html#pade.model.UnknownStatisticException">[docs]</a><span class="k">class</span> <span class="nc">UnknownStatisticException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="k">pass</span>
+</div>
+<div class="viewcode-block" id="InvalidSettingsException"><a class="viewcode-back" href="../../generated/pade.html#pade.model.InvalidSettingsException">[docs]</a><span class="k">class</span> <span class="nc">InvalidSettingsException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="k">pass</span>
 </div>
 <div class="viewcode-block" id="ModelExpression"><a class="viewcode-back" href="../../generated/pade.html#pade.model.ModelExpression">[docs]</a><span class="k">class</span> <span class="nc">ModelExpression</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Represents a list of variables and an operator.&quot;&quot;&quot;</span>
-
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
                  <span class="n">operator</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
@@ -258,21 +266,29 @@
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">stat_name</span><span class="o">=</span><span class="n">DEFAULT_STATISTIC</span><span class="p">,</span>
+        <span class="n">stat_class</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
         <span class="n">num_bins</span><span class="o">=</span><span class="n">DEFAULT_NUM_BINS</span><span class="p">,</span>
         <span class="n">num_samples</span><span class="o">=</span><span class="n">DEFAULT_NUM_SAMPLES</span><span class="p">,</span>
         <span class="n">sample_from_residuals</span><span class="o">=</span><span class="n">DEFAULT_SAMPLE_FROM_RESIDUALS</span><span class="p">,</span>
         <span class="n">sample_with_replacement</span><span class="o">=</span><span class="n">DEFAULT_SAMPLE_WITH_REPLACEMENT</span><span class="p">,</span>
-        <span class="n">condition_variables</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-        <span class="n">block_variables</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-        <span class="n">min_conf</span><span class="o">=</span><span class="n">DEFAULT_MIN_CONF</span><span class="p">,</span>
+        <span class="n">condition_variables</span><span class="o">=</span><span class="p">[],</span>
+        <span class="n">block_variables</span><span class="o">=</span><span class="p">[],</span>
+        <span class="n">summary_min_conf</span><span class="o">=</span><span class="n">DEFAULT_SUMMARY_MIN_CONF</span><span class="p">,</span>
         <span class="n">equalize_means</span><span class="o">=</span><span class="n">DEFAULT_EQUALIZE_MEANS</span><span class="p">,</span>
-        <span class="n">conf_interval</span><span class="o">=</span><span class="n">DEFAULT_CONF_INTERVAL</span><span class="p">,</span>
+        <span class="n">summary_step_size</span><span class="o">=</span><span class="n">DEFAULT_SUMMARY_STEP_SIZE</span><span class="p">,</span>
         <span class="n">tuning_params</span><span class="o">=</span><span class="n">DEFAULT_TUNING_PARAMS</span><span class="p">,</span>
         <span class="n">equalize_means_ids</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">stat_name</span> <span class="o">=</span> <span class="n">stat_name</span>
-        <span class="sd">&quot;&quot;&quot;Name of the statistic to use.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">stat_class</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&#39;stat_class is a required option&#39;</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">stat_class</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pade</span><span class="o">.</span><span class="n">stat</span><span class="p">,</span> <span class="n">stat_class</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">UnknownStatisticException</span><span class="p">(</span><span class="s">&quot;Unknown statistic &#39;&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">stat_class</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot;&#39;&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">stat_class</span> <span class="o">=</span> <span class="n">stat_class</span>
+        <span class="sd">&quot;&quot;&quot;Statistic to use. Currently must be defined in pade.stat.&quot;&quot;&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">=</span> <span class="n">num_samples</span>
         <span class="sd">&quot;&quot;&quot;Max number of samples to use for permutation test or bootstrapping&quot;&quot;&quot;</span>
@@ -302,10 +318,10 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">equalize_means</span> <span class="o">=</span> <span class="n">equalize_means</span>
         <span class="sd">&quot;&quot;&quot;If true, shift the values so the mean of each group is 0.&quot;&quot;&quot;</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">min_conf</span> <span class="o">=</span> <span class="n">min_conf</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">summary_min_conf</span> <span class="o">=</span> <span class="n">summary_min_conf</span>
         <span class="sd">&quot;&quot;&quot;Minimum confidence level to report on.&quot;&quot;&quot;</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">conf_interval</span> <span class="o">=</span> <span class="n">conf_interval</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">summary_step_size</span> <span class="o">=</span> <span class="n">summary_step_size</span>
         <span class="sd">&quot;&quot;&quot;Interval of confidence values to report on.&quot;&quot;&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">equalize_means_ids</span> <span class="o">=</span> <span class="n">equalize_means_ids</span>
@@ -348,6 +364,9 @@
                  <span class="n">results</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                  <span class="n">summary</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         
+        <span class="k">if</span> <span class="n">settings</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;settings is a required argument&quot;</span><span class="p">)</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">job_id</span>   <span class="o">=</span> <span class="n">job_id</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">input</span>    <span class="o">=</span> <span class="nb">input</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">settings</span> <span class="o">=</span> <span class="n">settings</span>
@@ -355,6 +374,19 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">results</span>  <span class="o">=</span> <span class="n">results</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">summary</span>  <span class="o">=</span> <span class="n">summary</span>
 
+        <span class="n">stat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_stat_fn</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">equalize_means</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">stat</span><span class="o">.</span><span class="n">ALLOWS_EQUALIZED_MEANS</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InvalidSettingsException</span><span class="p">(</span>
+                <span class="s">&quot;Can&#39;t equalize means with statistic &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">stat</span><span class="p">))</span>
+
+<div class="viewcode-block" id="Job.get_stat_fn"><a class="viewcode-back" href="../../generated/pade.html#pade.model.Job.get_stat_fn">[docs]</a>    <span class="k">def</span> <span class="nf">get_stat_fn</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The statistic used for this job.&quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">stat_class</span><span class="p">(</span>
+            <span class="n">condition_layout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">condition_layout</span><span class="p">,</span>
+            <span class="n">block_layout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">block_layout</span><span class="p">,</span>
+            <span class="n">alphas</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">tuning_params</span><span class="p">)</span>
+</div>
 <div class="viewcode-block" id="Job.layout"><a class="viewcode-back" href="../../generated/pade.html#pade.model.Job.layout">[docs]</a>    <span class="k">def</span> <span class="nf">layout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">variables</span><span class="p">):</span>
         <span class="n">s</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span>
         <span class="n">assignments</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">possible_assignments</span><span class="p">(</span><span class="n">variables</span><span class="p">)</span>
@@ -470,13 +502,18 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">factor_values</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
             </div>
 <div class="viewcode-block" id="Schema.set_columns"><a class="viewcode-back" href="../../generated/pade.html#pade.model.Schema.set_columns">[docs]</a>    <span class="k">def</span> <span class="nf">set_columns</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="n">roles</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">roles</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">((</span>
+                    <span class="s">&quot;Must have same number of names and roles, &quot;</span> <span class="o">+</span>
+                    <span class="s">&quot;got names {names} and roles {roles}.&quot;</span><span class="p">)</span>
+                            <span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">names</span><span class="o">=</span><span class="n">names</span><span class="p">,</span> 
+                    <span class="n">roles</span><span class="o">=</span><span class="n">roles</span><span class="p">))</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">sample_to_factor_values</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">column_roles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">roles</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">column_names</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">names</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sample_name_index</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Setting sample name index, which is &quot;</span> <span class="o">+</span> 
-                     <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sample_name_index</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot; of length &quot;</span> <span class="o">+</span> 
-                     <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sample_name_index</span><span class="p">)))</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">names</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">roles</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;sample&#39;</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">sample_name_index</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sample_name_index</span><span class="p">)</span>
@@ -586,11 +623,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">factor_values</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_to_factor_values</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">sample_to_factor_values</span><span class="p">[</span><span class="n">sample</span><span class="p">][</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">None</span>
-</div>
-<div class="viewcode-block" id="Schema.remove_factor"><a class="viewcode-back" href="../../generated/pade.html#pade.model.Schema.remove_factor">[docs]</a>    <span class="k">def</span> <span class="nf">remove_factor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">factor</span><span class="p">):</span>
-        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">factor_values</span><span class="p">[</span><span class="n">factor</span><span class="p">]</span>
-        <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_to_factor_values</span><span class="p">:</span>
-            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_to_factor_values</span><span class="p">[</span><span class="n">factor</span><span class="p">]</span>
+
 </div>
     <span class="nd">@classmethod</span>
 <div class="viewcode-block" id="Schema.load"><a class="viewcode-back" href="../../generated/pade.html#pade.model.Schema.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">stream</span><span class="p">):</span>
@@ -601,7 +634,7 @@
 <span class="sd">        Schema.dump.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Loading schema from &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">stream</span><span class="p">))</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Loading schema from &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">stream</span><span class="p">))</span>
         <span class="n">doc</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">stream</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">doc</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
@@ -730,7 +763,10 @@
 <span class="sd">        name. The sample number is the index into the table for the</span>
 <span class="sd">        sample.&quot;&quot;&quot;</span>
 
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_name_index</span><span class="p">[</span><span class="n">sample_name</span><span class="p">]</span></div></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_name_index</span><span class="p">[</span><span class="n">sample_name</span><span class="p">]</span>
+
+    
+    </div></div>
 </pre></div>
 
           </div>
@@ -770,7 +806,7 @@
     </div>
     <div class="footer">
         &copy; Copyright 2013, University of Pennsylvania.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.2.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
     </div>
   </body>
 </html>

@@ -50,10 +50,13 @@
           <div class="body">
             
   <h1>Source code for pade.metadb</h1><div class="highlight"><pre>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span>
+
 <span class="kn">import</span> <span class="nn">datetime</span> <span class="kn">as</span> <span class="nn">dt</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">shutil</span>
 <span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">errno</span>
 
 <span class="kn">from</span> <span class="nn">StringIO</span> <span class="kn">import</span> <span class="n">StringIO</span>
 <span class="kn">from</span> <span class="nn">pade.model</span> <span class="kn">import</span> <span class="n">Schema</span>
@@ -65,6 +68,16 @@
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">directory</span><span class="p">,</span> <span class="n">redis</span><span class="p">):</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Initializing metadb for directory &quot;</span> <span class="o">+</span>
                      <span class="nb">str</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot;, redis &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">redis</span><span class="p">))</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Created metadb directory &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">directory</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">errno</span> <span class="o">==</span> <span class="n">errno</span><span class="o">.</span><span class="n">EEXIST</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Metadb directory &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot; already exists&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">e</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">directory</span> <span class="o">=</span> <span class="n">directory</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">redis</span>     <span class="o">=</span> <span class="n">redis</span>
 
@@ -78,10 +91,11 @@
     <span class="k">def</span> <span class="nf">_link_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">from_obj_type</span><span class="p">,</span> <span class="n">to_obj_type</span><span class="p">,</span> <span class="n">from_obj_id</span><span class="p">):</span>
         <span class="k">return</span> <span class="s">&#39;:&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">((</span><span class="s">&#39;pade&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">from_obj_type</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;To&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">to_obj_type</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">from_obj_id</span><span class="p">)))</span>
 
-    <span class="k">def</span> <span class="nf">_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj_type</span><span class="p">,</span> <span class="n">obj_id</span><span class="p">):</span>
-        <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;{obj_type}_{obj_id}.txt&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-            <span class="n">obj_type</span><span class="o">=</span><span class="n">obj_type</span><span class="p">,</span>
-            <span class="n">obj_id</span><span class="o">=</span><span class="n">obj_id</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cls</span><span class="p">,</span> <span class="n">obj_id</span><span class="p">):</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;{obj_type}_{obj_id}.{ext}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">obj_type</span><span class="o">=</span><span class="n">cls</span><span class="o">.</span><span class="n">obj_type</span><span class="p">,</span>
+            <span class="n">obj_id</span><span class="o">=</span><span class="n">obj_id</span><span class="p">,</span>
+            <span class="n">ext</span><span class="o">=</span><span class="n">cls</span><span class="o">.</span><span class="n">extension</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">directory</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_add_obj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cls</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -89,7 +103,7 @@
         <span class="n">obj_type</span> <span class="o">=</span> <span class="n">cls</span><span class="o">.</span><span class="n">obj_type</span>
         <span class="n">obj_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_next_obj_id</span><span class="p">(</span><span class="n">obj_type</span><span class="p">)</span>
 
-        <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_path</span><span class="p">(</span><span class="n">obj_type</span><span class="p">,</span> <span class="n">obj_id</span><span class="p">)</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_path</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">obj_id</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">stream</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
             <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">out</span><span class="p">:</span>
@@ -115,7 +129,7 @@
     <span class="k">def</span> <span class="nf">_load_obj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cls</span><span class="p">,</span> <span class="n">obj_id</span><span class="p">):</span>
         <span class="n">key</span>    <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_obj_key</span><span class="p">(</span><span class="n">cls</span><span class="o">.</span><span class="n">obj_type</span><span class="p">,</span> <span class="n">obj_id</span><span class="p">)</span>
         <span class="n">kwargs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">redis</span><span class="o">.</span><span class="n">hgetall</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
-        <span class="n">path</span>   <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_path</span><span class="p">(</span><span class="n">cls</span><span class="o">.</span><span class="n">obj_type</span><span class="p">,</span> <span class="n">obj_id</span><span class="p">)</span>
+        <span class="n">path</span>   <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_path</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">obj_id</span><span class="p">)</span>
         <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;dt_created&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;dt_created&#39;</span><span class="p">],</span> <span class="n">DATE_FORMAT</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">cls</span><span class="p">(</span><span class="n">obj_id</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
@@ -160,10 +174,18 @@
 <div class="viewcode-block" id="MetaDB.all_schemas"><a class="viewcode-back" href="../../generated/pade.html#pade.metadb.MetaDB.all_schemas">[docs]</a>    <span class="k">def</span> <span class="nf">all_schemas</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_objects</span><span class="p">(</span><span class="n">SchemaMeta</span><span class="p">)</span>
 </div>
-<div class="viewcode-block" id="MetaDB.add_job"><a class="viewcode-back" href="../../generated/pade.html#pade.metadb.MetaDB.add_job">[docs]</a>    <span class="k">def</span> <span class="nf">add_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">description</span><span class="p">,</span> <span class="n">raw_file_meta</span><span class="p">,</span> <span class="n">schema_meta</span><span class="p">):</span>
-        <span class="n">job_meta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_obj</span><span class="p">(</span><span class="n">JobMeta</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="n">description</span><span class="p">)</span>
-        <span class="n">job_meta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_link_one_to_many</span><span class="p">(</span><span class="n">raw_file_meta</span><span class="p">,</span> <span class="n">job_meta</span><span class="p">,</span> <span class="s">&#39;raw_file_id&#39;</span><span class="p">)</span>
-        <span class="n">job_meta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_link_one_to_many</span><span class="p">(</span><span class="n">schema_meta</span><span class="p">,</span> <span class="n">job_meta</span><span class="p">,</span> <span class="s">&#39;schema_id&#39;</span><span class="p">)</span>
+<div class="viewcode-block" id="MetaDB.add_job"><a class="viewcode-back" href="../../generated/pade.html#pade.metadb.MetaDB.add_job">[docs]</a>    <span class="k">def</span> <span class="nf">add_job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">description</span><span class="p">,</span> <span class="n">raw_file_meta</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">schema_meta</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+        <span class="n">imported</span> <span class="o">=</span> <span class="n">stream</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span>
+
+        <span class="n">job_meta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_obj</span><span class="p">(</span><span class="n">JobMeta</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="n">description</span><span class="p">,</span> 
+                                 <span class="n">stream</span><span class="o">=</span><span class="n">stream</span><span class="p">,</span> <span class="n">imported</span><span class="o">=</span><span class="n">imported</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">raw_file_meta</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">job_meta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_link_one_to_many</span><span class="p">(</span><span class="n">raw_file_meta</span><span class="p">,</span> <span class="n">job_meta</span><span class="p">,</span> <span class="s">&#39;raw_file_id&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">schema_meta</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">job_meta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_link_one_to_many</span><span class="p">(</span><span class="n">schema_meta</span><span class="p">,</span> <span class="n">job_meta</span><span class="p">,</span> <span class="s">&#39;schema_id&#39;</span><span class="p">)</span>
+
         <span class="k">return</span> <span class="n">job_meta</span>
 </div>
 <div class="viewcode-block" id="MetaDB.job"><a class="viewcode-back" href="../../generated/pade.html#pade.metadb.MetaDB.job">[docs]</a>    <span class="k">def</span> <span class="nf">job</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj_id</span><span class="p">):</span>
@@ -209,6 +231,7 @@
     <span class="n">obj_type</span>        <span class="o">=</span> <span class="s">&#39;input_file&#39;</span>
     <span class="n">collection_name</span> <span class="o">=</span> <span class="s">&#39;pade:input_files&#39;</span>
     <span class="n">input_file_to_schemas</span> <span class="o">=</span> <span class="s">&#39;pade:input_file_to_schemas&#39;</span>
+    <span class="n">extension</span> <span class="o">=</span> <span class="s">&quot;txt&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj_id</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">description</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">dt_created</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">InputFileMeta</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">obj_id</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">dt_created</span><span class="p">)</span>
@@ -227,9 +250,10 @@
     <span class="sd">&quot;&quot;&quot;Meta-data for an HDF5 job database.&quot;&quot;&quot;</span>
     <span class="n">obj_type</span> <span class="o">=</span> <span class="s">&#39;job&#39;</span>
     <span class="n">collection_name</span> <span class="o">=</span> <span class="s">&#39;pade:jobs&#39;</span>
+    <span class="n">extension</span> <span class="o">=</span> <span class="s">&quot;pade&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj_id</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">dt_created</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-                 <span class="n">raw_file_id</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">schema_id</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+                 <span class="n">raw_file_id</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">schema_id</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">imported</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">JobMeta</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">obj_id</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">dt_created</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
@@ -243,11 +267,18 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">schema_id</span> <span class="o">=</span> <span class="n">schema_id</span>
         <span class="sd">&quot;&quot;&quot;The ID of the SchemaMeta object used for this job.&quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">imported</span> <span class="o">=</span> <span class="n">imported</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">imported</span> <span class="o">==</span> <span class="s">&#39;True&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">imported</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">imported</span> <span class="o">==</span> <span class="s">&#39;False&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">imported</span> <span class="o">=</span> <span class="bp">False</span>
 </div>
 <div class="viewcode-block" id="SchemaMeta"><a class="viewcode-back" href="../../generated/pade.html#pade.metadb.SchemaMeta">[docs]</a><span class="k">class</span> <span class="nc">SchemaMeta</span><span class="p">(</span><span class="n">ObjMeta</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Meta-data for a PADE schema YAML file.&quot;&quot;&quot;</span>
     <span class="n">obj_type</span>        <span class="o">=</span> <span class="s">&#39;schema&#39;</span>
     <span class="n">collection_name</span> <span class="o">=</span> <span class="s">&#39;pade:schemas&#39;</span>
+    <span class="n">extension</span> <span class="o">=</span> <span class="s">&quot;yaml&quot;</span>
 
 <div class="viewcode-block" id="SchemaMeta.load"><a class="viewcode-back" href="../../generated/pade.html#pade.metadb.SchemaMeta.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
@@ -303,7 +334,7 @@
     </div>
     <div class="footer">
         &copy; Copyright 2013, University of Pennsylvania.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.2.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
     </div>
   </body>
 </html>

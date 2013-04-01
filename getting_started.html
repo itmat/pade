@@ -63,18 +63,22 @@
 <ul class="simple">
 <li>jinja2</li>
 <li>matplotlib</li>
-<li>numpy</li>
 <li>scipy</li>
-<li>yaml</li>
+<li>numpy</li>
+<li>redis</li>
+<li>celery</li>
+<li>h5py</li>
+<li>flask</li>
+<li>Flask-WTF</li>
 </ul>
 <p>If you are using Linux, you may be able to install these packages
 quite easily using pip (<a class="reference external" href="http://pypi.python.org/pypi/pip">http://pypi.python.org/pypi/pip</a>) or another
 package management tool.</p>
-<p>If you are using a Mac, installing scipy can be tricky. The easiest
-way to get up and running may be to use a Python distribution that has
-scientific computing libraries pre-packaged with it. You should be
-able to use the <em>Enthought Python Distribution</em>, available here:
-<a class="reference external" href="http://www.enthought.com/products/epd.php">http://www.enthought.com/products/epd.php</a>.</p>
+<p>If you are using a Mac, installing numpy, scipy and h5py can be
+tricky. The easiest way to get up and running may be to use a Python
+distribution that has scientific computing libraries pre-packaged with
+it. You should be able to use the <em>Enthought Python Distribution</em>,
+available here: <a class="reference external" href="http://www.enthought.com/products/epd.php">http://www.enthought.com/products/epd.php</a>.</p>
 </div>
 <div class="section" id="obtaining">
 <h2>Obtaining<a class="headerlink" href="#obtaining" title="Permalink to this headline">¶</a></h2>
@@ -88,15 +92,11 @@ able to use the <em>Enthought Python Distribution</em>, available here:
 <div class="section" id="installing">
 <h2>Installing<a class="headerlink" href="#installing" title="Permalink to this headline">¶</a></h2>
 <p>Once you&#8217;ve obtained Pade, you can either run it from the directory
-where you&#8217;ve unpacked it, or install it globally. If you run it from a
-local directory, you&#8217;ll need to update your PYTHONPATH environment
-variable to point to the root of the Pade directory. For example, if
-you&#8217;ve downloaded Pade to ~/projects/, you might want to add</p>
-<div class="highlight-python"><pre>export PYTHONPATH=$PYTHONPATH:$HOME/projects/pade</pre>
-</div>
-<p>to your ~/.profile or ~/.bashrc file.</p>
-<p>You can install it simply by running <tt class="docutils literal"><span class="pre">python</span> <span class="pre">setup.py</span> <span class="pre">install</span></tt>.  Note
-that you may need to run this as root or under sudo.</p>
+where you&#8217;ve unpacked it, or install it globally.</p>
+<p>You can install it simply by running <tt class="docutils literal"><span class="pre">python</span> <span class="pre">setup.py</span> <span class="pre">install</span></tt>.
+Note that you may need to run this as root or under sudo. The
+installation process should attempt to install any dependencies you
+are missing.</p>
 </div>
 <div class="section" id="running-a-sample-job">
 <h2>Running a sample job<a class="headerlink" href="#running-a-sample-job" title="Permalink to this headline">¶</a></h2>
@@ -107,15 +107,14 @@ before attempting to run it on your own data.</p>
 in the <tt class="docutils literal"><span class="pre">sample_data</span></tt> directory.</p>
 <div class="section" id="input-files">
 <h3>Input files<a class="headerlink" href="#input-files" title="Permalink to this headline">¶</a></h3>
-<p>The input to any pade job (at this time) is a tab-delimited file. The
-file must contain a header row, plus one row for each feature. There
-should be one column that contains a unique identifier for the
-features (for example a gene id). Then each of the samples should have
-their expression values for each feature in its own column. So for
-example if you 2 conditions, each with 4 replicates, and 1000
-features, you would have a tab file with a header row plus 1000 data
-rows, with 9 columns (1 for the feature id and 8 for the expression
-data).</p>
+<p>The input to any pade job is a tab-delimited file. The file must
+contain a header row, plus one row for each feature. There should be
+one column that contains a unique identifier for the features (for
+example a gene id). Then each of the samples should have their
+expression values for each feature in its own column. So for example
+if you 2 conditions, each with 4 replicates, and 1000 features, you
+would have a tab file with a header row plus 1000 data rows, with 9
+columns (1 for the feature id and 8 for the expression data).</p>
 <p>The names of the columns do not matter, except that each column&#8217;s name
 must be unique.</p>
 </div>
@@ -130,7 +129,7 @@ the columns. For example, suppose say we are trying to find genes that
 are differentially expressed due to some treatment, and we want to
 treat gender as a &#8220;nuisance&#8221; variables. So we have two factors:
 &#8220;treated&#8221; and &#8220;gender&#8221;. We would setup the job as follows:</p>
-<div class="highlight-python"><pre>pade setup --factor gender --factor treated sample_data/sample_data_4_class.txt</pre>
+<div class="highlight-python"><pre>pade setup --factor gender --factor treated sample_data/sample_data_4_class.txt -o schema.yaml</pre>
 </div>
 <p>This will read in the input file and create a skeleton &#8220;schema&#8221; file
 based on it, in pade_schema.yaml (this can be changed with the
@@ -193,7 +192,7 @@ gender, you would run:</p>
 <div class="section" id="default-settings">
 <h4>Default settings<a class="headerlink" href="#default-settings" title="Permalink to this headline">¶</a></h4>
 <p>The simplest Pade job for our 4-class sample input would be something like:</p>
-<div class="highlight-python"><pre>pade run --condition treated --block gender sample_data/sample_data_4_class.txt</pre>
+<div class="highlight-python"><pre>pade run --condition treated --block gender --schema schema.yaml sample_data/sample_data_4_class.txt -o results.pade</pre>
 </div>
 <p>This should take less than a minute. Note that you need to provide the
 input file on the command line.</p>
@@ -223,6 +222,10 @@ option. Currently we support the following statistics:</p>
 <dt>means_ratio:</dt>
 <dd>Ratio of means. Can only be used when there are two conditions. Can
 be used with or without blocking. Works with paired data also.</dd>
+<dt>glm: A generalized linear model. If you specify this statistic, you</dt>
+<dd>must also specify a distribution family using the &#8216;&#8211;glm-family&#8217;
+option. Please see <tt class="docutils literal"><span class="pre">pade</span> <span class="pre">help</span> <span class="pre">run</span></tt> for a list of the supported
+families.</dd>
 </dl>
 </div>
 </div>
@@ -234,11 +237,11 @@ with the <tt class="docutils literal"><span class="pre">--db</span></tt> option.
 tab-delimited text file containing the reuslts, or launch a small web
 server to display the results in HTML format. To generate the text
 file output, run:</p>
-<div class="highlight-python"><pre>pade report --text</pre>
+<div class="highlight-python"><pre>pade report results.pade</pre>
 </div>
 <p>To start the Pade server, run:</p>
 <blockquote>
-<div>pade server</div></blockquote>
+<div>pade view results1.pade results2.pade ...</div></blockquote>
 <p>It will take several seconds to start up. Then visit localhost:5000 in
 a browser to look at the reports.</p>
 </div>
@@ -321,7 +324,7 @@ a browser to look at the reports.</p>
     </div>
     <div class="footer">
         &copy; Copyright 2013, University of Pennsylvania.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.2.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
     </div>
   </body>
 </html>

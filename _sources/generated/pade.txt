@@ -25,6 +25,14 @@ pade Package
     :undoc-members:
     :show-inheritance:
 
+:mod:`config` Module
+--------------------
+
+.. automodule:: pade.config
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 :mod:`layout` Module
 --------------------
 
@@ -57,26 +65,10 @@ pade Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`performance` Module
--------------------------
-
-.. automodule:: pade.performance
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 :mod:`redis_session` Module
 ---------------------------
 
 .. automodule:: pade.redis_session
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-:mod:`server` Module
---------------------
-
-.. automodule:: pade.server
     :members:
     :undoc-members:
     :show-inheritance:
@@ -102,7 +94,7 @@ Subpackages
 
 .. toctree::
 
-    pade.templates
+    pade.http
     pade.test
     pade.tools
 

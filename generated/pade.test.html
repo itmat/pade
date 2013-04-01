@@ -29,7 +29,7 @@
     <link rel="top" title="PADE 6.0 documentation" href="../index.html" />
     <link rel="up" title="pade Package" href="pade.html" />
     <link rel="next" title="tools Package" href="pade.tools.html" />
-    <link rel="prev" title="pade Package" href="pade.html" /> 
+    <link rel="prev" title="http Package" href="pade.http.html" /> 
   </head>
   <body>
     <div class="related">
@@ -45,7 +45,7 @@
           <a href="pade.tools.html" title="tools Package"
              accesskey="N">next</a> |</li>
         <li class="right" >
-          <a href="pade.html" title="pade Package"
+          <a href="pade.http.html" title="http Package"
              accesskey="P">previous</a> |</li>
         <li><a href="../index.html">PADE 6.0 documentation</a> &raquo;</li>
           <li><a href="../api.html" >API Documentation</a> &raquo;</li>
@@ -64,74 +64,62 @@
 <h2><a class="reference external" href="http://docs.python.org/library/test.html#test" title="(in Python v2.7)"><tt class="xref py py-mod docutils literal"><span class="pre">test</span></tt></a> Package<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-pade.test"></span><p>Tests for PaGE.</p>
 </div>
-<div class="section" id="module-pade.test.test_common">
-<span id="test-common-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">test_common</span></tt> Module<a class="headerlink" href="#module-pade.test.test_common" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-pade.test.padeconfig">
+<span id="padeconfig-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">padeconfig</span></tt> Module<a class="headerlink" href="#module-pade.test.padeconfig" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-pade.test.test_analysis">
+<span id="test-analysis-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">test_analysis</span></tt> Module<a class="headerlink" href="#module-pade.test.test_analysis" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
-<dt id="pade.test.test_common.CommonTest">
-<em class="property">class </em><tt class="descclassname">pade.test.test_common.</tt><tt class="descname">CommonTest</tt><big>(</big><em>methodName='runTest'</em><big>)</big><a class="reference internal" href="../_modules/pade/test/test_common.html#CommonTest"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_common.CommonTest" title="Permalink to this definition">¶</a></dt>
+<dt id="pade.test.test_analysis.AnalysisTest">
+<em class="property">class </em><tt class="descclassname">pade.test.test_analysis.</tt><tt class="descname">AnalysisTest</tt><big>(</big><em>methodName='runTest'</em><big>)</big><a class="reference internal" href="../_modules/pade/test/test_analysis.html#AnalysisTest"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_analysis.AnalysisTest" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">unittest.case.TestCase</span></tt></p>
 <dl class="method">
-<dt id="pade.test.test_common.CommonTest.test_fix_newlines">
-<tt class="descname">test_fix_newlines</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_common.html#CommonTest.test_fix_newlines"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_common.CommonTest.test_fix_newlines" title="Permalink to this definition">¶</a></dt>
+<dt id="pade.test.test_analysis.AnalysisTest.setUp">
+<tt class="descname">setUp</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_analysis.html#AnalysisTest.setUp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_analysis.AnalysisTest.setUp" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="pade.test.test_common.CommonTest.test_parse_model_one_var">
-<tt class="descname">test_parse_model_one_var</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_common.html#CommonTest.test_parse_model_one_var"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_common.CommonTest.test_parse_model_one_var" title="Permalink to this definition">¶</a></dt>
+<dt id="pade.test.test_analysis.AnalysisTest.test_coeffs_no_interaction">
+<tt class="descname">test_coeffs_no_interaction</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_analysis.html#AnalysisTest.test_coeffs_no_interaction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_analysis.AnalysisTest.test_coeffs_no_interaction" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="pade.test.test_common.CommonTest.test_parse_model_two_vars">
-<tt class="descname">test_parse_model_two_vars</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_common.html#CommonTest.test_parse_model_two_vars"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_common.CommonTest.test_parse_model_two_vars" title="Permalink to this definition">¶</a></dt>
+<dt id="pade.test.test_analysis.AnalysisTest.test_coeffs_with_interaction">
+<tt class="descname">test_coeffs_with_interaction</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_analysis.html#AnalysisTest.test_coeffs_with_interaction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_analysis.AnalysisTest.test_coeffs_with_interaction" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="pade.test.test_common.CommonTest.test_parse_op">
-<tt class="descname">test_parse_op</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_common.html#CommonTest.test_parse_op"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_common.CommonTest.test_parse_op" title="Permalink to this definition">¶</a></dt>
+<dt id="pade.test.test_analysis.AnalysisTest.test_group_means">
+<tt class="descname">test_group_means</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_analysis.html#AnalysisTest.test_group_means"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_analysis.AnalysisTest.test_group_means" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="pade.test.test_common.CommonTest.test_parse_var_op_var_op_var">
-<tt class="descname">test_parse_var_op_var_op_var</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_common.html#CommonTest.test_parse_var_op_var_op_var"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_common.CommonTest.test_parse_var_op_var_op_var" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="pade.test.test_common.CommonTest.test_parse_var_var">
-<tt class="descname">test_parse_var_var</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_common.html#CommonTest.test_parse_var_var"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_common.CommonTest.test_parse_var_var" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="pade.test.test_common.CommonTest.test_str">
-<tt class="descname">test_str</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_common.html#CommonTest.test_str"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_common.CommonTest.test_str" title="Permalink to this definition">¶</a></dt>
+<dt id="pade.test.test_analysis.AnalysisTest.test_model_dummy_vars_1">
+<tt class="descname">test_model_dummy_vars_1</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_analysis.html#AnalysisTest.test_model_dummy_vars_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_analysis.AnalysisTest.test_model_dummy_vars_1" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 </div>
-<div class="section" id="module-pade.test.test_job">
-<span id="test-job-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">test_job</span></tt> Module<a class="headerlink" href="#module-pade.test.test_job" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-pade.test.test_main">
+<span id="test-main-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">test_main</span></tt> Module<a class="headerlink" href="#module-pade.test.test_main" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
-<dt id="pade.test.test_job.CommonTest">
-<em class="property">class </em><tt class="descclassname">pade.test.test_job.</tt><tt class="descname">CommonTest</tt><big>(</big><em>methodName='runTest'</em><big>)</big><a class="reference internal" href="../_modules/pade/test/test_job.html#CommonTest"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_job.CommonTest" title="Permalink to this definition">¶</a></dt>
+<dt id="pade.test.test_main.MainTest">
+<em class="property">class </em><tt class="descclassname">pade.test.test_main.</tt><tt class="descname">MainTest</tt><big>(</big><em>methodName='runTest'</em><big>)</big><a class="reference internal" href="../_modules/pade/test/test_main.html#MainTest"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_main.MainTest" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">unittest.case.TestCase</span></tt></p>
-<dl class="attribute">
-<dt id="pade.test.test_job.CommonTest.factor_map_treated_sex">
-<tt class="descname">factor_map_treated_sex</tt><a class="reference internal" href="../_modules/pade/test/test_job.html#CommonTest.factor_map_treated_sex"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_job.CommonTest.factor_map_treated_sex" title="Permalink to this definition">¶</a></dt>
+<dl class="method">
+<dt id="pade.test.test_main.MainTest.test_fix_newlines">
+<tt class="descname">test_fix_newlines</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_main.html#MainTest.test_fix_newlines"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_main.MainTest.test_fix_newlines" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="pade.test.test_job.CommonTest.setUp">
-<tt class="descname">setUp</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_job.html#CommonTest.setUp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_job.CommonTest.setUp" title="Permalink to this definition">¶</a></dt>
+<dt id="pade.test.test_main.MainTest.test_quote_and_join">
+<tt class="descname">test_quote_and_join</tt><big>(</big><big>)</big><a class="headerlink" href="#pade.test.test_main.MainTest.test_quote_and_join" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="pade.test.test_job.CommonTest.test_model_to_layout">
-<tt class="descname">test_model_to_layout</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_job.html#CommonTest.test_model_to_layout"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_job.CommonTest.test_model_to_layout" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="pade.test.test_job.CommonTest.test_table">
-<tt class="descname">test_table</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_job.html#CommonTest.test_table"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_job.CommonTest.test_table" title="Permalink to this definition">¶</a></dt>
+<dt id="pade.test.test_main.MainTest.test_validate_settings">
+<tt class="descname">test_validate_settings</tt><big>(</big><big>)</big><a class="headerlink" href="#pade.test.test_main.MainTest.test_validate_settings" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -143,6 +131,21 @@
 <dt id="pade.test.test_metadb.MetaDBTest">
 <em class="property">class </em><tt class="descclassname">pade.test.test_metadb.</tt><tt class="descname">MetaDBTest</tt><big>(</big><em>methodName='runTest'</em><big>)</big><a class="reference internal" href="../_modules/pade/test/test_metadb.html#MetaDBTest"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_metadb.MetaDBTest" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">unittest.case.TestCase</span></tt></p>
+<dl class="method">
+<dt id="pade.test.test_metadb.MetaDBTest.setUp">
+<tt class="descname">setUp</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_metadb.html#MetaDBTest.setUp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_metadb.MetaDBTest.setUp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pade.test.test_metadb.MetaDBTest.tearDown">
+<tt class="descname">tearDown</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_metadb.html#MetaDBTest.tearDown"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_metadb.MetaDBTest.tearDown" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pade.test.test_metadb.MetaDBTest.test_import_job">
+<tt class="descname">test_import_job</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_metadb.html#MetaDBTest.test_import_job"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_metadb.MetaDBTest.test_import_job" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="method">
 <dt id="pade.test.test_metadb.MetaDBTest.test_input_files">
 <tt class="descname">test_input_files</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_metadb.html#MetaDBTest.test_input_files"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_metadb.MetaDBTest.test_input_files" title="Permalink to this definition">¶</a></dt>
@@ -165,11 +168,6 @@
 
 </dd></dl>
 
-<dl class="function">
-<dt id="pade.test.test_metadb.temp_metadb">
-<tt class="descclassname">pade.test.test_metadb.</tt><tt class="descname">temp_metadb</tt><big>(</big><em>*args</em>, <em>**kwds</em><big>)</big><a class="reference internal" href="../_modules/pade/test/test_metadb.html#temp_metadb"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_metadb.temp_metadb" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 </div>
 <div class="section" id="module-pade.test.test_model">
 <span id="test-model-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">test_model</span></tt> Module<a class="headerlink" href="#module-pade.test.test_model" title="Permalink to this headline">¶</a></h2>
@@ -178,106 +176,216 @@
 <em class="property">class </em><tt class="descclassname">pade.test.test_model.</tt><tt class="descname">ModelTest</tt><big>(</big><em>methodName='runTest'</em><big>)</big><a class="reference internal" href="../_modules/pade/test/test_model.html#ModelTest"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_model.ModelTest" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">unittest.case.TestCase</span></tt></p>
 <dl class="method">
-<dt id="pade.test.test_model.ModelTest.setUp">
-<tt class="descname">setUp</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_model.html#ModelTest.setUp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_model.ModelTest.setUp" title="Permalink to this definition">¶</a></dt>
+<dt id="pade.test.test_model.ModelTest.test_parse_model_one_var">
+<tt class="descname">test_parse_model_one_var</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_model.html#ModelTest.test_parse_model_one_var"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_model.ModelTest.test_parse_model_one_var" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="pade.test.test_model.ModelTest.test_coeffs_no_interaction">
-<tt class="descname">test_coeffs_no_interaction</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_model.html#ModelTest.test_coeffs_no_interaction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_model.ModelTest.test_coeffs_no_interaction" title="Permalink to this definition">¶</a></dt>
+<dt id="pade.test.test_model.ModelTest.test_parse_model_two_vars">
+<tt class="descname">test_parse_model_two_vars</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_model.html#ModelTest.test_parse_model_two_vars"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_model.ModelTest.test_parse_model_two_vars" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="pade.test.test_model.ModelTest.test_coeffs_with_interaction">
-<tt class="descname">test_coeffs_with_interaction</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_model.html#ModelTest.test_coeffs_with_interaction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_model.ModelTest.test_coeffs_with_interaction" title="Permalink to this definition">¶</a></dt>
+<dt id="pade.test.test_model.ModelTest.test_parse_op">
+<tt class="descname">test_parse_op</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_model.html#ModelTest.test_parse_op"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_model.ModelTest.test_parse_op" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="pade.test.test_model.ModelTest.test_group_means">
-<tt class="descname">test_group_means</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_model.html#ModelTest.test_group_means"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_model.ModelTest.test_group_means" title="Permalink to this definition">¶</a></dt>
+<dt id="pade.test.test_model.ModelTest.test_parse_var_op_var_op_var">
+<tt class="descname">test_parse_var_op_var_op_var</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_model.html#ModelTest.test_parse_var_op_var_op_var"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_model.ModelTest.test_parse_var_op_var_op_var" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="pade.test.test_model.ModelTest.test_model_dummy_vars_1">
-<tt class="descname">test_model_dummy_vars_1</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_model.html#ModelTest.test_model_dummy_vars_1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_model.ModelTest.test_model_dummy_vars_1" title="Permalink to this definition">¶</a></dt>
+<dt id="pade.test.test_model.ModelTest.test_parse_var_var">
+<tt class="descname">test_parse_var_var</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_model.html#ModelTest.test_parse_var_var"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_model.ModelTest.test_parse_var_var" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pade.test.test_model.ModelTest.test_str">
+<tt class="descname">test_str</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_model.html#ModelTest.test_str"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_model.ModelTest.test_str" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pade.test.test_model.OtherTest">
+<em class="property">class </em><tt class="descclassname">pade.test.test_model.</tt><tt class="descname">OtherTest</tt><big>(</big><em>methodName='runTest'</em><big>)</big><a class="reference internal" href="../_modules/pade/test/test_model.html#OtherTest"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_model.OtherTest" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">unittest.case.TestCase</span></tt></p>
+<dl class="attribute">
+<dt id="pade.test.test_model.OtherTest.factor_map_treated_sex">
+<tt class="descname">factor_map_treated_sex</tt><a class="reference internal" href="../_modules/pade/test/test_model.html#OtherTest.factor_map_treated_sex"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_model.OtherTest.factor_map_treated_sex" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pade.test.test_model.OtherTest.setUp">
+<tt class="descname">setUp</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_model.html#OtherTest.setUp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_model.OtherTest.setUp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pade.test.test_model.OtherTest.test_model_to_layout">
+<tt class="descname">test_model_to_layout</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_model.html#OtherTest.test_model_to_layout"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_model.OtherTest.test_model_to_layout" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pade.test.test_model.OtherTest.test_table">
+<tt class="descname">test_table</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_model.html#OtherTest.test_table"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_model.OtherTest.test_table" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pade.test.test_model.SchemaTest">
+<em class="property">class </em><tt class="descclassname">pade.test.test_model.</tt><tt class="descname">SchemaTest</tt><big>(</big><em>methodName='runTest'</em><big>)</big><a class="reference internal" href="../_modules/pade/test/test_model.html#SchemaTest"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_model.SchemaTest" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">unittest.case.TestCase</span></tt></p>
+<dl class="method">
+<dt id="pade.test.test_model.SchemaTest.setUp">
+<tt class="descname">setUp</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_model.html#SchemaTest.setUp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_model.SchemaTest.setUp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pade.test.test_model.SchemaTest.test_baseline_value">
+<tt class="descname">test_baseline_value</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_model.html#SchemaTest.test_baseline_value"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_model.SchemaTest.test_baseline_value" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pade.test.test_model.SchemaTest.test_factor_combinations">
+<tt class="descname">test_factor_combinations</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_model.html#SchemaTest.test_factor_combinations"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_model.SchemaTest.test_factor_combinations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pade.test.test_model.SchemaTest.test_factors">
+<tt class="descname">test_factors</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_model.html#SchemaTest.test_factors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_model.SchemaTest.test_factors" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pade.test.test_model.SchemaTest.test_has_baseline">
+<tt class="descname">test_has_baseline</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_model.html#SchemaTest.test_has_baseline"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_model.SchemaTest.test_has_baseline" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pade.test.test_model.SchemaTest.test_ignore_columns">
+<tt class="descname">test_ignore_columns</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_model.html#SchemaTest.test_ignore_columns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_model.SchemaTest.test_ignore_columns" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pade.test.test_model.SchemaTest.test_possible_assignments">
+<tt class="descname">test_possible_assignments</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_model.html#SchemaTest.test_possible_assignments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_model.SchemaTest.test_possible_assignments" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pade.test.test_model.SchemaTest.test_sample_matches_assignments">
+<tt class="descname">test_sample_matches_assignments</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_model.html#SchemaTest.test_sample_matches_assignments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_model.SchemaTest.test_sample_matches_assignments" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pade.test.test_model.SchemaTest.test_samples_with_assignments">
+<tt class="descname">test_samples_with_assignments</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_model.html#SchemaTest.test_samples_with_assignments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_model.SchemaTest.test_samples_with_assignments" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pade.test.test_model.SchemaTest.test_yaml">
+<tt class="descname">test_yaml</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_model.html#SchemaTest.test_yaml"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_model.SchemaTest.test_yaml" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pade.test.test_model.SettingValidationTest">
+<em class="property">class </em><tt class="descclassname">pade.test.test_model.</tt><tt class="descname">SettingValidationTest</tt><big>(</big><em>methodName='runTest'</em><big>)</big><a class="reference internal" href="../_modules/pade/test/test_model.html#SettingValidationTest"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_model.SettingValidationTest" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">unittest.case.TestCase</span></tt></p>
+<dl class="method">
+<dt id="pade.test.test_model.SettingValidationTest.setUp">
+<tt class="descname">setUp</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_model.html#SettingValidationTest.setUp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_model.SettingValidationTest.setUp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pade.test.test_model.SettingValidationTest.setup_paired_schema">
+<tt class="descname">setup_paired_schema</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_model.html#SettingValidationTest.setup_paired_schema"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_model.SettingValidationTest.setup_paired_schema" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pade.test.test_model.SettingValidationTest.setup_three_cond_schema">
+<tt class="descname">setup_three_cond_schema</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_model.html#SettingValidationTest.setup_three_cond_schema"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_model.SettingValidationTest.setup_three_cond_schema" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pade.test.test_model.SettingValidationTest.test_ftest_layouts">
+<tt class="descname">test_ftest_layouts</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_model.html#SettingValidationTest.test_ftest_layouts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_model.SettingValidationTest.test_ftest_layouts" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pade.test.test_model.SettingValidationTest.test_means_ratio_layouts">
+<tt class="descname">test_means_ratio_layouts</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_model.html#SettingValidationTest.test_means_ratio_layouts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_model.SettingValidationTest.test_means_ratio_layouts" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pade.test.test_model.SettingValidationTest.test_one_sample_ttest_layouts">
+<tt class="descname">test_one_sample_ttest_layouts</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_model.html#SettingValidationTest.test_one_sample_ttest_layouts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_model.SettingValidationTest.test_one_sample_ttest_layouts" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pade.test.test_model.SettingValidationTest.test_unknown_statistic">
+<tt class="descname">test_unknown_statistic</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_model.html#SettingValidationTest.test_unknown_statistic"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_model.SettingValidationTest.test_unknown_statistic" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 </div>
-<div class="section" id="module-pade.test.test_profile">
-<span id="test-profile-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">test_profile</span></tt> Module<a class="headerlink" href="#module-pade.test.test_profile" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-pade.test.test_server">
+<span id="test-server-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">test_server</span></tt> Module<a class="headerlink" href="#module-pade.test.test_server" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
-<dt id="pade.test.test_profile.ProfileTest">
-<em class="property">class </em><tt class="descclassname">pade.test.test_profile.</tt><tt class="descname">ProfileTest</tt><big>(</big><em>methodName='runTest'</em><big>)</big><a class="reference internal" href="../_modules/pade/test/test_profile.html#ProfileTest"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_profile.ProfileTest" title="Permalink to this definition">¶</a></dt>
+<dt id="pade.test.test_server.PadeRunnerTestCase">
+<em class="property">class </em><tt class="descclassname">pade.test.test_server.</tt><tt class="descname">PadeRunnerTestCase</tt><big>(</big><em>methodName='runTest'</em><big>)</big><a class="reference internal" href="../_modules/pade/test/test_server.html#PadeRunnerTestCase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_server.PadeRunnerTestCase" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">unittest.case.TestCase</span></tt></p>
 <dl class="method">
-<dt id="pade.test.test_profile.ProfileTest.setUp">
-<tt class="descname">setUp</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_profile.html#ProfileTest.setUp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_profile.ProfileTest.setUp" title="Permalink to this definition">¶</a></dt>
+<dt id="pade.test.test_server.PadeRunnerTestCase.assertOk">
+<tt class="descname">assertOk</tt><big>(</big><em>route</em><big>)</big><a class="reference internal" href="../_modules/pade/test/test_server.html#PadeRunnerTestCase.assertOk"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_server.PadeRunnerTestCase.assertOk" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="pade.test.test_profile.ProfileTest.test_walk_profile">
-<tt class="descname">test_walk_profile</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_profile.html#ProfileTest.test_walk_profile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_profile.ProfileTest.test_walk_profile" title="Permalink to this definition">¶</a></dt>
+<dt id="pade.test.test_server.PadeRunnerTestCase.assertStatus">
+<tt class="descname">assertStatus</tt><big>(</big><em>route</em>, <em>status</em><big>)</big><a class="reference internal" href="../_modules/pade/test/test_server.html#PadeRunnerTestCase.assertStatus"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_server.PadeRunnerTestCase.assertStatus" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pade.test.test_server.PadeRunnerTestCase.setUp">
+<tt class="descname">setUp</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_server.html#PadeRunnerTestCase.setUp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_server.PadeRunnerTestCase.setUp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pade.test.test_server.PadeRunnerTestCase.test_new_job_workflow">
+<tt class="descname">test_new_job_workflow</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_server.html#PadeRunnerTestCase.test_new_job_workflow"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_server.PadeRunnerTestCase.test_new_job_workflow" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pade.test.test_server.PadeRunnerTestCase.test_setup_job">
+<tt class="descname">test_setup_job</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_server.html#PadeRunnerTestCase.test_setup_job"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_server.PadeRunnerTestCase.test_setup_job" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
-</div>
-<div class="section" id="module-pade.test.test_schema">
-<span id="test-schema-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">test_schema</span></tt> Module<a class="headerlink" href="#module-pade.test.test_schema" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
-<dt id="pade.test.test_schema.SchemaTest">
-<em class="property">class </em><tt class="descclassname">pade.test.test_schema.</tt><tt class="descname">SchemaTest</tt><big>(</big><em>methodName='runTest'</em><big>)</big><a class="reference internal" href="../_modules/pade/test/test_schema.html#SchemaTest"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_schema.SchemaTest" title="Permalink to this definition">¶</a></dt>
+<dt id="pade.test.test_server.PadeViewerTestCase">
+<em class="property">class </em><tt class="descclassname">pade.test.test_server.</tt><tt class="descname">PadeViewerTestCase</tt><big>(</big><em>methodName='runTest'</em><big>)</big><a class="reference internal" href="../_modules/pade/test/test_server.html#PadeViewerTestCase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_server.PadeViewerTestCase" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">unittest.case.TestCase</span></tt></p>
 <dl class="method">
-<dt id="pade.test.test_schema.SchemaTest.setUp">
-<tt class="descname">setUp</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_schema.html#SchemaTest.setUp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_schema.SchemaTest.setUp" title="Permalink to this definition">¶</a></dt>
+<dt id="pade.test.test_server.PadeViewerTestCase.assertOk">
+<tt class="descname">assertOk</tt><big>(</big><em>route</em><big>)</big><a class="reference internal" href="../_modules/pade/test/test_server.html#PadeViewerTestCase.assertOk"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_server.PadeViewerTestCase.assertOk" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="pade.test.test_schema.SchemaTest.test_baseline_value">
-<tt class="descname">test_baseline_value</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_schema.html#SchemaTest.test_baseline_value"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_schema.SchemaTest.test_baseline_value" title="Permalink to this definition">¶</a></dt>
+<dt id="pade.test.test_server.PadeViewerTestCase.assertStatus">
+<tt class="descname">assertStatus</tt><big>(</big><em>route</em>, <em>status</em><big>)</big><a class="reference internal" href="../_modules/pade/test/test_server.html#PadeViewerTestCase.assertStatus"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_server.PadeViewerTestCase.assertStatus" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="pade.test.test_schema.SchemaTest.test_factor_combinations">
-<tt class="descname">test_factor_combinations</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_schema.html#SchemaTest.test_factor_combinations"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_schema.SchemaTest.test_factor_combinations" title="Permalink to this definition">¶</a></dt>
+<dt id="pade.test.test_server.PadeViewerTestCase.setUp">
+<tt class="descname">setUp</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_server.html#PadeViewerTestCase.setUp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_server.PadeViewerTestCase.setUp" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="pade.test.test_schema.SchemaTest.test_factors">
-<tt class="descname">test_factors</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_schema.html#SchemaTest.test_factors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_schema.SchemaTest.test_factors" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="pade.test.test_schema.SchemaTest.test_has_baseline">
-<tt class="descname">test_has_baseline</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_schema.html#SchemaTest.test_has_baseline"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_schema.SchemaTest.test_has_baseline" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="pade.test.test_schema.SchemaTest.test_ignore_columns">
-<tt class="descname">test_ignore_columns</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_schema.html#SchemaTest.test_ignore_columns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_schema.SchemaTest.test_ignore_columns" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="pade.test.test_schema.SchemaTest.test_possible_assignments">
-<tt class="descname">test_possible_assignments</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_schema.html#SchemaTest.test_possible_assignments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_schema.SchemaTest.test_possible_assignments" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="pade.test.test_schema.SchemaTest.test_sample_matches_assignments">
-<tt class="descname">test_sample_matches_assignments</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_schema.html#SchemaTest.test_sample_matches_assignments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_schema.SchemaTest.test_sample_matches_assignments" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="pade.test.test_schema.SchemaTest.test_samples_with_assignments">
-<tt class="descname">test_samples_with_assignments</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_schema.html#SchemaTest.test_samples_with_assignments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_schema.SchemaTest.test_samples_with_assignments" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="pade.test.test_schema.SchemaTest.test_yaml">
-<tt class="descname">test_yaml</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_schema.html#SchemaTest.test_yaml"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_schema.SchemaTest.test_yaml" title="Permalink to this definition">¶</a></dt>
+<dt id="pade.test.test_server.PadeViewerTestCase.test_routes">
+<tt class="descname">test_routes</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/test/test_server.html#PadeViewerTestCase.test_routes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.test.test_server.PadeViewerTestCase.test_routes" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -392,12 +500,12 @@
   <ul>
 <li><a class="reference internal" href="#">test Package</a><ul>
 <li><a class="reference internal" href="#id1"><tt class="docutils literal"><span class="pre">test</span></tt> Package</a></li>
-<li><a class="reference internal" href="#module-pade.test.test_common"><tt class="docutils literal"><span class="pre">test_common</span></tt> Module</a></li>
-<li><a class="reference internal" href="#module-pade.test.test_job"><tt class="docutils literal"><span class="pre">test_job</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-pade.test.padeconfig"><tt class="docutils literal"><span class="pre">padeconfig</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-pade.test.test_analysis"><tt class="docutils literal"><span class="pre">test_analysis</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-pade.test.test_main"><tt class="docutils literal"><span class="pre">test_main</span></tt> Module</a></li>
 <li><a class="reference internal" href="#module-pade.test.test_metadb"><tt class="docutils literal"><span class="pre">test_metadb</span></tt> Module</a></li>
 <li><a class="reference internal" href="#module-pade.test.test_model"><tt class="docutils literal"><span class="pre">test_model</span></tt> Module</a></li>
-<li><a class="reference internal" href="#module-pade.test.test_profile"><tt class="docutils literal"><span class="pre">test_profile</span></tt> Module</a></li>
-<li><a class="reference internal" href="#module-pade.test.test_schema"><tt class="docutils literal"><span class="pre">test_schema</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-pade.test.test_server"><tt class="docutils literal"><span class="pre">test_server</span></tt> Module</a></li>
 <li><a class="reference internal" href="#module-pade.test.test_stat"><tt class="docutils literal"><span class="pre">test_stat</span></tt> Module</a></li>
 <li><a class="reference internal" href="#module-pade.test.utils"><tt class="docutils literal"><span class="pre">utils</span></tt> Module</a></li>
 </ul>
@@ -405,8 +513,8 @@
 </ul>
 
   <h4>Previous topic</h4>
-  <p class="topless"><a href="pade.html"
-                        title="previous chapter">pade Package</a></p>
+  <p class="topless"><a href="pade.http.html"
+                        title="previous chapter">http Package</a></p>
   <h4>Next topic</h4>
   <p class="topless"><a href="pade.tools.html"
                         title="next chapter">tools Package</a></p>
@@ -445,7 +553,7 @@
           <a href="pade.tools.html" title="tools Package"
              >next</a> |</li>
         <li class="right" >
-          <a href="pade.html" title="pade Package"
+          <a href="pade.http.html" title="http Package"
              >previous</a> |</li>
         <li><a href="../index.html">PADE 6.0 documentation</a> &raquo;</li>
           <li><a href="../api.html" >API Documentation</a> &raquo;</li>
@@ -454,7 +562,7 @@
     </div>
     <div class="footer">
         &copy; Copyright 2013, University of Pennsylvania.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.2.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
     </div>
   </body>
 </html>

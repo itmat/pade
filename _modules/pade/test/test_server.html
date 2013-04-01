@@ -1,0 +1,349 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pade.test.test_server &mdash; PADE 6.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '6.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="PADE 6.0 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">PADE 6.0 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for pade.test.test_server</h1><div class="highlight"><pre>
+<span class="kn">import</span> <span class="nn">unittest</span>
+<span class="kn">from</span> <span class="nn">pade.metadb</span> <span class="kn">import</span> <span class="n">JobMeta</span><span class="p">,</span> <span class="n">MetaDB</span>
+<span class="kn">from</span> <span class="nn">redis</span> <span class="kn">import</span> <span class="n">Redis</span>
+<span class="kn">from</span> <span class="nn">pade.http.server</span> <span class="kn">import</span> <span class="n">PadeViewer</span><span class="p">,</span> <span class="n">PadeRunner</span>
+<span class="kn">import</span> <span class="nn">pade.http.jobdetails</span>
+<span class="kn">import</span> <span class="nn">pade.config</span>
+<span class="kn">import</span> <span class="nn">tempfile</span>
+<span class="kn">import</span> <span class="nn">shutil</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">redis.exceptions</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="n">standard_routes</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s">&#39;/&#39;</span><span class="p">,</span>
+    <span class="s">&#39;/jobs&#39;</span><span class="p">,</span>
+    <span class="s">&#39;/jobs/0/&#39;</span><span class="p">,</span>
+    <span class="s">&#39;/jobs/0/conf_level/9&#39;</span><span class="p">,</span>
+    <span class="s">&#39;/jobs/0/features/14&#39;</span><span class="p">,</span>
+    <span class="s">&#39;/jobs/0/features/14/measurement_scatter&#39;</span><span class="p">,</span>
+    <span class="s">&#39;/jobs/0/features/14/measurement_bars&#39;</span><span class="p">,</span>
+    <span class="s">&#39;/jobs/0/mean_vs_std&#39;</span><span class="p">,</span>
+    <span class="s">&#39;/jobs/0/stat_dist&#39;</span><span class="p">,</span>
+    <span class="s">&#39;/jobs/0/stat_dist/1.png&#39;</span><span class="p">,</span>
+    <span class="s">&#39;/jobs/0/confidence_dist&#39;</span><span class="p">,</span>
+    <span class="s">&#39;/jobs/0/feature_count_and_score_by_stat.html&#39;</span><span class="p">,</span>
+    <span class="s">&#39;/jobs/0/bin_to_score.png&#39;</span><span class="p">,</span>
+    <span class="s">&#39;/jobs/0/bin_to_features.png&#39;</span><span class="p">,</span>
+    <span class="s">&#39;/jobs/0/conf_dist&#39;</span><span class="p">,</span>
+    <span class="s">&#39;/jobs/0/score_dist_for_tuning_params.png&#39;</span><span class="p">,</span>
+    <span class="p">]</span>
+
+<div class="viewcode-block" id="PadeViewerTestCase"><a class="viewcode-back" href="../../../generated/pade.test.html#pade.test.test_server.PadeViewerTestCase">[docs]</a><span class="k">class</span> <span class="nc">PadeViewerTestCase</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+    
+<div class="viewcode-block" id="PadeViewerTestCase.setUp"><a class="viewcode-back" href="../../../generated/pade.test.html#pade.test.test_server.PadeViewerTestCase.setUp">[docs]</a>    <span class="k">def</span> <span class="nf">setUp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">app</span> <span class="o">=</span> <span class="n">PadeViewer</span><span class="p">()</span><span class="o">.</span><span class="n">test_client</span><span class="p">()</span>
+
+        <span class="n">pade</span><span class="o">.</span><span class="n">http</span><span class="o">.</span><span class="n">jobdetails</span><span class="o">.</span><span class="n">job_dbs</span> <span class="o">=</span> <span class="p">[</span> 
+            <span class="n">JobMeta</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">imported</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="p">[</span> <span class="s">&#39;sample_jobs/test/server_test_job.pade&#39;</span> <span class="p">]</span> <span class="p">]</span>
+</div>
+<div class="viewcode-block" id="PadeViewerTestCase.assertOk"><a class="viewcode-back" href="../../../generated/pade.test.html#pade.test.test_server.PadeViewerTestCase.assertOk">[docs]</a>    <span class="k">def</span> <span class="nf">assertOk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">route</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertStatus</span><span class="p">(</span><span class="n">route</span><span class="p">,</span> <span class="mi">200</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="PadeViewerTestCase.assertStatus"><a class="viewcode-back" href="../../../generated/pade.test.html#pade.test.test_server.PadeViewerTestCase.assertStatus">[docs]</a>    <span class="k">def</span> <span class="nf">assertStatus</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">route</span><span class="p">,</span> <span class="n">status</span><span class="p">):</span>
+        <span class="n">rv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">route</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">rv</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="n">status</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="PadeViewerTestCase.test_routes"><a class="viewcode-back" href="../../../generated/pade.test.html#pade.test.test_server.PadeViewerTestCase.test_routes">[docs]</a>    <span class="k">def</span> <span class="nf">test_routes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="k">for</span> <span class="n">route</span> <span class="ow">in</span> <span class="n">standard_routes</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertOk</span><span class="p">(</span><span class="n">route</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">route</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;/jobs/0/features/14/interaction_plot&#39;</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertStatus</span><span class="p">(</span><span class="n">route</span><span class="p">,</span> <span class="mi">404</span><span class="p">)</span>
+</div></div>
+<div class="viewcode-block" id="PadeRunnerTestCase"><a class="viewcode-back" href="../../../generated/pade.test.html#pade.test.test_server.PadeRunnerTestCase">[docs]</a><span class="k">class</span> <span class="nc">PadeRunnerTestCase</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+    
+<div class="viewcode-block" id="PadeRunnerTestCase.setUp"><a class="viewcode-back" href="../../../generated/pade.test.html#pade.test.test_server.PadeRunnerTestCase.setUp">[docs]</a>    <span class="k">def</span> <span class="nf">setUp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="p">(</span><span class="n">this_dir</span><span class="p">,</span> <span class="n">this_file</span><span class="p">)</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">__file__</span><span class="p">)</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="n">pade</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">test</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">redis_db</span> <span class="o">=</span> <span class="n">Redis</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">metadb_host</span><span class="p">,</span>
+                             <span class="n">port</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">metadb_port</span><span class="p">,</span>
+                             <span class="n">db</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">metadb_db</span><span class="p">)</span>
+            <span class="n">redis_db</span><span class="o">.</span><span class="n">flushdb</span><span class="p">()</span>
+
+        <span class="k">except</span> <span class="n">redis</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">ConnectionError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">skipTest</span><span class="p">(</span><span class="s">&quot;No redis&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">mdb</span> <span class="o">=</span> <span class="n">MetaDB</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">metadb_dir</span><span class="p">,</span> <span class="n">redis_db</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mdb</span><span class="o">.</span><span class="n">redis</span><span class="o">.</span><span class="n">flushdb</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">app</span> <span class="o">=</span> <span class="n">PadeRunner</span><span class="p">(</span><span class="n">config</span><span class="p">)</span><span class="o">.</span><span class="n">test_client</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="PadeRunnerTestCase.test_setup_job"><a class="viewcode-back" href="../../../generated/pade.test.html#pade.test.test_server.PadeRunnerTestCase.test_setup_job">[docs]</a>    <span class="k">def</span> <span class="nf">test_setup_job</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertOk</span><span class="p">(</span><span class="s">&quot;/&quot;</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="PadeRunnerTestCase.assertOk"><a class="viewcode-back" href="../../../generated/pade.test.html#pade.test.test_server.PadeRunnerTestCase.assertOk">[docs]</a>    <span class="k">def</span> <span class="nf">assertOk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">route</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertStatus</span><span class="p">(</span><span class="n">route</span><span class="p">,</span> <span class="mi">200</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="PadeRunnerTestCase.assertStatus"><a class="viewcode-back" href="../../../generated/pade.test.html#pade.test.test_server.PadeRunnerTestCase.assertStatus">[docs]</a>    <span class="k">def</span> <span class="nf">assertStatus</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">route</span><span class="p">,</span> <span class="n">status</span><span class="p">):</span>
+        <span class="n">rv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">route</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">rv</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="n">status</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="PadeRunnerTestCase.test_new_job_workflow"><a class="viewcode-back" href="../../../generated/pade.test.html#pade.test.test_server.PadeRunnerTestCase.test_new_job_workflow">[docs]</a>    <span class="k">def</span> <span class="nf">test_new_job_workflow</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&quot;/new_job/clear_workflow&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="mi">302</span><span class="p">)</span>
+
+        <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&quot;/input_files/&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="mi">200</span><span class="p">)</span>
+
+        <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&quot;/input_files/upload_raw_file&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="mi">200</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;sample_jobs/two_cond_nuisance/sample_data_2_cond_nuisance.txt&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">infile</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mdb</span><span class="o">.</span><span class="n">add_input_file</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&quot;test.txt&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s">&quot;Some comments&quot;</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="n">f</span><span class="p">)</span>
+
+        <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&quot;/input_files/&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">infile</span><span class="o">.</span><span class="n">obj_id</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="mi">200</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="s">&#39;c1r1&#39;</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">infile</span><span class="o">.</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="s">&#39;c1r2&#39;</span> <span class="ow">in</span> <span class="n">f</span><span class="o">.</span><span class="n">next</span><span class="p">())</span>
+            
+        <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&quot;/new_job/select_input_file?input_file_id=&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">infile</span><span class="o">.</span><span class="n">obj_id</span><span class="p">),</span>
+                         <span class="n">follow_redirects</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="s">&#39;Feature ID&#39;</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="s">&#39;Sample&#39;</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s">&quot;/new_job/column_roles&quot;</span><span class="p">,</span>
+                          <span class="n">data</span><span class="o">=</span><span class="p">{</span>
+                <span class="s">&#39;roles-0&#39;</span><span class="p">:</span> <span class="s">&#39;feature_id&#39;</span><span class="p">,</span>
+                <span class="s">&#39;roles-1&#39;</span><span class="p">:</span> <span class="s">&#39;sample&#39;</span><span class="p">,</span>
+                <span class="s">&#39;roles-2&#39;</span><span class="p">:</span> <span class="s">&#39;sample&#39;</span><span class="p">,</span>
+                <span class="s">&#39;roles-3&#39;</span><span class="p">:</span> <span class="s">&#39;sample&#39;</span><span class="p">,</span>
+                <span class="s">&#39;roles-4&#39;</span><span class="p">:</span> <span class="s">&#39;sample&#39;</span><span class="p">,</span>
+                <span class="s">&#39;roles-5&#39;</span><span class="p">:</span> <span class="s">&#39;sample&#39;</span><span class="p">,</span>
+                <span class="s">&#39;roles-6&#39;</span><span class="p">:</span> <span class="s">&#39;sample&#39;</span><span class="p">,</span>
+                <span class="s">&#39;roles-7&#39;</span><span class="p">:</span> <span class="s">&#39;sample&#39;</span><span class="p">,</span>
+                <span class="s">&#39;roles-8&#39;</span><span class="p">:</span> <span class="s">&#39;sample&#39;</span><span class="p">,</span>
+                <span class="s">&#39;roles-9&#39;</span><span class="p">:</span> <span class="s">&#39;sample&#39;</span><span class="p">,</span>
+                <span class="s">&#39;roles-10&#39;</span><span class="p">:</span> <span class="s">&#39;sample&#39;</span><span class="p">,</span>
+                <span class="s">&#39;roles-11&#39;</span><span class="p">:</span> <span class="s">&#39;sample&#39;</span><span class="p">,</span>
+                <span class="s">&#39;roles-12&#39;</span><span class="p">:</span> <span class="s">&#39;sample&#39;</span><span class="p">,</span>
+                <span class="s">&#39;roles-12&#39;</span><span class="p">:</span> <span class="s">&#39;sample&#39;</span><span class="p">,</span>
+                <span class="s">&#39;roles-13&#39;</span><span class="p">:</span> <span class="s">&#39;sample&#39;</span><span class="p">,</span>
+                <span class="s">&#39;roles-14&#39;</span><span class="p">:</span> <span class="s">&#39;sample&#39;</span><span class="p">,</span>
+                <span class="s">&#39;roles-15&#39;</span><span class="p">:</span> <span class="s">&#39;sample&#39;</span><span class="p">,</span>
+                <span class="s">&#39;roles-16&#39;</span><span class="p">:</span> <span class="s">&#39;sample&#39;</span><span class="p">,</span>
+                <span class="p">},</span>
+                          <span class="n">follow_redirects</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="mi">200</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="s">&#39;Factor name&#39;</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="s">&#39;Possible values&#39;</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s">&quot;/new_job/add_factor&quot;</span><span class="p">,</span>
+                          <span class="n">data</span><span class="o">=</span><span class="p">{</span>
+                <span class="s">&#39;factor_name&#39;</span><span class="p">:</span> <span class="s">&#39;treated&#39;</span><span class="p">,</span>
+                <span class="s">&#39;possible_values-0&#39;</span><span class="p">:</span> <span class="s">&#39;no&#39;</span><span class="p">,</span>
+                <span class="s">&#39;possible_values-1&#39;</span><span class="p">:</span> <span class="s">&#39;yes&#39;</span><span class="p">,</span>
+                <span class="s">&#39;possible_values-2&#39;</span><span class="p">:</span> <span class="s">&#39;&#39;</span><span class="p">,</span>
+                <span class="s">&#39;possible_values-3&#39;</span><span class="p">:</span> <span class="s">&#39;&#39;</span><span class="p">,},</span>
+                          <span class="n">follow_redirects</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="mi">200</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="s">&#39;treated&#39;</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="s">&#39;no&#39;</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="s">&#39;yes&#39;</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s">&quot;/new_job/add_factor&quot;</span><span class="p">,</span>
+                          <span class="n">data</span><span class="o">=</span><span class="p">{</span>
+                <span class="s">&#39;factor_name&#39;</span><span class="p">:</span> <span class="s">&#39;gender&#39;</span><span class="p">,</span>
+                <span class="s">&#39;possible_values-0&#39;</span><span class="p">:</span> <span class="s">&#39;male&#39;</span><span class="p">,</span>
+                <span class="s">&#39;possible_values-1&#39;</span><span class="p">:</span> <span class="s">&#39;female&#39;</span><span class="p">,</span>
+                <span class="s">&#39;possible_values-2&#39;</span><span class="p">:</span> <span class="s">&#39;&#39;</span><span class="p">,</span>
+                <span class="s">&#39;possible_values-3&#39;</span><span class="p">:</span> <span class="s">&#39;&#39;</span><span class="p">,},</span>
+                          <span class="n">follow_redirects</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="mi">200</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="s">&#39;treated&#39;</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="s">&#39;no&#39;</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="s">&#39;yes&#39;</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="s">&#39;male&#39;</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="s">&#39;female&#39;</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s">&quot;/new_job/column_labels&quot;</span><span class="p">,</span>
+                          <span class="n">data</span><span class="o">=</span><span class="p">{</span>
+                <span class="s">&#39;assignments-0&#39;</span> <span class="p">:</span> <span class="s">&#39;no&#39;</span><span class="p">,</span>
+                <span class="s">&#39;assignments-1&#39;</span> <span class="p">:</span> <span class="s">&#39;male&#39;</span><span class="p">,</span>
+                <span class="s">&#39;assignments-2&#39;</span> <span class="p">:</span> <span class="s">&#39;no&#39;</span><span class="p">,</span>
+                <span class="s">&#39;assignments-3&#39;</span> <span class="p">:</span> <span class="s">&#39;male&#39;</span><span class="p">,</span>
+                <span class="s">&#39;assignments-4&#39;</span> <span class="p">:</span> <span class="s">&#39;no&#39;</span><span class="p">,</span>
+                <span class="s">&#39;assignments-5&#39;</span> <span class="p">:</span> <span class="s">&#39;male&#39;</span><span class="p">,</span>
+                <span class="s">&#39;assignments-6&#39;</span> <span class="p">:</span> <span class="s">&#39;no&#39;</span><span class="p">,</span>
+                <span class="s">&#39;assignments-7&#39;</span> <span class="p">:</span> <span class="s">&#39;male&#39;</span><span class="p">,</span>
+
+                <span class="s">&#39;assignments-8&#39;</span> <span class="p">:</span> <span class="s">&#39;no&#39;</span><span class="p">,</span>
+                <span class="s">&#39;assignments-9&#39;</span> <span class="p">:</span> <span class="s">&#39;female&#39;</span><span class="p">,</span>
+                <span class="s">&#39;assignments-10&#39;</span> <span class="p">:</span> <span class="s">&#39;no&#39;</span><span class="p">,</span>
+                <span class="s">&#39;assignments-11&#39;</span> <span class="p">:</span> <span class="s">&#39;female&#39;</span><span class="p">,</span>
+                <span class="s">&#39;assignments-12&#39;</span> <span class="p">:</span> <span class="s">&#39;no&#39;</span><span class="p">,</span>
+                <span class="s">&#39;assignments-13&#39;</span> <span class="p">:</span> <span class="s">&#39;female&#39;</span><span class="p">,</span>
+                <span class="s">&#39;assignments-14&#39;</span> <span class="p">:</span> <span class="s">&#39;no&#39;</span><span class="p">,</span>
+                <span class="s">&#39;assignments-15&#39;</span> <span class="p">:</span> <span class="s">&#39;female&#39;</span><span class="p">,</span>
+
+                <span class="s">&#39;assignments-16&#39;</span> <span class="p">:</span> <span class="s">&#39;yes&#39;</span><span class="p">,</span>
+                <span class="s">&#39;assignments-17&#39;</span> <span class="p">:</span> <span class="s">&#39;male&#39;</span><span class="p">,</span>
+                <span class="s">&#39;assignments-18&#39;</span> <span class="p">:</span> <span class="s">&#39;yes&#39;</span><span class="p">,</span>
+                <span class="s">&#39;assignments-19&#39;</span> <span class="p">:</span> <span class="s">&#39;male&#39;</span><span class="p">,</span>
+                <span class="s">&#39;assignments-20&#39;</span> <span class="p">:</span> <span class="s">&#39;yes&#39;</span><span class="p">,</span>
+                <span class="s">&#39;assignments-21&#39;</span> <span class="p">:</span> <span class="s">&#39;male&#39;</span><span class="p">,</span>
+                <span class="s">&#39;assignments-22&#39;</span> <span class="p">:</span> <span class="s">&#39;yes&#39;</span><span class="p">,</span>
+                <span class="s">&#39;assignments-23&#39;</span> <span class="p">:</span> <span class="s">&#39;male&#39;</span><span class="p">,</span>
+
+                <span class="s">&#39;assignments-24&#39;</span> <span class="p">:</span> <span class="s">&#39;yes&#39;</span><span class="p">,</span>
+                <span class="s">&#39;assignments-25&#39;</span> <span class="p">:</span> <span class="s">&#39;female&#39;</span><span class="p">,</span>
+                <span class="s">&#39;assignments-26&#39;</span> <span class="p">:</span> <span class="s">&#39;yes&#39;</span><span class="p">,</span>
+                <span class="s">&#39;assignments-27&#39;</span> <span class="p">:</span> <span class="s">&#39;female&#39;</span><span class="p">,</span>
+                <span class="s">&#39;assignments-28&#39;</span> <span class="p">:</span> <span class="s">&#39;yes&#39;</span><span class="p">,</span>
+                <span class="s">&#39;assignments-29&#39;</span> <span class="p">:</span> <span class="s">&#39;female&#39;</span><span class="p">,</span>
+                <span class="s">&#39;assignments-30&#39;</span> <span class="p">:</span> <span class="s">&#39;yes&#39;</span><span class="p">,</span>
+                <span class="s">&#39;assignments-31&#39;</span> <span class="p">:</span> <span class="s">&#39;female&#39;</span><span class="p">},</span>
+                          <span class="n">follow_redirects</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="mi">200</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="s">&#39;block and condition factors&#39;</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s">&quot;/new_job/setup_job_factors&quot;</span><span class="p">,</span>
+                          <span class="n">data</span><span class="o">=</span><span class="p">{</span>
+                <span class="s">&#39;factor_roles-0&#39;</span> <span class="p">:</span> <span class="s">&#39;condition&#39;</span><span class="p">,</span>
+                <span class="s">&#39;factor_roles-1&#39;</span> <span class="p">:</span> <span class="s">&#39;block&#39;</span><span class="p">},</span>
+                          <span class="n">follow_redirects</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="mi">200</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="s">&#39;Other settings&#39;</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s">&quot;/new_job/other_settings&quot;</span><span class="p">,</span>
+                          
+                          <span class="n">data</span><span class="o">=</span><span class="p">{</span>
+                <span class="s">&#39;statistic&#39;</span> <span class="p">:</span> <span class="s">&#39;FStat&#39;</span><span class="p">,</span>
+                <span class="s">&#39;tuning_params&#39;</span><span class="p">:</span> <span class="s">&quot;0.001 0.01 0.1 1 3 10 30 100 300 1000 3000&quot;</span><span class="p">,</span>
+                <span class="s">&#39;bins&#39;</span> <span class="p">:</span> <span class="s">&#39;1000&#39;</span><span class="p">,</span>
+                <span class="s">&#39;permutations&#39;</span> <span class="p">:</span> <span class="s">&#39;1000&#39;</span><span class="p">,</span>
+                <span class="s">&#39;summary_min_conf_level&#39;</span> <span class="p">:</span> <span class="s">&#39;0.1&#39;</span><span class="p">,</span>
+                <span class="s">&#39;summary_step_size&#39;</span> <span class="p">:</span> <span class="s">&#39;0.05&#39;</span> <span class="p">},</span>
+                          <span class="n">follow_redirects</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="mi">200</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="s">&#39;confirm&#39;</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&quot;/new_job/submit&quot;</span><span class="p">,</span> <span class="n">follow_redirects</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="mi">200</span><span class="p">)</span>
+
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&quot;/jobs/1/&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s">&#39;Features by confidence level&#39;</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="k">elif</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span> <span class="o">&gt;</span> <span class="mi">60</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">fail</span><span class="p">(</span><span class="s">&quot;Job is taking too long&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">route</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;/jobs/1/features/14/interaction_plot&#39;</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertOk</span><span class="p">(</span><span class="n">route</span><span class="p">)</span>
+
+
+
+
+</div></div>
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">unittest</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">PADE 6.0 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, University of Pennsylvania.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

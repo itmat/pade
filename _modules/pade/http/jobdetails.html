@@ -1,0 +1,551 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pade.http.jobdetails &mdash; PADE 6.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '6.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="PADE 6.0 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">PADE 6.0 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for pade.http.jobdetails</h1><div class="highlight"><pre>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span>
+
+<span class="kn">import</span> <span class="nn">matplotlib</span>
+<span class="n">matplotlib</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s">&quot;Agg&quot;</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">matplotlib.ticker</span> <span class="kn">import</span> <span class="n">FuncFormatter</span>
+
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pade.tasks</span> 
+
+<span class="kn">from</span> <span class="nn">flask</span> <span class="kn">import</span> <span class="n">Blueprint</span><span class="p">,</span> <span class="n">render_template</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">make_response</span><span class="p">,</span> <span class="n">send_file</span><span class="p">,</span> <span class="n">abort</span>
+<span class="kn">from</span> <span class="nn">celery.result</span> <span class="kn">import</span> <span class="n">AsyncResult</span>
+<span class="kn">from</span> <span class="nn">bisect</span> <span class="kn">import</span> <span class="n">bisect</span>
+<span class="kn">from</span> <span class="nn">pade.stat</span> <span class="kn">import</span> <span class="n">cumulative_hist</span><span class="p">,</span> <span class="n">adjust_num_diff</span>
+<span class="kn">from</span> <span class="nn">StringIO</span> <span class="kn">import</span> <span class="n">StringIO</span>
+<span class="kn">from</span> <span class="nn">pade.metadb</span> <span class="kn">import</span> <span class="n">JobMeta</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">wraps</span>
+<span class="kn">from</span> <span class="nn">pade.analysis</span> <span class="kn">import</span> <span class="n">assignment_name</span>
+
+<span class="n">bp</span> <span class="o">=</span> <span class="n">Blueprint</span><span class="p">(</span>
+    <span class="s">&#39;job&#39;</span><span class="p">,</span> <span class="n">__name__</span><span class="p">,</span>
+    <span class="n">template_folder</span><span class="o">=</span><span class="s">&#39;templates&#39;</span><span class="p">)</span>
+
+<span class="n">mdb</span> <span class="o">=</span> <span class="bp">None</span>
+
+<span class="n">job_dbs</span> <span class="o">=</span> <span class="p">[]</span>
+
+<div class="viewcode-block" id="job_context"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.jobdetails.job_context">[docs]</a><span class="k">def</span> <span class="nf">job_context</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+    <span class="nd">@wraps</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">decorated</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+        <span class="n">job_id</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;job_id&#39;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">mdb</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">job_meta</span> <span class="o">=</span> <span class="n">mdb</span><span class="o">.</span><span class="n">job</span><span class="p">(</span><span class="n">job_id</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">job_meta</span> <span class="o">=</span> <span class="n">job_dbs</span><span class="p">[</span><span class="n">job_id</span><span class="p">]</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;job_meta&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">job_meta</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;job_db&#39;</span><span class="p">]</span>   <span class="o">=</span> <span class="n">pade</span><span class="o">.</span><span class="n">tasks</span><span class="o">.</span><span class="n">load_job</span><span class="p">(</span><span class="n">job_meta</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">IOError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;job_db&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="k">del</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;job_id&#39;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">f</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">decorated</span>
+    
+</div>
+<div class="viewcode-block" id="load_job"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.jobdetails.load_job">[docs]</a><span class="k">def</span> <span class="nf">load_job</span><span class="p">(</span><span class="n">job_id</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Load the Job object with the given meta job id.&quot;&quot;&quot;</span>
+    <span class="n">job_meta</span> <span class="o">=</span> <span class="n">get_job_meta</span><span class="p">(</span><span class="n">job_id</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">job_db</span><span class="p">(</span><span class="n">job_meta</span><span class="p">)</span>
+
+</div>
+<span class="nd">@bp.route</span><span class="p">(</span><span class="s">&quot;/jobs&quot;</span><span class="p">)</span>
+<div class="viewcode-block" id="job_list"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.jobdetails.job_list">[docs]</a><span class="k">def</span> <span class="nf">job_list</span><span class="p">():</span>
+
+    <span class="k">if</span> <span class="n">mdb</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">job_metas</span> <span class="o">=</span> <span class="n">job_dbs</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">job_metas</span> <span class="o">=</span> <span class="n">mdb</span><span class="o">.</span><span class="n">all_jobs</span><span class="p">()</span>
+
+    <span class="n">job_metas</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">job_metas</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">f</span><span class="p">:</span><span class="n">f</span><span class="o">.</span><span class="n">obj_id</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">render_template</span><span class="p">(</span><span class="s">&#39;jobs.html&#39;</span><span class="p">,</span> <span class="n">jobs</span><span class="o">=</span><span class="n">job_metas</span><span class="p">,</span> <span class="n">is_runner</span><span class="o">=</span><span class="p">(</span><span class="n">mdb</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">))</span>
+</div>
+<span class="nd">@bp.route</span><span class="p">(</span><span class="s">&quot;/jobs/&lt;job_id&gt;/&quot;</span><span class="p">)</span>
+<span class="nd">@job_context</span>
+<div class="viewcode-block" id="job_details"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.jobdetails.job_details">[docs]</a><span class="k">def</span> <span class="nf">job_details</span><span class="p">(</span><span class="n">job_meta</span><span class="p">,</span> <span class="n">job_db</span><span class="p">):</span>
+
+    <span class="k">if</span> <span class="n">job_meta</span><span class="o">.</span><span class="n">imported</span><span class="p">:</span>
+        <span class="n">task</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">task_ids</span> <span class="o">=</span> <span class="n">mdb</span><span class="o">.</span><span class="n">get_task_ids</span><span class="p">(</span><span class="n">job_meta</span><span class="p">)</span>
+        <span class="n">tasks</span> <span class="o">=</span> <span class="p">[</span> <span class="n">AsyncResult</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">task_ids</span> <span class="p">]</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tasks</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;I got &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tasks</span><span class="p">))</span> <span class="o">+</span>
+                            <span class="s">&quot; tasks for job &quot;</span> <span class="o">+</span> 
+                            <span class="nb">str</span><span class="p">(</span><span class="n">job_id</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot;; this should never happen&quot;</span><span class="p">)</span>
+        <span class="n">task</span> <span class="o">=</span> <span class="n">tasks</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">is_runner</span> <span class="o">=</span> <span class="n">mdb</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span>
+    <span class="k">if</span> <span class="n">job_meta</span><span class="o">.</span><span class="n">imported</span> <span class="ow">or</span> <span class="n">task</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s">&#39;SUCCESS&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">render_template</span><span class="p">(</span><span class="s">&quot;job.html&quot;</span><span class="p">,</span> <span class="n">job_id</span><span class="o">=</span><span class="n">job_meta</span><span class="o">.</span><span class="n">obj_id</span><span class="p">,</span> <span class="n">job</span><span class="o">=</span><span class="n">job_db</span><span class="p">,</span>
+                               <span class="n">is_runner</span><span class="o">=</span><span class="n">is_runner</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">render_template</span><span class="p">(</span>
+            <span class="s">&#39;job_status.html&#39;</span><span class="p">,</span>
+            <span class="n">job_id</span><span class="o">=</span><span class="n">job_meta</span><span class="o">.</span><span class="n">obj_id</span><span class="p">,</span>
+            <span class="n">is_runner</span><span class="o">=</span><span class="n">is_runner</span><span class="p">,</span>
+            <span class="n">status</span><span class="o">=</span><span class="n">task</span><span class="o">.</span><span class="n">status</span><span class="p">)</span>
+
+</div>
+<span class="nd">@bp.route</span><span class="p">(</span><span class="s">&quot;/jobs/&lt;job_id&gt;/conf_level/&lt;conf_level&gt;&quot;</span><span class="p">)</span>
+<span class="nd">@job_context</span>
+<div class="viewcode-block" id="details"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.jobdetails.details">[docs]</a><span class="k">def</span> <span class="nf">details</span><span class="p">(</span><span class="n">job_meta</span><span class="p">,</span> <span class="n">job_db</span><span class="p">,</span> <span class="n">conf_level</span><span class="p">):</span>
+
+    <span class="c">### Process params</span>
+    <span class="n">conf_level</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">conf_level</span><span class="p">)</span>
+    <span class="n">alpha_idx</span> <span class="o">=</span> <span class="n">job_db</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">best_param_idxs</span><span class="p">[</span><span class="n">conf_level</span><span class="p">]</span>
+
+    <span class="n">page_num</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="s">&#39;page&#39;</span> <span class="ow">in</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="p">:</span>
+        <span class="n">page_num</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;page&#39;</span><span class="p">))</span>
+        
+    <span class="n">scores</span> <span class="o">=</span> <span class="n">job_db</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">feature_to_score</span><span class="p">[</span><span class="n">alpha_idx</span><span class="p">]</span>
+    <span class="n">stats</span> <span class="o">=</span> <span class="n">job_db</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">raw_stats</span><span class="p">[</span><span class="n">alpha_idx</span><span class="p">]</span>
+    <span class="n">min_score</span> <span class="o">=</span> <span class="n">job_db</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">bins</span><span class="p">[</span><span class="n">conf_level</span><span class="p">]</span>
+
+    <span class="n">rows_per_page</span> <span class="o">=</span> <span class="mi">50</span>
+
+    <span class="n">orig_idxs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">job_db</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">feature_ids</span><span class="p">))</span>
+    <span class="n">all_idxs</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="n">order_name</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;order&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">order_name</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">all_idxs</span>      <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">job_db</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">feature_ids</span><span class="p">))</span>
+    <span class="k">elif</span> <span class="n">order_name</span> <span class="o">==</span> <span class="s">&#39;score_original&#39;</span><span class="p">:</span>
+        <span class="n">all_idxs</span> <span class="o">=</span> <span class="n">job_db</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">ordering_by_score_original</span><span class="p">[</span><span class="n">alpha_idx</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="n">order_name</span> <span class="o">==</span> <span class="s">&#39;foldchange_original&#39;</span><span class="p">:</span>
+        <span class="n">groupnum</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;groupnum&#39;</span><span class="p">))</span>
+        <span class="n">all_idxs</span> <span class="o">=</span> <span class="n">job_db</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">ordering_by_foldchange_original</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">groupnum</span><span class="p">]</span>
+
+    <span class="n">filtered_idxs</span> <span class="o">=</span> <span class="n">all_idxs</span><span class="p">[</span><span class="n">scores</span><span class="p">[</span><span class="n">all_idxs</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">min_score</span><span class="p">]</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="n">page_num</span> <span class="o">*</span> <span class="n">rows_per_page</span>
+    <span class="n">end</span> <span class="o">=</span> <span class="n">start</span> <span class="o">+</span> <span class="n">rows_per_page</span>
+    <span class="n">idxs</span> <span class="o">=</span> <span class="n">filtered_idxs</span><span class="p">[</span> <span class="n">start</span> <span class="p">:</span> <span class="n">end</span> <span class="p">]</span>
+
+    <span class="n">score</span><span class="o">=</span><span class="n">job_db</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">bins</span><span class="p">[</span><span class="n">conf_level</span><span class="p">]</span>
+
+    <span class="n">num_pages</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">filtered_idxs</span><span class="p">))</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">rows_per_page</span><span class="p">)))</span>
+
+    <span class="k">return</span> <span class="n">render_template</span><span class="p">(</span>
+        <span class="s">&quot;conf_level.html&quot;</span><span class="p">,</span>
+        <span class="n">job</span><span class="o">=</span><span class="n">job_db</span><span class="p">,</span>
+        <span class="n">job_id</span><span class="o">=</span><span class="n">job_meta</span><span class="o">.</span><span class="n">obj_id</span><span class="p">,</span>
+        <span class="n">num_pages</span><span class="o">=</span><span class="n">num_pages</span><span class="p">,</span>
+        <span class="n">conf_level</span><span class="o">=</span><span class="n">conf_level</span><span class="p">,</span>
+        <span class="n">min_score</span><span class="o">=</span><span class="n">score</span><span class="p">,</span>
+        <span class="n">indexes</span><span class="o">=</span><span class="n">idxs</span><span class="p">,</span>
+        <span class="n">group_names</span><span class="o">=</span><span class="n">job_db</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">group_means</span><span class="o">.</span><span class="n">header</span><span class="p">,</span>
+        <span class="n">coeff_names</span><span class="o">=</span><span class="n">job_db</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">coeff_values</span><span class="o">.</span><span class="n">header</span><span class="p">,</span>
+        <span class="n">fold_change_group_names</span><span class="o">=</span><span class="n">job_db</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">fold_change</span><span class="o">.</span><span class="n">header</span><span class="p">,</span>
+        <span class="n">stat_name</span><span class="o">=</span><span class="n">job_db</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">stat_class</span><span class="o">.</span><span class="n">NAME</span><span class="p">,</span>
+        <span class="n">scores</span><span class="o">=</span><span class="n">scores</span><span class="p">[</span><span class="n">idxs</span><span class="p">],</span>
+        <span class="n">stats</span><span class="o">=</span><span class="n">scores</span><span class="p">[</span><span class="n">idxs</span><span class="p">],</span>
+        <span class="n">means</span><span class="o">=</span><span class="n">job_db</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">group_means</span><span class="o">.</span><span class="n">table</span><span class="p">[</span><span class="n">idxs</span><span class="p">],</span>
+        <span class="n">coeffs</span><span class="o">=</span><span class="n">job_db</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">coeff_values</span><span class="o">.</span><span class="n">table</span><span class="p">[</span><span class="n">idxs</span><span class="p">],</span>
+        <span class="n">feature_ids</span><span class="o">=</span><span class="n">job_db</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">feature_ids</span><span class="p">[</span><span class="n">idxs</span><span class="p">],</span>
+        <span class="n">fold_change</span><span class="o">=</span><span class="n">job_db</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">fold_change</span><span class="o">.</span><span class="n">table</span><span class="p">[</span><span class="n">idxs</span><span class="p">],</span>
+        <span class="n">page_num</span><span class="o">=</span><span class="n">page_num</span><span class="p">)</span>
+</div>
+<span class="nd">@bp.route</span><span class="p">(</span><span class="s">&quot;/jobs/&lt;job_id&gt;/features/&lt;feature_num&gt;&quot;</span><span class="p">)</span>
+<span class="nd">@job_context</span>
+<div class="viewcode-block" id="feature"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.jobdetails.feature">[docs]</a><span class="k">def</span> <span class="nf">feature</span><span class="p">(</span><span class="n">job_meta</span><span class="p">,</span> <span class="n">job_db</span><span class="p">,</span> <span class="n">feature_num</span><span class="p">):</span>
+
+    <span class="n">schema</span> <span class="o">=</span> <span class="n">job_db</span><span class="o">.</span><span class="n">schema</span>
+    <span class="n">feature_num</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">feature_num</span><span class="p">)</span>
+    <span class="n">factor_values</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">s</span> <span class="p">:</span> <span class="p">{</span> <span class="n">f</span> <span class="p">:</span> <span class="n">schema</span><span class="o">.</span><span class="n">get_factor</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">schema</span><span class="o">.</span><span class="n">factors</span> <span class="p">}</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">schema</span><span class="o">.</span><span class="n">sample_column_names</span> <span class="p">}</span>
+
+    <span class="n">stats</span>           <span class="o">=</span> <span class="n">job_db</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">raw_stats</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">feature_num</span><span class="p">]</span>
+    <span class="n">params</span>          <span class="o">=</span> <span class="n">job_db</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">tuning_params</span>
+    <span class="n">bins</span>            <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span> <span class="n">bisect</span><span class="p">(</span><span class="n">job_db</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">bins</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">stats</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">params</span><span class="p">))</span> <span class="p">])</span>
+    <span class="n">unperm_count</span>    <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span> <span class="n">job_db</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">bin_to_unperm_count</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">bins</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">params</span><span class="p">))])</span>
+    <span class="n">mean_perm_count</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span> <span class="n">job_db</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">bin_to_mean_perm_count</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">bins</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">params</span><span class="p">))])</span>
+    <span class="n">adjusted</span>        <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">adjust_num_diff</span><span class="p">(</span><span class="n">mean_perm_count</span><span class="p">,</span> <span class="n">unperm_count</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">job_db</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">table</span><span class="p">)))</span>
+    <span class="n">new_scores</span>      <span class="o">=</span> <span class="p">(</span><span class="n">unperm_count</span> <span class="o">-</span> <span class="n">adjusted</span><span class="p">)</span> <span class="o">/</span> <span class="n">unperm_count</span>
+    <span class="n">max_stat</span>        <span class="o">=</span> <span class="n">job_db</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">bins</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">render_template</span><span class="p">(</span>
+        <span class="s">&quot;feature.html&quot;</span><span class="p">,</span>
+        <span class="n">feature_num</span><span class="o">=</span><span class="n">feature_num</span><span class="p">,</span>
+        <span class="n">feature_id</span><span class="o">=</span><span class="n">job_db</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">feature_ids</span><span class="p">[</span><span class="n">feature_num</span><span class="p">],</span>
+        <span class="n">measurements</span><span class="o">=</span><span class="n">job_db</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">table</span><span class="p">[</span><span class="n">feature_num</span><span class="p">],</span>
+        <span class="n">sample_names</span><span class="o">=</span><span class="n">job_db</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">sample_column_names</span><span class="p">,</span>
+        <span class="n">factors</span><span class="o">=</span><span class="n">job_db</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">factors</span><span class="p">,</span>
+        <span class="n">factor_values</span><span class="o">=</span><span class="n">factor_values</span><span class="p">,</span>
+        <span class="n">layout</span><span class="o">=</span><span class="n">job_db</span><span class="o">.</span><span class="n">full_layout</span><span class="p">,</span>
+        <span class="n">tuning_params</span><span class="o">=</span><span class="n">job_db</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">tuning_params</span><span class="p">,</span>
+        <span class="n">stats</span><span class="o">=</span><span class="n">stats</span><span class="p">,</span>
+        <span class="n">bins</span><span class="o">=</span><span class="n">bins</span><span class="p">,</span>
+        <span class="n">job</span><span class="o">=</span><span class="n">job_db</span><span class="p">,</span>
+        <span class="n">job_id</span><span class="o">=</span><span class="n">job_meta</span><span class="o">.</span><span class="n">obj_id</span><span class="p">,</span>
+        <span class="n">num_bins</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">job_db</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">bins</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+        <span class="n">unperm_count</span><span class="o">=</span><span class="n">unperm_count</span><span class="p">,</span>
+        <span class="n">mean_perm_count</span><span class="o">=</span><span class="n">mean_perm_count</span><span class="p">,</span>
+        <span class="n">adjusted_perm_count</span><span class="o">=</span><span class="n">adjusted</span><span class="p">,</span>
+        <span class="n">max_stat</span><span class="o">=</span><span class="n">max_stat</span><span class="p">,</span>
+        <span class="n">scores</span><span class="o">=</span><span class="n">job_db</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">feature_to_score</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">feature_num</span><span class="p">],</span>
+        <span class="n">new_scores</span><span class="o">=</span><span class="n">new_scores</span><span class="p">)</span>
+</div>
+<span class="nd">@bp.route</span><span class="p">(</span><span class="s">&quot;/jobs/&lt;job_id&gt;/features/&lt;feature_num&gt;/measurement_scatter&quot;</span><span class="p">)</span>
+<span class="nd">@job_context</span>
+<div class="viewcode-block" id="measurement_scatter"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.jobdetails.measurement_scatter">[docs]</a><span class="k">def</span> <span class="nf">measurement_scatter</span><span class="p">(</span><span class="n">job_meta</span><span class="p">,</span> <span class="n">job_db</span><span class="p">,</span> <span class="n">feature_num</span><span class="p">):</span>
+    <span class="n">job</span> <span class="o">=</span> <span class="n">job_db</span>
+    <span class="n">feature_num</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">feature_num</span><span class="p">)</span>
+    <span class="n">schema</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">schema</span>
+    <span class="n">measurements</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">table</span><span class="p">[</span><span class="n">feature_num</span><span class="p">]</span>
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+    <span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span>
+        <span class="mi">111</span><span class="p">,</span>
+        <span class="n">title</span><span class="o">=</span><span class="s">&#39;Measurements&#39;</span><span class="p">,</span>
+        <span class="n">xlabel</span><span class="o">=</span><span class="s">&#39;Group&#39;</span><span class="p">,</span>
+        <span class="n">ylabel</span><span class="o">=</span><span class="s">&#39;Measurement&#39;</span><span class="p">)</span>
+
+    <span class="n">assignments</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">possible_assignments</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">full_variables</span><span class="p">)</span>
+    <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="n">assignment_name</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">assignments</span><span class="p">]</span>
+    <span class="n">grps</span> <span class="o">=</span> <span class="p">[</span><span class="n">schema</span><span class="o">.</span><span class="n">indexes_with_assignments</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">assignments</span><span class="p">]</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">assignments</span><span class="p">):</span>
+
+        <span class="n">y</span> <span class="o">=</span> <span class="n">measurements</span><span class="p">[</span><span class="n">grps</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">y</span><span class="p">]</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">)),</span> 
+               <span class="n">names</span><span class="p">,</span>
+               <span class="n">rotation</span><span class="o">=</span><span class="mi">70</span>
+               <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">figure_response</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
+
+</div>
+<span class="nd">@bp.route</span><span class="p">(</span><span class="s">&quot;/jobs/&lt;job_id&gt;/mean_vs_std&quot;</span><span class="p">)</span>
+<span class="nd">@job_context</span>
+<div class="viewcode-block" id="mean_vs_std"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.jobdetails.mean_vs_std">[docs]</a><span class="k">def</span> <span class="nf">mean_vs_std</span><span class="p">(</span><span class="n">job_meta</span><span class="p">,</span> <span class="n">job_db</span><span class="p">):</span>
+    <span class="n">job</span>   <span class="o">=</span> <span class="n">job_db</span>
+    <span class="n">means</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">table</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">std</span>   <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">table</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">fig</span>   <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+    <span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span>
+        <span class="mi">111</span><span class="p">,</span>
+        <span class="n">title</span><span class="o">=</span><span class="s">&#39;Mean vs standard deviation&#39;</span><span class="p">,</span>
+        <span class="n">xlabel</span><span class="o">=</span><span class="s">&#39;Mean&#39;</span><span class="p">,</span>
+        <span class="n">ylabel</span><span class="o">=</span><span class="s">&#39;Standard deviation&#39;</span><span class="p">)</span>
+
+    <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">means</span><span class="p">,</span> <span class="n">std</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">figure_response</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
+
+</div>
+<span class="nd">@bp.route</span><span class="p">(</span><span class="s">&quot;/jobs/&lt;job_id&gt;/features/&lt;feature_num&gt;/interaction_plot&quot;</span><span class="p">)</span>
+<span class="nd">@job_context</span>
+<div class="viewcode-block" id="interaction_plot"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.jobdetails.interaction_plot">[docs]</a><span class="k">def</span> <span class="nf">interaction_plot</span><span class="p">(</span><span class="n">job_meta</span><span class="p">,</span> <span class="n">job_db</span><span class="p">,</span> <span class="n">feature_num</span><span class="p">):</span>
+    <span class="n">job</span> <span class="o">=</span> <span class="n">job_db</span>
+    <span class="n">feature_num</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">feature_num</span><span class="p">)</span>
+    <span class="n">schema</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">schema</span>
+    <span class="n">measurements</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">table</span><span class="p">[</span><span class="n">feature_num</span><span class="p">]</span>
+
+    <span class="n">x_var</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">condition_variables</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">block_variables</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">abort</span><span class="p">(</span><span class="mi">404</span><span class="p">)</span>
+
+    <span class="n">series_var</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">block_variables</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">assignments</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">possible_assignments</span><span class="p">([</span><span class="n">series_var</span><span class="p">,</span> <span class="n">x_var</span><span class="p">])</span>
+
+    <span class="n">ticks</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">factor_values</span><span class="p">[</span><span class="n">x_var</span><span class="p">]</span>
+
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+    <span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span>
+        <span class="mi">111</span><span class="p">,</span>
+        <span class="n">ylabel</span><span class="o">=</span><span class="s">&#39;Measurement&#39;</span><span class="p">)</span>
+    
+    <span class="k">for</span> <span class="n">series_name</span> <span class="ow">in</span> <span class="n">schema</span><span class="o">.</span><span class="n">factor_values</span><span class="p">[</span><span class="n">series_var</span><span class="p">]:</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">yerr</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">tick</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">ticks</span><span class="p">):</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="p">{</span> <span class="n">series_var</span> <span class="p">:</span> <span class="n">series_name</span><span class="p">,</span>
+                  <span class="n">x_var</span> <span class="p">:</span> <span class="n">tick</span> <span class="p">}</span>
+            <span class="n">idxs</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">indexes_with_assignments</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+            <span class="n">values</span> <span class="o">=</span> <span class="n">measurements</span><span class="p">[</span><span class="n">idxs</span><span class="p">]</span>
+            <span class="n">y</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">values</span><span class="p">))</span>
+            <span class="n">yerr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">values</span><span class="p">))</span>
+
+        <span class="n">ax</span><span class="o">.</span><span class="n">errorbar</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ticks</span><span class="p">)),</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">yerr</span><span class="o">=</span><span class="n">yerr</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">series_name</span><span class="p">)</span>
+
+    <span class="n">margin</span> <span class="o">=</span> <span class="mf">0.25</span>
+
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">((</span> <span class="mi">0</span> <span class="o">-</span> <span class="n">margin</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">ticks</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">margin</span><span class="p">))</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ticks</span><span class="p">)))</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xticklabels</span><span class="p">(</span><span class="n">ticks</span><span class="p">)</span>
+
+    <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">xlabel</span> <span class="o">=</span> <span class="n">x_var</span>
+    <span class="k">return</span> <span class="n">figure_response</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
+
+</div>
+<span class="nd">@bp.route</span><span class="p">(</span><span class="s">&quot;/jobs/&lt;job_id&gt;/features/&lt;feature_num&gt;/measurement_bars&quot;</span><span class="p">)</span>
+<span class="nd">@job_context</span>
+<div class="viewcode-block" id="measurement_bars"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.jobdetails.measurement_bars">[docs]</a><span class="k">def</span> <span class="nf">measurement_bars</span><span class="p">(</span><span class="n">job_meta</span><span class="p">,</span> <span class="n">job_db</span><span class="p">,</span> <span class="n">feature_num</span><span class="p">):</span>
+    <span class="n">job</span> <span class="o">=</span> <span class="n">job_db</span>
+    <span class="n">feature_num</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">feature_num</span><span class="p">)</span>
+    <span class="n">schema</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">schema</span>
+    <span class="n">measurements</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">table</span><span class="p">[</span><span class="n">feature_num</span><span class="p">]</span>
+
+    <span class="n">variables</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">full_variables</span>
+    <span class="k">if</span> <span class="s">&#39;variable&#39;</span> <span class="ow">in</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="p">:</span>
+        <span class="n">variables</span> <span class="o">=</span> <span class="p">[</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;variable&#39;</span><span class="p">)</span> <span class="p">]</span>
+
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+    <span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span>
+        <span class="mi">111</span><span class="p">,</span>
+        <span class="n">title</span><span class="o">=</span><span class="s">&#39;Measurements for feature &#39;</span> <span class="o">+</span> <span class="n">job</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">feature_ids</span><span class="p">[</span><span class="n">feature_num</span><span class="p">]</span> <span class="o">+</span> <span class="s">&quot; by &quot;</span> <span class="o">+</span> <span class="s">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">variables</span><span class="p">),</span>
+        <span class="n">ylabel</span><span class="o">=</span><span class="s">&#39;Measurement&#39;</span><span class="p">)</span>
+    
+    <span class="n">assignments</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">possible_assignments</span><span class="p">(</span><span class="n">variables</span><span class="p">)</span>
+
+    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">assignments</span><span class="p">))</span>
+    <span class="n">width</span> <span class="o">=</span> <span class="mf">0.8</span>
+
+    <span class="n">y</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">grps</span> <span class="o">=</span> <span class="p">[</span><span class="n">schema</span><span class="o">.</span><span class="n">indexes_with_assignments</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">assignments</span><span class="p">]</span>
+    <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">values</span><span class="p">())</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">assignments</span><span class="p">]</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="p">[</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">measurements</span><span class="p">[</span><span class="n">g</span><span class="p">])</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">grps</span><span class="p">]</span>
+    <span class="n">err</span> <span class="o">=</span> <span class="p">[</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">measurements</span><span class="p">[</span><span class="n">g</span><span class="p">])</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">grps</span><span class="p">]</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">bar</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">yerr</span><span class="o">=</span><span class="n">err</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s">&#39;y&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">(</span><span class="n">x</span><span class="o">+</span><span class="n">width</span><span class="o">/</span><span class="mf">2.</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="n">rotation</span><span class="o">=</span><span class="mi">70</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">figure_response</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
+
+</div>
+<span class="nd">@bp.route</span><span class="p">(</span><span class="s">&quot;/jobs/&lt;job_id&gt;/stat_dist&quot;</span><span class="p">)</span>
+<span class="nd">@job_context</span>
+<div class="viewcode-block" id="stat_dist_plots_page"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.jobdetails.stat_dist_plots_page">[docs]</a><span class="k">def</span> <span class="nf">stat_dist_plots_page</span><span class="p">(</span><span class="n">job_meta</span><span class="p">,</span> <span class="n">job_db</span><span class="p">):</span>
+    <span class="n">semilogx</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;semilogx&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s">&#39;True&#39;</span>
+    <span class="k">return</span> <span class="n">render_template</span><span class="p">(</span><span class="s">&quot;stat_dist.html&quot;</span><span class="p">,</span> 
+                           <span class="n">job_id</span><span class="o">=</span><span class="n">job_meta</span><span class="o">.</span><span class="n">obj_id</span><span class="p">,</span>
+                           <span class="n">job</span><span class="o">=</span><span class="n">job_db</span><span class="p">,</span>
+                           <span class="n">semilogx</span><span class="o">=</span><span class="n">semilogx</span><span class="p">)</span>
+</div>
+<span class="nd">@bp.route</span><span class="p">(</span><span class="s">&quot;/jobs/&lt;job_id&gt;/feature_count_and_score_by_stat.html&quot;</span><span class="p">)</span>
+<span class="nd">@job_context</span>
+<div class="viewcode-block" id="feature_count_and_score_by_stat"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.jobdetails.feature_count_and_score_by_stat">[docs]</a><span class="k">def</span> <span class="nf">feature_count_and_score_by_stat</span><span class="p">(</span><span class="n">job_meta</span><span class="p">,</span> <span class="n">job_db</span><span class="p">):</span>
+    <span class="n">semilogx</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;semilogx&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s">&#39;True&#39;</span>
+    <span class="k">return</span> <span class="n">render_template</span><span class="p">(</span><span class="s">&quot;feature_count_and_score_by_stat.html&quot;</span><span class="p">,</span> 
+                           <span class="n">job_id</span><span class="o">=</span><span class="n">job_meta</span><span class="o">.</span><span class="n">obj_id</span><span class="p">,</span>
+                           <span class="n">job</span><span class="o">=</span><span class="n">job_db</span><span class="p">,</span>
+                           <span class="n">semilogx</span><span class="o">=</span><span class="n">semilogx</span><span class="p">)</span>
+</div>
+<span class="nd">@bp.route</span><span class="p">(</span><span class="s">&quot;/jobs/&lt;job_id&gt;/confidence_dist&quot;</span><span class="p">)</span>
+<div class="viewcode-block" id="confidence_dist"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.jobdetails.confidence_dist">[docs]</a><span class="k">def</span> <span class="nf">confidence_dist</span><span class="p">(</span><span class="n">job_id</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">render_template</span><span class="p">(</span><span class="s">&quot;confidence_dist.html&quot;</span><span class="p">,</span> 
+                           <span class="n">job_id</span><span class="o">=</span><span class="n">job_id</span><span class="p">)</span>
+</div>
+<span class="nd">@bp.route</span><span class="p">(</span><span class="s">&quot;/jobs/&lt;job_id&gt;/stat_dist/&lt;tuning_param&gt;.png&quot;</span><span class="p">)</span>
+<span class="nd">@job_context</span>
+<div class="viewcode-block" id="stat_dist_plot"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.jobdetails.stat_dist_plot">[docs]</a><span class="k">def</span> <span class="nf">stat_dist_plot</span><span class="p">(</span><span class="n">job_meta</span><span class="p">,</span> <span class="n">job_db</span><span class="p">,</span> <span class="n">tuning_param</span><span class="p">):</span>
+
+    <span class="n">max_stat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">job_db</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">raw_stats</span><span class="p">)</span>
+    <span class="n">tuning_param</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">tuning_param</span><span class="p">)</span>
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+    <span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span>
+        <span class="mi">111</span><span class="p">,</span>
+        <span class="n">title</span><span class="o">=</span><span class="n">job_db</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">stat_class</span><span class="o">.</span><span class="n">NAME</span> <span class="o">+</span> <span class="s">&quot; distribution over features, $</span><span class="se">\\</span><span class="s">alpha = &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">tuning_param</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot;$&quot;</span><span class="p">,</span>
+        <span class="n">xlabel</span><span class="o">=</span><span class="n">job_db</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">stat_class</span><span class="o">.</span><span class="n">NAME</span> <span class="o">+</span> <span class="s">&quot; value&quot;</span><span class="p">,</span>
+        <span class="n">ylabel</span><span class="o">=</span><span class="s">&quot;Features&quot;</span><span class="p">,</span>
+        <span class="n">xlim</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">max_stat</span><span class="p">))</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">job_db</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">raw_stats</span><span class="p">[</span><span class="n">tuning_param</span><span class="p">],</span> <span class="n">log</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="mi">250</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">figure_response</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
+</div>
+<span class="nd">@bp.route</span><span class="p">(</span><span class="s">&quot;/jobs/&lt;job_id&gt;/bin_to_score.png&quot;</span><span class="p">)</span>
+<span class="nd">@job_context</span>
+<div class="viewcode-block" id="bin_to_score_plot"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.jobdetails.bin_to_score_plot">[docs]</a><span class="k">def</span> <span class="nf">bin_to_score_plot</span><span class="p">(</span><span class="n">job_meta</span><span class="p">,</span> <span class="n">job_db</span><span class="p">):</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">job_db</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">bin_to_score</span>
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+    <span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span>
+        <span class="mi">111</span><span class="p">,</span>
+        <span class="n">title</span><span class="o">=</span><span class="s">&quot;Confidence by stat value value&quot;</span><span class="p">,</span>
+        <span class="n">xlabel</span><span class="o">=</span><span class="s">&quot;Statistic value&quot;</span><span class="p">,</span>
+        <span class="n">ylabel</span><span class="o">=</span><span class="s">&quot;Confidence&quot;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">param</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">job_db</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">tuning_params</span><span class="p">):</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">job_db</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">bins</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">param</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;semilogx&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s">&#39;True&#39;</span><span class="p">:</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">semilogx</span><span class="p">(</span><span class="n">base</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s">&#39;lower right&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">figure_response</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
+</div>
+<span class="nd">@bp.route</span><span class="p">(</span><span class="s">&quot;/jobs/&lt;job_id&gt;/bin_to_features.png&quot;</span><span class="p">)</span>
+<span class="nd">@job_context</span>
+<div class="viewcode-block" id="bin_to_features_plot"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.jobdetails.bin_to_features_plot">[docs]</a><span class="k">def</span> <span class="nf">bin_to_features_plot</span><span class="p">(</span><span class="n">job_meta</span><span class="p">,</span> <span class="n">job_db</span><span class="p">):</span>
+
+    <span class="n">params</span> <span class="o">=</span> <span class="n">job_db</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">tuning_params</span>
+    <span class="k">if</span> <span class="s">&#39;tuning_param_idx&#39;</span> <span class="ow">in</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="p">:</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="p">[</span> <span class="n">params</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;tuning_param_idx&#39;</span><span class="p">))]</span> <span class="p">]</span>
+
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+    <span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span>
+        <span class="mi">111</span><span class="p">,</span>
+        <span class="n">title</span><span class="o">=</span><span class="s">&#39;Features count by statistic value&#39;</span><span class="p">,</span>
+        <span class="n">xlabel</span><span class="o">=</span><span class="s">&#39;Statistic value&#39;</span><span class="p">,</span>
+        <span class="n">ylabel</span><span class="o">=</span><span class="s">&#39;Features&#39;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">param</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">params</span><span class="p">):</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">job_db</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">bins</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">job_db</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">bin_to_mean_perm_count</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="s">&#39;--&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">param</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot; permuted&quot;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">job_db</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">bins</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">job_db</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">bin_to_unperm_count</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">param</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot; unpermuted&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;semilogx&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s">&#39;True&#39;</span><span class="p">:</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">semilogx</span><span class="p">(</span><span class="n">base</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s">&#39;upper right&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">figure_response</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
+</div>
+<span class="nd">@bp.route</span><span class="p">(</span><span class="s">&quot;/jobs/&lt;job_id&gt;/conf_dist&quot;</span><span class="p">)</span>
+<span class="nd">@job_context</span>
+<div class="viewcode-block" id="conf_dist_plot"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.jobdetails.conf_dist_plot">[docs]</a><span class="k">def</span> <span class="nf">conf_dist_plot</span><span class="p">(</span><span class="n">job_meta</span><span class="p">,</span> <span class="n">job_db</span><span class="p">):</span>
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+    <span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span>
+        <span class="mi">111</span><span class="p">,</span>
+        <span class="n">title</span><span class="o">=</span><span class="s">&quot;Feature count by confidence score&quot;</span><span class="p">,</span>
+        <span class="n">xlabel</span><span class="o">=</span><span class="s">&quot;Confidence score&quot;</span><span class="p">,</span>
+        <span class="n">ylabel</span><span class="o">=</span><span class="s">&quot;Features&quot;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">job_db</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">bins</span><span class="p">,</span> <span class="n">job_db</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">counts</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">xaxis</span><span class="o">.</span><span class="n">set_major_formatter</span><span class="p">(</span><span class="n">FuncFormatter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="mi">0</span><span class="p">:</span> <span class="s">&quot;{:.0f}%&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)))</span>
+    <span class="k">return</span> <span class="n">figure_response</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
+    
+</div>
+<span class="nd">@bp.route</span><span class="p">(</span><span class="s">&quot;/jobs/&lt;job_id&gt;/score_dist_for_tuning_params.png&quot;</span><span class="p">)</span>
+<span class="nd">@job_context</span>
+<div class="viewcode-block" id="score_dist_by_tuning_param"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.jobdetails.score_dist_by_tuning_param">[docs]</a><span class="k">def</span> <span class="nf">score_dist_by_tuning_param</span><span class="p">(</span><span class="n">job_meta</span><span class="p">,</span> <span class="n">job_db</span><span class="p">):</span>
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+    <span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span>
+        <span class="mi">111</span><span class="p">,</span>
+        <span class="n">title</span><span class="o">=</span><span class="s">&#39;Features by confidence score&#39;</span><span class="p">,</span>
+        <span class="n">xlabel</span><span class="o">=</span><span class="s">&#39;Confidence&#39;</span><span class="p">,</span>
+        <span class="n">ylabel</span><span class="o">=</span><span class="s">&#39;Features&#39;</span><span class="p">)</span>
+
+    <span class="n">lines</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">labels</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">params</span> <span class="o">=</span> <span class="n">job_db</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">tuning_params</span>
+    <span class="k">if</span> <span class="s">&#39;tuning_param_idx&#39;</span> <span class="ow">in</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="p">:</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="p">[</span> <span class="nb">int</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;tuning_param_idx&#39;</span><span class="p">))</span> <span class="p">]</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">alpha</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">params</span><span class="p">):</span>
+        <span class="n">bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">)</span>
+        <span class="n">hist</span> <span class="o">=</span> <span class="n">cumulative_hist</span><span class="p">(</span><span class="n">job_db</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">feature_to_score</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">bins</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">bins</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">hist</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">alpha</span><span class="p">)))</span>
+        <span class="n">labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">alpha</span><span class="p">))</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s">&#39;upper right&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">figure_response</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="figure_response"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.jobdetails.figure_response">[docs]</a><span class="k">def</span> <span class="nf">figure_response</span><span class="p">(</span><span class="n">fig</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Turns a matplotlib figure into an HTTP response.&quot;&quot;&quot;</span>
+    <span class="n">png_output</span> <span class="o">=</span> <span class="n">StringIO</span><span class="p">()</span>
+    <span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">png_output</span><span class="p">)</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="n">make_response</span><span class="p">(</span><span class="n">png_output</span><span class="o">.</span><span class="n">getvalue</span><span class="p">())</span>
+    <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s">&#39;Content-Type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;image/png&#39;</span>
+    <span class="k">return</span> <span class="n">response</span>
+</div>
+<span class="nd">@bp.route</span><span class="p">(</span><span class="s">&quot;/jobs/&lt;job_id&gt;/result_db&quot;</span><span class="p">)</span>
+<span class="nd">@job_context</span>
+<div class="viewcode-block" id="result_db"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.jobdetails.result_db">[docs]</a><span class="k">def</span> <span class="nf">result_db</span><span class="p">(</span><span class="n">job_meta</span><span class="p">,</span> <span class="n">job_db</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">send_file</span><span class="p">(</span><span class="n">job_meta</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">as_attachment</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+</pre></div></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">PADE 6.0 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, University of Pennsylvania.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

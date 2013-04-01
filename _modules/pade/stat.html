@@ -58,14 +58,20 @@
 
 <span class="sd">&quot;&quot;&quot;</span>
 
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span>
+
 <span class="kn">import</span> <span class="nn">itertools</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">statsmodels.api</span> <span class="kn">as</span> <span class="nn">sm</span>
 
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">namedtuple</span>
 <span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="kn">import</span> <span class="n">gmean</span>
 <span class="kn">from</span> <span class="nn">bisect</span> <span class="kn">import</span> <span class="n">bisect</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">repeat</span>
 <span class="kn">from</span> <span class="nn">pade.layout</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">intersect_layouts</span><span class="p">,</span> <span class="n">apply_layout</span><span class="p">,</span> <span class="n">layout_is_paired</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">statsmodels.tools.tools</span> <span class="kn">import</span> <span class="n">categorical</span>
 
 <div class="viewcode-block" id="UnsupportedLayoutException"><a class="viewcode-back" href="../../generated/pade.html#pade.stat.UnsupportedLayoutException">[docs]</a><span class="k">class</span> <span class="nc">UnsupportedLayoutException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Thrown when a statistic is used with a layout that it can&#39;t support.&quot;&quot;&quot;</span>
@@ -175,7 +181,117 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">block_layout</span> <span class="o">=</span> <span class="n">block_layout</span>
 
 </div>
-<div class="viewcode-block" id="Ftest"><a class="viewcode-back" href="../../generated/pade.html#pade.stat.Ftest">[docs]</a><span class="k">class</span> <span class="nc">Ftest</span><span class="p">(</span><span class="n">LayoutPairTest</span><span class="p">):</span>
+<div class="viewcode-block" id="GLMFStat"><a class="viewcode-back" href="../../generated/pade.html#pade.stat.GLMFStat">[docs]</a><span class="k">class</span> <span class="nc">GLMFStat</span><span class="p">(</span><span class="n">LayoutPairTest</span><span class="p">):</span>                                          
+    <span class="sd">&quot;&quot;&quot;Computes an f-test using a generalized linear model.                  </span>
+<span class="sd">    </span>
+<span class="sd">    Some sample data                                                         </span>
+<span class="sd">    </span>
+<span class="sd">    &gt;&gt;&gt; a = np.array([1., 2.,  3., 6.])                                      </span>
+<span class="sd">    &gt;&gt;&gt; b = np.array([2., 1.,  1., 1.])                                      </span>
+<span class="sd">    &gt;&gt;&gt; c = np.array([3., 1., 10., 4.])                                      </span>
+<span class="sd">    </span>
+<span class="sd">    The condition layout has the first two columns in one group and          </span>
+<span class="sd">    the second two in another. There is no blocking, so the block            </span>
+<span class="sd">    layout has all columns in one group.                                     </span>
+<span class="sd">    </span>
+<span class="sd">    &gt;&gt;&gt; condition_layout = [[0, 1], [2, 3]]                                  </span>
+<span class="sd">    &gt;&gt;&gt; block_layout     = [[0, 1, 2, 3]]                                    </span>
+<span class="sd">                                                                             </span>
+<span class="sd">    Construct one ftest based on our layouts                                 </span>
+<span class="sd">                                                                             </span>
+<span class="sd">    &gt;&gt;&gt; f = GLMFStat(condition_layout, block_layout)</span>
+<span class="sd">                                                                             </span>
+<span class="sd">    Test one row                                                             </span>
+<span class="sd">                                                                             </span>
+<span class="sd">    &gt;&gt;&gt; round(f(a), 1)</span>
+<span class="sd">    3.6</span>
+<span class="sd">                                                                     </span>
+<span class="sd">    Test multiple rows at once                                               </span>
+<span class="sd">                                                                             </span>
+<span class="sd">    &gt;&gt;&gt; data = np.array([a, b, c])                                           </span>
+<span class="sd">    &gt;&gt;&gt; f(data)                                                              </span>
+<span class="sd">    array([ 3.6,  1. ,  2.5])</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>                                                                      
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">condition_layout</span><span class="p">,</span> <span class="n">block_layout</span><span class="p">,</span> <span class="n">alphas</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">family</span><span class="o">=</span><span class="s">&#39;gaussian&#39;</span><span class="p">):</span>
+        
+        <span class="nb">super</span><span class="p">(</span><span class="n">GLMFStat</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">condition_layout</span><span class="p">,</span> <span class="n">block_layout</span><span class="p">)</span>       
+                                                                             
+        <span class="bp">self</span><span class="o">.</span><span class="n">layout_full</span> <span class="o">=</span> <span class="n">intersect_layouts</span><span class="p">(</span><span class="n">block_layout</span><span class="p">,</span> <span class="n">condition_layout</span><span class="p">)</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">alphas</span> <span class="o">=</span> <span class="n">alphas</span>
+        <span class="n">ctor</span> <span class="o">=</span> <span class="n">GLM_FAMILIES</span><span class="p">[</span><span class="n">family</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">family</span> <span class="o">=</span> <span class="n">ctor</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="GLMFStat.col_to_cat"><a class="viewcode-back" href="../../generated/pade.html#pade.stat.GLMFStat.col_to_cat">[docs]</a>    <span class="k">def</span> <span class="nf">col_to_cat</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="sd">&quot;&quot;&quot;Return an array mapping a column number to its group in the full</span>
+<span class="sd">        layout.</span>
+
+<span class="sd">        &gt;&gt;&gt; f = GLMFStat([[0, 3], [1, 4], [2, 5]], [[0, 1, 2, 3, 4, 5]])</span>
+<span class="sd">        &gt;&gt;&gt; f.col_to_cat</span>
+<span class="sd">        [0, 1, 2, 0, 1, 2]</span>
+<span class="sd">        </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="nb">len</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">max</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">layout_full</span><span class="p">))</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">repeat</span><span class="p">(</span><span class="bp">None</span><span class="p">,</span> <span class="nb">len</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">grp</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">layout_full</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">grp</span><span class="p">:</span>
+                <span class="n">res</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span>
+
+        <span class="k">return</span> <span class="n">res</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="GLMFStat.x"><a class="viewcode-back" href="../../generated/pade.html#pade.stat.GLMFStat.x">[docs]</a>    <span class="k">def</span> <span class="nf">x</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        &gt;&gt;&gt; f = GLMFStat([[0, 3], [1, 4], [2, 5]], [[0, 1, 2, 3, 4, 5]])</span>
+<span class="sd">        &gt;&gt;&gt; f.x  # doctest: +NORMALIZE_WHITESPACE</span>
+<span class="sd">        array([[ 1., 0., 0.],</span>
+<span class="sd">               [ 1., 1., 0.],</span>
+<span class="sd">               [ 1., 0., 1.],</span>
+<span class="sd">               [ 1., 0., 0.],</span>
+<span class="sd">               [ 1., 1., 0.],</span>
+<span class="sd">               [ 1., 0., 1.]])</span>
+<span class="sd">         &quot;&quot;&quot;</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">categorical</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">col_to_cat</span><span class="p">),</span> <span class="n">drop</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="n">res</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="n">res</span>
+        </div>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>                                                
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Doing a model&quot;</span><span class="p">)</span>
+        <span class="n">num_regressors</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">layout_full</span><span class="p">)</span>
+        <span class="n">num_restrictions</span> <span class="o">=</span> <span class="n">num_regressors</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">contrast</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_regressors</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_regressors</span><span class="p">))</span>
+        <span class="n">contrast</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">num_restrictions</span><span class="p">)</span>
+
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span>
+        
+        <span class="n">y</span> <span class="o">=</span> <span class="n">data</span>
+
+        <span class="n">family</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">family</span>
+
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">ndim</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">GLM</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">family</span><span class="p">)</span>
+            <span class="n">fitted</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">()</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">fitted</span><span class="o">.</span><span class="n">f_test</span><span class="p">(</span><span class="n">contrast</span><span class="p">)</span><span class="o">.</span><span class="n">fvalue</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">elif</span> <span class="n">np</span><span class="o">.</span><span class="n">ndim</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">m</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m</span><span class="p">):</span>
+                <span class="n">model</span> <span class="o">=</span> <span class="n">sm</span><span class="o">.</span><span class="n">GLM</span><span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">x</span><span class="p">,</span> <span class="n">family</span><span class="p">)</span>
+                <span class="n">fitted</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">()</span>
+                <span class="n">res</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">fitted</span><span class="o">.</span><span class="n">f_test</span><span class="p">(</span><span class="n">contrast</span><span class="p">)</span><span class="o">.</span><span class="n">fvalue</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">res</span>
+                
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">alphas</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span> <span class="n">res</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">alphas</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">res</span>
+</div>
+<div class="viewcode-block" id="FStat"><a class="viewcode-back" href="../../generated/pade.html#pade.stat.FStat">[docs]</a><span class="k">class</span> <span class="nc">FStat</span><span class="p">(</span><span class="n">LayoutPairTest</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes the F-test.</span>
 
 <span class="sd">    Some sample data</span>
@@ -193,7 +309,7 @@
 <span class="sd">    </span>
 <span class="sd">    Construct one ftest based on our layouts</span>
 
-<span class="sd">    &gt;&gt;&gt; ftest = Ftest(condition_layout, block_layout)</span>
+<span class="sd">    &gt;&gt;&gt; ftest = FStat(condition_layout, block_layout)</span>
 <span class="sd">    </span>
 <span class="sd">    Test one row</span>
 
@@ -208,20 +324,24 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;F-test&quot;</span>
+    <span class="n">ALLOWS_EQUALIZED_MEANS</span> <span class="o">=</span> <span class="bp">True</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">condition_layout</span><span class="p">,</span> <span class="n">block_layout</span><span class="p">,</span> <span class="n">alphas</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="n">NAME</span> <span class="o">=</span> <span class="s">&quot;f&quot;</span>
 
-        <span class="nb">super</span><span class="p">(</span><span class="n">Ftest</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">condition_layout</span><span class="p">,</span> <span class="n">block_layout</span><span class="p">)</span>
-
+<div class="viewcode-block" id="FStat.validate_layouts"><a class="viewcode-back" href="../../generated/pade.html#pade.stat.FStat.validate_layouts">[docs]</a>    <span class="k">def</span> <span class="nf">validate_layouts</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">condition_layout</span><span class="p">,</span> <span class="n">block_layout</span><span class="p">):</span>
         <span class="n">full_layout</span> <span class="o">=</span> <span class="n">intersect_layouts</span><span class="p">(</span><span class="n">block_layout</span><span class="p">,</span> <span class="n">condition_layout</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">min</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">len</span><span class="p">,</span> <span class="n">full_layout</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">UnsupportedLayoutException</span><span class="p">(</span>
                 <span class="s">&quot;I can&#39;t use an FTest with the specified layouts, because &quot;</span> <span class="o">+</span>
                 <span class="s">&quot;the intersection between those layouts results in some &quot;</span> <span class="o">+</span>
                 <span class="s">&quot;groups that contain fewer than two samples.&quot;</span><span class="p">)</span>
+        </div>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">condition_layout</span><span class="p">,</span> <span class="n">block_layout</span><span class="p">,</span> <span class="n">alphas</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">layout_full</span> <span class="o">=</span> <span class="n">full_layout</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">FStat</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">condition_layout</span><span class="p">,</span> <span class="n">block_layout</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">validate_layouts</span><span class="p">(</span><span class="n">condition_layout</span><span class="p">,</span> <span class="n">block_layout</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">layout_full</span> <span class="o">=</span> <span class="n">intersect_layouts</span><span class="p">(</span><span class="n">block_layout</span><span class="p">,</span> <span class="n">condition_layout</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">alphas</span> <span class="o">=</span> <span class="n">alphas</span>
 
     <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
@@ -243,8 +363,12 @@
             <span class="n">denom</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">denom</span> <span class="o">+</span> <span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">alphas</span><span class="p">])</span>
         <span class="k">return</span> <span class="n">numer</span> <span class="o">/</span> <span class="n">denom</span>
 
+
 </div>
 <div class="viewcode-block" id="OneSampleTTest"><a class="viewcode-back" href="../../generated/pade.html#pade.stat.OneSampleTTest">[docs]</a><span class="k">class</span> <span class="nc">OneSampleTTest</span><span class="p">:</span>
+
+    <span class="n">ALLOWS_EQUALIZED_MEANS</span> <span class="o">=</span> <span class="bp">False</span>
+
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alphas</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">alphas</span> <span class="o">=</span> <span class="n">alphas</span>
 
@@ -288,11 +412,11 @@
 <span class="sd">      </span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;means ratio&quot;</span>
+    <span class="n">ALLOWS_EQUALIZED_MEANS</span> <span class="o">=</span> <span class="bp">False</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">condition_layout</span><span class="p">,</span> <span class="n">block_layout</span><span class="p">,</span> <span class="n">alphas</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+    <span class="n">NAME</span> <span class="o">=</span> <span class="s">&quot;means_ratio&quot;</span>
 
-        <span class="nb">super</span><span class="p">(</span><span class="n">MeansRatio</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">condition_layout</span><span class="p">,</span> <span class="n">block_layout</span><span class="p">)</span>
+<div class="viewcode-block" id="MeansRatio.validate_layouts"><a class="viewcode-back" href="../../generated/pade.html#pade.stat.MeansRatio.validate_layouts">[docs]</a>    <span class="k">def</span> <span class="nf">validate_layouts</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">condition_layout</span><span class="p">,</span> <span class="n">block_layout</span><span class="p">):</span>
         <span class="n">conditions</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">condition_layout</span><span class="p">)</span>
         <span class="n">blocks</span>     <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">block_layout</span><span class="p">)</span>
 
@@ -303,7 +427,12 @@
                  <span class="s">&quot;conditions and {blocks} blocks.&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                     <span class="n">conditions</span><span class="o">=</span><span class="n">conditions</span><span class="p">,</span>
                     <span class="n">blocks</span><span class="o">=</span><span class="n">blocks</span><span class="p">))</span>
+    
+</div>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">condition_layout</span><span class="p">,</span> <span class="n">block_layout</span><span class="p">,</span> <span class="n">alphas</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
 
+        <span class="nb">super</span><span class="p">(</span><span class="n">MeansRatio</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">condition_layout</span><span class="p">,</span> <span class="n">block_layout</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">validate_layouts</span><span class="p">(</span><span class="n">condition_layout</span><span class="p">,</span> <span class="n">block_layout</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">alphas</span>    <span class="o">=</span> <span class="n">alphas</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">symmetric</span> <span class="o">=</span> <span class="n">symmetric</span>
 
@@ -313,6 +442,7 @@
         <span class="n">conds</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">condition_layout</span>
         <span class="n">blocks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">block_layout</span>
 
+
         <span class="c"># Build two new layouts. c0 is a list of lists of indexes into</span>
         <span class="c"># the data that represent condition 0 for each block. c1 is</span>
         <span class="c"># the same for data that represent condition 1 for each block.</span>
@@ -320,18 +450,23 @@
         <span class="n">c1_blocks</span> <span class="o">=</span> <span class="n">intersect_layouts</span><span class="p">(</span><span class="n">blocks</span><span class="p">,</span> <span class="p">[</span> <span class="n">conds</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="p">])</span>
 
         <span class="c"># Get the mean for each block for both conditions.</span>
-        <span class="n">means</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">group_means</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">c0_blocks</span><span class="p">),</span>
-                          <span class="n">group_means</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">c1_blocks</span><span class="p">)])</span>
+        <span class="n">means0</span> <span class="o">=</span> <span class="n">group_means</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">c0_blocks</span><span class="p">)</span>
+        <span class="n">means1</span> <span class="o">=</span> <span class="n">group_means</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">c1_blocks</span><span class="p">)</span>
 
         <span class="c"># If we have tuning params, add another dimension to the front</span>
-        <span class="c"># of each ndarray to vary the tuning param.  First add the</span>
-        <span class="c"># alpha dimension to the front of means, then swap it so the</span>
-        <span class="c"># dimensionality becomes (alpha, condition, ...)</span>
+        <span class="c"># of each ndarray to vary the tuning param.</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">alphas</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="n">means</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span> <span class="n">means</span> <span class="o">+</span> <span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">alphas</span> <span class="p">])</span>
-            <span class="n">means</span> <span class="o">=</span> <span class="n">means</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alphas</span><span class="p">),)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">means0</span><span class="p">)</span>
+            <span class="n">old0</span> <span class="o">=</span> <span class="n">means0</span>
+            <span class="n">old1</span> <span class="o">=</span> <span class="n">means1</span>
+            <span class="n">means0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+            <span class="n">means1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alphas</span><span class="p">):</span>
+                <span class="n">means0</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">old0</span> <span class="o">+</span> <span class="n">a</span>
+                <span class="n">means1</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">old1</span> <span class="o">+</span> <span class="n">a</span>
 
-        <span class="n">ratio</span> <span class="o">=</span> <span class="n">means</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">means</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">means0</span> <span class="o">/=</span> <span class="n">means1</span>
+        <span class="n">ratio</span> <span class="o">=</span> <span class="n">means0</span>
 
         <span class="c"># If we have more than one block, we combine their ratios</span>
         <span class="c"># using the geometric mean.</span>
@@ -349,7 +484,7 @@
         <span class="k">return</span> <span class="n">ratio</span>
         
 </div>
-<div class="viewcode-block" id="OneSampleDifferenceTTest"><a class="viewcode-back" href="../../generated/pade.html#pade.stat.OneSampleDifferenceTTest">[docs]</a><span class="k">class</span> <span class="nc">OneSampleDifferenceTTest</span><span class="p">(</span><span class="n">LayoutPairTest</span><span class="p">):</span>
+<div class="viewcode-block" id="OneSampleDifferenceTStat"><a class="viewcode-back" href="../../generated/pade.html#pade.stat.OneSampleDifferenceTStat">[docs]</a><span class="k">class</span> <span class="nc">OneSampleDifferenceTStat</span><span class="p">(</span><span class="n">LayoutPairTest</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;A one-sample t-test where the input is given as pairs.</span>
 
 <span class="sd">    Input with two features (one on each row), eight samples</span>
@@ -366,26 +501,28 @@
 
 <span class="sd">    Construct the test function with the condition and block layouts.</span>
 
-<span class="sd">    &gt;&gt;&gt; test = OneSampleDifferenceTTest(condition_layout, block_layout)</span>
+<span class="sd">    &gt;&gt;&gt; test = OneSampleDifferenceTStat(condition_layout, block_layout)</span>
 
 <span class="sd">    Apply it to 1d input (the first feature in the table):</span>
 
-<span class="sd">    &gt;&gt;&gt; print round(test(table[0]), 7)</span>
+<span class="sd">    &gt;&gt;&gt; round(test(table[0]), 7)</span>
 <span class="sd">    4.472136</span>
 
 <span class="sd">    Now 2d input (both features in the table):</span>
 
 <span class="sd">    &gt;&gt;&gt; results = test(table)</span>
-<span class="sd">    &gt;&gt;&gt; print round(results[0], 7)</span>
+<span class="sd">    &gt;&gt;&gt; round(results[0], 7)</span>
 <span class="sd">    4.472136</span>
-<span class="sd">    &gt;&gt;&gt; print round(results[1], 7)</span>
+<span class="sd">    &gt;&gt;&gt; round(results[1], 7)</span>
 <span class="sd">    0.5656854</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;OneSampleDifferenceTTest&quot;</span>
+    <span class="n">NAME</span> <span class="o">=</span> <span class="s">&quot;one_sample_t&quot;</span>
+
+    <span class="n">ALLOWS_EQUALIZED_MEANS</span> <span class="o">=</span> <span class="bp">False</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">condition_layout</span><span class="p">,</span> <span class="n">block_layout</span><span class="p">,</span> <span class="n">alphas</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">OneSampleDifferenceTTest</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">condition_layout</span><span class="p">,</span> <span class="n">block_layout</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">OneSampleDifferenceTStat</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">condition_layout</span><span class="p">,</span> <span class="n">block_layout</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">layout_is_paired</span><span class="p">(</span><span class="n">block_layout</span><span class="p">):</span>
             <span class="k">raise</span> <span class="n">UnsupportedLayoutException</span><span class="p">(</span>
@@ -424,6 +561,29 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">child</span><span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">values</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
 
 <span class="c">### Code review stops here</span>
+</div>
+<span class="n">STAT_NAME_TO_CLASS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s">&#39;f&#39;</span> <span class="p">:</span> <span class="n">FStat</span><span class="p">,</span>
+    <span class="s">&#39;t&#39;</span> <span class="p">:</span> <span class="n">OneSampleTTest</span><span class="p">,</span>
+    <span class="s">&#39;means_ratio&#39;</span> <span class="p">:</span> <span class="n">MeansRatio</span><span class="p">,</span>
+    <span class="s">&#39;glm&#39;</span> <span class="p">:</span> <span class="n">GLMFStat</span>
+    <span class="p">}</span>
+
+<span class="n">GLM_FAMILIES</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s">&#39;binomial&#39;</span>          <span class="p">:</span> <span class="n">sm</span><span class="o">.</span><span class="n">families</span><span class="o">.</span><span class="n">Binomial</span><span class="p">,</span>
+    <span class="s">&#39;gamma&#39;</span>             <span class="p">:</span> <span class="n">sm</span><span class="o">.</span><span class="n">families</span><span class="o">.</span><span class="n">Gamma</span><span class="p">,</span>
+    <span class="s">&#39;gaussian&#39;</span>          <span class="p">:</span> <span class="n">sm</span><span class="o">.</span><span class="n">families</span><span class="o">.</span><span class="n">Gaussian</span><span class="p">,</span>
+    <span class="s">&#39;inverse_gaussian&#39;</span>  <span class="p">:</span> <span class="n">sm</span><span class="o">.</span><span class="n">families</span><span class="o">.</span><span class="n">InverseGaussian</span><span class="p">,</span>
+    <span class="s">&#39;negative_binomial&#39;</span> <span class="p">:</span> <span class="n">sm</span><span class="o">.</span><span class="n">families</span><span class="o">.</span><span class="n">NegativeBinomial</span><span class="p">,</span>
+    <span class="s">&#39;poisson&#39;</span>           <span class="p">:</span> <span class="n">sm</span><span class="o">.</span><span class="n">families</span><span class="o">.</span><span class="n">Poisson</span>
+<span class="p">}</span>
+
+<div class="viewcode-block" id="stat_names"><a class="viewcode-back" href="../../generated/pade.html#pade.stat.stat_names">[docs]</a><span class="k">def</span> <span class="nf">stat_names</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">STAT_NAME_TO_CLASS</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="glm_families"><a class="viewcode-back" href="../../generated/pade.html#pade.stat.glm_families">[docs]</a><span class="k">def</span> <span class="nf">glm_families</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">GLM_FAMILIES</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+
 
 </div>
 <div class="viewcode-block" id="GroupSymbols"><a class="viewcode-back" href="../../generated/pade.html#pade.stat.GroupSymbols">[docs]</a><span class="k">class</span> <span class="nc">GroupSymbols</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -516,6 +676,7 @@
 <span class="sd">      falling in the range associated with the corresponding bin.</span>
 
 <span class="sd">      &quot;&quot;&quot;</span>
+
     <span class="k">if</span> <span class="n">residuals</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
         <span class="n">build_sample</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">idxs</span><span class="p">:</span> <span class="n">data</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">idxs</span><span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
@@ -542,7 +703,7 @@
         <span class="n">initial_value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">cumulative_hist_shape</span><span class="p">(</span><span class="n">bins</span><span class="p">))</span>
         <span class="n">reduce_fn</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">res</span><span class="p">,</span> <span class="n">val</span> <span class="p">:</span> <span class="n">res</span> <span class="o">+</span> <span class="n">cumulative_hist</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">bins</span><span class="p">)</span>
         <span class="n">finalize_fn</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">res</span> <span class="p">:</span> <span class="n">res</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">permutations</span><span class="p">)</span>
-        
+
     <span class="c"># We&#39;ll return an R x n array, where n is the number of</span>
     <span class="c"># features. Each row is the array of statistics for all the</span>
     <span class="c"># features, using a different random sampling.</span>
@@ -551,8 +712,9 @@
     <span class="n">stats</span>   <span class="o">=</span> <span class="p">(</span><span class="n">stat_fn</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>      <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">samples</span><span class="p">)</span>
 
     <span class="n">reduced</span> <span class="o">=</span> <span class="nb">reduce</span><span class="p">(</span><span class="n">reduce_fn</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">initial_value</span><span class="p">)</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">finalize_fn</span><span class="p">(</span><span class="n">reduced</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">finalize_fn</span><span class="p">(</span><span class="n">reduced</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">res</span>
 </div>
 <div class="viewcode-block" id="cumulative_hist_shape"><a class="viewcode-back" href="../../generated/pade.html#pade.stat.cumulative_hist_shape">[docs]</a><span class="k">def</span> <span class="nf">cumulative_hist_shape</span><span class="p">(</span><span class="n">bins</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the shape of the histogram with the given bins.</span>
@@ -700,7 +862,40 @@
     <span class="n">res</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">scores</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">)):</span>
         <span class="n">res</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">res</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
-    <span class="k">return</span> <span class="n">res</span></div>
+    <span class="k">return</span> <span class="n">res</span>
+
+</div>
+<div class="viewcode-block" id="get_stat"><a class="viewcode-back" href="../../generated/pade.html#pade.stat.get_stat">[docs]</a><span class="k">def</span> <span class="nf">get_stat</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Get a statistic function by name.</span>
+
+<span class="sd">    &gt;&gt;&gt; f = get_stat(&#39;f&#39;, [[0, 1], [2, 3]], [[0, 1, 2, 3]])</span>
+<span class="sd">    &gt;&gt;&gt; type(f).__name__</span>
+<span class="sd">    &#39;FStat&#39;</span>
+<span class="sd">    </span>
+<span class="sd">    &gt;&gt;&gt; f.condition_layout</span>
+<span class="sd">    [[0, 1], [2, 3]]</span>
+
+<span class="sd">    &gt;&gt;&gt; f.block_layout</span>
+<span class="sd">    [[0, 1, 2, 3]]</span>
+<span class="sd">    </span>
+<span class="sd">    &gt;&gt;&gt; x = get_stat(&#39;t&#39;, [[0, 1], [2, 3]])</span>
+<span class="sd">    &gt;&gt;&gt; isinstance(x, OneSampleTTest)</span>
+<span class="sd">    True</span>
+
+<span class="sd">    &gt;&gt;&gt; mr = get_stat(&#39;means_ratio&#39;, [[0, 1], [2, 3]], [[0, 1, 2, 3]])</span>
+<span class="sd">    &gt;&gt;&gt; isinstance(mr, MeansRatio)</span>
+<span class="sd">    True</span>
+
+<span class="sd">    &gt;&gt;&gt; glm = get_stat(&#39;glm&#39;, [[0, 1], [2, 3]], [[0, 1, 2, 3]])</span>
+<span class="sd">    &gt;&gt;&gt; isinstance(glm, GLMFStat)</span>
+<span class="sd">    True</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">constructor</span> <span class="o">=</span> <span class="n">STAT_NAME_TO_CLASS</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">constructor</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    </div>
 </pre></div>
 
           </div>
@@ -740,7 +935,7 @@
     </div>
     <div class="footer">
         &copy; Copyright 2013, University of Pennsylvania.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.2.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
     </div>
   </body>
 </html>
