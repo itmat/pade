@@ -510,6 +510,29 @@ class OneSampleDifferenceTStat(LayoutPairTest):
 
 ### Code review stops here
 
+STAT_NAME_TO_CLASS = {
+    'f' : FStat,
+    't' : OneSampleTTest,
+    'means_ratio' : MeansRatio,
+    'glm' : GLMFStat
+    }
+
+GLM_FAMILIES = {
+    'binomial'          : sm.families.Binomial,
+    'gamma'             : sm.families.Gamma,
+    'gaussian'          : sm.families.Gaussian,
+    'inverse_gaussian'  : sm.families.InverseGaussian,
+    'negative_binomial' : sm.families.NegativeBinomial,
+    'poisson'           : sm.families.Poisson
+}
+
+def stat_names():
+    return STAT_NAME_TO_CLASS.keys()
+
+def glm_families():
+    return GLM_FAMILIES.keys()
+
+
 
 class GroupSymbols(object):
 
@@ -788,25 +811,6 @@ def ensure_scores_increase(scores):
     for i in range(1, len(res)):
         res[i] = max(res[i], res[i - 1])
     return res
-
-STAT_NAME_TO_CLASS = {
-    'f' : FStat,
-    't' : OneSampleTTest,
-    'means_ratio' : MeansRatio,
-    'glm' : GLMFStat
-    }
-
-GLM_FAMILIES = {
-    'binomial'          : sm.families.Binomial,
-    'gamma'             : sm.families.Gamma,
-    'gaussian'          : sm.families.Gaussian,
-    'inverse_gaussian'  : sm.families.InverseGaussian,
-    'negative_binomial' : sm.families.NegativeBinomial,
-    'poisson'           : sm.families.Poisson
-}
-
-def stat_names():
-    return STAT_NAME_TO_CLASS.keys()
 
 
 def get_stat(name, *args, **kwargs):

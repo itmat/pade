@@ -32,7 +32,7 @@ import pade.config
 
 from numpy.lib.recfunctions import append_fields
 from pade.model import Job, Model, Settings, Input, Results, Schema
-from pade.stat import GroupSymbols
+from pade.stat import GroupSymbols, stat_names, glm_families
 from pade.metadb import JobMeta
 
 STAT_NAME_TO_CLASS = {
@@ -228,6 +228,12 @@ def args_to_settings(args):
         equalize_means = False
     else:
         equalize_means = args.equalize_means
+
+    if stat == 'glm':
+        if args.glm_family is None:
+            raise UsageException(
+                "If you give --stat glm, you must specify a distribution " +
+                "family with the --glm-family option.")
 
     # Block and condition variables
     if len(args.block) > 0 or len(args.condition) > 0:
@@ -599,9 +605,14 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
         description="""These options control how we estimate the confidence levels. You can probably leave them unchanged, in which case I'll compute it using a permutation test with an f-test as the statistic, using a maximum of 1000 permutations.""")
     grp.add_argument(
         '--stat', '-s',
-        choices=STAT_NAME_TO_CLASS.keys(),
+        choices=stat_names(),
         default='f',
         help="The statistic to use.")
+
+    grp.add_argument(
+        '--glm-family',
+        choices=glm_families(),
+        help="The distribution family to use for the 'glm' stat.")
 
     grp.add_argument(
         '--tuning-param',
