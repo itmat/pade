@@ -90,15 +90,14 @@ Confidence |   Num.   | Tuning
 def do_setup(args):
     schema = init_job(
         infile=args.infile,
-        schema_path=args.schema,
-        factors={f : [] for f in args.factor},
-        force=args.force)
+        schema_path=args.output,
+        factors={f : [] for f in args.factor})
 
     print(fix_newlines("""
 I have generated a schema for your input file, with factors {factors}, and saved it to "{filename}". You should now edit that file to set the factors for each sample. The file contains instructions on how to edit it.
 
 Once you have finished the schema, you will need to run "pade run" to do the analysis. See "pade run -h" for its usage.
-""").format(factors=schema.factors, filename=args.schema))
+""").format(factors=schema.factors, filename=args.output))
 
 def do_makesamples(args):
 
@@ -399,7 +398,7 @@ def init_schema(infile=None):
     return Schema(column_names=csvfile.fieldnames, column_roles=roles)
 
 
-def init_job(infile, factors, schema_path=None, force=False):
+def init_job(infile, factors, schema_path=None):
 
     if isinstance(infile, str):
         infile = open(infile)
@@ -408,18 +407,10 @@ def init_job(infile, factors, schema_path=None, force=False):
     for name, values in factors.items():
         schema.add_factor(name, values)
 
-    mode = 'w' if force else 'wx'
-    try:
-        with open(schema_path, mode) as out:
-            logging.info("Saving schema to " + out.name)
-            schema.save(out)
-    except IOError as e:
-        if e.errno == errno.EEXIST:
-            raise UsageException("""\
-                   The schema file \"{}\" already exists. If you want to
-                   overwrite it, use the --force or -f argument.""".format(
-                    schema_path))
-        raise e
+    mode = 'w'
+    with open(schema_path, mode) as out:
+        logging.info("Saving schema to " + out.name)
+        schema.save(out)
 
     return schema
 
@@ -565,13 +556,9 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
         specify this option more than once, to use more than one
         class.""")
     setup_parser.add_argument(
-        '--force', '-f',
-        action='store_true',
-        help="""Overwrite any existing files""")
-    setup_parser.add_argument(
-        '--schema', 
+        '--output', '-o',
         help="Path to write the schema file to",
-        default="pade_schema.yaml")
+        required=True)
 
     ###
     ### Custom args for run parser
