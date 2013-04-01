@@ -129,12 +129,6 @@ class LayoutPairTest(object):
         self.block_layout = block_layout
 
 
-ALLOWED_FAMILIES = { 
-    'gaussian', lambda: sm.families.Guassian(),
-    'poisson',  lambda: sm.families.Poisson()
-}
-
-
 class GLMFStat(LayoutPairTest):                                          
     """Computes an f-test using a generalized linear model.                  
     
@@ -153,7 +147,7 @@ class GLMFStat(LayoutPairTest):
                                                                              
     Construct one ftest based on our layouts                                 
                                                                              
-    >>> f = GLMFStat(condition_layout, block_layout)                         
+    >>> f = GLMFStat(condition_layout, block_layout)
                                                                              
     Test one row                                                             
                                                                              
@@ -167,12 +161,14 @@ class GLMFStat(LayoutPairTest):
     array([ 3.6,  1. ,  2.5])
 
     """                                                                      
-    def __init__(self, condition_layout, block_layout, alphas=None):
+    def __init__(self, condition_layout, block_layout, alphas=None, family='gaussian'):
         
         super(GLMFStat, self).__init__(condition_layout, block_layout)       
                                                                              
         self.layout_full = intersect_layouts(block_layout, condition_layout) 
-        self.alphas = alphas                                                 
+        self.alphas = alphas
+        ctor = GLM_FAMILIES[family]
+        self.family = ctor()
 
     @property
     def col_to_cat(self):
@@ -201,7 +197,7 @@ class GLMFStat(LayoutPairTest):
         >>> f = GLMFStat([[0, 3], [1, 4], [2, 5]], [[0, 1, 2, 3, 4, 5]])
         >>> f.x  # doctest: +NORMALIZE_WHITESPACE
         array([[ 1., 0., 0.],
-x               [ 1., 1., 0.],
+               [ 1., 1., 0.],
                [ 1., 0., 1.],
                [ 1., 0., 0.],
                [ 1., 1., 0.],
@@ -223,7 +219,7 @@ x               [ 1., 1., 0.],
         
         y = data
 
-        family = sm.families.Poisson()
+        family = self.family
 
         if np.ndim(y) == 1:
             model = sm.GLM(y, x, family)
@@ -793,3 +789,54 @@ def ensure_scores_increase(scores):
         res[i] = max(res[i], res[i - 1])
     return res
 
+STAT_NAME_TO_CLASS = {
+    'f' : FStat,
+    't' : OneSampleTTest,
+    'means_ratio' : MeansRatio,
+    'glm' : GLMFStat
+    }
+
+GLM_FAMILIES = {
+    'binomial'          : sm.families.Binomial,
+    'gamma'             : sm.families.Gamma,
+    'gaussian'          : sm.families.Gaussian,
+    'inverse_gaussian'  : sm.families.InverseGaussian,
+    'negative_binomial' : sm.families.NegativeBinomial,
+    'poisson'           : sm.families.Poisson
+}
+
+def stat_names():
+    return STAT_NAME_TO_CLASS.keys()
+
+
+def get_stat(name, *args, **kwargs):
+    """Get a statistic function by name.
+
+    >>> f = get_stat('f', [[0, 1], [2, 3]], [[0, 1, 2, 3]])
+    >>> type(f).__name__
+    'FStat'
+    
+    >>> f.condition_layout
+    [[0, 1], [2, 3]]
+
+    >>> f.block_layout
+    [[0, 1, 2, 3]]
+    
+    >>> x = get_stat('t', [[0, 1], [2, 3]])
+    >>> isinstance(x, OneSampleTTest)
+    True
+
+    >>> mr = get_stat('means_ratio', [[0, 1], [2, 3]], [[0, 1, 2, 3]])
+    >>> isinstance(mr, MeansRatio)
+    True
+
+    >>> glm = get_stat('glm', [[0, 1], [2, 3]], [[0, 1, 2, 3]])
+    >>> isinstance(glm, GLMFStat)
+    True
+
+    """
+
+    constructor = STAT_NAME_TO_CLASS[name]
+
+    return constructor(*args, **kwargs)
+    
