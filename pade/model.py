@@ -214,7 +214,8 @@ class Settings:
 
     def __init__(
         self,
-        stat_class=None,
+        stat=None,
+        glm_family='',
         num_bins=DEFAULT_NUM_BINS,
         num_samples=DEFAULT_NUM_SAMPLES,
         sample_from_residuals=DEFAULT_SAMPLE_FROM_RESIDUALS,
@@ -227,16 +228,16 @@ class Settings:
         tuning_params=DEFAULT_TUNING_PARAMS,
         equalize_means_ids=None):
 
-        if stat_class is None:
-            raise Exception('stat_class is a required option')
+        if stat is None:
+            raise Exception('stat is a required option')
 
-        try:
-            stat_class = getattr(pade.stat, stat_class)
-        except AttributeError:
-            raise UnknownStatisticException("Unknown statistic '" + str(stat_class) + "'")
+        self.stat = stat
+        """Name of statistic to use."""
 
-        self.stat_class = stat_class
-        """Statistic to use. Currently must be defined in pade.stat."""
+        if self.stat == 'glm' and glm_family == '':
+            raise Exception("glm_family is required, since stat is glm")
+        self.glm_family = glm_family
+        """Name of statistic to use."""
 
         self.num_samples = num_samples
         """Max number of samples to use for permutation test or bootstrapping"""
@@ -330,10 +331,16 @@ class Job:
     def get_stat_fn(self):
         """The statistic used for this job."""
 
-        return self.settings.stat_class(
-            condition_layout=self.condition_layout,
-            block_layout=self.block_layout,
-            alphas=self.settings.tuning_params)
+        kwargs = {
+            'condition_layout' : self.condition_layout,
+            'block_layout' : self.block_layout,
+            'alphas' : self.settings.tuning_params
+            }
+
+        if self.settings.glm_family != '':
+            kwargs['family'] = self.settings.glm_family
+
+        return pade.stat.get_stat(self.settings.stat, **kwargs)
 
     def layout(self, variables):
         s = self.schema

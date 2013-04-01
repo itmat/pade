@@ -30,8 +30,8 @@ def save_table(db, table, name):
 def copy_input(path, input_path, schema, settings, job_id):
     logging.info("Loading input for job from {0}".format(input_path))
     input = Input.from_raw_file(input_path, schema)
-
     logging.info("Saving input, settings, and schema to " + str(path))
+
     with h5py.File(path, 'w') as db:
 
         # Save the input object
@@ -49,7 +49,8 @@ def copy_input(path, input_path, schema, settings, job_id):
         # Save the settings object
         db.create_dataset("tuning_params", data=settings.tuning_params)
         db.attrs['job_id'] = job_id
-        db.attrs['stat_class'] = settings.stat_class.__name__
+        db.attrs['stat'] = settings.stat,
+        db.attrs['glm_family'] = settings.glm_family,
         db.attrs['num_bins'] = settings.num_bins
         db.attrs['num_samples'] = settings.num_samples
         db.attrs['sample_from_residuals'] = settings.sample_from_residuals
@@ -250,8 +251,11 @@ def load_settings(db):
     else:
         equalize_means_ids = None
 
+    stat = db.attrs['stat']
+
     return Settings(
-        stat_class = db.attrs['stat_class'].split('.')[-1],
+        stat = str(db.attrs['stat'][0]),
+        glm_family = db.attrs['glm_family'][0],
         num_bins = db.attrs['num_bins'],
         num_samples = db.attrs['num_samples'],
         sample_from_residuals = db.attrs['sample_from_residuals'],

@@ -40,15 +40,6 @@ from pade.stat import GroupSymbols, stat_names, glm_families
 from pade.metadb import JobMeta
 from threading import Thread
 
-STAT_NAME_TO_CLASS = {
-    'f' : 'FStat',
-    't' : 'OneSampleDifferenceTStat',
-    'means_ratio' : 'MeansRatio',
-    'glm' : 'GLMFStat',
-    
-}
-
-
 REAL_PATH = os.path.realpath(__file__)
 
 class UsageException(Exception):
@@ -275,14 +266,13 @@ def args_to_settings(args):
         stat = args.stat
 
     if stat == 'glm':
-        if args.glm_family is None:
+        if args.glm_family == '':
             msg = ("If you give --stat glm, you must specify a distribution " +
                    "family with the --glm-family option. Valid arguments " +
                    "for --glm-family are " + 
                    quote_and_join(pade.stat.glm_families()) + ".")
                    
             raise UsageException(msg)
-
 
     # Block and condition variables
     if len(args.block) > 0 or len(args.condition) > 0:
@@ -318,7 +308,8 @@ def args_to_settings(args):
         tuning_params=tuning_params,
         block_variables=block_variables,
         condition_variables=condition_variables,
-        stat_class=STAT_NAME_TO_CLASS[stat],
+        stat=stat,
+        glm_family=args.glm_family,
         equalize_means=args.equalize_means
         )
 
@@ -651,6 +642,7 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
     grp.add_argument(
         '--glm-family',
         choices=glm_families(),
+        default='',
         help="The distribution family to use for the 'glm' stat.")
 
     grp.add_argument(
