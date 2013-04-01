@@ -195,12 +195,13 @@ def do_run(args):
 The results for the job are saved in {path}. To generate a text
 report, run:
 
-  pade report --output REPORT_FILE {path}
+  {pade} report --output REPORT_FILE {path}
 
 To launch a small web server to generate HTML reports, run:
 
-  pade view {path}
-""".format(path=args.output))
+  {pade} view {path}
+""".format(path=args.output,
+          pade=sys.argv[0]))
 
 def do_server(args):
     import pade.http.server
@@ -253,9 +254,13 @@ def args_to_settings(args):
 
     if stat == 'glm':
         if args.glm_family is None:
-            raise UsageException(
-                "If you give --stat glm, you must specify a distribution " +
-                "family with the --glm-family option.")
+            msg = ("If you give --stat glm, you must specify a distribution " +
+                   "family with the --glm-family option. Valid arguments " +
+                   "for --glm-family are " + 
+                   quote_and_join(pade.stat.glm_families()) + ".")
+                   
+            raise UsageException(msg)
+
 
     # Block and condition variables
     if len(args.block) > 0 or len(args.condition) > 0:
@@ -409,7 +414,9 @@ def main():
         args.func(args)
 
     except UsageException as e:
+        print("")
         logging.fatal("Pade exiting because of usage error")
+        print("")
         print(fix_newlines(e.message))
         exit(1)
     end = time.time()
