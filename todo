@@ -1,5 +1,3 @@
-* Separate viewer from job runner
-* Don't require redis and celery for viewer or command-line job runner (unless it makes packaging harder)
 * Show on the UI whether redis and celery are running
 * Test that col numbers are distinct
 * Replace stats 109 with call to residuals
