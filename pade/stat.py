@@ -831,8 +831,8 @@ def get_stat(name, *args, **kwargs):
     >>> f.block_layout
     [[0, 1, 2, 3]]
     
-    >>> x = get_stat('t', [[0, 1], [2, 3]])
-    >>> isinstance(x, OneSampleTTest)
+    >>> x = get_stat('t', [[0, 1], [2, 3]], [[0, 2], [1, 3]])
+    >>> isinstance(x, OneSampleDifferenceTStat)
     True
 
     >>> mr = get_stat('means_ratio', [[0, 1], [2, 3]], [[0, 1, 2, 3]])

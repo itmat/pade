@@ -9,6 +9,7 @@ from itertools import repeat
 from collections import defaultdict, OrderedDict
 from pade.analysis import assignment_name
 from pade.model import Job, Settings, Schema
+import pade.stat as stat
 
 import pade.model
 import logging, os, csv, celery
@@ -114,7 +115,7 @@ class Workflow():
         return Settings(
             condition_variables=condition_vars,
             block_variables=block_vars,
-            stat_class = str(form.statistic.data),
+            stat = str(form.statistic.data),
             equalize_means = form.equalize_means.data,
             num_bins = form.bins.data,
             num_samples = form.permutations.data,
@@ -158,10 +159,9 @@ class JobFactorForm(Form):
 
 class JobSettingsForm(Form):
 
-    statistic    = SelectField('Statistic', choices=[('FStat', 'F'), 
-                                                     ('OneSampleDifferenceTStat', 'One-Sample T'),
-                                                     ('MeansRatio', 'Means Ratio'),
-                                                     ('GLMFStat', 'GLM')])
+    choices = [ (x, x) for x in stat.stat_names() ]
+
+    statistic = SelectField('Statistic', choices=choices)
     bins = IntegerField(
         'Number of bins', 
         validators=[Required()],

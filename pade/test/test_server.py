@@ -219,7 +219,7 @@ class PadeRunnerTestCase(unittest.TestCase):
         r = self.app.post("/new_job/other_settings",
                           
                           data={
-                'statistic' : 'FStat',
+                'statistic' : 'f',
                 'tuning_params': "0.001 0.01 0.1 1 3 10 30 100 300 1000 3000",
                 'bins' : '1000',
                 'permutations' : '1000',

@@ -139,7 +139,7 @@ def details(job_meta, job_db, conf_level):
         group_names=job_db.results.group_means.header,
         coeff_names=job_db.results.coeff_values.header,
         fold_change_group_names=job_db.results.fold_change.header,
-        stat_name=job_db.settings.stat_class.NAME,
+        stat_name=job_db.settings.stat,
         scores=scores[idxs],
         stats=scores[idxs],
         means=job_db.results.group_means.table[idxs],
@@ -310,7 +310,7 @@ def measurement_bars(job_meta, job_db, feature_num):
 
     y = []
     grps = [schema.indexes_with_assignments(a) for a in assignments]
-    names = [", ".join(a.values()) for a in assignments]
+    names = [", ".join(map(str, a.values())) for a in assignments]
     y = [ np.mean(measurements[g]) for g in grps]
     err = [ np.std(measurements[g]) for g in grps]
     ax.bar(x, y, yerr=err, color='y')
@@ -351,8 +351,8 @@ def stat_dist_plot(job_meta, job_db, tuning_param):
     fig = plt.figure()
     ax = fig.add_subplot(
         111,
-        title=job_db.settings.stat_class.NAME + " distribution over features, $\\alpha = " + str(tuning_param) + "$",
-        xlabel=job_db.settings.stat_class.NAME + " value",
+        title=job_db.settings.stat + " distribution over features, $\\alpha = " + str(tuning_param) + "$",
+        xlabel=job_db.settings.stat + " value",
         ylabel="Features",
         xlim=(0, max_stat))
     plt.hist(job_db.results.raw_stats[tuning_param], log=False, bins=250)

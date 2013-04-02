@@ -233,7 +233,7 @@ def load_input(db):
                  db['feature_ids'][...])
 
 def load_job(path):
-
+    logging.info("Loading job from " + str(path))
     with h5py.File(path, 'r') as db:
         return Job(
             job_id = db.attrs['job_id'],
@@ -251,6 +251,8 @@ def load_settings(db):
     else:
         equalize_means_ids = None
 
+    logging.info("Keys in job db are " + str(db.attrs.keys()))
+        
     stat = db.attrs['stat']
 
     return Settings(

@@ -258,6 +258,8 @@ def do_report(args):
 
 def args_to_settings(args):
 
+    schema = load_schema(args.schema)
+
     # If they said paired, override the choice of stat
     if args.paired:
         logging.info("You've given the --paired option, so I'll use a one-sample t-test.")
@@ -285,6 +287,9 @@ def args_to_settings(args):
         block_variables     = set(reduced_model.expr.variables)
         condition_variables = set(full_model.expr.variables).difference(block_vars)
 
+    elif len(schema.factors) == 1:
+        block_variables = []
+        condition_variables = schema.factors
 
     # Tuning params
     if args.tuning_param is None or len(args.tuning_param) == 0 :
@@ -543,7 +548,7 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
         )
     schema_in_parent = argparse.ArgumentParser(add_help=False)
     schema_in_parent.add_argument(
-        '--schema', 
+        '--schema',
         help="The schema YAML file to load",
         required=True)
 

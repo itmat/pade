@@ -27,7 +27,7 @@ class MainTest(unittest.TestCase):
         schema.add_factor('gender', ['male', 'female'])
         
         settings = Settings(
-            stat_class='FStat',
+            stat='f',
             condition_variables=['treated'],
             block_variables=['gender'])
 
@@ -35,7 +35,7 @@ class MainTest(unittest.TestCase):
 
         with self.assertRaisesRegexp(UsageException, 'foo.*"dose", "gender", and "treated"'):
             settings = Settings(
-                stat_class='FStat',
+                stat='f',
                 condition_variables=['foo'])
             validate_settings(schema, settings)
 
