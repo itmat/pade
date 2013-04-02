@@ -230,19 +230,38 @@ class GLMFStat(LayoutPairTest):
             model = sm.GLM(y, x, family)
             fitted = model.fit()
             res = fitted.f_test(contrast).fvalue[0, 0]
+            df_resid = fitted.df_resid
+            resid_deviance = fitted.resid_deviance
 
         elif np.ndim(y) == 2:
             m = len(y)
             res = np.zeros(m)
+            df_resid = np.zeros(m)
+            resid_deviance = np.zeros(np.shape(y))
             for i in range(m):
                 model = sm.GLM(y[i], x, family)
                 fitted = model.fit()
                 res[i] = fitted.f_test(contrast).fvalue[0, 0]
+                df_resid[i] = fitted.df_resid
+                resid_deviance[i] = fitted.resid_deviance
             res = res
                 
         if self.alphas is not None:
-            res = np.array([ res for a in self.alphas])
+            denom = np.sum(resid_deviance ** 2.0, axis=1) / df_resid
+            numer = res * denom
+            denom = np.array([ denom + a for a in self.alphas])
+            res = numer / denom
+
         return res
+
+    def fittedvalues(self, y):
+        x = self.x
+
+        family = self.family
+
+        model = sm.GLM(y, x, family)
+        fitted = model.fit()
+        return fitted.fittedvalues
 
 class FStat(LayoutPairTest):
     """Computes the F-test.
@@ -315,7 +334,6 @@ class FStat(LayoutPairTest):
         if self.alphas is not None:
             denom = np.array([denom + x for x in self.alphas])
         return numer / denom
-
 
 
 class OneSampleTTest:

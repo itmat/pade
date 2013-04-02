@@ -327,5 +327,30 @@ class StatTest(unittest.TestCase):
         self.assertEquals(test(np.array([0, 1, 2, 3])), 'AA BB')
         self.assertEquals(test(np.array([0, 2, 0, 3])), 'AB AB')
 
+    def test_glm_with_alphas(self):
+
+        data = np.array([
+                [ 0, 1, 5, 3, 9, 8, 7, 8],
+                [ 1, 3, 2, 1, 6, 9, 8, 9],
+                [ 9, 7, 8, 7, 1, 4, 2, 0],
+                [ 1, 2, 3, 4, 5, 6, 7, 8],
+                [ 1, 2, 1, 2, 1, 1, 1, 2]],
+
+                        float)
+
+        blocks = [ np.arange(8) ]
+        conds  = [ np.arange(0, 4), 
+                   np.arange(4, 8) ]
+
+        alphas = np.array([ 0.0, 1.0, 10.0])
+
+        f = FStat(conds, blocks, alphas)
+
+        glm = GLMFStat(conds, blocks, family='gaussian', alphas=alphas)
+
+        np.testing.assert_almost_equal(
+            f(data), glm(data))
+
+
 if __name__ == '__main__':
     unittest.main()

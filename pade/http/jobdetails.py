@@ -11,7 +11,7 @@ import pade.tasks
 from flask import Blueprint, render_template, request, make_response, send_file, abort
 from celery.result import AsyncResult
 from bisect import bisect
-from pade.stat import cumulative_hist, adjust_num_diff
+from pade.stat import cumulative_hist, adjust_num_diff, GLMFStat
 from StringIO import StringIO
 from pade.metadb import JobMeta
 from functools import wraps
@@ -158,6 +158,14 @@ def feature(job_meta, job_db, feature_num):
         s : { f : schema.get_factor(s, f) for f in schema.factors }
         for s in schema.sample_column_names }
 
+    family = 'gaussian'
+    if job_db.settings.glm_family != '':
+        family = job_db.settings.glm_family 
+
+    stat_fn = GLMFStat(condition_layout=job_db.condition_layout,
+                       block_layout=job_db.condition_layout,
+                       family=family)
+
     stats           = job_db.results.raw_stats[..., feature_num]
     params          = job_db.settings.tuning_params
     bins            = np.array([ bisect(job_db.results.bins[i], stats[i]) - 1 for i in range(len(params)) ])
@@ -166,12 +174,15 @@ def feature(job_meta, job_db, feature_num):
     adjusted        = np.array(adjust_num_diff(mean_perm_count, unperm_count, len(job_db.input.table)))
     new_scores      = (unperm_count - adjusted) / unperm_count
     max_stat        = job_db.results.bins[..., -2]
+    measurements    = job_db.input.table[feature_num]
+    fittedvalues    = stat_fn.fittedvalues(measurements)
 
     return render_template(
         "feature.html",
         feature_num=feature_num,
         feature_id=job_db.input.feature_ids[feature_num],
-        measurements=job_db.input.table[feature_num],
+        measurements=measurements,
+        fittedvalues=fittedvalues,
         sample_names=job_db.schema.sample_column_names,
         factors=job_db.schema.factors,
         factor_values=factor_values,

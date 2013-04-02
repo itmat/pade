@@ -15,6 +15,8 @@
     <th></th>
     <th></th>
     <th colspan="{{ factors | length }}">Factors</th>
+    <th></th>
+    <th></th>
   </tr>
 
   <tr>
@@ -24,6 +26,8 @@
     <th>{{ f }}</th>
     {% endfor %}
     <th>Measured value</th>
+    <th>Fitted value</th>
+    <th>Residual</th>
 
   </tr>
 
@@ -36,6 +40,8 @@
     <td> {{ factor_values[sample_names[i]][f] }} </td>
     {% endfor %}
     <td>{{ measurements[i] }}</td>
+    <td>{{ "%.2f"|format(fittedvalues[i])}}</td>
+    <td>{{ "%.2f"|format(measurements[i] - fittedvalues[i]) }}</td>
   </tr>
   {% endfor %}
   {% endfor %}
