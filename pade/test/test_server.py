@@ -2,6 +2,9 @@ import unittest
 from pade.metadb import JobMeta, MetaDB
 from redis import Redis
 from pade.http.server import PadeViewer, PadeRunner
+
+from pade.http.newjob import parse_stat
+
 import pade.http.jobdetails
 import pade.config
 import tempfile
@@ -246,8 +249,14 @@ class PadeRunnerTestCase(unittest.TestCase):
         for route in ['/jobs/1/features/14/interaction_plot']:
             self.assertOk(route)
 
+class JobSettingsFormTest(unittest.TestCase):
+    
+    def test_parse_stat(self):
 
+        self.assertEquals(parse_stat('f'), { 'stat' : 'f' })
 
+        self.assertEquals(parse_stat('glm (poisson)'), { 'stat' : 'glm',
+                                                         'glm_family' : 'poisson' })
 
 
 if __name__ == '__main__':

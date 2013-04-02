@@ -141,7 +141,7 @@ def details(job_meta, job_db, conf_level):
         fold_change_group_names=job_db.results.fold_change.header,
         stat_name=job_db.settings.stat,
         scores=scores[idxs],
-        stats=scores[idxs],
+        stats=stats[idxs],
         means=job_db.results.group_means.table[idxs],
         coeffs=job_db.results.coeff_values.table[idxs],
         feature_ids=job_db.input.feature_ids[idxs],

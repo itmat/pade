@@ -14,6 +14,7 @@ import pade.stat as stat
 import pade.model
 import logging, os, csv, celery
 import numpy as np
+import re
 
 bp = Blueprint(
     'new_job', __name__,
@@ -112,10 +113,11 @@ class Workflow():
             elif value == 'block':
                 block_vars.append(factor)    
 
+        kwargs = parse_stat(str(form.statistic.data))
+
         return Settings(
             condition_variables=condition_vars,
             block_variables=block_vars,
-            stat = str(form.statistic.data),
             equalize_means = form.equalize_means.data,
             num_bins = form.bins.data,
             num_samples = form.permutations.data,
@@ -123,7 +125,10 @@ class Workflow():
             sample_with_replacement = form.sample_with_replacement.data,
             summary_min_conf = form.summary_min_conf_level.data,
             summary_step_size = form.summary_step_size.data,
-            tuning_params = tuning_params)
+            tuning_params = tuning_params,
+            **kwargs)
+
+
 
 ########################################################################
 ###
@@ -159,7 +164,14 @@ class JobFactorForm(Form):
 
 class JobSettingsForm(Form):
 
-    choices = [ (x, x) for x in stat.stat_names() ]
+    choices = []
+    for name in stat.stat_names():
+        if name == 'glm':
+            for family in stat.glm_families():
+                x = name + " (" + family + ")"
+                choices.append((x, x))
+        else:
+            choices.append((name, name))
 
     statistic = SelectField('Statistic', choices=choices)
     bins = IntegerField(
@@ -203,6 +215,19 @@ class JobSettingsForm(Form):
         default=' '.join(map(str, pade.model.DEFAULT_TUNING_PARAMS)))
 
     submit = SubmitField()
+
+
+def parse_stat(s):
+
+    glm_family_re = re.compile("(glm) \((.*)\)")
+    m = glm_family_re.match(s)
+
+    if m is not None:
+        return { 'stat' : m.group(1),
+                 'glm_family' : m.group(2) }
+    else:
+        return { 'stat' : s }
+
 
 
 ###
