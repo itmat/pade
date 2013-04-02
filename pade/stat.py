@@ -21,6 +21,11 @@ from pade.layout import (
     intersect_layouts, apply_layout, layout_is_paired)
 from statsmodels.tools.tools import categorical
 
+class UnknownStatisticException(Exception):
+    pass
+
+
+
 class UnsupportedLayoutException(Exception):
     """Thrown when a statistic is used with a layout that it can't support."""
     pass
@@ -512,7 +517,7 @@ class OneSampleDifferenceTStat(LayoutPairTest):
 
 STAT_NAME_TO_CLASS = {
     'f' : FStat,
-    't' : OneSampleTTest,
+    't' : OneSampleDifferenceTStat,
     'means_ratio' : MeansRatio,
     'glm' : GLMFStat
     }
@@ -839,8 +844,16 @@ def get_stat(name, *args, **kwargs):
     True
 
     """
-
-    constructor = STAT_NAME_TO_CLASS[name]
-
-    return constructor(*args, **kwargs)
+    
+    try:
+        constructor = STAT_NAME_TO_CLASS[name]
+    except KeyError as e:
+        raise UnknownStatisticException(
+            "Unknown statistic " + name + "; valid statistics are " +
+            str(stat_names()))
+    try:
+        return constructor(*args, **kwargs)
+    except Exception as e:
+        logging.error("While calling " + str(constructor) + "(" + str(args) + str(kwargs))
+        raise
     

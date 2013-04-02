@@ -31,9 +31,6 @@ class ModelExpressionException(Exception):
     """Thrown when a model expression is invalid."""
     pass
 
-class UnknownStatisticException(Exception):
-    pass
-
 class InvalidSettingsException(Exception):
     pass
 

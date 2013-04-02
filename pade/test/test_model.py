@@ -3,9 +3,9 @@ import numpy as np
 from pade.test.utils import sample_db
 from pade.model import (
     Model, Schema, ModelExpression, ModelExpressionException, Settings, Job,
-    UnknownStatisticException, InvalidSettingsException)
+    InvalidSettingsException)
 from pade.main import init_schema
-from pade.stat import UnsupportedLayoutException
+from pade.stat import UnsupportedLayoutException, UnknownStatisticException
 from StringIO import StringIO
 from collections import OrderedDict
 from itertools import product, repeat
@@ -324,26 +324,26 @@ class SettingValidationTest(unittest.TestCase):
         with self.assertRaises(UnsupportedLayoutException):
             Job(schema=self.paired_schema, 
                 settings=Settings(
-                    stat_class='FStat',
+                    stat='f',
                     block_variables=['person'],
                     condition_variables=['treated']))
 
         # But it can be used if we take away blocking
         Job(schema=self.paired_schema, 
             settings=Settings(
-                stat_class='FStat',
+                stat='f',
                 condition_variables=['treated']))
 
         # We can use F with three conditions, without blocking...
         Job(schema=self.three_cond_schema, 
             settings=Settings(
-                stat_class='FStat',
+                stat='f',
                 condition_variables=['dosage']))        
 
         # ... and with blocking
         Job(schema=self.three_cond_schema, 
             settings=Settings(
-                stat_class='FStat',
+                stat='f',
                 block_variables=['gender'],
                 condition_variables=['dosage']))        
 
@@ -356,7 +356,7 @@ class SettingValidationTest(unittest.TestCase):
         # condition and block.
         Job(schema=self.paired_schema, 
             settings=Settings(
-                stat_class='OneSampleDifferenceTStat',
+                stat='t',
                 equalize_means=False,
                 block_variables=['person'],
                 condition_variables=['treated']))
@@ -366,13 +366,13 @@ class SettingValidationTest(unittest.TestCase):
             Job(schema=self.paired_schema, 
                 settings=Settings(
                     equalize_means=False,
-                    stat_class='OneSampleDifferenceTStat',
+                    stat='t',
                     condition_variables=['treated']))
 
         with self.assertRaisesRegexp(InvalidSettingsException, '.*equalize means.*'):
             Job(schema=self.paired_schema, 
                 settings=Settings(
-                    stat_class='OneSampleDifferenceTStat',
+                    stat='t',
                     equalize_means=True,
                     block_variables=['person'],
                     condition_variables=['treated']))
@@ -384,12 +384,12 @@ class SettingValidationTest(unittest.TestCase):
         Job(schema=self.paired_schema, 
             settings=Settings(
                 equalize_means=False,
-                stat_class='MeansRatio',
+                stat='means_ratio',
                 condition_variables=['treated']))
         Job(schema=self.paired_schema, 
             settings=Settings(
                 equalize_means=False,
-                stat_class='MeansRatio',
+                stat='means_ratio',
                 block_variables=['person'],
                 condition_variables=['treated']))
 
@@ -398,13 +398,13 @@ class SettingValidationTest(unittest.TestCase):
             Job(schema=self.three_cond_schema, 
                 settings=Settings(
                     equalize_means=False,
-                    stat_class='MeansRatio',
+                    stat='means_ratio',
                     condition_variables=['dosage']))        
         with self.assertRaises(UnsupportedLayoutException):
             Job(schema=self.three_cond_schema, 
                 settings=Settings(
                     equalize_means=False,
-                    stat_class='MeansRatio',
+                    stat='means_ratio',
                     block_variables=['gender'],
                     condition_variables=['dosage']))        
 
@@ -412,7 +412,7 @@ class SettingValidationTest(unittest.TestCase):
             Job(schema=self.paired_schema, 
                 settings=Settings(
                     equalize_means=True,
-                    stat_class='MeansRatio',
+                    stat='means_ratio',
                     block_variables=['person'],
                     condition_variables=['treated']))
 
@@ -420,7 +420,7 @@ class SettingValidationTest(unittest.TestCase):
         with self.assertRaises(UnknownStatisticException):
             Job(schema=self.paired_schema, 
                 settings=Settings(
-                    stat_class='BadStat',
+                    stat='BadStat',
                     condition_variables=['treated']))
 
 if __name__ == '__main__':

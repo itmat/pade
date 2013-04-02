@@ -41,5 +41,5 @@ def sample_db(infile, factor_map):
 
         input = Input.from_raw_file(infile, schema)
         yield Job(input=input, schema=schema, settings=Settings(
-                stat_class='FStat'))
+                stat='f'))
     
