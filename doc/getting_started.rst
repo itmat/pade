@@ -87,12 +87,11 @@ treat gender as a "nuisance" variables. So we have two factors:
   pade setup --factor gender --factor treated sample_data/sample_data_4_class.txt -o schema.yaml
 
 This will read in the input file and create a skeleton "schema" file
-based on it, in pade_schema.yaml (this can be changed with the
-``--schema`` option). We then need to edit this file to list the
-values available for each of the two factors, and to assign those
+based on it, in schema.yaml. We then need to edit this file to list
+the values available for each of the two factors, and to assign those
 factor values to each of the sample column names.
 
-First, in the very top section of the pade_schema.yaml file,
+First, in the very top section of the schema.yaml file,
 list the valid values for the factors. Change it to look like this::
 
   factors:
@@ -202,18 +201,17 @@ Viewing reports
 ^^^^^^^^^^^^^^^
 
 When you run ``pade run``, it will store the results of the analysis
-in a binary file called ``pade_db.h5``. The file name can be changed
-with the ``--db`` option. Once that step is done, you can generate a
-tab-delimited text file containing the reuslts, or launch a small web
-server to display the results in HTML format. To generate the text
-file output, run::
+in a binary file (you specify the path with the --output option).
+Once that step is done, you can generate a tab-delimited text file
+containing the results, or launch a small web server to display the
+results in HTML format. To generate the text file output, run::
 
   pade report results.pade
 
-To start the Pade server, run:
+To start the HTML viewer, run::
 
   pade view results1.pade results2.pade ...
 
-It will take several seconds to start up. Then visit localhost:5000 in
-a browser to look at the reports.
+It will take a few seconds to start up, and should open a web browser
+pointing to the results.
 

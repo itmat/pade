@@ -13,6 +13,8 @@ import logging
 import pade.analysis as an
 import numpy as np
 import h5py
+import contextlib
+import time
 
 from StringIO import StringIO
 from pade.celery import celery
@@ -227,22 +229,27 @@ def steps(settings, schema, infile_path, sample_indexes_path, path, job_id):
         # different keys
         compute_orderings.si(path)]
 
+@contextlib.contextmanager
+def timing(msg):
+    start = time.time()
+    yield
+    end = time.time()
+    logging.info(msg + " (" + str(end - start) + " seconds)")
 
 def load_input(db):
     return Input(db['table'][...],
                  db['feature_ids'][...])
 
 def load_job(path):
-    logging.info("Loading job from " + str(path))
-    with h5py.File(path, 'r') as db:
-        return Job(
-            job_id = db.attrs['job_id'],
-            settings=load_settings(db),
-            input=load_input(db),
-            schema=load_schema(db),
-            results=load_results(db),
-            summary=load_summary(db))
-
+    with timing("Loaded job from " + path):
+        with h5py.File(path, 'r') as db:
+            return Job(
+                job_id = db.attrs['job_id'],
+                settings=load_settings(db),
+                input=load_input(db),
+                schema=load_schema(db),
+                results=load_results(db),
+                summary=load_summary(db))
 
 def load_settings(db):
 
