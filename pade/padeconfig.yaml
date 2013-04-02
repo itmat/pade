@@ -5,15 +5,15 @@
 # each one, we need to specify host, port and database number.
 
 session_host: localhost
-session_port: 6379
+session_port: 15034
 session_db: 2
 
 metadb_host: localhost
-metadb_port: 6379
+metadb_port: 15034
 metadb_db: 2
 
 celery_host: localhost
-celery_port: 6379
+celery_port: 15034
 celery_db: 2
 
 metadb_dir: /var/padedb

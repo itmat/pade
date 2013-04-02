@@ -8,7 +8,7 @@ path = [
     ]
 
 def search():
-
+    logging.info("Searching for pade config")
     for p in path:
         try:
             return load(p)
