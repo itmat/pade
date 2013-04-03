@@ -346,10 +346,15 @@ class StatTest(unittest.TestCase):
 
         f = FStat(conds, blocks, alphas)
 
-        glm = GLMFStat(conds, blocks, family='gaussian', alphas=alphas)
+        gaussian = GLMFStat(conds, blocks, family='gaussian', alphas=alphas)
+
+        poisson  = GLMFStat(conds, blocks, family='poisson', alphas=alphas)
 
         np.testing.assert_almost_equal(
-            f(data), glm(data))
+            f(data), gaussian(data))
+
+        np.testing.assert_almost_equal(
+            f(data), poisson(data))
 
 
 if __name__ == '__main__':

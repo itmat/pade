@@ -247,6 +247,8 @@ class GLMFStat(LayoutPairTest):
             res = res
                 
         if self.alphas is not None:
+            print("df_resid is ", df_resid)
+
             denom = np.sum(resid_deviance ** 2.0, axis=1) / df_resid
             numer = res * denom
             denom = np.array([ denom + a for a in self.alphas])
@@ -875,3 +877,5 @@ def get_stat(name, *args, **kwargs):
         logging.error("While calling " + str(constructor) + "(" + str(args) + str(kwargs))
         raise
     
+
+# 1-8: treated=no, 9-16: treated=yes

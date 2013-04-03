@@ -7,6 +7,7 @@ from matplotlib.ticker import FuncFormatter
 import matplotlib.pyplot as plt
 import numpy as np
 import pade.tasks 
+import logging
 
 from flask import Blueprint, render_template, request, make_response, send_file, abort
 from celery.result import AsyncResult
@@ -78,14 +79,17 @@ def job_details(job_meta, job_db):
                             str(job_id) + "; this should never happen")
         task = tasks[0]
     is_runner = mdb is not None
+    logging.info("JOb name is " + job_meta.name)
     if job_meta.imported or task.status == 'SUCCESS':
         return render_template("job.html", job_id=job_meta.obj_id, job=job_db,
+                               job_name=job_meta.name,
                                is_runner=is_runner)
 
     else:
         return render_template(
             'job_status.html',
             job_id=job_meta.obj_id,
+            job_name=job_meta.name,
             is_runner=is_runner,
             status=task.status)
 
@@ -132,6 +136,7 @@ def details(job_meta, job_db, conf_level):
         "conf_level.html",
         job=job_db,
         job_id=job_meta.obj_id,
+        job_bame=job_meta.name,
         num_pages=num_pages,
         conf_level=conf_level,
         min_score=score,
