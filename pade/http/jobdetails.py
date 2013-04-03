@@ -247,15 +247,15 @@ def measurement_scatter(job_meta, job_db, feature_num):
     return figure_response()
 
 
-@bp.route("/jobs/<job_id>/mean_vs_std")
+@bp.route("/jobs/<job_id>/mean_vs_variance")
 @job_context
-def mean_vs_std(job_meta, job_db):
+def mean_vs_variance(job_meta, job_db):
     job   = job_db
     means = np.mean(job.input.table, axis=-1)
-    std   = np.std(job.input.table, axis=-1)
+    var   = np.var(job.input.table, axis=-1)
 
     idxs = np.argmax(job_db.results.feature_to_score, axis=0)
-    logging.info("Idxs is" + str(idxs))
+
     best_score = np.zeros((len(means)))
 
     for i in range(len(job.input.table)):
@@ -263,11 +263,14 @@ def mean_vs_std(job_meta, job_db):
         score = job.results.feature_to_score[idx, i]
         best_score[i] = score
 
-
-    plt.title('Mean vs standard deviation')
+    min_val = min(min(means), min(var))
+    max_val = max(max(means), max(var))
+#    plt.xlim((min_val, max_val))
+#    plt.ylim((min_val, max_val))
+    plt.title('Mean vs variance')
     plt.xlabel('Mean')
-    plt.ylabel('Standard deviation')
-    plt.scatter(means, std, c=best_score)
+    plt.ylabel('Variance')
+    plt.scatter(means, var, c=best_score)
     plt.colorbar()
     return figure_response()
 

@@ -5,6 +5,7 @@ import sys, os
 bin_dir = os.path.abspath(os.path.dirname(sys.argv[0]))
 pade_root = os.path.dirname(bin_dir)
 
-print("In development mode; prepending", pade_root, "to sys.path")
+print("In development mode; prepending", pade_root, "to sys.path",
+      file=sys.stderr)
 
 sys.path.insert(0, pade_root)

@@ -32,6 +32,7 @@ import time
 import pade.config
 import webbrowser
 import urllib2
+import pade.analysis as an
 
 from collections import namedtuple
 from numpy.lib.recfunctions import append_fields
@@ -101,19 +102,19 @@ do the analysis. See "pade run -h" for its usage.
 
 def do_makesamples(args):
 
-    settings=Settings(
-        sample_with_replacement=args.sample_with_replacement,
+    settings = Settings(
         num_samples=args.num_samples,
         block_variables=args.block,
-        condition_variables=args.condition)
+        condition_variables=args.condition,
+        stat='f')
 
     schema = load_schema(args.schema)
-    input  = Input.from_raw_file(args.infile.name, schema, limit=1)
+    input  = Input.from_raw_file(args.infile, schema, limit=1)
     job = Job(input=input,
               settings=settings,
               schema=schema)
 
-    res = new_sample_indexes(job)
+    res = an.new_sample_indexes(job)
     if args.output is None:
         output = sys.stdout
     else:
@@ -632,7 +633,6 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
 
     run_parser.add_argument(
         '--sample-indexes',
-        type=file,
         help="""File specifying lists of indexes to use for sampling. See 'pade makesamples'.""")
 
     grp = run_parser.add_argument_group(

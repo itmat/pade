@@ -15,6 +15,7 @@ import numpy as np
 import h5py
 import contextlib
 import time
+import os
 
 from StringIO import StringIO
 from pade.celery import celery
@@ -72,8 +73,10 @@ def copy_input(path, input_path, schema, settings, job_id):
             db['equalize_means_ids'] = settings.equalize_means_ids
 
 @celery.task
-def load_sample_indexes(filename, job):
-    job.results.sample_indexes = np.genfromtxt(args.sample_indexes, dtype=int)
+def load_sample_indexes(path, sample_indexes_path):
+    indexes = np.genfromtxt(sample_indexes_path, dtype=int)
+    with h5py.File(path, 'r+') as db:
+        db.create_dataset("sample_indexes", data=indexes)
 
 @celery.task(name="Generate sample indexes")
 def gen_sample_indexes(path):
