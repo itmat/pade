@@ -57,13 +57,16 @@ def job_level_kwargs(job_meta):
         'job_name' : job_meta.name
         }
 
+def all_job_metas():
+    if mdb is None:
+        return job_dbs
+    else:
+        return mdb.all_jobs()
+
 @bp.route("/jobs")
 def job_list():
 
-    if mdb is None:
-        job_metas = job_dbs
-    else:
-        job_metas = mdb.all_jobs()
+    job_metas = all_job_metas()
 
     job_metas = sorted(job_metas, key=lambda f:f.obj_id, reverse=True)
     return render_template('jobs.html', jobs=job_metas, is_runner=(mdb is not None))
@@ -144,6 +147,8 @@ def details(job_meta, job_db, conf_level):
     return render_template(
         "conf_level.html",
         num_pages=num_pages,
+        page_num=page_num,
+
         conf_level=conf_level,
         min_score=score,
         indexes=idxs,
@@ -157,7 +162,6 @@ def details(job_meta, job_db, conf_level):
         coeffs=job_db.results.coeff_values.table[idxs],
         feature_ids=job_db.input.feature_ids[idxs],
         fold_change=job_db.results.fold_change.table[idxs],
-        page_num=page_num,
         **kwargs)
 
 @bp.route("/jobs/<job_id>/features/<feature_num>")
@@ -426,9 +430,18 @@ def bin_to_features_plot(job_meta, job_db):
     ax.legend(loc='upper right')
     return figure_response(fig)
 
+def max_features_found():
+    counts = []
+    for jm in all_job_metas():
+        jdb = pade.tasks.load_job(jm.path)
+        counts.append(max(jdb.summary.counts))
+    return max(counts)
+
 @bp.route("/jobs/<job_id>/conf_dist")
 @job_context
 def conf_dist_plot(job_meta, job_db):
+    max_count = max_features_found()
+
     fig = plt.figure()
     ax = fig.add_subplot(
         111,
@@ -436,6 +449,7 @@ def conf_dist_plot(job_meta, job_db):
         xlabel="Confidence score",
         ylabel="Features")
     ax.plot(job_db.summary.bins, job_db.summary.counts)
+    ax.set_ylim((0, max_count))
     ax.xaxis.set_major_formatter(FuncFormatter(lambda x, pos=0: "{:.0f}%".format(x * 100)))
     return figure_response(fig)
     
