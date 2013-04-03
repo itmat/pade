@@ -51,6 +51,11 @@ def load_job(job_id):
     job_meta = get_job_meta(job_id)
     return job_db(job_meta)
 
+def job_level_kwargs(job_meta):
+    return {
+        'job_id' : job_meta.obj_id,
+        'job_name' : job_meta.name
+        }
 
 @bp.route("/jobs")
 def job_list():
@@ -80,18 +85,20 @@ def job_details(job_meta, job_db):
         task = tasks[0]
     is_runner = mdb is not None
     logging.info("JOb name is " + job_meta.name)
+
+    kwargs = job_level_kwargs(job_meta)
+
     if job_meta.imported or task.status == 'SUCCESS':
-        return render_template("job.html", job_id=job_meta.obj_id, job=job_db,
-                               job_name=job_meta.name,
-                               is_runner=is_runner)
+        return render_template("job.html", job=job_db,
+                               is_runner=is_runner,
+                               **kwargs)
 
     else:
         return render_template(
             'job_status.html',
-            job_id=job_meta.obj_id,
-            job_name=job_meta.name,
             is_runner=is_runner,
-            status=task.status)
+            status=task.status,
+            **kwargs)
 
 
 @bp.route("/jobs/<job_id>/conf_level/<conf_level>")
@@ -132,11 +139,10 @@ def details(job_meta, job_db, conf_level):
 
     num_pages = int(np.ceil(float(len(filtered_idxs)) / float(rows_per_page)))
 
+    kwargs = job_level_kwargs(job_meta)
+
     return render_template(
         "conf_level.html",
-        job=job_db,
-        job_id=job_meta.obj_id,
-        job_bame=job_meta.name,
         num_pages=num_pages,
         conf_level=conf_level,
         min_score=score,
@@ -151,7 +157,8 @@ def details(job_meta, job_db, conf_level):
         coeffs=job_db.results.coeff_values.table[idxs],
         feature_ids=job_db.input.feature_ids[idxs],
         fold_change=job_db.results.fold_change.table[idxs],
-        page_num=page_num)
+        page_num=page_num,
+        **kwargs)
 
 @bp.route("/jobs/<job_id>/features/<feature_num>")
 @job_context
@@ -182,6 +189,8 @@ def feature(job_meta, job_db, feature_num):
     measurements    = job_db.input.table[feature_num]
     fittedvalues    = stat_fn.fittedvalues(measurements)
 
+    kwargs = job_level_kwargs(job_meta)
+
     return render_template(
         "feature.html",
         feature_num=feature_num,
@@ -196,14 +205,14 @@ def feature(job_meta, job_db, feature_num):
         stats=stats,
         bins=bins,
         job=job_db,
-        job_id=job_meta.obj_id,
         num_bins=len(job_db.results.bins[0]),
         unperm_count=unperm_count,
         mean_perm_count=mean_perm_count,
         adjusted_perm_count=adjusted,
         max_stat=max_stat,
         scores=job_db.results.feature_to_score[..., feature_num],
-        new_scores=new_scores)
+        new_scores=new_scores,
+        **kwargs)
 
 @bp.route("/jobs/<job_id>/features/<feature_num>/measurement_scatter")
 @job_context

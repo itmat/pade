@@ -247,8 +247,7 @@ class GLMFStat(LayoutPairTest):
             res = res
                 
         if self.alphas is not None:
-            print("df_resid is ", df_resid)
-
+            resid_deviance = np.nan_to_num(resid_deviance)
             denom = np.sum(resid_deviance ** 2.0, axis=1) / df_resid
             numer = res * denom
             denom = np.array([ denom + a for a in self.alphas])

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Job {{ job_id }} | Feature {{ feature_id }} {% endblock %}
+{% block title %}Job {{ job_name }} | Feature {{ feature_id }} {% endblock %}
 {% block content %}
 
 <a href="{{url_for('.job_details', job_id=job_id)}}">Back to job {{ job_id }}</a>

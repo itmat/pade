@@ -335,7 +335,6 @@ class StatTest(unittest.TestCase):
                 [ 9, 7, 8, 7, 1, 4, 2, 0],
                 [ 1, 2, 3, 4, 5, 6, 7, 8],
                 [ 1, 2, 1, 2, 1, 1, 1, 2]],
-
                         float)
 
         blocks = [ np.arange(8) ]
@@ -353,6 +352,7 @@ class StatTest(unittest.TestCase):
         np.testing.assert_almost_equal(
             f(data), gaussian(data))
 
+        print(poisson(data))
         np.testing.assert_almost_equal(
             f(data), poisson(data))
 
