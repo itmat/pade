@@ -87,7 +87,6 @@ def job_details(job_meta, job_db):
                             str(job_id) + "; this should never happen")
         task = tasks[0]
     is_runner = mdb is not None
-    logging.info("JOb name is " + job_meta.name)
 
     kwargs = job_level_kwargs(job_meta)
 
@@ -225,12 +224,10 @@ def measurement_scatter(job_meta, job_db, feature_num):
     feature_num = int(feature_num)
     schema = job.schema
     measurements = job.input.table[feature_num]
-    fig = plt.figure()
-    ax = fig.add_subplot(
-        111,
-        title='Measurements',
-        xlabel='Group',
-        ylabel='Measurement')
+
+    plt.title('Measurements')
+    plt.xlabel('Group')
+    plt.ylabel('Measurement')
 
     assignments = schema.possible_assignments(job.full_variables)
     names = [assignment_name(a) for a in assignments]
@@ -240,14 +237,14 @@ def measurement_scatter(job_meta, job_db, feature_num):
 
         y = measurements[grps[i]]
         x = [i for j in y]
-        ax.scatter(x, y)
+        plt.scatter(x, y)
 
     plt.xticks(np.arange(len(names)), 
                names,
                rotation=70
                )
 
-    return figure_response(fig)
+    return figure_response()
 
 
 @bp.route("/jobs/<job_id>/mean_vs_std")
@@ -256,15 +253,23 @@ def mean_vs_std(job_meta, job_db):
     job   = job_db
     means = np.mean(job.input.table, axis=-1)
     std   = np.std(job.input.table, axis=-1)
-    fig   = plt.figure()
-    ax = fig.add_subplot(
-        111,
-        title='Mean vs standard deviation',
-        xlabel='Mean',
-        ylabel='Standard deviation')
 
-    ax.scatter(means, std)
-    return figure_response(fig)
+    idxs = np.argmax(job_db.results.feature_to_score, axis=0)
+    logging.info("Idxs is" + str(idxs))
+    best_score = np.zeros((len(means)))
+
+    for i in range(len(job.input.table)):
+        idx = idxs[i]
+        score = job.results.feature_to_score[idx, i]
+        best_score[i] = score
+
+
+    plt.title('Mean vs standard deviation')
+    plt.xlabel('Mean')
+    plt.ylabel('Standard deviation')
+    plt.scatter(means, std, c=best_score)
+    plt.colorbar()
+    return figure_response()
 
 
 @bp.route("/jobs/<job_id>/features/<feature_num>/interaction_plot")
@@ -285,10 +290,7 @@ def interaction_plot(job_meta, job_db, feature_num):
 
     ticks = schema.factor_values[x_var]
 
-    fig = plt.figure()
-    ax = fig.add_subplot(
-        111,
-        ylabel='Measurement')
+    plt.ylabel('Measurement')
     
     for series_name in schema.factor_values[series_var]:
         y = []
@@ -301,17 +303,18 @@ def interaction_plot(job_meta, job_db, feature_num):
             y.append(np.mean(values))
             yerr.append(np.std(values))
 
-        ax.errorbar(x=np.arange(len(ticks)), y=y, yerr=yerr, label=series_name)
+        plt.errorbar(x=np.arange(len(ticks)), y=y, yerr=yerr, label=series_name)
 
     margin = 0.25
 
-    ax.set_xlim(( 0 - margin, len(ticks) - 1 + margin))
-    ax.set_xticks(np.arange(len(ticks)))
-    ax.set_xticklabels(ticks)
+    plt.xlim(( 0 - margin, len(ticks) - 1 + margin))
+    plt.xticks(np.arange(len(ticks)))
+    fig, ax = plt.subplots()
 
-    ax.legend()
-    ax.xlabel = x_var
-    return figure_response(fig)
+    ax.set_xticklabels(ticks)
+    plt.legend()
+    plt.xlabel(x_var)
+    return figure_response()
 
 
 @bp.route("/jobs/<job_id>/features/<feature_num>/measurement_bars")
@@ -326,11 +329,8 @@ def measurement_bars(job_meta, job_db, feature_num):
     if 'variable' in request.args:
         variables = [ request.args.get('variable') ]
 
-    fig = plt.figure()
-    ax = fig.add_subplot(
-        111,
-        title='Measurements for feature ' + job.input.feature_ids[feature_num] + " by " + ", ".join(variables),
-        ylabel='Measurement')
+    plt.title('Measurements for feature ' + job.input.feature_ids[feature_num] + " by " + ", ".join(variables))
+    plt.ylabel('Measurement')
     
     assignments = schema.possible_assignments(variables)
 
@@ -342,10 +342,10 @@ def measurement_bars(job_meta, job_db, feature_num):
     names = [", ".join(map(str, a.values())) for a in assignments]
     y = [ np.mean(measurements[g]) for g in grps]
     err = [ np.std(measurements[g]) for g in grps]
-    ax.bar(x, y, yerr=err, color='y')
+    plt.bar(x, y, yerr=err, color='y')
     plt.xticks(x+width/2., names, rotation=70)
 
-    return figure_response(fig)
+    return figure_response()
 
 
 @bp.route("/jobs/<job_id>/stat_dist")
@@ -377,15 +377,14 @@ def stat_dist_plot(job_meta, job_db, tuning_param):
 
     max_stat = np.max(job_db.results.raw_stats)
     tuning_param = int(tuning_param)
-    fig = plt.figure()
-    ax = fig.add_subplot(
-        111,
-        title=job_db.settings.stat + " distribution over features, $\\alpha = " + str(tuning_param) + "$",
-        xlabel=job_db.settings.stat + " value",
-        ylabel="Features",
-        xlim=(0, max_stat))
+    title = job_db.settings.stat + " distribution over features, $\\alpha = " + str(tuning_param) + "$"
+
+    plt.title(title)
+    plt.xlabel(job_db.settings.stat + " value")
+    plt.ylabel("Features")
+    plt.xlim((0, max_stat))
     plt.hist(job_db.results.raw_stats[tuning_param], log=False, bins=250)
-    return figure_response(fig)
+    return figure_response()
 
 @bp.route("/jobs/<job_id>/bin_to_score.png")
 @job_context
@@ -399,13 +398,13 @@ def bin_to_score_plot(job_meta, job_db):
         ylabel="Confidence")
 
     for i, param in enumerate(job_db.settings.tuning_params):
-        ax.plot(job_db.results.bins[i, :-1], data[i], label=str(param))
+        plt.plot(job_db.results.bins[i, :-1], data[i], label=str(param))
 
     if request.args.get('semilogx') == 'True':
-        ax.semilogx(base=10)
-    ax.legend(loc='lower right')
+        plt.semilogx(base=10)
+    plt.legend(loc='lower right')
 
-    return figure_response(fig)
+    return figure_response()
 
 @bp.route("/jobs/<job_id>/bin_to_features.png")
 @job_context
@@ -415,20 +414,17 @@ def bin_to_features_plot(job_meta, job_db):
     if 'tuning_param_idx' in request.args:
         params = [ params[int(request.args.get('tuning_param_idx'))] ]
 
-    fig = plt.figure()
-    ax = fig.add_subplot(
-        111,
-        title='Features count by statistic value',
-        xlabel='Statistic value',
-        ylabel='Features')
+    plt.title('Features count by statistic value')
+    plt.xlabel('Statistic value')
+    plt.ylabel('Features')
 
     for i, param in enumerate(params):
-        ax.plot(job_db.results.bins[i, :-1], job_db.results.bin_to_mean_perm_count[i], '--', label=str(param) + " permuted")
-        ax.plot(job_db.results.bins[i, :-1], job_db.results.bin_to_unperm_count[i], label=str(param) + " unpermuted")
+        plt.plot(job_db.results.bins[i, :-1], job_db.results.bin_to_mean_perm_count[i], '--', label=str(param) + " permuted")
+        plt.plot(job_db.results.bins[i, :-1], job_db.results.bin_to_unperm_count[i], label=str(param) + " unpermuted")
     if request.args.get('semilogx') == 'True':
-        ax.semilogx(base=10)
-    ax.legend(loc='upper right')
-    return figure_response(fig)
+        plt.semilogx(base=10)
+    plt.legend(loc='upper right')
+    return figure_response()
 
 def max_features_found():
     counts = []
@@ -442,27 +438,21 @@ def max_features_found():
 def conf_dist_plot(job_meta, job_db):
     max_count = max_features_found()
 
-    fig = plt.figure()
-    ax = fig.add_subplot(
-        111,
-        title="Feature count by confidence score",
-        xlabel="Confidence score",
-        ylabel="Features")
-    ax.plot(job_db.summary.bins, job_db.summary.counts)
-    ax.set_ylim((0, max_count))
-    ax.xaxis.set_major_formatter(FuncFormatter(lambda x, pos=0: "{:.0f}%".format(x * 100)))
-    return figure_response(fig)
+    plt.title("Feature count by confidence score")
+    plt.xlabel("Confidence score")
+    plt.ylabel("Features")
+    plt.plot(job_db.summary.bins, job_db.summary.counts)
+    plt.ylim((0, max_count))
+    return figure_response()
     
 
 @bp.route("/jobs/<job_id>/score_dist_for_tuning_params.png")
 @job_context
 def score_dist_by_tuning_param(job_meta, job_db):
-    fig = plt.figure()
-    ax = fig.add_subplot(
-        111,
-        title='Features by confidence score',
-        xlabel='Confidence',
-        ylabel='Features')
+
+    plt.title('Features by confidence score')
+    plt.xlabel('Confidence')
+    plt.ylabel('Features')
 
     lines = []
     labels = []
@@ -474,17 +464,18 @@ def score_dist_by_tuning_param(job_meta, job_db):
     for i, alpha in enumerate(params):
         bins = np.arange(0.5, 1.0, 0.01)
         hist = cumulative_hist(job_db.results.feature_to_score[i], bins)
-        lines.append(ax.plot(bins[:-1], hist, label=str(alpha)))
+        lines.append(plt.plot(bins[:-1], hist, label=str(alpha)))
         labels.append(str(alpha))
-    ax.legend(loc='upper right')
+    plt.legend(loc='upper right')
 
-    return figure_response(fig)
+    return figure_response()
 
 
-def figure_response(fig):
+def figure_response():
     """Turns a matplotlib figure into an HTTP response."""
     png_output = StringIO()
-    fig.savefig(png_output)
+    plt.savefig(png_output)
+    plt.clf()
     response = make_response(png_output.getvalue())
     response.headers['Content-Type'] = 'image/png'
     return response

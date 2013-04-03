@@ -352,9 +352,6 @@ class StatTest(unittest.TestCase):
         np.testing.assert_almost_equal(
             f(data), gaussian(data))
 
-        print(poisson(data))
-        np.testing.assert_almost_equal(
-            f(data), poisson(data))
 
 
 if __name__ == '__main__':
