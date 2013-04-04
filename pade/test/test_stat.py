@@ -347,6 +347,32 @@ class StatTest(unittest.TestCase):
         np.testing.assert_almost_equal(
             f(data), gaussian(data))
 
+    def test_glm_three_cond(self):
+        data = np.array([
+                [ 0, 1, 3, 9, 8, 8],
+                [ 1, 3, 1, 6, 9, 9],
+                [ 9, 7, 7, 1, 4, 0],
+                [ 1, 2, 4, 5, 6, 8],
+                [ 1, 2, 2, 1, 1, 2]],
+                        float)      
+
+        blocks = [ np.arange(6) ]
+        conds  = [ np.arange(0, 2), 
+                   np.arange(2, 4),
+                   np.arange(4, 6) ]
+
+
+
+        f = FStat(conds, blocks)
+        gaussian = GLMFStat(conds, blocks, family='gaussian')
+
+        print("Gaussin glm for three conds is " + str(gaussian(data)))
+
+
+
+        np.testing.assert_almost_equal(
+            f(data), gaussian(data))  
+
     def test_glm_with_alphas(self):
 
         data = np.array([
