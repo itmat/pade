@@ -212,9 +212,8 @@ class GLMFStat(LayoutPairTest):
         res[:, 0] = 1
         return res
         
-    def __call__(self, data):                                                
+    def __call__(self, data):
 
-        logging.info("Doing a model")
         num_regressors = len(self.layout_full)
         num_restrictions = num_regressors - 1
         contrast = np.zeros((num_regressors - 1, num_regressors))
@@ -229,32 +228,30 @@ class GLMFStat(LayoutPairTest):
         if np.ndim(y) == 1:
             model = sm.GLM(y, x, family)
             fitted = model.fit()
-            res = fitted.f_test(contrast).fvalue[0, 0]
-            df_resid = fitted.df_resid
-            resid_deviance = fitted.resid_deviance
+            return fitted.f_test(contrast).fvalue[0, 0]
 
         elif np.ndim(y) == 2:
             m = len(y)
-            res = np.zeros(m)
-            df_resid = np.zeros(m)
-            resid_deviance = np.zeros(np.shape(y))
+            alphas = self.alphas
+
+            if alphas is None:
+                res = np.zeros(m)
+            else:
+                res = np.zeros((len(alphas), m))
+
             for i in range(m):
                 model = sm.GLM(y[i], x, family)
                 fitted = model.fit()
-                res[i] = fitted.f_test(contrast).fvalue[0, 0]
-                df_resid[i] = fitted.df_resid
-                resid_deviance[i] = fitted.resid_deviance
-            res = res
+
+                if alphas is not None:
+                    for j, a in enumerate(alphas):
+                        print("Passing in smoothing")
+                        res[j, i] = fitted.f_test(contrast, smoothing=a).fvalue[0, 0]
+                else:
+                    res[i] = fitted.f_test(contrast).fvalue[0, 0]
+
+            return res
                 
-        if self.alphas is not None:
-            resid_deviance = np.nan_to_num(resid_deviance)
-            denom = np.sum(resid_deviance ** 2.0, axis=1) / df_resid
-            numer = res * denom
-            denom = np.array([ denom + a for a in self.alphas])
-            res = numer / denom
-
-        return res
-
     def fittedvalues(self, y):
         x = self.x
 
@@ -877,4 +874,6 @@ def get_stat(name, *args, **kwargs):
         raise
     
 
-# 1-8: treated=no, 9-16: treated=yes
+
+
+    

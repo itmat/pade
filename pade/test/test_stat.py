@@ -327,6 +327,26 @@ class StatTest(unittest.TestCase):
         self.assertEquals(test(np.array([0, 1, 2, 3])), 'AA BB')
         self.assertEquals(test(np.array([0, 2, 0, 3])), 'AB AB')
 
+    def test_glm_without_alphas(self):
+
+        data = np.array([
+                [ 0, 1, 5, 3, 9, 8, 7, 8],
+                [ 1, 3, 2, 1, 6, 9, 8, 9],
+                [ 9, 7, 8, 7, 1, 4, 2, 0],
+                [ 1, 2, 3, 4, 5, 6, 7, 8],
+                [ 1, 2, 1, 2, 1, 1, 1, 2]],
+                        float)
+
+        blocks = [ np.arange(8) ]
+        conds  = [ np.arange(0, 4), 
+                   np.arange(4, 8) ]
+
+        f = FStat(conds, blocks)
+        gaussian = GLMFStat(conds, blocks, family='gaussian')
+
+        np.testing.assert_almost_equal(
+            f(data), gaussian(data))
+
     def test_glm_with_alphas(self):
 
         data = np.array([
@@ -344,14 +364,11 @@ class StatTest(unittest.TestCase):
         alphas = np.array([ 0.0, 1.0, 10.0])
 
         f = FStat(conds, blocks, alphas)
-
         gaussian = GLMFStat(conds, blocks, family='gaussian', alphas=alphas)
-
         poisson  = GLMFStat(conds, blocks, family='poisson', alphas=alphas)
 
         np.testing.assert_almost_equal(
             f(data), gaussian(data))
-
 
 
 if __name__ == '__main__':
