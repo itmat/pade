@@ -254,23 +254,38 @@ def mean_vs_variance(job_meta, job_db):
     means = np.mean(job.input.table, axis=-1)
     var   = np.var(job.input.table, axis=-1)
 
-    idxs = np.argmax(job_db.results.feature_to_score, axis=0)
+    color = request.args.get('color')
+    if color is None:
+        color = 'score'
 
-    best_score = np.zeros((len(means)))
 
-    for i in range(len(job.input.table)):
-        idx = idxs[i]
-        score = job.results.feature_to_score[idx, i]
-        best_score[i] = score
+    if color == 'score':
+
+        idxs = np.argmax(job_db.results.feature_to_score, axis=0)
+
+        best_score = np.zeros((len(means)))
+
+        for i in range(len(job.input.table)):
+            idx = idxs[i]
+            score = job.results.feature_to_score[idx, i]
+            best_score[i] = score
+        colors = best_score
+
+    elif color == 'stat':
+        colors = job.results.raw_stats[0]
 
     min_val = min(min(means), min(var))
     max_val = max(max(means), max(var))
+    
+    x = np.arange(min(max(means), max(var)))
+    plt.plot(x, x)
+
 #    plt.xlim((min_val, max_val))
 #    plt.ylim((min_val, max_val))
-    plt.title('Mean vs variance')
+    plt.title('Mean vs variance (' + job_meta.name + ")")
     plt.xlabel('Mean')
     plt.ylabel('Variance')
-    plt.scatter(means, var, c=best_score)
+    plt.scatter(means, var, c=colors)
     plt.colorbar()
     return figure_response()
 
@@ -446,6 +461,20 @@ def conf_dist_plot(job_meta, job_db):
     plt.ylabel("Features")
     plt.plot(job_db.summary.bins, job_db.summary.counts)
     plt.ylim((0, max_count))
+    return figure_response()
+
+
+@bp.route("/conf_dist")
+def all_conf_dist_plot():
+
+    plt.title("Feature count by confidence score")
+    plt.xlabel("Confidence score")
+    plt.ylabel("Features")
+
+    for jm in all_job_metas():
+        jdb = pade.tasks.load_job(jm.path)
+        plt.plot(jdb.summary.bins, jdb.summary.counts, label=jm.name)
+    plt.legend(loc='upper right')
     return figure_response()
     
 

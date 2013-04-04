@@ -304,7 +304,6 @@ class GLMFStat(LayoutPairTest):
 
                 if alphas is not None:
                     for j, a in enumerate(alphas):
-                        print("Passing in smoothing")
                         res[j, i] = fitted.f_test(contrast, smoothing=a).fvalue[0, 0]
                 else:
                     res[i] = fitted.f_test(contrast).fvalue[0, 0]
