@@ -25,7 +25,6 @@ class UnknownStatisticException(Exception):
     pass
 
 
-
 class UnsupportedLayoutException(Exception):
     """Thrown when a statistic is used with a layout that it can't support."""
     pass
@@ -134,6 +133,96 @@ class LayoutPairTest(object):
         self.block_layout = block_layout
 
 
+def categories(cond_layout, block_layout):
+    """Returns a categorical matrix for the pair of layouts.
+
+    >>> categories([[0, 1], [2, 3]], [[0, 1, 2, 3]]) # doctest: +NORMALIZE_WHITESPACE
+    array([[1, 0],
+           [1, 0],
+           [1, 1],
+           [1, 1]])
+
+    >>> categories([[0, 1], [2, 3], [4, 5]], [[0, 1, 2, 3, 4, 5]]) # doctest: +NORMALIZE_WHITESPACE
+    array([[1, 0, 0],
+           [1, 0, 0],
+           [1, 1, 0],
+           [1, 1, 0],
+           [1, 0, 1],
+           [1, 0, 1]])
+
+    >>> categories([[0, 1, 2, 3], [4, 5, 6, 7]], [[0, 2, 4, 6], [1, 3, 5, 7]]) # doctest: +NORMALIZE_WHITESPACE
+    array([[1, 0, 0],
+           [1, 1, 0],
+           [1, 0, 0],
+           [1, 1, 0],
+           [1, 0, 1],
+           [1, 1, 1],
+           [1, 0, 1],
+           [1, 1, 1]])
+
+    >>> categories([[0, 1, 2, 3, 4, 5], [6, 7, 8, 9, 10, 11], [12, 13, 14 ,15, 16, 17]], [[0, 3, 6, 9, 12, 15], [1, 4, 7, 10, 13, 16], [2, 5, 8, 11, 14, 17]])
+    array([[1, 0, 0, 0, 0],
+           [1, 1, 0, 0, 0],
+           [1, 0, 1, 0, 0],
+           [1, 0, 0, 0, 0],
+           [1, 1, 0, 0, 0],
+           [1, 0, 1, 0, 0],
+           [1, 0, 0, 1, 0],
+           [1, 1, 0, 1, 0],
+           [1, 0, 1, 1, 0],
+           [1, 0, 0, 1, 0],
+           [1, 1, 0, 1, 0],
+           [1, 0, 1, 1, 0],
+           [1, 0, 0, 0, 1],
+           [1, 1, 0, 0, 1],
+           [1, 0, 1, 0, 1],
+           [1, 0, 0, 0, 1],
+           [1, 1, 0, 0, 1],
+           [1, 0, 1, 0, 1]])
+           
+           """
+    num_samples = sum(map(len, cond_layout))
+
+    res = np.zeros((num_samples, len(block_layout) + len(cond_layout) - 1), int)
+
+    col = 0
+
+    res[:, col] = 1    
+
+    for grp in block_layout[1:]:
+        col += 1
+        for idx in grp:
+            res[idx, col] = 1
+
+    for grp in cond_layout[1:]:
+        col += 1
+        for idx in grp:
+            res[idx, col] = 1
+    
+    return res
+
+def contrast(cond_layout, block_layout):
+
+    """Returns the contrast matrix for the given layout pair.
+
+    >>> contrast([[0, 1], [2, 3]], [[0, 1, 2, 3]])
+    array([[0, 1]])
+    
+    >>> contrast([[0, 1], [2, 3], [4, 5]], [[0, 1, 2, 3, 4, 5]]) # doctest: +NORMALIZE_WHITESPACE
+    array([[0, 1, 0], [0, 0, 1]])
+
+    >>> contrast([[0, 1, 2, 3], [4, 5, 6, 7]], [[0, 2, 4, 6], [1, 3, 5, 7]]) # doctest: +NORMALIZE_WHITESPACE
+    array([[0, 0, 1]])
+
+    """
+
+    res = np.zeros((len(cond_layout) - 1, len(block_layout) + len(cond_layout) - 1), int)
+
+    for i in range(len(cond_layout) - 1):
+        res[i, len(block_layout) + i] = 1
+
+    return res
+
 class GLMFStat(LayoutPairTest):                                          
     """Computes an f-test using a generalized linear model.                  
     
@@ -176,51 +265,21 @@ class GLMFStat(LayoutPairTest):
         self.family = ctor()
 
     @property
-    def col_to_cat(self):
-
-        """Return an array mapping a column number to its group in the full
-        layout.
-
-        >>> f = GLMFStat([[0, 3], [1, 4], [2, 5]], [[0, 1, 2, 3, 4, 5]])
-        >>> f.col_to_cat
-        [0, 1, 2, 0, 1, 2]
-        
-        """
-        
-        len = max(map(max, self.layout_full)) + 1
-        res = list(repeat(None, len))
-
-        for i, grp in enumerate(self.layout_full):
-            for idx in grp:
-                res[idx] = i
-
-        return res
+    def x(self):
+        return categories(self.condition_layout, self.block_layout)
 
     @property
-    def x(self):
-        """
-        >>> f = GLMFStat([[0, 3], [1, 4], [2, 5]], [[0, 1, 2, 3, 4, 5]])
-        >>> f.x  # doctest: +NORMALIZE_WHITESPACE
-        array([[ 1., 0., 0.],
-               [ 1., 1., 0.],
-               [ 1., 0., 1.],
-               [ 1., 0., 0.],
-               [ 1., 1., 0.],
-               [ 1., 0., 1.]])
-         """
-        res = categorical(np.array(self.col_to_cat), drop=True)
-        res[:, 0] = 1
-        return res
+    def contrast(self):
+        return contrast(self.condition_layout, self.block_layout)
         
     def __call__(self, data):
 
         num_regressors = len(self.layout_full)
         num_restrictions = num_regressors - 1
-        contrast = np.zeros((num_regressors - 1, num_regressors))
-        contrast[:, 1:] = np.identity(num_restrictions)
 
         x = self.x
-        
+        contrast = self.contrast
+
         y = data
 
         family = self.family

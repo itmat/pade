@@ -586,7 +586,6 @@ class Schema(object):
         Schema.dump.
 
         """
-        logging.debug("Loading schema from " + str(stream))
         doc = yaml.load(stream)
 
         if doc is None:

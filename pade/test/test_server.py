@@ -22,7 +22,7 @@ standard_routes = [
     '/jobs/0/features/14',
     '/jobs/0/features/14/measurement_scatter',
     '/jobs/0/features/14/measurement_bars',
-    '/jobs/0/mean_vs_std',
+    '/jobs/0/mean_vs_variance',
     '/jobs/0/stat_dist',
     '/jobs/0/stat_dist/1.png',
     '/jobs/0/confidence_dist',
