@@ -57,15 +57,12 @@ def new_glm(y, x, family, contrast):
     models = []
     fitteds = []
     fs = []
-    for row in y:
-        model = sm.GLM(row, x, family)
-        fitted = model.fit()
-        f = fitted.f_test(contrast)
-        models.append(model)
-        fitteds.append(fitted)
-        fs.append(f)
 
-    return GlmResults(y, x, family, contrast, models, fitteds, fs)
+    model = VectorizedGLM(y.T, x, family)
+    fitted = model.fit()
+    f = fitted.f_test(contrast)
+
+    return GlmResults(y, x, family, contrast, model, fitted, f)
 
 
 
@@ -93,6 +90,12 @@ def main():
     np.testing.assert_almost_equal(old_res.f_values, new_res.f_values)
 
     print(old_time, new_time)
+
+
+
+class VectorizedGLM(sm.GLM):    
+    pass
+    
 
 if __name__ == '__main__':
     main()
