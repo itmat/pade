@@ -47,11 +47,11 @@ def new_glm(y, x, family, contrast):
     f = None
 
     model = VectorizedGLM(y, x, family)
-    (params, fitted) = model.fit()
+    (params, mu, weights, fitted) = model.fit()
 #    f = fitted.f_test(contrast)
 
     return GlmResults(y, x, family, contrast, 
-                      params, None, None, None)
+                      params, mu, weights, None)
 
 
 def main():
@@ -63,18 +63,23 @@ def main():
     x[12:, 1] = 1
 
     contrast = [0, 1]
-    (new_time, new_res) = time_fn(new_glm, y, x, sm.families.Poisson(), contrast)
     (old_time, old_res) = time_fn(old_glm, y, x, sm.families.Poisson(), contrast)
+    (new_time, new_res) = time_fn(new_glm, y, x, sm.families.Poisson(), contrast)
 
     for i in range(len(old_res.params)):
         if sum(np.abs(old_res.params[i] - new_res.params[i])) > 0.001:
             print(i, old_res.params[i], new_res.params[i])
 
-    print("Checking params")
     np.testing.assert_almost_equal(old_res.params, new_res.params)
-#    np.testing.assert_almost_equal(old_res.fittedvalues, new_res.fittedvalues)
-#    np.testing.assert_almost_equal(old_res.weights, new_res.weights)
+    np.testing.assert_almost_equal(old_res.fittedvalues, new_res.fittedvalues)
+    np.testing.assert_almost_equal(old_res.weights, new_res.weights)
 #    np.testing.assert_almost_equal(old_res.f_values, new_res.f_values)
+
+#    for i in range(len(old_res.params)):
+#        print(i)
+#        print(old_res.params[i], new_res.params[i])
+#        print(old_res.fittedvalues[i], new_res.fittedvalues[i])
+
 
     print(old_time, new_time)
 
@@ -182,7 +187,7 @@ class VectorizedGLM(sm.GLM):
                                  self.scale)
         history['iteration'] = iteration
         glm_results.fit_history = history
-        return (wls_results_params, GLMResultsWrapper(glm_results))
+        return (wls_results_params, self.mu, self.weights, GLMResultsWrapper(glm_results))
 
 
     def _update_history(self, beta, mu, history):
@@ -193,11 +198,10 @@ class VectorizedGLM(sm.GLM):
         history['deviance'].append(self.family.deviance(self.endog, mu))
         return history
 
+# TODO: I think I need to fix this.
 def _check_convergence(criterion, iteration, tol, maxiter):
-    print("check conv(", np.shape(criterion),
-          np.shape(iteration),
-          np.shape(tol),
-          np.shape(maxiter))
+    print("check conv(", criterion, iteration, tol, maxiter, ")")
+
     return not ((np.fabs(criterion[iteration] - criterion[iteration-1]) > tol)
             and iteration <= maxiter)
 
