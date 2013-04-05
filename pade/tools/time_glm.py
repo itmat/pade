@@ -2,7 +2,8 @@ from __future__ import print_function
 
 import statsmodels.genmod.families as families
 import statsmodels.regression.linear_model as lm
-
+from statsmodels.genmod.generalized_linear_model import GLMResults, GLMResultsWrapper
+from statsmodels.tools.tools import rank
 import numpy as np
 import statsmodels.api as sm
 from collections import namedtuple
@@ -14,33 +15,10 @@ def time_fn(f, *args, **kwargs):
     end = time.time()
     return (end - start, res)
 
-class GlmResults(object):
-    def __init__(self, y, x, family, contrast, models, fitteds, fs):
-        self.y = y
-        self.x = x
-        self.family = family
-        self.contrast = contrast
-        self.models = models
-        self.fitteds = fitteds
-        self.fs = fs
-
-    @property
-    def fittedvalues(self):
-        return np.array([fitted.fittedvalues for fitted in self.fitteds])
-
-    @property
-    def params(self):
-        return np.array([ fitted.params for fitted in self.fitteds])
-
-    @property
-    def weights(self):
-        return np.array([ m.weights for m in self.models ])
-
-    @property
-    def f_values(self):
-        return np.array([ f.fvalue[0,0] for f in self.fs ])
-    
-Results = namedtuple('Results', ['model', 'fitted', 'f_test'])
+GlmResults = namedtuple(
+    'GlmResults',
+    ['y', 'x', 'family', 'contrast', 
+     'params', 'fittedvalues', 'weights', 'f_values'])
 
 def old_glm(y, x, family, contrast):
     models = []
@@ -49,48 +27,54 @@ def old_glm(y, x, family, contrast):
     for row in y:
         model = sm.GLM(row, x, family)
         fitted = model.fit()
-        f = fitted.f_test(contrast)
+#        f = fitted.f_test(contrast)
+#        fs.append(f)
         models.append(model)
         fitteds.append(fitted)
-        fs.append(f)
 
-    return GlmResults(y, x, family, contrast, models, fitteds, fs)
+
+    return GlmResults(y, x, family, contrast, 
+                      [x.params for x in fitteds],
+                      [x.fittedvalues for x in fitteds],
+                      [x.weights for x in models],
+                      [x.fvalue for f in fs])
 
 def new_glm(y, x, family, contrast):
     models = []
     fitteds = []
     fs = []
 
+    f = None
+
     model = VectorizedGLM(y, x, family)
-    fitted = model.fit()
-    f = fitted.f_test(contrast)
+    (params, fitted) = model.fit()
+#    f = fitted.f_test(contrast)
 
-    return GlmResults(y.T, x, family, contrast, model, fitted, f)
-
+    return GlmResults(y, x, family, contrast, 
+                      params, None, None, None)
 
 
 def main():
-    y = np.random.poisson(size=(100, 24))
-    
-    for i in range(30):
-        y[i, :12] = y[i, :12] * np.random.poisson()
 
-    for i in range(30, 60):
-        y[i, 12:] = y[i, 12:] * np.random.poisson()
+    y = np.genfromtxt('data.txt')
 
     x = np.zeros((24, 2), int)
     x[:, 0] = 1
     x[12:, 1] = 1
 
     contrast = [0, 1]
-    (old_time, old_res) = time_fn(old_glm, y, x, sm.families.Poisson(), contrast)
     (new_time, new_res) = time_fn(new_glm, y, x, sm.families.Poisson(), contrast)
+    (old_time, old_res) = time_fn(old_glm, y, x, sm.families.Poisson(), contrast)
 
+    for i in range(len(old_res.params)):
+        if sum(np.abs(old_res.params[i] - new_res.params[i])) > 0.001:
+            print(i, old_res.params[i], new_res.params[i])
 
+    print("Checking params")
     np.testing.assert_almost_equal(old_res.params, new_res.params)
-    np.testing.assert_almost_equal(old_res.fittedvalues, new_res.fittedvalues)
-    np.testing.assert_almost_equal(old_res.weights, new_res.weights)
-    np.testing.assert_almost_equal(old_res.f_values, new_res.f_values)
+#    np.testing.assert_almost_equal(old_res.fittedvalues, new_res.fittedvalues)
+#    np.testing.assert_almost_equal(old_res.weights, new_res.weights)
+#    np.testing.assert_almost_equal(old_res.f_values, new_res.f_values)
 
     print(old_time, new_time)
 
@@ -101,6 +85,11 @@ class VectorizedGLM(sm.GLM):
         self.endog = endog
         self.exog = np.array([ exog for x in endog ])
         self.family = family
+
+        
+        self.pinv_wexog = np.array([np.linalg.pinv(foo) for foo in self.exog])
+        self.df_model = rank(self.exog[0])-1
+        self.df_resid = self.exog.shape[1] - rank(self.exog[0])
 
     def fit(self, maxiter=100, method='IRLS', tol=1e-8, scale=None):
         '''
@@ -149,6 +138,8 @@ class VectorizedGLM(sm.GLM):
         mu = self.family.starting_mu(self.endog)
         wlsexog = self.exog
         eta = self.family.predict(mu)
+        print("Eta has shape", eta.shape)
+
         dev = self.family.deviance(self.endog, mu)
         if np.isnan(dev):
             raise ValueError("The first guess on the deviance function "
@@ -167,18 +158,17 @@ class VectorizedGLM(sm.GLM):
             wlsendog = eta + self.family.link.deriv(mu) * (self.endog-mu) \
                 - offset
 
-            print("Calling wls with", np.shape(wlsendog),
-                  np.shape(wlsexog),
-                  np.shape(self.weights))
-
             wls = VectorizedWLS(wlsendog, wlsexog, self.weights)
             wls_results = wls.fit()
 
-            wls_results_params = wls.beta
-            print("Beta is", wls.beta)
-            eta = np.dot(self.exog, wls_results_params) + offset
+            wls_results_params = np.copy(wls.beta)
+
+            eta = np.zeros(np.shape(self.endog))
+
+            for i in range(len(eta)):
+                eta[i] = np.dot(self.exog[i], wls_results_params[i]) + offset
             mu = self.family.fitted(eta)
-            history = self._update_history(wls_results, mu, history)
+            history = self._update_history(wls_results_params, mu, history)
             self.scale = self.estimate_scale(mu)
             iteration += 1
             if endog.squeeze().ndim == 1 and np.allclose(mu - endog, 0):
@@ -187,13 +177,29 @@ class VectorizedGLM(sm.GLM):
             converged = _check_convergence(criterion, iteration, tol,
                                             maxiter)
         self.mu = mu
-        glm_results = GLMResults(self, wls_results.params,
-                                 wls_results.normalized_cov_params,
+        glm_results = GLMResults(self, wls_results_params,
+                                 wls.normalized_cov_params,
                                  self.scale)
         history['iteration'] = iteration
         glm_results.fit_history = history
-        return GLMResultsWrapper(glm_results)
+        return (wls_results_params, GLMResultsWrapper(glm_results))
 
+
+    def _update_history(self, beta, mu, history):
+        """
+        Helper method to update history during iterative fit.
+        """
+        history['params'].append(beta)
+        history['deviance'].append(self.family.deviance(self.endog, mu))
+        return history
+
+def _check_convergence(criterion, iteration, tol, maxiter):
+    print("check conv(", np.shape(criterion),
+          np.shape(iteration),
+          np.shape(tol),
+          np.shape(maxiter))
+    return not ((np.fabs(criterion[iteration] - criterion[iteration-1]) > tol)
+            and iteration <= maxiter)
 
 class VectorizedWLS(lm.GLS):
 
