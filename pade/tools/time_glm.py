@@ -46,7 +46,7 @@ def new_glm(y, x, family, contrast):
     f = None
 
     model = VectorizedGLM(y, x, family)
-    (params, mu, weights, cov_p, fitted) = model.fit()
+    (params, mu, weights, cov_p) = model.fit()
 
     f = f_test(params, contrast, cov_p)
 
@@ -140,36 +140,17 @@ class VectorizedGLM(sm.GLM):
         data_weights = np.ones(endog.shape)
         self.data_weights = data_weights
 
-        if np.shape(self.data_weights) == () and self.data_weights>1:
-            self.data_weights = self.data_weights *\
-                    np.ones((endog.shape[0]))
         self.scaletype = scale
-        if isinstance(self.family, families.Binomial):
-        # this checks what kind of data is given for Binomial.
-        # family will need a reference to endog if this is to be removed from
-        # preprocessing
-            self.endog = self.family.initialize(self.endog)
-
-        if hasattr(self, 'offset'):
-            offset = self.offset
-        elif hasattr(self, 'exposure'):
-            offset = self.exposure
-        else:
-            offset = 0
-        #TODO: would there ever be both and exposure and an offset?
-
 
         mu = self.family.starting_mu(self.endog)
         wlsexog = self.exog
         eta = self.family.predict(mu)
-        print("Eta has shape", eta.shape)
 
         dev = self.family.deviance(self.endog, mu)
         if np.isnan(dev):
             raise ValueError("The first guess on the deviance function "
                              "returned a nan.  This could be a boundary "
                              " problem and should be reported.")
-
 
         # first guess on the deviance is assumed to be scaled by 1.
         # params are none to start, so they line up with the deviance
@@ -179,8 +160,7 @@ class VectorizedGLM(sm.GLM):
         criterion = history['deviance']
         while not converged:
             self.weights = data_weights*self.family.weights(mu)
-            wlsendog = eta + self.family.link.deriv(mu) * (self.endog-mu) \
-                - offset
+            wlsendog = eta + self.family.link.deriv(mu) * (self.endog-mu)
 
             wls = VectorizedWLS(wlsendog, wlsexog, self.weights)
             wls_results = wls.fit()
@@ -190,7 +170,7 @@ class VectorizedGLM(sm.GLM):
             eta = np.zeros(np.shape(self.endog))
 
             for i in range(len(eta)):
-                eta[i] = np.dot(self.exog[i], wls_results_params[i]) + offset
+                eta[i] = np.dot(self.exog[i], wls_results_params[i])
             mu = self.family.fitted(eta)
             history = self._update_history(wls_results_params, mu, history)
             self.scale = self.estimate_scale(mu)
@@ -206,7 +186,7 @@ class VectorizedGLM(sm.GLM):
                                  self.scale)
         history['iteration'] = iteration
         glm_results.fit_history = history
-        return (wls_results_params, self.mu, self.weights, wls.normalized_cov_params, GLMResultsWrapper(glm_results))
+        return (wls_results_params, self.mu, self.weights, wls.normalized_cov_params)
 
 
     def _update_history(self, beta, mu, history):
