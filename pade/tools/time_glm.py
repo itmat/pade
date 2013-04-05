@@ -27,17 +27,16 @@ def old_glm(y, x, family, contrast):
     for row in y:
         model = sm.GLM(row, x, family)
         fitted = model.fit()
-#        f = fitted.f_test(contrast)
-#        fs.append(f)
+        f = fitted.f_test(contrast)
+        fs.append(f)
         models.append(model)
         fitteds.append(fitted)
-
 
     return GlmResults(y, x, family, contrast, 
                       [x.params for x in fitteds],
                       [x.fittedvalues for x in fitteds],
                       [x.weights for x in models],
-                      [x.fvalue for f in fs])
+                      [x.fvalue for x in fs])
 
 def new_glm(y, x, family, contrast):
     models = []
@@ -47,11 +46,12 @@ def new_glm(y, x, family, contrast):
     f = None
 
     model = VectorizedGLM(y, x, family)
-    (params, mu, weights, fitted) = model.fit()
-#    f = fitted.f_test(contrast)
+    (params, mu, weights, cov_p, fitted) = model.fit()
+
+    f = f_test(params, contrast, cov_p)
 
     return GlmResults(y, x, family, contrast, 
-                      params, mu, weights, None)
+                      params, mu, weights, f)
 
 
 def main():
@@ -62,9 +62,9 @@ def main():
     x[:, 0] = 1
     x[12:, 1] = 1
 
-    contrast = [0, 1]
-    (old_time, old_res) = time_fn(old_glm, y, x, sm.families.Poisson(), contrast)
+    contrast = np.array([ [0, 1] ])
     (new_time, new_res) = time_fn(new_glm, y, x, sm.families.Poisson(), contrast)
+    (old_time, old_res) = time_fn(old_glm, y, x, sm.families.Poisson(), contrast)
 
     for i in range(len(old_res.params)):
         if sum(np.abs(old_res.params[i] - new_res.params[i])) > 0.001:
@@ -73,7 +73,7 @@ def main():
     np.testing.assert_almost_equal(old_res.params, new_res.params)
     np.testing.assert_almost_equal(old_res.fittedvalues, new_res.fittedvalues)
     np.testing.assert_almost_equal(old_res.weights, new_res.weights)
-#    np.testing.assert_almost_equal(old_res.f_values, new_res.f_values)
+    np.testing.assert_almost_equal(old_res.f_values, new_res.f_values)
 
 #    for i in range(len(old_res.params)):
 #        print(i)
@@ -82,6 +82,25 @@ def main():
 
 
     print(old_time, new_time)
+
+#TODO: untested for GLMs?
+def f_test(params, r_matrix, cov_p):
+
+    if (cov_p is None):
+        raise ValueError('need covariance of parameters for computing '
+                         'F statistics')
+
+    F = []
+    for i in range(len(params)):
+        ps = params[i]
+        Rbq = np.dot(r_matrix, ps[:, None])
+
+        cov = np.dot(r_matrix, np.dot(cov_p[i], r_matrix.T))
+        invcov = np.linalg.inv(cov)
+        J = float(r_matrix.shape[0])  # number of restrictions
+        F.append(np.dot(np.dot(Rbq.T, invcov), Rbq) / J)
+    return np.array(F)
+
 
 
 class VectorizedGLM(sm.GLM):
@@ -187,7 +206,7 @@ class VectorizedGLM(sm.GLM):
                                  self.scale)
         history['iteration'] = iteration
         glm_results.fit_history = history
-        return (wls_results_params, self.mu, self.weights, GLMResultsWrapper(glm_results))
+        return (wls_results_params, self.mu, self.weights, wls.normalized_cov_params, GLMResultsWrapper(glm_results))
 
 
     def _update_history(self, beta, mu, history):
