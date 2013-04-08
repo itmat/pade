@@ -3,8 +3,8 @@ from __future__ import print_function
 import statsmodels.genmod.families as families
 import statsmodels.regression.linear_model as lm
 import statsmodels.api as sm
-
 from statsmodels.tools.tools import rank
+
 import numpy as np
 
 from collections import namedtuple
@@ -54,18 +54,9 @@ def new_glm(y, x, family, contrast):
     return GlmResults(y, x, family, contrast, 
                       params, mu, weights, f)
 
-
-def main():
-
-    y = np.genfromtxt('data.txt')
-
-    x = np.zeros((24, 2), int)
-    x[:, 0] = 1
-    x[12:, 1] = 1
-
-    contrast = np.array([ [0, 1] ])
-    (new_time, new_res) = time_fn(new_glm, y, x, sm.families.Poisson(), contrast)
-    (old_time, old_res) = time_fn(old_glm, y, x, sm.families.Poisson(), contrast)
+def time_glm(y, x, family, contrast):
+    (new_time, new_res) = time_fn(new_glm, y, x, family, contrast)
+    (old_time, old_res) = time_fn(old_glm, y, x, family, contrast)    
 
     for i in range(len(old_res.params)):
         if sum(np.abs(old_res.params[i] - new_res.params[i])) > 0.001:
@@ -76,13 +67,24 @@ def main():
     np.testing.assert_almost_equal(old_res.weights, new_res.weights)
     np.testing.assert_almost_equal(old_res.f_values, new_res.f_values)
 
-#    for i in range(len(old_res.params)):
-#        print(i)
-#        print(old_res.params[i], new_res.params[i])
-#        print(old_res.fittedvalues[i], new_res.fittedvalues[i])
+    print(family.__class__, old_time, new_time)
+
+def main():
+
+    y = np.genfromtxt('data.txt')
+
+    x = np.zeros((24, 2), int)
+    x[:, 0] = 1
+    x[12:, 1] = 1
+
+    contrast = np.array([ [0, 1] ])
+
+    time_glm(y, x, sm.families.Poisson(), contrast)
+    time_glm(y, x, sm.families.Gaussian(), contrast)
+    time_glm(y, x, sm.families.NegativeBinomial(), contrast)
+    time_glm(y, x, sm.families.Gamma(), contrast)
 
 
-    print(old_time, new_time)
 
 #TODO: untested for GLMs?
 def f_test(params, r_matrix, cov_p):
