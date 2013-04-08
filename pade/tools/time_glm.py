@@ -2,10 +2,11 @@ from __future__ import print_function
 
 import statsmodels.genmod.families as families
 import statsmodels.regression.linear_model as lm
-from statsmodels.genmod.generalized_linear_model import GLMResults, GLMResultsWrapper
+import statsmodels.api as sm
+
 from statsmodels.tools.tools import rank
 import numpy as np
-import statsmodels.api as sm
+
 from collections import namedtuple
 import time
 
@@ -181,11 +182,9 @@ class VectorizedGLM(sm.GLM):
             converged = _check_convergence(criterion, iteration, tol,
                                             maxiter)
         self.mu = mu
-        glm_results = GLMResults(self, wls_results_params,
-                                 wls.normalized_cov_params,
-                                 self.scale)
+
         history['iteration'] = iteration
-        glm_results.fit_history = history
+
         return (wls_results_params, self.mu, self.weights, wls.normalized_cov_params)
 
 
