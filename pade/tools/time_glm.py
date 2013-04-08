@@ -269,6 +269,33 @@ def _check_convergence(criterion, iteration, tol, maxiter):
 
     return np.all(delta <= tol) or iteration > maxiter
 
+def whiten(weights, X):
+    """
+    Whitener for WLS model, multiplies each column by sqrt(self.weights)
+    
+    Parameters
+    ----------
+    X : array-like
+    Data to be whitened
+    
+    Returns
+    -------
+    sqrt(weights)*X
+    """
+        #print weights.var()
+    X = np.asarray(X)
+    if weights.ndim == X.ndim:
+        return np.sqrt(weights) * X
+    elif weights.ndim + 1 == X.ndim:
+        return np.sqrt(weights)[..., None] * X
+    else:
+        raise Exception("Incompatible shapes" + str(np.shape(weights))
+                        + str(np.shape(X)))
+
+
+
+
+
 class VectorizedWLS():
 
 #FIXME: bug in fvalue or f_test for this example?
@@ -280,33 +307,9 @@ class VectorizedWLS():
         self.weights = weights
         self.endog = endog
         self.exog = exog
-        self.wexog = self.whiten(self.exog)
-        self.wendog = self.whiten(self.endog)
+        self.wexog = whiten(weights, exog)
+        self.wendog = whiten(weights, endog)
         self.params = []
-
-    def whiten(self, X):
-        """
-        Whitener for WLS model, multiplies each column by sqrt(self.weights)
-
-        Parameters
-        ----------
-        X : array-like
-            Data to be whitened
-
-        Returns
-        -------
-        sqrt(weights)*X
-        """
-        #print self.weights.var()
-        X = np.asarray(X)
-        if self.weights.ndim == X.ndim:
-            return np.sqrt(self.weights) * X
-        elif self.weights.ndim + 1 == X.ndim:
-            return np.sqrt(self.weights)[..., None] * X
-        else:
-            raise Exception("Incompatible shapes" + str(np.shape(self.weights))
-                            + str(np.shape(X)))
-
 
     def loglike(self, params):
         """
@@ -399,8 +402,6 @@ class VectorizedWLS():
                                                    np.transpose(pinv_wexog[i]))
                     beta[i] = np.dot(pinv_wexog[i], endog[i])
                 self.pinv_wexog = pinv_wexog
-                self.normalized_cov_params = normalized_cov_params
-                self.beta = beta
 
 
         elif method == "qr":
@@ -408,15 +409,13 @@ class VectorizedWLS():
                 (not hasattr(self, 'normalized_cov_params'))):
                 Q, R = np.linalg.qr(exog)
                 self._exog_Q, self._exog_R = Q, R
-                self.normalized_cov_params = np.linalg.inv(np.dot(R.T, R))
+                normalized_cov_params = np.linalg.inv(np.dot(R.T, R))
             else:
                 Q, R = self._exog_Q, self._exog_R
 
             beta = np.linalg.solve(R,np.dot(Q.T,endog))
 
-            # no upper triangular solve routine in numpy/scipy?
-
-        return (beta, self.normalized_cov_params)
+        return (beta, normalized_cov_params)
 
 
 if __name__ == '__main__':
