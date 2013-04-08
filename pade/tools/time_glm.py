@@ -1,8 +1,6 @@
 from __future__ import print_function
 
 import pade.family as fam
-import statsmodels.regression.linear_model as lm
-import statsmodels.api as sm
 from statsmodels.tools.tools import rank
 
 import numpy as np
@@ -22,6 +20,10 @@ GlmResults = namedtuple(
      'params', 'fittedvalues', 'weights', 'f_values'])
 
 def old_glm(y, x, family, contrast):
+
+    import statsmodels.api as sm
+
+
     models = []
     fitteds = []
     fs = []
@@ -63,8 +65,6 @@ def time_glm(y, x, old_family, new_family, contrast):
 
     np.testing.assert_almost_equal(old_res.params, new_res.params)
     np.testing.assert_almost_equal(old_res.fittedvalues, new_res.fittedvalues)
-
-    print(old_res.weights - new_res.weights)
     np.testing.assert_almost_equal(old_res.weights, new_res.weights)
     np.testing.assert_almost_equal(old_res.f_values, new_res.f_values)
 
@@ -72,13 +72,16 @@ def time_glm(y, x, old_family, new_family, contrast):
 
 def main():
 
-    y = np.genfromtxt('data.txt')
+    y = np.genfromtxt('data.txt')[:10]
 
     x = np.zeros((24, 2), int)
     x[:, 0] = 1
     x[12:, 1] = 1
 
     contrast = np.array([ [0, 1] ])
+
+    import statsmodels.api as sm
+
 
     time_glm(y, x, sm.families.Gamma(), fam.Gamma(), contrast)
 
@@ -109,9 +112,7 @@ def f_test(params, r_matrix, cov_p, scale):
         F.append(np.dot(np.dot(Rbq.T, invcov), Rbq) / J)
     return np.array(F)
 
-
-
-class VectorizedGLM(sm.GLM):
+class VectorizedGLM(object):
 
     def estimate_scale(self, mu):
         """
@@ -227,17 +228,15 @@ class VectorizedGLM(sm.GLM):
             wlsendog = eta + self.family.link.deriv(mu) * (self.endog-mu)
 
             wls = VectorizedWLS(wlsendog, wlsexog, self.weights)
-            wls_results = wls.fit()
-
-            wls_results_params = np.copy(wls.beta)
+            (beta, normalized_cov_params) = wls.fit()
 
             eta = np.zeros(np.shape(self.endog))
 
             for i in range(len(eta)):
-                eta[i] = np.dot(self.exog[i], wls_results_params[i])
+                eta[i] = np.dot(self.exog[i], beta[i])
             mu = self.family.fitted(eta)
 
-            history = self._update_history(wls_results_params, mu, history)
+            history = self._update_history(beta, mu, history)
             
             self.scale = self.estimate_scale(mu)
             iteration += 1
@@ -250,7 +249,7 @@ class VectorizedGLM(sm.GLM):
 
         history['iteration'] = iteration
 
-        return (wls_results_params, self.mu, self.weights, wls.normalized_cov_params)
+        return (beta, self.mu, self.weights, normalized_cov_params)
 
 
     def _update_history(self, beta, mu, history):
@@ -270,7 +269,7 @@ def _check_convergence(criterion, iteration, tol, maxiter):
 
     return np.all(delta <= tol) or iteration > maxiter
 
-class VectorizedWLS(lm.GLS):
+class VectorizedWLS():
 
 #FIXME: bug in fvalue or f_test for this example?
 #UPDATE the bug is in fvalue, f_test is correct vs. R
@@ -416,13 +415,8 @@ class VectorizedWLS(lm.GLS):
             beta = np.linalg.solve(R,np.dot(Q.T,endog))
 
             # no upper triangular solve routine in numpy/scipy?
-        if isinstance(self, lm.OLS):
-            lfit = OLSResults(self, beta,
-                       normalized_cov_params=self.normalized_cov_params)
-        else:
-            lfit = lm.RegressionResults(self, beta,
-                       normalized_cov_params=self.normalized_cov_params)
-        return lm.RegressionResultsWrapper(lfit)
+
+        return (beta, self.normalized_cov_params)
 
 
 if __name__ == '__main__':
