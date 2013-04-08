@@ -5,11 +5,13 @@ The one parameter exponential family distributions used by GLM.
 #see http://www.biostat.jhsph.edu/~qli/biostatistics_r_doc/library/stats/html/family.html
 # for comparison to R, and McCullagh and Nelder
 
+
+
 import numpy as np
 from scipy import special
 from scipy.stats import ss
-import links as L
-import varfuncs as V
+import statsmodels.genmod.families.links as L
+import statsmodels.genmod.families.varfuncs as V
 
 class Family(object):
 
@@ -317,6 +319,7 @@ class Poisson(Family):
 
         :math:`deviance = 2*\\sum_{i}(Y*\\log(Y/\\mu))`
         '''
+
         if np.any(Y==0):
             retarr = np.zeros(Y.shape)
             Ymu = Y/mu
@@ -324,9 +327,9 @@ class Poisson(Family):
             YmuMasked = Ymu[mask]
             Ymasked = Y[mask]
             np.putmask(retarr, mask, Ymasked*np.log(YmuMasked)/scale)
-            return 2*np.sum(retarr)
+            return 2*np.sum(retarr, axis=-1)
         else:
-            return 2*np.sum(Y*np.log(Y/mu))/scale
+            return 2*np.sum(Y*np.log(Y/mu), axis=-1)/scale
 
     def loglike(self, Y, mu, scale=1.):
         """

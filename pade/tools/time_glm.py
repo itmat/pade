@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-import statsmodels.genmod.families as families
+import pade.family as fam
 import statsmodels.regression.linear_model as lm
 import statsmodels.api as sm
 from statsmodels.tools.tools import rank
@@ -54,9 +54,11 @@ def new_glm(y, x, family, contrast):
     return GlmResults(y, x, family, contrast, 
                       params, mu, weights, f)
 
-def time_glm(y, x, family, contrast):
-    (new_time, new_res) = time_fn(new_glm, y, x, family, contrast)
-    (old_time, old_res) = time_fn(old_glm, y, x, family, contrast)    
+def time_glm(y, x, old_family, new_family, contrast):
+    print("Timing new")
+    (new_time, new_res) = time_fn(new_glm, y, x, new_family, contrast)
+    print("Timing old")
+    (old_time, old_res) = time_fn(old_glm, y, x, old_family, contrast)    
 
     for i in range(len(old_res.params)):
         if sum(np.abs(old_res.params[i] - new_res.params[i])) > 0.001:
@@ -67,7 +69,7 @@ def time_glm(y, x, family, contrast):
     np.testing.assert_almost_equal(old_res.weights, new_res.weights)
     np.testing.assert_almost_equal(old_res.f_values, new_res.f_values)
 
-    print(family.__class__, old_time, new_time)
+    print(old_family.__class__, new_family.__class__, old_time, new_time)
 
 def main():
 
@@ -79,10 +81,10 @@ def main():
 
     contrast = np.array([ [0, 1] ])
 
-    time_glm(y, x, sm.families.Poisson(), contrast)
-    time_glm(y, x, sm.families.Gaussian(), contrast)
-    time_glm(y, x, sm.families.NegativeBinomial(), contrast)
-    time_glm(y, x, sm.families.Gamma(), contrast)
+    time_glm(y, x, sm.families.Poisson(), fam.Poisson(), contrast)
+#    time_glm(y, x, fam.Gaussian(), contrast)
+#    time_glm(y, x, fam.NegativeBinomial(), contrast)
+#    time_glm(y, x, fam.Gamma(), contrast)
 
 
 
@@ -150,10 +152,12 @@ class VectorizedGLM(sm.GLM):
         eta = self.family.predict(mu)
 
         dev = self.family.deviance(self.endog, mu)
-        if np.isnan(dev):
-            raise ValueError("The first guess on the deviance function "
-                             "returned a nan.  This could be a boundary "
-                             " problem and should be reported.")
+
+#        for x in dev:
+#            if np.isnan(x):
+#                raise ValueError("The first guess on the deviance function "
+#                                 "returned a nan.  This could be a boundary "
+#                                 " problem and should be reported.")
 
         # first guess on the deviance is assumed to be scaled by 1.
         # params are none to start, so they line up with the deviance
@@ -195,15 +199,18 @@ class VectorizedGLM(sm.GLM):
         Helper method to update history during iterative fit.
         """
         history['params'].append(beta)
-        history['deviance'].append(self.family.deviance(self.endog, mu))
+
+        dev = self.family.deviance(self.endog, mu)
+
+        history['deviance'].append(dev)
         return history
 
 # TODO: I think I need to fix this.
 def _check_convergence(criterion, iteration, tol, maxiter):
-    print("check conv(", criterion, iteration, tol, maxiter, ")")
 
-    return not ((np.fabs(criterion[iteration] - criterion[iteration-1]) > tol)
-            and iteration <= maxiter)
+    delta = np.fabs(criterion[iteration] - criterion[iteration-1])
+
+    return np.all(delta <= tol) or iteration > maxiter
 
 class VectorizedWLS(lm.GLS):
 
