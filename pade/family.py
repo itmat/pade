@@ -98,7 +98,7 @@ class Family(object):
         -----
         Only the Binomial family takes a different initial value.
         """
-        return (y + y.mean())/2.
+        return (y + y.mean(axis=-1)[:, None])/2.
 
     def weights(self, mu):
         """
@@ -457,7 +457,7 @@ class Gaussian(Family):
         --------
         `deviance` = sum((Y-mu)**2)
         """
-        return np.sum((Y-mu)**2)/scale
+        return np.sum((Y-mu)**2, axis=-1)/scale
 
     def loglike(self, Y, mu, scale=1.):
         """
@@ -1146,7 +1146,7 @@ class NegativeBinomial(Family):
         tmp = iszero*2*np.log(1+self.alpha*mu)/self.alpha
         tmp += notzero*(2*Y*np.log(Y_mu)-2/self.alpha*(1+self.alpha*Y)*\
                 np.log((1+self.alpha*Y)/(1+self.alpha*mu)))
-        return np.sum(tmp)/scale
+        return np.sum(tmp, axis=-1)/scale
 
     def resid_dev(self, Y, mu, scale=1.):
         '''

@@ -48,16 +48,13 @@ def new_glm(y, x, family, contrast):
 
     model = VectorizedGLM(y, x, family)
     (params, mu, weights, cov_p) = model.fit()
-
-    f = f_test(params, contrast, cov_p)
+    f = f_test(params, contrast, cov_p, model.scale)
 
     return GlmResults(y, x, family, contrast, 
                       params, mu, weights, f)
 
 def time_glm(y, x, old_family, new_family, contrast):
-    print("Timing new")
     (new_time, new_res) = time_fn(new_glm, y, x, new_family, contrast)
-    print("Timing old")
     (old_time, old_res) = time_fn(old_glm, y, x, old_family, contrast)    
 
     for i in range(len(old_res.params)):
@@ -73,7 +70,7 @@ def time_glm(y, x, old_family, new_family, contrast):
 
 def main():
 
-    y = np.genfromtxt('data.txt')
+    y = np.genfromtxt('data.txt')[10:]
 
     x = np.zeros((24, 2), int)
     x[:, 0] = 1
@@ -82,25 +79,30 @@ def main():
     contrast = np.array([ [0, 1] ])
 
     time_glm(y, x, sm.families.Poisson(), fam.Poisson(), contrast)
-#    time_glm(y, x, fam.Gaussian(), contrast)
-#    time_glm(y, x, fam.NegativeBinomial(), contrast)
+    time_glm(y, x, sm.families.Gaussian(), fam.Gaussian(), contrast)
+
+#    time_glm(y, x, sm.families.NegativeBinomial(), fam.NegativeBinomial(), contrast)
+
 #    time_glm(y, x, fam.Gamma(), contrast)
 
 
 
 #TODO: untested for GLMs?
-def f_test(params, r_matrix, cov_p):
+def f_test(params, r_matrix, cov_p, scale):
 
     if (cov_p is None):
         raise ValueError('need covariance of parameters for computing '
                          'F statistics')
 
+    if scale is None:
+        scale = np.ones(len(params))
+
     F = []
-    for i in range(len(params)):
-        ps = params[i]
+    for ps, the_cov_p, s in zip(params, cov_p, scale):
+
         Rbq = np.dot(r_matrix, ps[:, None])
 
-        cov = np.dot(r_matrix, np.dot(cov_p[i], r_matrix.T))
+        cov = np.dot(r_matrix, np.dot(the_cov_p * s, r_matrix.T)) 
         invcov = np.linalg.inv(cov)
         J = float(r_matrix.shape[0])  # number of restrictions
         F.append(np.dot(np.dot(Rbq.T, invcov), Rbq) / J)
@@ -109,6 +111,59 @@ def f_test(params, r_matrix, cov_p):
 
 
 class VectorizedGLM(sm.GLM):
+
+    def estimate_scale(self, mu):
+        """
+        Estimates the dispersion/scale.
+
+        Type of scale can be chose in the fit method.
+
+        Parameters
+        ----------
+        mu : array
+            mu is the mean response estimate
+
+        Returns
+        -------
+        Estimate of scale
+
+        Notes
+        -----
+        The default scale for Binomial and Poisson families is 1.  The default
+        for the other families is Pearson's Chi-Square estimate.
+
+        See also
+        --------
+        statsmodels.glm.fit for more information
+        """
+
+        if not self.scaletype:
+            if isinstance(self.family, (fam.Binomial, fam.Poisson)):
+                return np.ones(len(mu))
+            else:
+                resid = self.endog - mu
+                res = ((np.power(resid, 2) / self.family.variance(mu)).sum(axis=-1) \
+                    / self.df_resid)
+                return res
+
+        if isinstance(self.scaletype, float):
+            return np.array(self.scaletype)
+
+        if isinstance(self.scaletype, str):
+            if self.scaletype.lower() == 'x2':
+                resid = self.endog - mu
+                return ((np.power(resid, 2) / self.family.variance(mu)).sum(axis=-1) \
+                    / self.df_resid)
+            elif self.scaletype.lower() == 'dev':
+                return self.family.deviance(self.endog, mu)/self.df_resid
+            else:
+                raise ValueError("Scale %s with type %s not understood" %\
+                    (self.scaletype,type(self.scaletype)))
+
+        else:
+            raise ValueError("Scale %s with type %s not understood" %\
+                (self.scaletype, type(self.scaletype)))
+
 
     def __init__(self, endog, exog, family=None):
         self.endog = endog
@@ -167,6 +222,7 @@ class VectorizedGLM(sm.GLM):
         criterion = history['deviance']
         while not converged:
             self.weights = data_weights*self.family.weights(mu)
+
             wlsendog = eta + self.family.link.deriv(mu) * (self.endog-mu)
 
             wls = VectorizedWLS(wlsendog, wlsexog, self.weights)
@@ -179,7 +235,9 @@ class VectorizedGLM(sm.GLM):
             for i in range(len(eta)):
                 eta[i] = np.dot(self.exog[i], wls_results_params[i])
             mu = self.family.fitted(eta)
+
             history = self._update_history(wls_results_params, mu, history)
+            
             self.scale = self.estimate_scale(mu)
             iteration += 1
             if endog.squeeze().ndim == 1 and np.allclose(mu - endog, 0):
@@ -201,14 +259,15 @@ class VectorizedGLM(sm.GLM):
         history['params'].append(beta)
 
         dev = self.family.deviance(self.endog, mu)
-
         history['deviance'].append(dev)
         return history
 
 # TODO: I think I need to fix this.
 def _check_convergence(criterion, iteration, tol, maxiter):
-
+    
     delta = np.fabs(criterion[iteration] - criterion[iteration-1])
+
+    return iteration > 20
 
     return np.all(delta <= tol) or iteration > maxiter
 
