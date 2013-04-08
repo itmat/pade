@@ -591,7 +591,7 @@ class Gamma(Family):
         `deviance` = 2*sum((Y - mu)/mu - log(Y/mu))
         """
         Y_mu = self._clean(Y/mu)
-        return 2 * np.sum((Y - mu)/mu - np.log(Y_mu))
+        return 2 * np.sum((Y - mu)/mu - np.log(Y_mu), axis=-1)
 
     def resid_dev(self, Y, mu, scale=1.):
         """

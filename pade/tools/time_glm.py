@@ -63,6 +63,8 @@ def time_glm(y, x, old_family, new_family, contrast):
 
     np.testing.assert_almost_equal(old_res.params, new_res.params)
     np.testing.assert_almost_equal(old_res.fittedvalues, new_res.fittedvalues)
+
+    print(old_res.weights - new_res.weights)
     np.testing.assert_almost_equal(old_res.weights, new_res.weights)
     np.testing.assert_almost_equal(old_res.f_values, new_res.f_values)
 
@@ -70,7 +72,7 @@ def time_glm(y, x, old_family, new_family, contrast):
 
 def main():
 
-    y = np.genfromtxt('data.txt')[10:]
+    y = np.genfromtxt('data.txt')
 
     x = np.zeros((24, 2), int)
     x[:, 0] = 1
@@ -78,12 +80,11 @@ def main():
 
     contrast = np.array([ [0, 1] ])
 
+    time_glm(y, x, sm.families.Gamma(), fam.Gamma(), contrast)
+
     time_glm(y, x, sm.families.Poisson(), fam.Poisson(), contrast)
     time_glm(y, x, sm.families.Gaussian(), fam.Gaussian(), contrast)
-
-#    time_glm(y, x, sm.families.NegativeBinomial(), fam.NegativeBinomial(), contrast)
-
-#    time_glm(y, x, fam.Gamma(), contrast)
+    time_glm(y, x, sm.families.NegativeBinomial(), fam.NegativeBinomial(), contrast)
 
 
 
@@ -266,8 +267,6 @@ class VectorizedGLM(sm.GLM):
 def _check_convergence(criterion, iteration, tol, maxiter):
     
     delta = np.fabs(criterion[iteration] - criterion[iteration-1])
-
-    return iteration > 20
 
     return np.all(delta <= tol) or iteration > maxiter
 
