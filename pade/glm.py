@@ -1,9 +1,8 @@
 from __future__ import print_function
 
 import pade.family as fam
-from statsmodels.tools.tools import rank
 import numpy as np
-
+from scipy.linalg import svdvals
 from collections import namedtuple
 
 GlmResults = namedtuple('GlmResults', ['beta', 'mu', 'weights', 'normalized_cov_params', 'scale'])
@@ -119,6 +118,16 @@ def estimate_scale(mu, family, endog, scaletype=None, df_resid=None):
     else:
         raise ValueError("Scale %s with type %s not understood" %\
             (scaletype, type(scaletype)))
+
+
+def rank(X, cond=1.0e-12):
+    X = np.asarray(X)
+    if len(X.shape) == 2:
+        D = svdvals(X)
+        return int(np.add.reduce(np.greater(D / D.max(), cond).astype(np.int32)))
+    else:
+        return int(not np.alltrue(np.equal(X, 0.)))
+
 
 
 def fit_glm(endog, exog, family=None, maxiter=100, tol=1e-8, scaletype=None):
