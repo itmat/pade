@@ -282,7 +282,7 @@ def mean_vs_variance(job_meta, job_db):
 
 #    plt.xlim((min_val, max_val))
 #    plt.ylim((min_val, max_val))
-    plt.title('Mean vs variance (' + job_meta.name + ")")
+    plt.title('Mean vs variance (' + str(job_meta.name) + ")")
     plt.xlabel('Mean')
     plt.ylabel('Variance')
     plt.scatter(means, var, c=colors)
