@@ -311,36 +311,6 @@ class VectorizedWLS():
         self.wendog = whiten(weights, endog)
         self.params = []
 
-    def loglike(self, params):
-        """
-        Returns the value of the gaussian loglikelihood function at params.
-
-        Given the whitened design matrix, the loglikelihood is evaluated
-        at the parameter vector `params` for the dependent variable `Y`.
-
-        Parameters
-        ----------
-        params : array-like
-            The parameter estimates.
-
-        Returns
-        -------
-        The value of the loglikelihood function for a WLS Model.
-
-        Notes
-        --------
-        .. math:: -\\frac{n}{2}\\log\\left(Y-\\hat{Y}\\right)-\\frac{n}{2}\\left(1+\\log\\left(\\frac{2\\pi}{n}\\right)\\right)-\\frac{1}{2}log\\left(\\left|W\\right|\\right)
-
-        where :math:`W` is a diagonal matrix
-        """
-        nobs2 = self.nobs / 2.0
-        SSR = ss(self.wendog - np.dot(self.wexog,params))
-        #SSR = ss(self.endog - np.dot(self.exog,params))
-        llf = -np.log(SSR) * nobs2      # concentrated likelihood
-        llf -= (1+np.log(np.pi/nobs2))*nobs2  # with constant
-        if np.all(self.weights != 1):    #FIXME: is this a robust-enough check?
-            llf -= .5*np.log(np.multiply.reduce(1/self.weights)) # with weights
-        return llf
 
     def fit(self, method="pinv", **kwargs):
         """
