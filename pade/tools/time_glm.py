@@ -72,7 +72,7 @@ def time_glm(y, x, old_family, new_family, contrast):
 
 def main():
 
-    y = np.genfromtxt('data.txt')
+    y = np.genfromtxt('pade/test/glm_in.txt')
 
     x = np.zeros((24, 2), int)
     x[:, 0] = 1
