@@ -1,9 +1,3 @@
-* Show on the UI whether redis and celery are running
-* Test that col numbers are distinct
-* Replace stats 109 with call to residuals
-* Use upper case for class constants
-* Document stat.name
-* Make child private for OneSampleDifferenceTTest
 * Add "annotation" column type
 * Have to have exactly one feature id?
 * Do we require unique feature ids?
@@ -18,3 +12,9 @@
 * Only show the plots that make sense
 * Add annotation columns onto result page
 * Validate settings and statistic
+
+* Show on the UI whether redis and celery are running
+* Test that col numbers are distinct
+* Use upper case for class constants
+* Document stat.name
+* Make child private for OneSampleDifferenceTTest
