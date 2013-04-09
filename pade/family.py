@@ -10,8 +10,8 @@ The one parameter exponential family distributions used by GLM.
 import numpy as np
 from scipy import special
 from scipy.stats import ss
-import statsmodels.genmod.families.links as L
-import statsmodels.genmod.families.varfuncs as V
+import pade.links as L
+import pade.varfuncs as V
 
 class Family(object):
 
