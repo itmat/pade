@@ -6,10 +6,12 @@ import numpy as np
 
 from collections import namedtuple
 
-#TODO: untested for GLMs?
-def f_test(betas, r_matrix, cov_p, scale):
+GlmResults = namedtuple('GlmResults', ['beta', 'mu', 'weights', 'normalized_cov_params', 'scale'])
 
-    if (cov_p is None):
+#TODO: untested for GLMs?
+def f_test(betas, r_matrix, cov_ps, scale, smoothing=0.0):
+
+    if (cov_ps is None):
         raise ValueError('need covariance of parameters for computing '
                          'F statistics')
 
@@ -18,18 +20,50 @@ def f_test(betas, r_matrix, cov_p, scale):
 
     F = None
     i = 0
-    for beta, the_cov_p, s in zip(betas, cov_p, scale):
+
+    for beta, cov_p, s in zip(betas, cov_ps, scale):
         
         Rbq = np.dot(r_matrix, beta[:, None])
+        
 
-        cov = np.dot(r_matrix, np.dot(the_cov_p * s, r_matrix.T)) 
-        invcov = np.linalg.inv(cov)
+        if np.shape(smoothing) is ():
+            invcov = np.linalg.inv(
+                r_matrix.dot(
+                    (cov_p * s).dot(r_matrix.T)))
 
-        res = np.dot(np.dot(Rbq.T, invcov), Rbq)
-        if F is None:
-            F = np.zeros((len(betas),) + res.shape)
-        F[i] = res
+            res = np.dot(np.dot(Rbq.T, invcov), Rbq)
+
+            if F is None:
+                F = np.zeros((len(betas),) + res.shape)
+            F[i] = res
+
+
+        else:
+            for j, a in enumerate(smoothing):
+                invcov = np.linalg.inv(
+                    r_matrix.dot(
+                        (cov_p * s + a).dot(r_matrix.T)))
+
+                res = np.dot(np.dot(Rbq.T, invcov), Rbq)
+
+                if F is None:
+                    F = np.zeros((len(smoothing), len(betas),) + res.shape)
+                F[j, i] = res
+
         i += 1
+
+
+    # if np.shape(smoothing) is ():
+    #     invcov = np.linalg.inv(cov_p  + smoothing)
+    #     F = dot(dot(Rbq.T, invcov), Rbq) / J
+    # else:
+    #     F = []
+    #     for i in range(len(smoothing)):
+
+    #         invcov = np.linalg.inv(cov_p  + smoothing[i])
+    #         F.append(dot(dot(Rbq.T, invcov), Rbq) / J)
+    #         F = np.array(F)
+
 
     J = float(r_matrix.shape[0])  # number of restrictions
     return F / J
@@ -144,7 +178,7 @@ def fit_glm(endog, exog, family=None, maxiter=100, tol=1e-8, scaletype=None):
             raise PerfectSeparationError(msg)
         converged = _check_convergence(deviance, iteration, tol, maxiter)
 
-    return (beta, mu, weights, normalized_cov_params, scale)
+    return GlmResults(beta, mu, weights, normalized_cov_params, scale)
 
 
 # TODO: I think I need to fix this.

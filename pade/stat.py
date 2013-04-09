@@ -11,7 +11,7 @@ from __future__ import absolute_import, print_function, division
 import itertools
 import logging
 import numpy as np
-import statsmodels.api as sm
+import pade.family
 
 from collections import namedtuple
 from scipy.stats import gmean
@@ -19,7 +19,8 @@ from bisect import bisect
 from itertools import repeat
 from pade.layout import (
     intersect_layouts, apply_layout, layout_is_paired)
-from statsmodels.tools.tools import categorical
+
+import pade.glm as glm
 
 class UnknownStatisticException(Exception):
     pass
@@ -285,39 +286,28 @@ class GLMFStat(LayoutPairTest):
         family = self.family
 
         if np.ndim(y) == 1:
-            model = sm.GLM(y, x, family)
-            fitted = model.fit()
-            return fitted.f_test(contrast).fvalue[0, 0]
+            raise Exception("I only do 2d arrays")
 
-        elif np.ndim(y) == 2:
-            m = len(y)
-            alphas = self.alphas
 
-            if alphas is None:
-                res = np.zeros(m)
-            else:
-                res = np.zeros((len(alphas), m))
+        m = len(y)
+        alphas = self.alphas
 
-            for i in range(m):
-                model = sm.GLM(y[i], x, family)
-                fitted = model.fit()
+        if alphas is None:
+            res = np.zeros(m)
+        else:
+            res = np.zeros((len(alphas), m))
 
-                if alphas is not None:
-                    for j, a in enumerate(alphas):
-                        res[j, i] = fitted.f_test(contrast, smoothing=a).fvalue[0, 0]
-                else:
-                    res[i] = fitted.f_test(contrast).fvalue[0, 0]
-
-            return res
+        glm_res = glm.fit_glm(y, x, family)
+        res = glm.f_test(glm_res.beta, contrast, glm_res.normalized_cov_params, glm_res.scale, smoothing=alphas)
+        # For some reason the f-test returns an array with two extra dims
+        return res.reshape(res.shape[:-2])
                 
     def fittedvalues(self, y):
         x = self.x
 
-        family = self.family
+        glm_res = glm.fit_glm(y, self.x, self.family)
 
-        model = sm.GLM(y, x, family)
-        fitted = model.fit()
-        return fitted.fittedvalues
+        return fitted.mu
 
 class FStat(LayoutPairTest):
     """Computes the F-test.
@@ -597,12 +587,10 @@ STAT_NAME_TO_CLASS = {
     }
 
 GLM_FAMILIES = {
-    'binomial'          : sm.families.Binomial,
-    'gamma'             : sm.families.Gamma,
-    'gaussian'          : sm.families.Gaussian,
-    'inverse_gaussian'  : sm.families.InverseGaussian,
-    'negative_binomial' : sm.families.NegativeBinomial,
-    'poisson'           : sm.families.Poisson
+    'gamma'             : pade.family.Gamma,
+    'gaussian'          : pade.family.Gaussian,
+    'negative_binomial' : pade.family.NegativeBinomial,
+    'poisson'           : pade.family.Poisson
 }
 
 def stat_names():

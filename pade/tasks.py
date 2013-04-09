@@ -49,6 +49,8 @@ def copy_input(path, input_path, schema, settings, job_id):
             input.feature_ids[i] = fid
             db['feature_ids'][i] = fid
 
+        print('block vars are', settings.block_variables)
+
         # Save the settings object
         db.create_dataset("tuning_params", data=settings.tuning_params)
         db.attrs['job_id'] = job_id
@@ -59,7 +61,8 @@ def copy_input(path, input_path, schema, settings, job_id):
         db.attrs['sample_from_residuals'] = settings.sample_from_residuals
         db.attrs['sample_with_replacement'] = settings.sample_with_replacement
         db.attrs['condition_variables'] = map(str, settings.condition_variables)
-        db.attrs['block_variables'] = settings.block_variables
+        if settings.block_variables != []:
+            db.attrs['block_variables'] = settings.block_variables
         db.attrs['summary_min_conf'] = settings.summary_min_conf
         db.attrs['summary_step_size'] = settings.summary_step_size
         db.attrs['equalize_means'] = settings.equalize_means
@@ -265,6 +268,7 @@ def load_settings(db):
         
     stat = db.attrs['stat']
 
+
     return Settings(
         stat = str(db.attrs['stat'][0]),
         glm_family = db.attrs['glm_family'][0],
@@ -273,7 +277,7 @@ def load_settings(db):
         sample_from_residuals = db.attrs['sample_from_residuals'],
         sample_with_replacement = db.attrs['sample_with_replacement'],
         condition_variables = list(db.attrs['condition_variables']),
-        block_variables = list(db.attrs['block_variables']),
+        block_variables=(list(db.attrs['block_variables']) if 'block_variables' in db.attrs else []),
         summary_min_conf = db.attrs['summary_min_conf'],
         summary_step_size = db.attrs['summary_step_size'],
         tuning_params = db['tuning_params'][...],

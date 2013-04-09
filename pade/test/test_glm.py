@@ -24,14 +24,14 @@ class GlmTestCase(unittest.TestCase):
     def _run_family(self, family_name):
 
         family = self.families[family_name]
-        (beta, mu, weights, cov_p, scale) = glm.fit_glm(self.input, self.exog, family)
-        f = glm.f_test(beta, self.contrast, cov_p, scale)
+        glm_res = glm.fit_glm(self.input, self.exog, family)
+        f = glm.f_test(glm_res.beta, self.contrast, glm_res.normalized_cov_params, glm_res.scale)
         f = np.reshape(f, (len(f),))
 
         got = {
-            'beta' : beta,
-            'mu'   : mu,
-            'weights' : weights,
+            'beta' : glm_res.beta,
+            'mu'   : glm_res.mu,
+            'weights' : glm_res.weights,
             'f_values' : f }
 
         for (name, values) in got.items():
