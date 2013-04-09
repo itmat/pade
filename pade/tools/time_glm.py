@@ -227,8 +227,7 @@ class VectorizedGLM(object):
 
             wlsendog = eta + self.family.link.deriv(mu) * (self.endog-mu)
 
-            wls = VectorizedWLS(wlsendog, wlsexog, self.weights)
-            (beta, normalized_cov_params) = wls.fit()
+            (beta, normalized_cov_params) = fit_wls(wlsendog, wlsexog, self.weights)
 
             eta = np.zeros(np.shape(self.endog))
 
@@ -295,97 +294,71 @@ def whiten(weights, X):
 
 
 
+def fit_wls(endog, exog, weights=1., method="pinv", **kwargs):
+    """
+    Full fit of the model.
 
-class VectorizedWLS():
+    The results include an estimate of covariance matrix, (whitened)
+    residuals and an estimate of scale.
 
-#FIXME: bug in fvalue or f_test for this example?
-#UPDATE the bug is in fvalue, f_test is correct vs. R
-#mse_model is calculated incorrectly according to R
-#same fixed used for WLS in the tests doesn't work
-#mse_resid is good
-    def __init__(self, endog, exog, weights=1.):
-        self.weights = weights
-        self.endog = endog
-        self.exog = exog
-        self.wexog = whiten(weights, exog)
-        self.wendog = whiten(weights, endog)
-        self.params = []
+    Parameters
+    ----------
+    method : str
+        Can be "pinv", "qr", or "mle".  "pinv" uses the
+        Moore-Penrose pseudoinverse to solve the least squares problem.
+        "svd" uses the Singular Value Decomposition.  "qr" uses the
+        QR factorization.  "mle" fits the model via maximum likelihood.
+        "mle" is not yet implemented.
 
+    Returns
+    -------
+    A RegressionResults class instance.
 
-    def fit(self, method="pinv", **kwargs):
-        """
-        Full fit of the model.
+    See Also
+    ---------
+    regression.RegressionResults
 
-        The results include an estimate of covariance matrix, (whitened)
-        residuals and an estimate of scale.
+    Notes
+    -----
+    Currently it is assumed that all models will have an intercept /
+    constant in the design matrix for postestimation statistics.
 
-        Parameters
-        ----------
-        method : str
-            Can be "pinv", "qr", or "mle".  "pinv" uses the
-            Moore-Penrose pseudoinverse to solve the least squares problem.
-            "svd" uses the Singular Value Decomposition.  "qr" uses the
-            QR factorization.  "mle" fits the model via maximum likelihood.
-            "mle" is not yet implemented.
+    The fit method uses the pseudoinverse of the design/exogenous variables
+    to solve the least squares minimization.
 
-        Returns
-        -------
-        A RegressionResults class instance.
+    """
 
-        See Also
-        ---------
-        regression.RegressionResults
+    wexog  = whiten(weights, exog)
+    wendog = whiten(weights, endog)
 
-        Notes
-        -----
-        Currently it is assumed that all models will have an intercept /
-        constant in the design matrix for postestimation statistics.
+    if method == "pinv":
 
-        The fit method uses the pseudoinverse of the design/exogenous variables
-        to solve the least squares minimization.
+        inv_shape = (np.size(wexog, 0),
+                     np.size(wexog, 2),
+                     np.size(wexog, 1))
 
-        """
-        exog = self.wexog
-        endog = self.wendog
+        pinv_wexog = np.zeros(inv_shape)
 
-        if method == "pinv":
-            if ((not hasattr(self, 'pinv_wexog')) or
-                (not hasattr(self, 'normalized_cov_params'))):
-                #print "recalculating pinv"   #for debugging
+        normalized_cov_params = np.zeros(
+            (np.size(wexog, 0),
+             np.size(wexog, 2),
+             np.size(wexog, 2)))
 
-                inv_shape = (np.size(self.wexog, 0),
-                             np.size(self.wexog, 2),
-                             np.size(self.wexog, 1))
+        beta = np.zeros(np.shape(pinv_wexog)[:2])
 
-                pinv_wexog = np.zeros(inv_shape)
+        for i in range(len(wexog)):
+            pinv_wexog[i] = np.linalg.pinv(wexog[i])
+            normalized_cov_params[i] = np.dot(pinv_wexog[i],
+                                           np.transpose(pinv_wexog[i]))
+            beta[i] = np.dot(pinv_wexog[i], wendog[i])
 
-                normalized_cov_params = np.zeros(
-                    (np.size(self.wexog, 0),
-                     np.size(self.wexog, 2),
-                     np.size(self.wexog, 2)))
+    elif method == "qr":
+        Q, R = np.linalg.qr(exog)
+        self._exog_Q, self._exog_R = Q, R
+        normalized_cov_params = np.linalg.inv(np.dot(R.T, R))
+        beta = np.linalg.solve(R,np.dot(Q.T,wendog))
 
-                beta = np.zeros(np.shape(pinv_wexog)[:2])
-                     
-                for i in range(len(self.wexog)):
-                    pinv_wexog[i] = np.linalg.pinv(self.wexog[i])
-                    normalized_cov_params[i] = np.dot(pinv_wexog[i],
-                                                   np.transpose(pinv_wexog[i]))
-                    beta[i] = np.dot(pinv_wexog[i], endog[i])
-                self.pinv_wexog = pinv_wexog
-
-
-        elif method == "qr":
-            if ((not hasattr(self, '_exog_Q')) or
-                (not hasattr(self, 'normalized_cov_params'))):
-                Q, R = np.linalg.qr(exog)
-                self._exog_Q, self._exog_R = Q, R
-                normalized_cov_params = np.linalg.inv(np.dot(R.T, R))
-            else:
-                Q, R = self._exog_Q, self._exog_R
-
-            beta = np.linalg.solve(R,np.dot(Q.T,endog))
-
-        return (beta, normalized_cov_params)
+    return (beta, normalized_cov_params)
 
 
 if __name__ == '__main__':
