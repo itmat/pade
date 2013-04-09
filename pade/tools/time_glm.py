@@ -48,9 +48,8 @@ def new_glm(y, x, family, contrast):
 
     f = None
 
-    model = VectorizedGLM(y, x, family)
-    (params, mu, weights, cov_p) = model.fit()
-    f = f_test(params, contrast, cov_p, model.scale)
+    (params, mu, weights, cov_p, scale) = fit_glm(y, x, family)
+    f = f_test(params, contrast, cov_p, scale)
 
     return GlmResults(y, x, family, contrast, 
                       params, mu, weights, f)
@@ -72,7 +71,7 @@ def time_glm(y, x, old_family, new_family, contrast):
 
 def main():
 
-    y = np.genfromtxt('data.txt')[:10]
+    y = np.genfromtxt('data.txt')
 
     x = np.zeros((24, 2), int)
     x[:, 0] = 1
@@ -83,7 +82,7 @@ def main():
     import statsmodels.api as sm
 
 
-    time_glm(y, x, sm.families.Gamma(), fam.Gamma(), contrast)
+#    time_glm(y, x, sm.families.Gamma(), fam.Gamma(), contrast)
 
     time_glm(y, x, sm.families.Poisson(), fam.Poisson(), contrast)
     time_glm(y, x, sm.families.Gaussian(), fam.Gaussian(), contrast)
@@ -112,154 +111,120 @@ def f_test(params, r_matrix, cov_p, scale):
         F.append(np.dot(np.dot(Rbq.T, invcov), Rbq) / J)
     return np.array(F)
 
-class VectorizedGLM(object):
+def estimate_scale(mu, family, endog, scaletype=None, df_resid=None):
+    """
+    Estimates the dispersion/scale.
 
-    def estimate_scale(self, mu):
-        """
-        Estimates the dispersion/scale.
+    Type of scale can be chose in the fit method.
 
-        Type of scale can be chose in the fit method.
+    Parameters
+    ----------
+    mu : array
+        mu is the mean response estimate
 
-        Parameters
-        ----------
-        mu : array
-            mu is the mean response estimate
+    Returns
+    -------
+    Estimate of scale
 
-        Returns
-        -------
-        Estimate of scale
+    Notes
+    -----
+    The default scale for Binomial and Poisson families is 1.  The default
+    for the other families is Pearson's Chi-Square estimate.
 
-        Notes
-        -----
-        The default scale for Binomial and Poisson families is 1.  The default
-        for the other families is Pearson's Chi-Square estimate.
+    See also
+    --------
+    statsmodels.glm.fit for more information
+    """
 
-        See also
-        --------
-        statsmodels.glm.fit for more information
-        """
+    if not scaletype:
+        if isinstance(family, (fam.Binomial, fam.Poisson)):
+            return np.ones(len(mu))
+        else:
+            resid = endog - mu
+            res = ((np.power(resid, 2) / family.variance(mu)).sum(axis=-1) \
+                / df_resid)
+            return res
 
-        if not self.scaletype:
-            if isinstance(self.family, (fam.Binomial, fam.Poisson)):
-                return np.ones(len(mu))
-            else:
-                resid = self.endog - mu
-                res = ((np.power(resid, 2) / self.family.variance(mu)).sum(axis=-1) \
-                    / self.df_resid)
-                return res
+    if isinstance(scaletype, float):
+        return np.array(scaletype)
 
-        if isinstance(self.scaletype, float):
-            return np.array(self.scaletype)
-
-        if isinstance(self.scaletype, str):
-            if self.scaletype.lower() == 'x2':
-                resid = self.endog - mu
-                return ((np.power(resid, 2) / self.family.variance(mu)).sum(axis=-1) \
-                    / self.df_resid)
-            elif self.scaletype.lower() == 'dev':
-                return self.family.deviance(self.endog, mu)/self.df_resid
-            else:
-                raise ValueError("Scale %s with type %s not understood" %\
-                    (self.scaletype,type(self.scaletype)))
-
+    if isinstance(scaletype, str):
+        if scaletype.lower() == 'x2':
+            resid = endog - mu
+            return ((np.power(resid, 2) / family.variance(mu)).sum(axis=-1) \
+                / df_resid)
+        elif scaletype.lower() == 'dev':
+            return family.deviance(endog, mu)/df_resid
         else:
             raise ValueError("Scale %s with type %s not understood" %\
-                (self.scaletype, type(self.scaletype)))
+                (scaletype,type(scaletype)))
+
+    else:
+        raise ValueError("Scale %s with type %s not understood" %\
+            (scaletype, type(scaletype)))
 
 
-    def __init__(self, endog, exog, family=None):
-        self.endog = endog
-        self.exog = np.array([ exog for x in endog ])
-        self.family = family
+def fit_glm(endog, exog, family=None, maxiter=100, tol=1e-8, scaletype=None):
+    '''
+    Fits a generalized linear model for a given family.
 
-        
-        self.pinv_wexog = np.array([np.linalg.pinv(foo) for foo in self.exog])
-        self.df_model = rank(self.exog[0])-1
-        self.df_resid = self.exog.shape[1] - rank(self.exog[0])
+    parameters
+    ----------
+    maxiter : int, optional
+        Default is 100.
+    scale : string or float, optional
+        `scale` can be 'X2', 'dev', or a float
+        The default value is None, which uses `X2` for Gamma, Gaussian,
+        and Inverse Gaussian.
+        `X2` is Pearson's chi-square divided by `df_resid`.
+        The default is 1 for the Binomial and Poisson families.
+        `dev` is the deviance divided by df_resid
+    tol : float
+        Convergence tolerance.  Default is 1e-8.
+    '''
 
-    def fit(self, maxiter=100, method='IRLS', tol=1e-8, scale=None):
-        '''
-        Fits a generalized linear model for a given family.
+    exog = np.array([ exog for x in endog ])
 
-        parameters
-        ----------
-        maxiter : int, optional
-            Default is 100.
-        method : string
-            Default is 'IRLS' for iteratively reweighted least squares.  This
-            is currently the only method available for GLM fit.
-        scale : string or float, optional
-            `scale` can be 'X2', 'dev', or a float
-            The default value is None, which uses `X2` for Gamma, Gaussian,
-            and Inverse Gaussian.
-            `X2` is Pearson's chi-square divided by `df_resid`.
-            The default is 1 for the Binomial and Poisson families.
-            `dev` is the deviance divided by df_resid
-        tol : float
-            Convergence tolerance.  Default is 1e-8.
-        '''
-        endog = self.endog
-        data_weights = np.ones(endog.shape)
-        self.data_weights = data_weights
+    mu  = family.starting_mu(endog)
+    eta = family.predict(mu)
+    dev = family.deviance(endog, mu)
 
-        self.scaletype = scale
+    for x in dev:
+        if np.isnan(x):
+            raise ValueError("The first guess on the deviance function "
+                             "returned a nan.  This could be a boundary "
+                             " problem and should be reported.")
 
-        mu = self.family.starting_mu(self.endog)
-        wlsexog = self.exog
-        eta = self.family.predict(mu)
+    iteration = 0
+    converged = 0
 
-        dev = self.family.deviance(self.endog, mu)
+    deviance = [ np.inf, dev ]
 
-#        for x in dev:
-#            if np.isnan(x):
-#                raise ValueError("The first guess on the deviance function "
-#                                 "returned a nan.  This could be a boundary "
-#                                 " problem and should be reported.")
+    df_resid = exog.shape[1] - rank(exog[0])
 
-        # first guess on the deviance is assumed to be scaled by 1.
-        # params are none to start, so they line up with the deviance
-        history = dict(params = [None, None], deviance=[np.inf,dev])
-        iteration = 0
-        converged = 0
-        criterion = history['deviance']
-        while not converged:
-            self.weights = data_weights*self.family.weights(mu)
+    while not converged:
+        weights  = family.weights(mu)
+        wlsendog = eta + family.link.deriv(mu) * (endog - mu)
 
-            wlsendog = eta + self.family.link.deriv(mu) * (self.endog-mu)
+        (beta, normalized_cov_params) = fit_wls(wlsendog, exog, weights)
 
-            (beta, normalized_cov_params) = fit_wls(wlsendog, wlsexog, self.weights)
+        eta = np.zeros(np.shape(endog))
 
-            eta = np.zeros(np.shape(self.endog))
+        for i in range(len(eta)):
+            eta[i] = np.dot(exog[i], beta[i])
+        mu = family.fitted(eta)
 
-            for i in range(len(eta)):
-                eta[i] = np.dot(self.exog[i], beta[i])
-            mu = self.family.fitted(eta)
+        deviance.append(family.deviance(endog, mu))
 
-            history = self._update_history(beta, mu, history)
-            
-            self.scale = self.estimate_scale(mu)
-            iteration += 1
-            if endog.squeeze().ndim == 1 and np.allclose(mu - endog, 0):
-                msg = "Perfect separation detected, results not available"
-                raise PerfectSeparationError(msg)
-            converged = _check_convergence(criterion, iteration, tol,
-                                            maxiter)
-        self.mu = mu
+        scale = estimate_scale(mu, family=family, endog=endog, scaletype=scaletype, df_resid=df_resid)
+        iteration += 1
+        if endog.squeeze().ndim == 1 and np.allclose(mu - endog, 0):
+            msg = "Perfect separation detected, results not available"
+            raise PerfectSeparationError(msg)
+        converged = _check_convergence(deviance, iteration, tol, maxiter)
 
-        history['iteration'] = iteration
+    return (beta, mu, weights, normalized_cov_params, scale)
 
-        return (beta, self.mu, self.weights, normalized_cov_params)
-
-
-    def _update_history(self, beta, mu, history):
-        """
-        Helper method to update history during iterative fit.
-        """
-        history['params'].append(beta)
-
-        dev = self.family.deviance(self.endog, mu)
-        history['deviance'].append(dev)
-        return history
 
 # TODO: I think I need to fix this.
 def _check_convergence(criterion, iteration, tol, maxiter):
@@ -290,8 +255,6 @@ def whiten(weights, X):
     else:
         raise Exception("Incompatible shapes" + str(np.shape(weights))
                         + str(np.shape(X)))
-
-
 
 
 def fit_wls(endog, exog, weights=1., method="pinv", **kwargs):
