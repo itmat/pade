@@ -7,25 +7,32 @@ import numpy as np
 from collections import namedtuple
 
 #TODO: untested for GLMs?
-def f_test(params, r_matrix, cov_p, scale):
+def f_test(betas, r_matrix, cov_p, scale):
 
     if (cov_p is None):
         raise ValueError('need covariance of parameters for computing '
                          'F statistics')
 
     if scale is None:
-        scale = np.ones(len(params))
+        scale = np.ones(len(betas))
 
-    F = []
-    for ps, the_cov_p, s in zip(params, cov_p, scale):
-
-        Rbq = np.dot(r_matrix, ps[:, None])
+    F = None
+    i = 0
+    for beta, the_cov_p, s in zip(betas, cov_p, scale):
+        
+        Rbq = np.dot(r_matrix, beta[:, None])
 
         cov = np.dot(r_matrix, np.dot(the_cov_p * s, r_matrix.T)) 
         invcov = np.linalg.inv(cov)
-        J = float(r_matrix.shape[0])  # number of restrictions
-        F.append(np.dot(np.dot(Rbq.T, invcov), Rbq) / J)
-    return np.array(F)
+
+        res = np.dot(np.dot(Rbq.T, invcov), Rbq)
+        if F is None:
+            F = np.zeros((len(betas),) + res.shape)
+        F[i] = res
+        i += 1
+
+    J = float(r_matrix.shape[0])  # number of restrictions
+    return F / J
 
 def estimate_scale(mu, family, endog, scaletype=None, df_resid=None):
     """
@@ -124,8 +131,6 @@ def fit_glm(endog, exog, family=None, maxiter=100, tol=1e-8, scaletype=None):
 
         (beta, normalized_cov_params) = fit_wls(wlsendog, exog, weights)
 
-        eta = np.zeros(np.shape(endog))
-
         for i in range(len(eta)):
             eta[i] = np.dot(exog[i], beta[i])
         mu = family.fitted(eta)
@@ -163,7 +168,7 @@ def whiten(weights, X):
     sqrt(weights)*X
     """
         #print weights.var()
-    X = np.asarray(X)
+
     if weights.ndim == X.ndim:
         return np.sqrt(weights) * X
     elif weights.ndim + 1 == X.ndim:
@@ -212,24 +217,15 @@ def fit_wls(endog, exog, weights=1., method="pinv", **kwargs):
 
     if method == "pinv":
 
-        inv_shape = (np.size(wexog, 0),
-                     np.size(wexog, 2),
-                     np.size(wexog, 1))
-
-        pinv_wexog = np.zeros(inv_shape)
-
-        normalized_cov_params = np.zeros(
-            (np.size(wexog, 0),
-             np.size(wexog, 2),
-             np.size(wexog, 2)))
-
-        beta = np.zeros(np.shape(pinv_wexog)[:2])
+        (n_models, n_obs, n_regressors) = wexog.shape
+        normalized_cov_params = np.zeros((n_models, n_regressors, n_regressors))
+        beta = np.zeros((n_models, n_regressors))
 
         for i in range(len(wexog)):
-            pinv_wexog[i] = np.linalg.pinv(wexog[i])
-            normalized_cov_params[i] = np.dot(pinv_wexog[i],
-                                           np.transpose(pinv_wexog[i]))
-            beta[i] = np.dot(pinv_wexog[i], wendog[i])
+            pinv_wexog = np.linalg.pinv(wexog[i])
+            normalized_cov_params[i] = np.dot(pinv_wexog,
+                                           np.transpose(pinv_wexog))
+            beta[i] = np.dot(pinv_wexog, wendog[i])
 
     elif method == "qr":
         Q, R = np.linalg.qr(exog)

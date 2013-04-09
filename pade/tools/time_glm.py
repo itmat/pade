@@ -8,6 +8,8 @@ import numpy as np
 from collections import namedtuple
 import pade.glm as glm
 import time
+import cProfile
+import pstats
 
 def time_fn(f, *args, **kwargs):
     start = time.time()
@@ -67,7 +69,7 @@ def time_glm(y, x, old_family, new_family, contrast, name):
 
 def main():
 
-    y = np.genfromtxt('pade/test/glm_in.txt')
+    y = np.genfromtxt('pade/test/glm/in.txt')
 
     x = np.zeros((24, 2), int)
     x[:, 0] = 1
@@ -77,9 +79,7 @@ def main():
 
     import statsmodels.api as sm
 
-
     time_glm(y, x, sm.families.Gamma(), fam.Gamma(), contrast, 'gamma')
-
     time_glm(y, x, sm.families.Poisson(), fam.Poisson(), contrast, 'poisson')
     time_glm(y, x, sm.families.Gaussian(), fam.Gaussian(), contrast, 'gaussian')
     time_glm(y, x, sm.families.NegativeBinomial(), fam.NegativeBinomial(), contrast, 'negative_binomial')
