@@ -188,6 +188,8 @@ def fit_glm(endog, exog, family=None, maxiter=100, tol=1e-8, scaletype=None):
 
     df_resid = exog.shape[1] - rank(exog[0])
 
+    idxs = np.arange(len(endog))
+
     while not converged:
         weights  = family.weights(mu)
         wlsendog = eta + family.link.deriv(mu) * (endog - mu)
@@ -274,7 +276,7 @@ def fit_wls(endog, exog, weights=1., method="pinv", **kwargs):
     to solve the least squares minimization.
 
     """
-
+    
     wexog  = whiten(weights, exog)
     wendog = whiten(weights, endog)
 
