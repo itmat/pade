@@ -278,23 +278,23 @@ def fit_wls(endog, exog, weights=1., method="pinv", **kwargs):
     wexog  = whiten(weights, exog)
     wendog = whiten(weights, endog)
 
-    if method == "pinv":
+    (n_models, n_obs, n_regressors) = wexog.shape
+    normalized_cov_params = np.zeros((n_models, n_regressors, n_regressors))
+    beta = np.zeros((n_models, n_regressors))
 
-        (n_models, n_obs, n_regressors) = wexog.shape
-        normalized_cov_params = np.zeros((n_models, n_regressors, n_regressors))
-        beta = np.zeros((n_models, n_regressors))
+    if method == "pinv":
 
         for i in range(len(wexog)):
             pinv_wexog = np.linalg.pinv(wexog[i])
-            normalized_cov_params[i] = np.dot(pinv_wexog,
-                                           np.transpose(pinv_wexog))
+            normalized_cov_params[i] = np.dot(pinv_wexog, pinv_wexog.T)
             beta[i] = np.dot(pinv_wexog, wendog[i])
 
     elif method == "qr":
-        Q, R = np.linalg.qr(exog)
-        self._exog_Q, self._exog_R = Q, R
-        normalized_cov_params = np.linalg.inv(np.dot(R.T, R))
-        beta = np.linalg.solve(R,np.dot(Q.T,wendog))
+
+        for i in range(len(wexog)):
+            Q, R = np.linalg.qr(wexog[i])
+            normalized_cov_params[i] = np.linalg.inv(np.dot(R.T, R))
+            beta[i] = np.linalg.solve(R,np.dot(Q.T, wendog[i]))
 
     return (beta, normalized_cov_params)
 
