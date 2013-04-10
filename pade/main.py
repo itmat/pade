@@ -264,7 +264,7 @@ def args_to_settings(args):
     # If they said paired, override the choice of stat
     if args.paired:
         logging.info("You've given the --paired option, so I'll use a one-sample t-test.")
-        stat = 'one_sample_t_test'
+        stat = 't'
     else:
         stat = args.stat
 

@@ -298,16 +298,21 @@ class GLMFStat(LayoutPairTest):
             res = np.zeros((len(alphas), m))
 
         glm_res = glm.fit_glm(y, x, family)
-        res = glm.f_test(glm_res.beta, contrast, glm_res.normalized_cov_params, glm_res.scale, smoothing=alphas)
+        kwargs = {}
+        if self.alphas is not None:
+            kwargs['smoothing'] = alphas
+
+        res = glm.f_test(glm_res.beta, contrast, glm_res.normalized_cov_params, glm_res.scale, **kwargs)
         # For some reason the f-test returns an array with two extra dims
         return res.reshape(res.shape[:-2])
                 
     def fittedvalues(self, y):
-        x = self.x
+        return glm.fit_glm(y, self.x, self.family).mu
 
-        glm_res = glm.fit_glm(y, self.x, self.family)
-
-        return fitted.mu
+class BestSeparationStat(LayoutPairTest):
+    def __call__(self, data):
+        (a, b) = self.condition_layout
+        
 
 class FStat(LayoutPairTest):
     """Computes the F-test.
@@ -918,8 +923,4 @@ def get_stat(name, *args, **kwargs):
     except Exception as e:
         logging.error("While calling " + str(constructor) + "(" + str(args) + str(kwargs))
         raise
-    
-
-
-
     

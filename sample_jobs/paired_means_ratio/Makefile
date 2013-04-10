@@ -1,12 +1,10 @@
 # We need to add the root of the pade source tree to PYTHONPATH, so we
 # pick up all the libraries. Note that this is not necessary if PADE
 # is installed in your path anyway.
-export PYTHONPATH=../../
 
 # Path to pade executable
-PADE=../../bin/pade
 
-PADE=python -m cProfile -s time ../../pade/main.py 
+PADE=pade
 
 DB=pade_db.h5
 
@@ -19,10 +17,10 @@ all : server
 db : $(DB)
 
 pade_db.h5 : 
-	$(PADE) run --condition treated --block pig sample_data_paired.txt --stat means_ratio
+	$(PADE) run --condition treated --block pig sample_data_paired.txt --stat means_ratio --schema pade_schema.yaml -o $@
 
 server : $(DB)
-	$(PADE) server --db $<
+	$(PADE) view $<
 
 clean : 
 	rm -f $(DB) pade.log

@@ -15,10 +15,11 @@ VERBOSITY=
 
 all : server
 
-db : $(DB)
+default.h5 : 
+	$(PADE) run $(VERBOSITY) --condition treated --block sex sample_data_2_cond_nuisance.txt -o $@ --schema pade_schema.yaml
 
-pade_db.h5 : 
-	$(PADE) run $(VERBOSITY) --condition treated --block sex sample_data_2_cond_nuisance.txt --db $(DB)
+glm_gaussian.h5 : 
+	$(PADE) run $(VERBOSITY) --condition treated --block sex sample_data_2_cond_nuisance.txt -o $@ --schema pade_schema.yaml --stat glm --glm-family gaussian
 
 server : $(DB)
 	$(PADE) server --db $<

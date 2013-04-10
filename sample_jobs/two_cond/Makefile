@@ -11,17 +11,21 @@ DB=pade_db.h5
 
 # Don't be verbose. Change to -v to be verbose, or -d to turn on
 # debugging output.
-VERBOSITY=
+VERBOSITY=-d
 
 all : server
 
-db : $(DB)
+default.h5 : 
+	$(PADE) run $(VERBOSITY) --condition treated sample_data_2_cond.txt -o $@ --schema pade_schema.yaml
 
-pade_db.h5 : 
-	$(PADE) run $(VERBOSITY) --condition treated sample_data_2_cond.txt --db $(DB)
+glm_gaussian.h5 : 
+	$(PADE) run $(VERBOSITY) --condition treated sample_data_2_cond.txt -o $@ --schema pade_schema.yaml --stat glm --glm-family gaussian
 
-server : $(DB)
-	$(PADE) server --db $<
+glm_negbin.h5 : 
+	$(PADE) run $(VERBOSITY) --condition treated sample_data_2_cond.txt -o $@ --schema pade_schema.yaml --stat glm --glm-family negative_binomial
+
+server : default.h5
+	$(PADE) server --db $^
 
 clean : 
 	rm -f $(DB) pade.log

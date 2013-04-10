@@ -26,8 +26,6 @@ def f_test_two_cond(betas, cov_ps, smoothing=0.0):
 
 def f_test(betas, r_matrix, cov_ps, scale, smoothing=0.0):
 
-    print("f_test(", [ np.shape(x) for x in [betas, r_matrix, cov_ps, scale, smoothing]])
-
     if (cov_ps is None):
         raise ValueError('need covariance of parameters for computing '
                          'F statistics')
@@ -72,19 +70,6 @@ def f_test(betas, r_matrix, cov_ps, scale, smoothing=0.0):
                 F[j, i] = res
 
         i += 1
-
-
-    # if np.shape(smoothing) is ():
-    #     invcov = np.linalg.inv(cov_p  + smoothing)
-    #     F = dot(dot(Rbq.T, invcov), Rbq) / J
-    # else:
-    #     F = []
-    #     for i in range(len(smoothing)):
-
-    #         invcov = np.linalg.inv(cov_p  + smoothing[i])
-    #         F.append(dot(dot(Rbq.T, invcov), Rbq) / J)
-    #         F = np.array(F)
-
 
     J = float(r_matrix.shape[0])  # number of restrictions
     return F / J
@@ -156,19 +141,16 @@ def fit_glm(endog, exog, family=None, maxiter=100, tol=1e-8, scaletype=None):
     '''
     Fits a generalized linear model for a given family.
 
-    parameters
-    ----------
-    maxiter : int, optional
-        Default is 100.
-    scale : string or float, optional
-        `scale` can be 'X2', 'dev', or a float
-        The default value is None, which uses `X2` for Gamma, Gaussian,
-        and Inverse Gaussian.
-        `X2` is Pearson's chi-square divided by `df_resid`.
-        The default is 1 for the Binomial and Poisson families.
-        `dev` is the deviance divided by df_resid
-    tol : float
-        Convergence tolerance.  Default is 1e-8.
+    :param endog:
+
+    :param exog:
+
+    :param family:
+
+    :param maxiter:
+
+    :param scale:
+
     '''
 
     exog = np.array([ exog for x in endog ])
@@ -190,20 +172,17 @@ def fit_glm(endog, exog, family=None, maxiter=100, tol=1e-8, scaletype=None):
 
     df_resid = exog.shape[1] - rank(exog[0])
 
-    idxs = np.arange(len(endog))
-
     while not converged:
+
         weights  = family.weights(mu)
         wlsendog = eta + family.link.deriv(mu) * (endog - mu)
-
         (beta, normalized_cov_params) = fit_wls(wlsendog, exog, weights)
 
         for i in range(len(eta)):
             eta[i] = np.dot(exog[i], beta[i])
+
         mu = family.fitted(eta)
-
         deviance.append(family.deviance(endog, mu))
-
         scale = estimate_scale(mu, family=family, endog=endog, scaletype=scaletype, df_resid=df_resid)
         iteration += 1
 

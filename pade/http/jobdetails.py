@@ -190,7 +190,7 @@ def feature(job_meta, job_db, feature_num):
     new_scores      = (unperm_count - adjusted) / unperm_count
     max_stat        = job_db.results.bins[..., -2]
     measurements    = job_db.input.table[feature_num]
-    fittedvalues    = stat_fn.fittedvalues(measurements)
+    fittedvalues    = stat_fn.fittedvalues(np.array([ measurements ]))[0]
 
     kwargs = job_level_kwargs(job_meta)
 
