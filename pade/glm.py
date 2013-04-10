@@ -7,8 +7,24 @@ from collections import namedtuple
 
 GlmResults = namedtuple('GlmResults', ['beta', 'mu', 'weights', 'normalized_cov_params', 'scale'])
 
+def f_test_two_cond(betas, cov_ps, smoothing=0.0):
+
+    numer = betas[:, 1] ** 2
+
+    if np.shape(smoothing) is ():
+        F = numer / (cov_ps[:, 1, 1] + smoothing)
+
+    else:
+        F = np.zeros(np.shape(smoothing) + (len(betas),))
+        for j, a in enumerate(smoothing):
+            F[j] = numer / (cov_ps[:, 1, 1] + a)
+
+    return F.reshape(F.shape + (1, 1))
+
 #TODO: untested for GLMs?
 def f_test(betas, r_matrix, cov_ps, scale, smoothing=0.0):
+
+    print("f_test(", [ np.shape(x) for x in [betas, r_matrix, cov_ps, scale, smoothing]])
 
     if (cov_ps is None):
         raise ValueError('need covariance of parameters for computing '
@@ -20,15 +36,20 @@ def f_test(betas, r_matrix, cov_ps, scale, smoothing=0.0):
     F = None
     i = 0
 
-    for beta, cov_p, s in zip(betas, cov_ps, scale):
+    scale = np.reshape(scale, (len(scale), 1, 1))
+    scaled_cov_ps = cov_ps * scale
+
+    if np.shape(r_matrix) == (1, 2) and r_matrix[0, 0] == 0 and r_matrix[0, 1] == 1:
+        return f_test_two_cond(betas, scaled_cov_ps, smoothing)
+
+    for beta, cov_p in zip(betas, scaled_cov_ps):
         
         Rbq = np.dot(r_matrix, beta[:, None])
         
-
         if np.shape(smoothing) is ():
-            invcov = np.linalg.inv(
-                r_matrix.dot(
-                    (cov_p * s + smoothing).dot(r_matrix.T)))
+            cov = r_matrix.dot((cov_p + smoothing).dot(r_matrix.T))
+
+            invcov = np.linalg.inv(cov)
 
             res = np.dot(np.dot(Rbq.T, invcov), Rbq)
 
@@ -38,9 +59,9 @@ def f_test(betas, r_matrix, cov_ps, scale, smoothing=0.0):
 
         else:
             for j, a in enumerate(smoothing):
-                invcov = np.linalg.inv(
-                    r_matrix.dot(
-                        (cov_p * s + a).dot(r_matrix.T)))
+                cov = r_matrix.dot((cov_p + a).dot(r_matrix.T))
+
+                invcov = np.linalg.inv(cov)
 
                 res = np.dot(np.dot(Rbq.T, invcov), Rbq)
 
