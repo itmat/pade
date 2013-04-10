@@ -19,7 +19,7 @@ def new_glm(y, x, family, contrast):
     f = None
 
     (params, mu, weights, cov_p, scale) = glm.fit_glm(y, x, family)
-    f = glm.f_test(params, contrast, cov_p, scale)
+    f = glm.f_test(params, contrast, cov_p, scale, smoothing=np.arange(10))
 
 
 y = np.genfromtxt('pade/test/glm/in.txt')

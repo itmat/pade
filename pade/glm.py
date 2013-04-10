@@ -28,14 +28,13 @@ def f_test(betas, r_matrix, cov_ps, scale, smoothing=0.0):
         if np.shape(smoothing) is ():
             invcov = np.linalg.inv(
                 r_matrix.dot(
-                    (cov_p * s).dot(r_matrix.T)))
+                    (cov_p * s + smoothing).dot(r_matrix.T)))
 
             res = np.dot(np.dot(Rbq.T, invcov), Rbq)
 
             if F is None:
                 F = np.zeros((len(betas),) + res.shape)
             F[i] = res
-
 
         else:
             for j, a in enumerate(smoothing):
