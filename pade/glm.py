@@ -8,7 +8,9 @@ from collections import namedtuple
 GlmResults = namedtuple('GlmResults', ['beta', 'mu', 'weights', 'normalized_cov_params', 'scale'])
 
 def f_test_two_cond(betas, cov_ps, smoothing=0.0):
+    """Special case of the f-test for when r_matrix is [ [ 0, 1 ] ].
 
+    """
     numer = betas[:, 1] ** 2
 
     if np.shape(smoothing) is ():
@@ -21,7 +23,7 @@ def f_test_two_cond(betas, cov_ps, smoothing=0.0):
 
     return F.reshape(F.shape + (1, 1))
 
-#TODO: untested for GLMs?
+
 def f_test(betas, r_matrix, cov_ps, scale, smoothing=0.0):
 
     print("f_test(", [ np.shape(x) for x in [betas, r_matrix, cov_ps, scale, smoothing]])
@@ -202,9 +204,11 @@ def fit_glm(endog, exog, family=None, maxiter=100, tol=1e-8, scaletype=None):
 
         scale = estimate_scale(mu, family=family, endog=endog, scaletype=scaletype, df_resid=df_resid)
         iteration += 1
+
         if endog.squeeze().ndim == 1 and np.allclose(mu - endog, 0):
             msg = "Perfect separation detected, results not available"
             raise PerfectSeparationError(msg)
+
         converged = _check_convergence(deviance, iteration, tol, maxiter)
 
     return GlmResults(beta, mu, weights, normalized_cov_params, scale)
@@ -214,7 +218,6 @@ def fit_glm(endog, exog, family=None, maxiter=100, tol=1e-8, scaletype=None):
 def _check_convergence(criterion, iteration, tol, maxiter):
     
     delta = np.fabs(criterion[iteration] - criterion[iteration-1])
-
     return np.all(delta <= tol) or iteration > maxiter
 
 def whiten(weights, X):
@@ -241,37 +244,19 @@ def whiten(weights, X):
                         + str(np.shape(X)))
 
 
-def fit_wls(endog, exog, weights=1., method="pinv", **kwargs):
+def fit_wls(endog, exog, weights=1.):
     """
     Full fit of the model.
 
-    The results include an estimate of covariance matrix, (whitened)
-    residuals and an estimate of scale.
+    :return: 
+      a 2-tuple with the parameters and the estimated covariance
+      matrix.
 
-    Parameters
-    ----------
-    method : str
-        Can be "pinv", "qr", or "mle".  "pinv" uses the
-        Moore-Penrose pseudoinverse to solve the least squares problem.
-        "svd" uses the Singular Value Decomposition.  "qr" uses the
-        QR factorization.  "mle" fits the model via maximum likelihood.
-        "mle" is not yet implemented.
+    :param endog:
+      the 2-d endogenous matrix
 
-    Returns
-    -------
-    A RegressionResults class instance.
-
-    See Also
-    ---------
-    regression.RegressionResults
-
-    Notes
-    -----
-    Currently it is assumed that all models will have an intercept /
-    constant in the design matrix for postestimation statistics.
-
-    The fit method uses the pseudoinverse of the design/exogenous variables
-    to solve the least squares minimization.
+    :param exog:
+      the 2-d exogenous matrix
 
     """
 
@@ -282,26 +267,14 @@ def fit_wls(endog, exog, weights=1., method="pinv", **kwargs):
     normalized_cov_params = np.zeros((n_models, n_regressors, n_regressors))
     beta = np.zeros((n_models, n_regressors))
 
-    if method == "pinv":
-
-        for i in range(len(wexog)):
-            pinv_wexog = np.linalg.pinv(wexog[i])
-            normalized_cov_params[i] = np.dot(pinv_wexog, pinv_wexog.T)
-            beta[i] = np.dot(pinv_wexog, wendog[i])
-
-    elif method == "qr":
-
-        for i in range(len(wexog)):
-            Q, R = np.linalg.qr(wexog[i])
-            normalized_cov_params[i] = np.linalg.inv(np.dot(R.T, R))
-            beta[i] = np.linalg.solve(R,np.dot(Q.T, wendog[i]))
+    for i in range(len(wexog)):
+        pinv_wexog = np.linalg.pinv(wexog[i])
+        normalized_cov_params[i] = np.dot(pinv_wexog, pinv_wexog.T)
+        beta[i] = np.dot(pinv_wexog, wendog[i])
 
     return (beta, normalized_cov_params)
 
 
 if __name__ == '__main__':
     main()
-
-
-
 
