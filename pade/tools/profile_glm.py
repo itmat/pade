@@ -32,7 +32,7 @@ contrast = np.array([ [0, 1] ])
 
 import statsmodels.api as sm
 
-family = fam.Poisson()
+family = fam.NegativeBinomial()
 
 cProfile.run('new_glm(y, x, family, contrast)', sort='time', filename='prof')
 
