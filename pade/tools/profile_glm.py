@@ -30,15 +30,12 @@ x[12:, 1] = 1
 
 contrast = np.array([ [0, 1] ])
 
-import statsmodels.api as sm
-
 family = fam.NegativeBinomial()
 
-cProfile.run('new_glm(y, x, family, contrast)', sort='time', filename='prof')
-
-p = pstats.Stats('prof')
-
-p.strip_dirs().sort_stats('time').print_stats(100)
+if __name__ == '__main__':
+    cProfile.run('new_glm(y, x, family, contrast)', sort='time', filename='prof')
+    p = pstats.Stats('prof')
+    p.strip_dirs().sort_stats('time').print_stats(100)
 
 
 
