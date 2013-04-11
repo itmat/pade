@@ -15,3 +15,16 @@ git clone https://github.com/itmat/pade.git
 
 cd pade
 python setup.py develop
+
+echo -------------------------------------------------------------------
+echo
+echo
+echo I have installed a full Python environment in padeenv. It contains
+echo PADE as well as all of its dependencies.  To run pade, please first
+echo activate the environment by running:
+echo
+echo  source padeenv/bin/activate
+echo
+echo Then you can simply type 'pade' to run it. You can learn how to run
+echo pade by running 'pade -h' or viewing our documentation at
+echo http://itmat.github.io/pade/.
