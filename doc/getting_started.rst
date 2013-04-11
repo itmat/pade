@@ -1,10 +1,11 @@
 Getting Started
 ===============
 
-Prerequisites
--------------
+Installing PADE
+---------------
 
-Pade requires a number of libraries that aren't built in to Python:
+Pade is written in Python, and depends heavily on several Python
+libraries, such as:
 
 * jinja2
 * matplotlib
@@ -16,35 +17,74 @@ Pade requires a number of libraries that aren't built in to Python:
 * flask
 * Flask-WTF
 
-If you are using Linux, you may be able to install these packages
-quite easily using pip (http://pypi.python.org/pypi/pip) or another
-package management tool.
+PADE has been primarily tested on Ubuntu 12.04.1, so installing it on
+similar Ubuntu systems should be easy. You can most likely install it
+on other Linux distributions or Mac OS X, although OS X can be a bit
+tricky.
 
-If you are using a Mac, installing numpy, scipy and h5py can be
-tricky. The easiest way to get up and running may be to use a Python
-distribution that has scientific computing libraries pre-packaged with
-it. You should be able to use the *Enthought Python Distribution*,
-available here: http://www.enthought.com/products/epd.php.
+On an Amazon EC2 Instance
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Obtaining
----------
+Installing and running PADE on an Amazon EC2 instance is very straightforward. We recommend starting an instance based on the ``ami-3fec7956`` AMI. Then ssh to the instance, and run::
 
-You can obtain Pade by cloning or forking it from github here:
-https://github.com/itmat/pade. 
+  wget https://raw.github.com/itmat/pade/master/ubuntu_dev_setup.sh -O - | bash
 
-.. NOTE::
-   We need to create a tarball and put it somewhere to be downloaded.
+This will install git and several Python packages system-wide, create
+a local Python environment using virtual env, install PADE's
+dependencies into that environment, and link PADE's executable and
+libraries into that environment. Then simply run::
 
-Installing
-----------
+  source padeenv/bin/activate
 
-Once you've obtained Pade, you can either run it from the directory
-where you've unpacked it, or install it globally.
+to activate the environment, and then you should be able to run
+``pade``.
 
-You can install it simply by running ``python setup.py install``.
-Note that you may need to run this as root or under sudo. The
-installation process should attempt to install any dependencies you
-are missing.
+On Ubuntu
+^^^^^^^^^
+
+You should be able to use the above instructions for installing PADE
+on an Amazon EC2 instance to install PADE on any Ubuntu machine,
+however the ubuntu_dev_setup.sh script has been primarily tested on
+fresh EC2 instances.
+
+We recommend installing the following packages via apt-get::
+
+  apt-get install git python-numpy python-scipy python-matplotlib python-h5py redis-server python-setuptools python-pip
+
+Then install virtualenv via pip::
+
+  pip install virtualenv
+
+Create a virtualenv environment::
+
+  virtualenv --system-site-packages padeenv 
+
+Activate the environment::
+
+  source padeenv/bin/activate
+
+Obtain pade and install it into your newly active padeenv environment:
+
+  git clone https://github.com/itmat/pade.git
+  cd pade
+  python setup.py develop
+
+Then you should be able to run ``pade``.
+
+
+On Mac OS X
+^^^^^^^^^^^
+
+Installing numpy, scipy and h5py on a Mac can be difficult. The
+easiest way to get up and running may be to use a Python distribution
+that has scientific computing libraries pre-packaged with it. You
+should be able to use the *Enthought Python Distribution*, available
+here: http://www.enthought.com/products/epd.php. After you install
+EPD, *please make sure that the python you're using when you run
+``python`` is actually the one from EPD*. Then you should be able to
+install PADE by running ``sudo python setup.py install`` from within
+the PADE source directory.
+
    
 Running a sample job
 --------------------
@@ -132,7 +172,7 @@ Running the analysis
 
 Once you have created the schema file, you are ready to run the
 analysis, using ``pade run``. You'll need to specify a couple options,
-most importantly ``--condition`` and optionally ``--block``.
+most importantly ``--condition`` and ``--schema``.
 
 Condition and Block
 """""""""""""""""""
