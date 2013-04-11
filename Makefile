@@ -52,3 +52,8 @@ redis :
 
 worker :
 	celery --app=pade worker -l info
+
+ubuntu_setup :
+	sudo apt-get update
+	sudo apt-get install git python-numpy python-scipy python-matplotlib python-h5py redis-server python-setuptools python-pip
+	sudo pip install virtualenv

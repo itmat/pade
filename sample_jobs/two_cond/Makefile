@@ -25,7 +25,7 @@ glm_negbin.h5 :
 	$(PADE) run $(VERBOSITY) --condition treated sample_data_2_cond.txt -o $@ --schema pade_schema.yaml --stat glm --glm-family negative_binomial
 
 server : default.h5
-	$(PADE) server --db $^
+	$(PADE) view $^
 
 clean : 
 	rm -f $(DB) pade.log
