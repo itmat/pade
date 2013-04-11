@@ -325,24 +325,42 @@ class SeparationStat(LayoutPairTest):
     >>> s([0, 7, 2, 5])
     0.0
 
+    >>> s = SeparationStat([[0, 1], [2, 3]])
+    >>> s.sep([[0, 2, 5, 7], [1, 3, 2, 10]])
+    array([ 5.,  4.])
+
+    >>> s([[0, 2, 5, 7], [1, 3, 2, 10]])
+    array([ 1. ,  0.8])
+
     """
 
     def __init__(self, *args, **kwargs):
         kwargs['block_layout'] = None
+        if 'alphas' in kwargs:
+            self.alphas = kwargs['alphas']
+            del kwargs['alphas']
+        else:
+            self.alphas = None
+
         super(SeparationStat, self).__init__(*args, **kwargs)
         self.best_sep = None
+
         
     def sep(self, data):
         data = np.asarray(data)
-        cond = self.condition_layout
-        return np.abs(np.mean(data[cond[0]]) - np.mean(data[cond[1]]))
+        groups = apply_layout(data, self.condition_layout)
+        return np.abs(np.mean(groups[0], axis=-1) - np.mean(groups[1], axis=-1))
 
     def __call__(self, data):
         if self.best_sep is None:
-            self.best_sep = self.sep(data)
+            self.best_sep = self.sep(np.sort(data))
 
-        return self.sep(data) / self.best_sep
-
+        res = self.sep(data) / self.best_sep
+    
+        if self.alphas is None:
+            return res
+        else:
+            return np.array([ res for a in self.alphas])
 
 class FStat(LayoutPairTest):
     """Computes the F-test.
@@ -619,7 +637,7 @@ STAT_NAME_TO_CLASS = {
     't' : OneSampleDifferenceTStat,
     'means_ratio' : MeansRatio,
     'glm' : GLMFStat,
-    'separation', SeparationStat
+    'separation' : SeparationStat
     }
 
 GLM_FAMILIES = {
