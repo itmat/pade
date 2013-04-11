@@ -489,8 +489,8 @@ def get_arguments():
 
     subparsers = uberparser.add_subparsers(
         title='actions',
-        description="""Normal usage is to run 'pade.py setup ...', then manually edit the
-pade_schema.yaml file, then run 'pade.py run ...'.""")
+        description="""Normal usage is to run 'pade setup -o schema.yaml --factor <FACTOR> ... <INPUT>', then manually edit the schema.yaml file, then run 'pade run -f schema.yaml <INPUT> [OPTIONS]'.
+""")
 
     # Set up "parent" parser, which contains some arguments used by all other parsers
     parents = argparse.ArgumentParser(add_help=False)
