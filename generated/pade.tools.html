@@ -66,74 +66,94 @@
 <p>Libraries and programs in here are mostly useful for PaGE developers,
 or for those who want to analyze the performance of PaGE itself.</p>
 </div>
-<div class="section" id="module-pade.tools.make_perf_input">
-<span id="make-perf-input-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">make_perf_input</span></tt> Module<a class="headerlink" href="#module-pade.tools.make_perf_input" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="profile-glm-module">
+<h2><tt class="xref py py-mod docutils literal"><span class="pre">profile_glm</span></tt> Module<a class="headerlink" href="#profile-glm-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-pade.tools.time_glm">
+<span id="time-glm-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">time_glm</span></tt> Module<a class="headerlink" href="#module-pade.tools.time_glm" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="pade.tools.time_glm.GlmResults">
+<em class="property">class </em><tt class="descclassname">pade.tools.time_glm.</tt><tt class="descname">GlmResults</tt><a class="headerlink" href="#pade.tools.time_glm.GlmResults" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">tuple</span></tt></p>
+<p>GlmResults(y, x, family, contrast, params, fittedvalues, weights, f_values)</p>
+<dl class="attribute">
+<dt id="pade.tools.time_glm.GlmResults.contrast">
+<tt class="descname">contrast</tt><a class="headerlink" href="#pade.tools.time_glm.GlmResults.contrast" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 3</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pade.tools.time_glm.GlmResults.f_values">
+<tt class="descname">f_values</tt><a class="headerlink" href="#pade.tools.time_glm.GlmResults.f_values" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 7</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pade.tools.time_glm.GlmResults.family">
+<tt class="descname">family</tt><a class="headerlink" href="#pade.tools.time_glm.GlmResults.family" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 2</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pade.tools.time_glm.GlmResults.fittedvalues">
+<tt class="descname">fittedvalues</tt><a class="headerlink" href="#pade.tools.time_glm.GlmResults.fittedvalues" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 5</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pade.tools.time_glm.GlmResults.params">
+<tt class="descname">params</tt><a class="headerlink" href="#pade.tools.time_glm.GlmResults.params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 4</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pade.tools.time_glm.GlmResults.weights">
+<tt class="descname">weights</tt><a class="headerlink" href="#pade.tools.time_glm.GlmResults.weights" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 6</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pade.tools.time_glm.GlmResults.x">
+<tt class="descname">x</tt><a class="headerlink" href="#pade.tools.time_glm.GlmResults.x" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pade.tools.time_glm.GlmResults.y">
+<tt class="descname">y</tt><a class="headerlink" href="#pade.tools.time_glm.GlmResults.y" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="function">
-<dt id="pade.tools.make_perf_input.main">
-<tt class="descclassname">pade.tools.make_perf_input.</tt><tt class="descname">main</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/tools/make_perf_input.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.tools.make_perf_input.main" title="Permalink to this definition">¶</a></dt>
+<dt id="pade.tools.time_glm.main">
+<tt class="descclassname">pade.tools.time_glm.</tt><tt class="descname">main</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/tools/time_glm.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.tools.time_glm.main" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
-<dt id="pade.tools.make_perf_input.read_input">
-<tt class="descclassname">pade.tools.make_perf_input.</tt><tt class="descname">read_input</tt><big>(</big><em>filename</em><big>)</big><a class="reference internal" href="../_modules/pade/tools/make_perf_input.html#read_input"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.tools.make_perf_input.read_input" title="Permalink to this definition">¶</a></dt>
+<dt id="pade.tools.time_glm.new_glm">
+<tt class="descclassname">pade.tools.time_glm.</tt><tt class="descname">new_glm</tt><big>(</big><em>y</em>, <em>x</em>, <em>family</em>, <em>contrast</em><big>)</big><a class="reference internal" href="../_modules/pade/tools/time_glm.html#new_glm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.tools.time_glm.new_glm" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.tools.time_glm.old_glm">
+<tt class="descclassname">pade.tools.time_glm.</tt><tt class="descname">old_glm</tt><big>(</big><em>y</em>, <em>x</em>, <em>family</em>, <em>contrast</em><big>)</big><a class="reference internal" href="../_modules/pade/tools/time_glm.html#old_glm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.tools.time_glm.old_glm" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.tools.time_glm.time_fn">
+<tt class="descclassname">pade.tools.time_glm.</tt><tt class="descname">time_fn</tt><big>(</big><em>f</em>, <em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pade/tools/time_glm.html#time_fn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.tools.time_glm.time_fn" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.tools.time_glm.time_glm">
+<tt class="descclassname">pade.tools.time_glm.</tt><tt class="descname">time_glm</tt><big>(</big><em>y</em>, <em>x</em>, <em>old_family</em>, <em>new_family</em>, <em>contrast</em>, <em>name</em><big>)</big><a class="reference internal" href="../_modules/pade/tools/time_glm.html#time_glm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.tools.time_glm.time_glm" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </div>
-<div class="section" id="module-pade.tools.perlvspython">
-<span id="perlvspython-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">perlvspython</span></tt> Module<a class="headerlink" href="#module-pade.tools.perlvspython" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="pade.tools.perlvspython.log_ns">
-<tt class="descclassname">pade.tools.perlvspython.</tt><tt class="descname">log_ns</tt><big>(</big><em>args</em><big>)</big><a class="reference internal" href="../_modules/pade/tools/perlvspython.html#log_ns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.tools.perlvspython.log_ns" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="pade.tools.perlvspython.log_time">
-<tt class="descclassname">pade.tools.perlvspython.</tt><tt class="descname">log_time</tt><big>(</big><em>job</em>, <em>fh</em>, <em>directory</em><big>)</big><a class="reference internal" href="../_modules/pade/tools/perlvspython.html#log_time"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.tools.perlvspython.log_time" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="pade.tools.perlvspython.main">
-<tt class="descclassname">pade.tools.perlvspython.</tt><tt class="descname">main</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/tools/perlvspython.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.tools.perlvspython.main" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="pade.tools.perlvspython.make_report">
-<tt class="descclassname">pade.tools.perlvspython.</tt><tt class="descname">make_report</tt><big>(</big><em>args</em><big>)</big><a class="reference internal" href="../_modules/pade/tools/perlvspython.html#make_report"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.tools.perlvspython.make_report" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="pade.tools.perlvspython.make_sample_file">
-<tt class="descclassname">pade.tools.perlvspython.</tt><tt class="descname">make_sample_file</tt><big>(</big><em>directory</em>, <em>header</em>, <em>lines</em>, <em>num_lines</em><big>)</big><a class="reference internal" href="../_modules/pade/tools/perlvspython.html#make_sample_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.tools.perlvspython.make_sample_file" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="pade.tools.perlvspython.run_page">
-<tt class="descclassname">pade.tools.perlvspython.</tt><tt class="descname">run_page</tt><big>(</big><em>args</em><big>)</big><a class="reference internal" href="../_modules/pade/tools/perlvspython.html#run_page"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.tools.perlvspython.run_page" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="pade.tools.perlvspython.run_tests">
-<tt class="descclassname">pade.tools.perlvspython.</tt><tt class="descname">run_tests</tt><big>(</big><em>args</em><big>)</big><a class="reference internal" href="../_modules/pade/tools/perlvspython.html#run_tests"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.tools.perlvspython.run_tests" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="pade.tools.perlvspython.sample_filename">
-<tt class="descclassname">pade.tools.perlvspython.</tt><tt class="descname">sample_filename</tt><big>(</big><em>directory</em>, <em>n</em><big>)</big><a class="reference internal" href="../_modules/pade/tools/perlvspython.html#sample_filename"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.tools.perlvspython.sample_filename" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="pade.tools.perlvspython.setup">
-<tt class="descclassname">pade.tools.perlvspython.</tt><tt class="descname">setup</tt><big>(</big><em>args</em><big>)</big><a class="reference internal" href="../_modules/pade/tools/perlvspython.html#setup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.tools.perlvspython.setup" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="pade.tools.perlvspython.time_proc">
-<tt class="descclassname">pade.tools.perlvspython.</tt><tt class="descname">time_proc</tt><big>(</big><em>cmd</em>, <em>directory</em><big>)</big><a class="reference internal" href="../_modules/pade/tools/perlvspython.html#time_proc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.tools.perlvspython.time_proc" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</div>
-<div class="section" id="module-pade.tools.profile">
-<span id="profile-module"></span><h2><a class="reference external" href="http://docs.python.org/library/profile.html#profile" title="(in Python v2.7)"><tt class="xref py py-mod docutils literal"><span class="pre">profile</span></tt></a> Module<a class="headerlink" href="#module-pade.tools.profile" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-pade.tools.time_stat">
+<span id="time-stat-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">time_stat</span></tt> Module<a class="headerlink" href="#module-pade.tools.time_stat" title="Permalink to this headline">¶</a></h2>
 </div>
 </div>
 
@@ -147,9 +167,9 @@ or for those who want to analyze the performance of PaGE itself.</p>
   <ul>
 <li><a class="reference internal" href="#">tools Package</a><ul>
 <li><a class="reference internal" href="#id1"><tt class="docutils literal"><span class="pre">tools</span></tt> Package</a></li>
-<li><a class="reference internal" href="#module-pade.tools.make_perf_input"><tt class="docutils literal"><span class="pre">make_perf_input</span></tt> Module</a></li>
-<li><a class="reference internal" href="#module-pade.tools.perlvspython"><tt class="docutils literal"><span class="pre">perlvspython</span></tt> Module</a></li>
-<li><a class="reference internal" href="#module-pade.tools.profile"><tt class="docutils literal"><span class="pre">profile</span></tt> Module</a></li>
+<li><a class="reference internal" href="#profile-glm-module"><tt class="docutils literal"><span class="pre">profile_glm</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-pade.tools.time_glm"><tt class="docutils literal"><span class="pre">time_glm</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-pade.tools.time_stat"><tt class="docutils literal"><span class="pre">time_stat</span></tt> Module</a></li>
 </ul>
 </li>
 </ul>

@@ -28,7 +28,7 @@
     <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="top" title="PADE 6.0 documentation" href="../index.html" />
     <link rel="up" title="API Documentation" href="../api.html" />
-    <link rel="next" title="test Package" href="pade.test.html" />
+    <link rel="next" title="http Package" href="pade.http.html" />
     <link rel="prev" title="API Documentation" href="../api.html" /> 
   </head>
   <body>
@@ -42,7 +42,7 @@
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="pade.test.html" title="test Package"
+          <a href="pade.http.html" title="http Package"
              accesskey="N">next</a> |</li>
         <li class="right" >
           <a href="../api.html" title="API Documentation"
@@ -222,12 +222,6 @@ level=n is intercept, main effects, interactions between n variables</p>
 <dd></dd></dl>
 
 <dl class="function">
-<dt id="pade.analysis.get_stat_fn">
-<tt class="descclassname">pade.analysis.</tt><tt class="descname">get_stat_fn</tt><big>(</big><em>job</em><big>)</big><a class="reference internal" href="../_modules/pade/analysis.html#get_stat_fn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.analysis.get_stat_fn" title="Permalink to this definition">¶</a></dt>
-<dd><p>The statistic used for this job.</p>
-</dd></dl>
-
-<dl class="function">
 <dt id="pade.analysis.new_sample_indexes">
 <tt class="descclassname">pade.analysis.</tt><tt class="descname">new_sample_indexes</tt><big>(</big><em>job</em><big>)</big><a class="reference internal" href="../_modules/pade/analysis.html#new_sample_indexes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.analysis.new_sample_indexes" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create array of sample indexes.</p>
@@ -262,6 +256,1091 @@ defined by the reduced model.</p>
 <div class="section" id="module-pade.celery">
 <span id="celery-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">celery</span></tt> Module<a class="headerlink" href="#module-pade.celery" title="Permalink to this headline">¶</a></h2>
 <p>Sets up Celery for PADE.</p>
+</div>
+<div class="section" id="module-pade.config">
+<span id="config-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">config</span></tt> Module<a class="headerlink" href="#module-pade.config" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="pade.config.PadeConfig">
+<em class="property">class </em><tt class="descclassname">pade.config.</tt><tt class="descname">PadeConfig</tt><big>(</big><em>metadb_host=None</em>, <em>metadb_port=None</em>, <em>metadb_db=None</em>, <em>session_host=None</em>, <em>session_port=None</em>, <em>session_db=None</em>, <em>celery_host=None</em>, <em>celery_port=None</em>, <em>celery_db=None</em>, <em>metadb_dir=None</em><big>)</big><a class="reference internal" href="../_modules/pade/config.html#PadeConfig"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.config.PadeConfig" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pade.config.load">
+<tt class="descclassname">pade.config.</tt><tt class="descname">load</tt><big>(</big><em>path</em><big>)</big><a class="reference internal" href="../_modules/pade/config.html#load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.config.load" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.config.search">
+<tt class="descclassname">pade.config.</tt><tt class="descname">search</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/config.html#search"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.config.search" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-pade.family">
+<span id="family-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">family</span></tt> Module<a class="headerlink" href="#module-pade.family" title="Permalink to this headline">¶</a></h2>
+<p>The one parameter exponential family distributions used by GLM.</p>
+<p>This is based on statsmodels/genmod/families/family.py in the
+statsmodels project: <a class="reference external" href="https://github.com/statsmodels/statsmodels">https://github.com/statsmodels/statsmodels</a>.</p>
+<p>I have copied and modified the source from statsmodels in order to
+optimize the algorithms for our purposes. PADE is interested in
+fitting many models, one for each feature in the input (from tens of
+thousands to millions). In a single job, all the models have the same
+number of parameters, and that number is typically quite small, such
+as 2. We also have a relatively small number of observations, since
+each one represents a replicate of an experiment.</p>
+<p>In order to fit these models quickly, we have changed many of the
+statsmodels methods to add an additional dimension to parameters and
+return values; this extra dimension representing the features. I
+started to modify a forked version of the statsmodels project, with
+the intention of contributing the changes back to statsmodels, but it
+would have been impossible to make these changes in a way that did not
+break the original statsmodels behavior. This is because many of the
+functions already accept input of varying dimensionality, and behave
+differently depending on how many dimensions their input arrays have.</p>
+<p>The statsmodels license follows:</p>
+<blockquote>
+<div><p>Copyright (C) 2006, Jonathan E. Taylor
+All rights reserved.</p>
+<p>Copyright (c) 2006-2008 Scipy Developers.
+All rights reserved.</p>
+<p>Copyright (c) 2009-2012 Statsmodels Developers.
+All rights reserved.</p>
+<p>Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:</p>
+<blockquote>
+<div><ol class="loweralpha simple">
+<li>Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.</li>
+<li>Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.</li>
+<li>Neither the name of Statsmodels nor the names of its contributors
+may be used to endorse or promote products derived from this software
+without specific prior written permission.</li>
+</ol>
+</div></blockquote>
+<p>THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &#8220;AS IS&#8221;
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL STATSMODELS OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+DAMAGE.</p>
+</div></blockquote>
+<dl class="class">
+<dt id="pade.family.Binomial">
+<em class="property">class </em><tt class="descclassname">pade.family.</tt><tt class="descname">Binomial</tt><big>(</big><em>link=&lt;class 'pade.links.logit'&gt;</em><big>)</big><a class="reference internal" href="../_modules/pade/family.html#Binomial"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.family.Binomial" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pade.family.Family" title="pade.family.Family"><tt class="xref py py-class docutils literal"><span class="pre">pade.family.Family</span></tt></a></p>
+<p>Binomial exponential family distribution.</p>
+<dl class="docutils">
+<dt>link <span class="classifier-delimiter">:</span> <span class="classifier">a link instance, optional</span></dt>
+<dd>The default link for the Binomial family is the logit link.
+Available links are logit, probit, cauchy, log, and cloglog.
+See statsmodels.family.links for more information.</dd>
+</dl>
+<dl class="docutils">
+<dt>Binomial.link <span class="classifier-delimiter">:</span> <span class="classifier">a link instance</span></dt>
+<dd>The link function of the Binomial instance</dd>
+<dt>Binomial.variance <span class="classifier-delimiter">:</span> <span class="classifier">varfunc instance</span></dt>
+<dd><cite>variance</cite> is an instance of statsmodels.family.varfuncs.binary</dd>
+</dl>
+<p>statsmodels.genmod.families.family.Family</p>
+<p>endog for Binomial can be specified in one of three ways.</p>
+<dl class="method">
+<dt id="pade.family.Binomial.deviance">
+<tt class="descname">deviance</tt><big>(</big><em>Y</em>, <em>mu</em>, <em>scale=1.0</em><big>)</big><a class="reference internal" href="../_modules/pade/family.html#Binomial.deviance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.family.Binomial.deviance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deviance function for either Bernoulli or Binomial data.</p>
+<dl class="docutils">
+<dt>Y <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Endogenous response variable (already transformed to a probability
+if appropriate).</dd>
+<dt>mu <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>Fitted mean response variable</dd>
+<dt>scale <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd>An optional scale argument</dd>
+</dl>
+<dl class="docutils">
+<dt>deviance <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd>The deviance function as defined below</dd>
+</dl>
+<p>If the endogenous variable is binary:</p>
+<p><cite>deviance</cite> = -2*sum(I_one * log(mu) + (I_zero)*log(1-mu))</p>
+<p>where I_one is an indicator function that evalueates to 1 if Y_i == 1.
+and I_zero is an indicator function that evaluates to 1 if Y_i == 0.</p>
+<p>If the model is ninomial:</p>
+<p><cite>deviance</cite> = 2*sum(log(Y/mu) + (n-Y)*log((n-Y)/(n-mu)))
+where Y and n are as defined in Binomial.initialize.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pade.family.Binomial.initialize">
+<tt class="descname">initialize</tt><big>(</big><em>Y</em><big>)</big><a class="reference internal" href="../_modules/pade/family.html#Binomial.initialize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.family.Binomial.initialize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize the response variable.</p>
+<dl class="docutils">
+<dt>Y <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>Endogenous response variable</dd>
+</dl>
+<p>If <cite>Y</cite> is binary, returns <cite>Y</cite></p>
+<p>If <cite>Y</cite> is a 2d array, then the input is assumed to be in the format
+(successes, failures) and
+successes/(success + failures) is returned.  And n is set to
+successes + failures.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pade.family.Binomial.links">
+<tt class="descname">links</tt><em class="property"> = [&lt;class 'pade.links.logit'&gt;, &lt;class 'pade.links.probit'&gt;, &lt;class 'pade.links.cauchy'&gt;, &lt;class 'pade.links.log'&gt;, &lt;class 'pade.links.cloglog'&gt;]</em><a class="headerlink" href="#pade.family.Binomial.links" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pade.family.Binomial.loglike">
+<tt class="descname">loglike</tt><big>(</big><em>Y</em>, <em>mu</em>, <em>scale=1.0</em><big>)</big><a class="reference internal" href="../_modules/pade/family.html#Binomial.loglike"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.family.Binomial.loglike" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loglikelihood function for Binomial exponential family distribution.</p>
+<dl class="docutils">
+<dt>Y <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Endogenous response variable</dd>
+<dt>mu <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Fitted mean response variable</dd>
+<dt>scale <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd>The default is 1.</dd>
+</dl>
+<dl class="docutils">
+<dt>llf <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd>The value of the loglikelihood function evaluated at (Y,mu,scale)
+as defined below.</dd>
+</dl>
+<p>If <cite>Y</cite> is binary:
+<cite>llf</cite> = scale*sum(Y*log(mu/(1-mu))+log(1-mu))</p>
+<p>If <cite>Y</cite> is binomial:
+<cite>llf</cite> = scale*sum(gammaln(n+1) - gammaln(y+1) - gammaln(n-y+1) +                y*log(mu/(1-mu)) + n*log(1-mu)</p>
+<p>where gammaln is the log gamma function and y = Y*n with Y and n
+as defined in Binomial initialize.  This simply makes y the original
+number of successes.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pade.family.Binomial.resid_anscombe">
+<tt class="descname">resid_anscombe</tt><big>(</big><em>Y</em>, <em>mu</em><big>)</big><a class="reference internal" href="../_modules/pade/family.html#Binomial.resid_anscombe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.family.Binomial.resid_anscombe" title="Permalink to this definition">¶</a></dt>
+<dd><p>The Anscombe residuals</p>
+<dl class="docutils">
+<dt>Y <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Endogenous response variable</dd>
+<dt>mu <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Fitted mean response variable</dd>
+</dl>
+<dl class="docutils">
+<dt>resid_anscombe <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>The Anscombe residuals as defined below.</dd>
+</dl>
+<p>sqrt(n)*(cox_snell(Y)-cox_snell(mu))/(mu**(1/6.)*(1-mu)**(1/6.))</p>
+<p>where cox_snell is defined as
+cox_snell(x) = betainc(2/3., 2/3., x)*betainc(2/3.,2/3.)
+where betainc is the incomplete beta function</p>
+<p>The name &#8216;cox_snell&#8217; is idiosyncratic and is simply used for
+convenience following the approach suggested in Cox and Snell (1968).
+Further note that
+cox_snell(x) = x**(2/3.)/(2/3.)*hyp2f1(2/3.,1/3.,5/3.,x)
+where hyp2f1 is the hypergeometric 2f1 function.  The Anscombe
+residuals are sometimes defined in the literature using the
+hyp2f1 formulation.  Both betainc and hyp2f1 can be found in scipy.</p>
+<dl class="docutils">
+<dt>Anscombe, FJ. (1953) &#8220;Contribution to the discussion of H. Hotelling&#8217;s</dt>
+<dd>paper.&#8221; Journal of the Royal Statistical Society B. 15, 229-30.</dd>
+<dt>Cox, DR and Snell, EJ. (1968) &#8220;A General Definition of Residuals.&#8221;</dt>
+<dd>Journal of the Royal Statistical Society B. 30, 248-75.</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="pade.family.Binomial.resid_dev">
+<tt class="descname">resid_dev</tt><big>(</big><em>Y</em>, <em>mu</em>, <em>scale=1.0</em><big>)</big><a class="reference internal" href="../_modules/pade/family.html#Binomial.resid_dev"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.family.Binomial.resid_dev" title="Permalink to this definition">¶</a></dt>
+<dd><p>Binomial deviance residuals</p>
+<dl class="docutils">
+<dt>Y <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Endogenous response variable</dd>
+<dt>mu <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Fitted mean response variable</dd>
+<dt>scale <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd>An optional argument to divide the residuals by scale</dd>
+</dl>
+<dl class="docutils">
+<dt>resid_dev <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>Deviance residuals as defined below</dd>
+</dl>
+<p>If <cite>Y</cite> is binary:</p>
+<p>resid_dev = sign(Y-mu)*sqrt(-2*log(I_one*mu + I_zero*(1-mu)))</p>
+<p>where I_one is an indicator function that evaluates as 1 if Y == 1
+and I_zero is an indicator function that evaluates as 1 if Y == 0.</p>
+<p>If <cite>Y</cite> is binomial:</p>
+<p>resid_dev = sign(Y-mu)*sqrt(2*n*(Y*log(Y/mu)+(1-Y)*log((1-Y)/(1-mu))))</p>
+<p>where Y and n are as defined in Binomial.initialize.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pade.family.Binomial.starting_mu">
+<tt class="descname">starting_mu</tt><big>(</big><em>y</em><big>)</big><a class="reference internal" href="../_modules/pade/family.html#Binomial.starting_mu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.family.Binomial.starting_mu" title="Permalink to this definition">¶</a></dt>
+<dd><p>The starting values for the IRLS algorithm for the Binomial family.</p>
+<p>A good choice for the binomial family is</p>
+<p>starting_mu = (y + .5)/2</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pade.family.Binomial.variance">
+<tt class="descname">variance</tt><em class="property"> = &lt;pade.varfuncs.Binomial object at 0x7751f50&gt;</em><a class="headerlink" href="#pade.family.Binomial.variance" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pade.family.Family">
+<em class="property">class </em><tt class="descclassname">pade.family.</tt><tt class="descname">Family</tt><big>(</big><em>link</em>, <em>variance</em><big>)</big><a class="reference internal" href="../_modules/pade/family.html#Family"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.family.Family" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>The parent class for one-parameter exponential families.</p>
+<dl class="docutils">
+<dt>link <span class="classifier-delimiter">:</span> <span class="classifier">a link function instance</span></dt>
+<dd>Link is the linear transformation function.
+See the individual families for available links.</dd>
+<dt>variance <span class="classifier-delimiter">:</span> <span class="classifier">a variance function</span></dt>
+<dd>Measures the variance as a function of the mean probabilities.
+See the individual families for the default variance function.</dd>
+</dl>
+<dl class="method">
+<dt id="pade.family.Family.deviance">
+<tt class="descname">deviance</tt><big>(</big><em>Y</em>, <em>mu</em>, <em>scale=1.0</em><big>)</big><a class="reference internal" href="../_modules/pade/family.html#Family.deviance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.family.Family.deviance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deviance of (Y,mu) pair.</p>
+<p>Deviance is usually defined as twice the loglikelihood ratio.</p>
+<dl class="docutils">
+<dt>Y <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>The endogenous response variable</dd>
+<dt>mu <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>The inverse of the link function at the linear predicted values.</dd>
+<dt>scale <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd>An optional scale argument</dd>
+</dl>
+<dl class="docutils">
+<dt>DEV <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>The value of deviance function defined below.</dd>
+</dl>
+<p>DEV = (sum_i(2*loglike(Y_i,Y_i) - 2*loglike(Y_i,mu_i)) / scale</p>
+<p>The deviance functions are analytically defined for each family.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pade.family.Family.fitted">
+<tt class="descname">fitted</tt><big>(</big><em>eta</em><big>)</big><a class="reference internal" href="../_modules/pade/family.html#Family.fitted"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.family.Family.fitted" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fitted values based on linear predictors eta.</p>
+<dl class="docutils">
+<dt>eta <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>Values of the linear predictor of the model.
+dot(X,beta) in a classical linear model.</dd>
+</dl>
+<dl class="docutils">
+<dt>mu <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>The mean response variables given by the inverse of the link
+function.</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pade.family.Family.link">
+<tt class="descname">link</tt><a class="headerlink" href="#pade.family.Family.link" title="Permalink to this definition">¶</a></dt>
+<dd><p>Link function for family</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pade.family.Family.links">
+<tt class="descname">links</tt><em class="property"> = []</em><a class="headerlink" href="#pade.family.Family.links" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pade.family.Family.loglike">
+<tt class="descname">loglike</tt><big>(</big><em>Y</em>, <em>mu</em>, <em>scale=1.0</em><big>)</big><a class="reference internal" href="../_modules/pade/family.html#Family.loglike"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.family.Family.loglike" title="Permalink to this definition">¶</a></dt>
+<dd><p>The loglikelihood function.</p>
+<dl class="docutils">
+<dt><cite>Y</cite> <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>Usually the endogenous response variable.</dd>
+<dt><cite>mu</cite> <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>Usually but not always the fitted mean response variable.</dd>
+</dl>
+<dl class="docutils">
+<dt>llf <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd>The value of the loglikelihood evaluated at (Y,mu).</dd>
+</dl>
+<p>This is defined for each family.  Y and mu are not restricted to
+<cite>Y</cite> and <cite>mu</cite> respectively.  For instance, the deviance function calls
+both loglike(Y,Y) and loglike(Y,mu) to get the likelihood ratio.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pade.family.Family.predict">
+<tt class="descname">predict</tt><big>(</big><em>mu</em><big>)</big><a class="reference internal" href="../_modules/pade/family.html#Family.predict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.family.Family.predict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Linear predictors based on given mu values.</p>
+<dl class="docutils">
+<dt>mu <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>The mean response variables</dd>
+</dl>
+<dl class="docutils">
+<dt>eta <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>Linear predictors based on the mean response variables.  The value
+of the link function at the given mu.</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="pade.family.Family.resid_anscombe">
+<tt class="descname">resid_anscombe</tt><big>(</big><em>Y</em>, <em>mu</em><big>)</big><a class="reference internal" href="../_modules/pade/family.html#Family.resid_anscombe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.family.Family.resid_anscombe" title="Permalink to this definition">¶</a></dt>
+<dd><p>The Anscome residuals.</p>
+<p>statsmodels.families.family.Family docstring and the <cite>resid_anscombe</cite> for
+the individual families for more information.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pade.family.Family.resid_dev">
+<tt class="descname">resid_dev</tt><big>(</big><em>Y</em>, <em>mu</em>, <em>scale=1.0</em><big>)</big><a class="reference internal" href="../_modules/pade/family.html#Family.resid_dev"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.family.Family.resid_dev" title="Permalink to this definition">¶</a></dt>
+<dd><p>The deviance residuals</p>
+<dl class="docutils">
+<dt>Y <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>The endogenous response variable</dd>
+<dt>mu <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>The inverse of the link function at the linear predicted values.</dd>
+<dt>scale <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd>An optional argument to divide the residuals by scale</dd>
+</dl>
+<p>Deviance residuals.</p>
+<p>The deviance residuals are defined for each family.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pade.family.Family.starting_mu">
+<tt class="descname">starting_mu</tt><big>(</big><em>y</em><big>)</big><a class="reference internal" href="../_modules/pade/family.html#Family.starting_mu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.family.Family.starting_mu" title="Permalink to this definition">¶</a></dt>
+<dd><p>Starting value for mu in the IRLS algorithm.</p>
+<dl class="docutils">
+<dt>y <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>The untransformed response variable.</dd>
+</dl>
+<dl class="docutils">
+<dt>mu_0 <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>The first guess on the transformed response variable.</dd>
+</dl>
+<p>mu_0 = (endog + mean(endog))/2.</p>
+<p>Only the Binomial family takes a different initial value.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pade.family.Family.tol">
+<tt class="descname">tol</tt><em class="property"> = 1e-05</em><a class="headerlink" href="#pade.family.Family.tol" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pade.family.Family.valid">
+<tt class="descname">valid</tt><em class="property"> = [-inf, inf]</em><a class="headerlink" href="#pade.family.Family.valid" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pade.family.Family.weights">
+<tt class="descname">weights</tt><big>(</big><em>mu</em><big>)</big><a class="reference internal" href="../_modules/pade/family.html#Family.weights"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.family.Family.weights" title="Permalink to this definition">¶</a></dt>
+<dd><p>Weights for IRLS steps</p>
+<dl class="docutils">
+<dt>mu <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>The transformed mean response variable in the exponential family</dd>
+</dl>
+<dl class="docutils">
+<dt>w <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>The weights for the IRLS steps</dd>
+</dl>
+<p><cite>w</cite> = 1 / (link&#8217;(<cite>mu</cite>)**2 * variance(<cite>mu</cite>))</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pade.family.Gamma">
+<em class="property">class </em><tt class="descclassname">pade.family.</tt><tt class="descname">Gamma</tt><big>(</big><em>link=&lt;class 'pade.links.inverse_power'&gt;</em><big>)</big><a class="reference internal" href="../_modules/pade/family.html#Gamma"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.family.Gamma" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pade.family.Family" title="pade.family.Family"><tt class="xref py py-class docutils literal"><span class="pre">pade.family.Family</span></tt></a></p>
+<p>Gamma exponential family distribution.</p>
+<dl class="docutils">
+<dt>link <span class="classifier-delimiter">:</span> <span class="classifier">a link instance, optional</span></dt>
+<dd>The default link for the Gamma family is the inverse link.
+Available links are log, identity, and inverse.
+See statsmodels.family.links for more information.</dd>
+</dl>
+<dl class="docutils">
+<dt>Gamma.link <span class="classifier-delimiter">:</span> <span class="classifier">a link instance</span></dt>
+<dd>The link function of the Gamma instance</dd>
+<dt>Gamma.variance <span class="classifier-delimiter">:</span> <span class="classifier">varfunc instance</span></dt>
+<dd><cite>variance</cite> is an instance of statsmodels.family.varfuncs.mu_squared</dd>
+</dl>
+<p>statsmodels.genmod.families.family.Family</p>
+<dl class="method">
+<dt id="pade.family.Gamma.deviance">
+<tt class="descname">deviance</tt><big>(</big><em>Y</em>, <em>mu</em>, <em>scale=1.0</em><big>)</big><a class="reference internal" href="../_modules/pade/family.html#Gamma.deviance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.family.Gamma.deviance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gamma deviance function</p>
+<dl class="docutils">
+<dt>Y <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Endogenous response variable</dd>
+<dt>mu <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Fitted mean response variable</dd>
+<dt>scale <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd>An optional scale argument</dd>
+</dl>
+<dl class="docutils">
+<dt>deviance <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd>Deviance function as defined below</dd>
+</dl>
+<p><cite>deviance</cite> = 2*sum((Y - mu)/mu - log(Y/mu))</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pade.family.Gamma.links">
+<tt class="descname">links</tt><em class="property"> = [&lt;class 'pade.links.log'&gt;, &lt;class 'pade.links.identity'&gt;, &lt;class 'pade.links.inverse_power'&gt;]</em><a class="headerlink" href="#pade.family.Gamma.links" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pade.family.Gamma.loglike">
+<tt class="descname">loglike</tt><big>(</big><em>Y</em>, <em>mu</em>, <em>scale=1.0</em><big>)</big><a class="reference internal" href="../_modules/pade/family.html#Gamma.loglike"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.family.Gamma.loglike" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loglikelihood function for Gamma exponential family distribution.</p>
+<dl class="docutils">
+<dt>Y <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Endogenous response variable</dd>
+<dt>mu <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Fitted mean response variable</dd>
+<dt>scale <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd>The default is 1.</dd>
+</dl>
+<dl class="docutils">
+<dt>llf <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd>The value of the loglikelihood function evaluated at (Y,mu,scale)
+as defined below.</dd>
+</dl>
+<p>llf = -1/scale * sum(Y/mu + log(mu) + (scale-1)*log(Y) + log(scale) +            scale*gammaln(1/scale))
+where gammaln is the log gamma function.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pade.family.Gamma.resid_anscombe">
+<tt class="descname">resid_anscombe</tt><big>(</big><em>Y</em>, <em>mu</em><big>)</big><a class="reference internal" href="../_modules/pade/family.html#Gamma.resid_anscombe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.family.Gamma.resid_anscombe" title="Permalink to this definition">¶</a></dt>
+<dd><p>The Anscombe residuals for Gamma exponential family distribution</p>
+<dl class="docutils">
+<dt>Y <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>Endogenous response variable</dd>
+<dt>mu <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>Fitted mean response variable</dd>
+</dl>
+<dl class="docutils">
+<dt>resid_anscombe <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>The Anscombe residuals for the Gamma family defined below</dd>
+</dl>
+<p>resid_anscombe = 3*(Y**(1/3.)-mu**(1/3.))/mu**(1/3.)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pade.family.Gamma.resid_dev">
+<tt class="descname">resid_dev</tt><big>(</big><em>Y</em>, <em>mu</em>, <em>scale=1.0</em><big>)</big><a class="reference internal" href="../_modules/pade/family.html#Gamma.resid_dev"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.family.Gamma.resid_dev" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gamma deviance residuals</p>
+<dl class="docutils">
+<dt>Y <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Endogenous response variable</dd>
+<dt>mu <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Fitted mean response variable</dd>
+<dt>scale <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd>An optional argument to divide the residuals by scale</dd>
+</dl>
+<dl class="docutils">
+<dt>resid_dev <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>Deviance residuals as defined below</dd>
+</dl>
+<p><cite>resid_dev</cite> = sign(Y - mu) * sqrt(-2*(-(Y-mu)/mu + log(Y/mu)))</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pade.family.Gamma.variance">
+<tt class="descname">variance</tt><em class="property"> = &lt;pade.varfuncs.Power object at 0x7751ef0&gt;</em><a class="headerlink" href="#pade.family.Gamma.variance" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pade.family.Gaussian">
+<em class="property">class </em><tt class="descclassname">pade.family.</tt><tt class="descname">Gaussian</tt><big>(</big><em>link=&lt;class 'pade.links.identity'&gt;</em><big>)</big><a class="reference internal" href="../_modules/pade/family.html#Gaussian"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.family.Gaussian" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pade.family.Family" title="pade.family.Family"><tt class="xref py py-class docutils literal"><span class="pre">pade.family.Family</span></tt></a></p>
+<p>Gaussian exponential family distribution.</p>
+<dl class="docutils">
+<dt>link <span class="classifier-delimiter">:</span> <span class="classifier">a link instance, optional</span></dt>
+<dd>The default link for the Gaussian family is the identity link.
+Available links are log, identity, and inverse.
+See statsmodels.family.links for more information.</dd>
+</dl>
+<dl class="docutils">
+<dt>Gaussian.link <span class="classifier-delimiter">:</span> <span class="classifier">a link instance</span></dt>
+<dd>The link function of the Gaussian instance</dd>
+<dt>Gaussian.variance <span class="classifier-delimiter">:</span> <span class="classifier">varfunc instance</span></dt>
+<dd><cite>variance</cite> is an instance of statsmodels.family.varfuncs.constant</dd>
+</dl>
+<p>statsmodels.genmod.families.family.Family</p>
+<dl class="method">
+<dt id="pade.family.Gaussian.deviance">
+<tt class="descname">deviance</tt><big>(</big><em>Y</em>, <em>mu</em>, <em>scale=1.0</em><big>)</big><a class="reference internal" href="../_modules/pade/family.html#Gaussian.deviance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.family.Gaussian.deviance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gaussian deviance function</p>
+<dl class="docutils">
+<dt>Y <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Endogenous response variable</dd>
+<dt>mu <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Fitted mean response variable</dd>
+<dt>scale <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd>An optional scale argument</dd>
+</dl>
+<dl class="docutils">
+<dt>deviance <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd>The deviance function at (Y,mu) as defined below.</dd>
+</dl>
+<p><cite>deviance</cite> = sum((Y-mu)**2)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pade.family.Gaussian.links">
+<tt class="descname">links</tt><em class="property"> = [&lt;class 'pade.links.log'&gt;, &lt;class 'pade.links.identity'&gt;, &lt;class 'pade.links.inverse_power'&gt;]</em><a class="headerlink" href="#pade.family.Gaussian.links" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pade.family.Gaussian.loglike">
+<tt class="descname">loglike</tt><big>(</big><em>Y</em>, <em>mu</em>, <em>scale=1.0</em><big>)</big><a class="reference internal" href="../_modules/pade/family.html#Gaussian.loglike"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.family.Gaussian.loglike" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loglikelihood function for Gaussian exponential family distribution.</p>
+<dl class="docutils">
+<dt>Y <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Endogenous response variable</dd>
+<dt>mu <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Fitted mean response variable</dd>
+<dt>scale <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd>Scales the loglikelihood function. The default is 1.</dd>
+</dl>
+<dl class="docutils">
+<dt>llf <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd>The value of the loglikelihood function evaluated at (Y,mu,scale)
+as defined below.</dd>
+</dl>
+<p>If the link is the identity link function then the
+loglikelihood function is the same as the classical OLS model.
+llf = -(nobs/2)*(log(SSR) + (1 + log(2*pi/nobs)))
+where SSR = sum((Y-link^(-1)(mu))**2)</p>
+<p>If the links is not the identity link then the loglikelihood
+function is defined as
+llf = sum((<cite>Y`*`mu</cite>-<cite>mu`**2/2)/`scale</cite> - <cite>Y`**2/(2*`scale</cite>) -             (1/2.)*log(2*pi*`scale`))</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pade.family.Gaussian.resid_anscombe">
+<tt class="descname">resid_anscombe</tt><big>(</big><em>Y</em>, <em>mu</em><big>)</big><a class="reference internal" href="../_modules/pade/family.html#Gaussian.resid_anscombe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.family.Gaussian.resid_anscombe" title="Permalink to this definition">¶</a></dt>
+<dd><p>The Anscombe residuals for the Gaussian exponential family distribution</p>
+<dl class="docutils">
+<dt>Y <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>Endogenous response variable</dd>
+<dt>mu <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>Fitted mean response variable</dd>
+</dl>
+<dl class="docutils">
+<dt>resid_anscombe <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>The Anscombe residuals for the Gaussian family defined below</dd>
+</dl>
+<p><cite>resid_anscombe</cite> = <cite>Y</cite> - <cite>mu</cite></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pade.family.Gaussian.resid_dev">
+<tt class="descname">resid_dev</tt><big>(</big><em>Y</em>, <em>mu</em>, <em>scale=1.0</em><big>)</big><a class="reference internal" href="../_modules/pade/family.html#Gaussian.resid_dev"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.family.Gaussian.resid_dev" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gaussian deviance residuals</p>
+<dl class="docutils">
+<dt>Y <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Endogenous response variable</dd>
+<dt>mu <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Fitted mean response variable</dd>
+<dt>scale <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd>An optional argument to divide the residuals by scale</dd>
+</dl>
+<dl class="docutils">
+<dt>resid_dev <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>Deviance residuals as defined below</dd>
+</dl>
+<p><cite>resid_dev</cite> = (<cite>Y</cite> - <cite>mu</cite>)/sqrt(variance(<cite>mu</cite>))</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pade.family.Gaussian.variance">
+<tt class="descname">variance</tt><em class="property"> = &lt;pade.varfuncs.VarianceFunction object at 0x7751e50&gt;</em><a class="headerlink" href="#pade.family.Gaussian.variance" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pade.family.InverseGaussian">
+<em class="property">class </em><tt class="descclassname">pade.family.</tt><tt class="descname">InverseGaussian</tt><big>(</big><em>link=&lt;class 'pade.links.inverse_squared'&gt;</em><big>)</big><a class="reference internal" href="../_modules/pade/family.html#InverseGaussian"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.family.InverseGaussian" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pade.family.Family" title="pade.family.Family"><tt class="xref py py-class docutils literal"><span class="pre">pade.family.Family</span></tt></a></p>
+<p>InverseGaussian exponential family.</p>
+<dl class="docutils">
+<dt>link <span class="classifier-delimiter">:</span> <span class="classifier">a link instance, optional</span></dt>
+<dd>The default link for the inverse Gaussian family is the
+inverse squared link.
+Available links are inverse_squared, inverse, log, and identity.
+See statsmodels.family.links for more information.</dd>
+</dl>
+<dl class="docutils">
+<dt>InverseGaussian.link <span class="classifier-delimiter">:</span> <span class="classifier">a link instance</span></dt>
+<dd>The link function of the inverse Gaussian instance</dd>
+<dt>InverseGaussian.variance <span class="classifier-delimiter">:</span> <span class="classifier">varfunc instance</span></dt>
+<dd><cite>variance</cite> is an instance of statsmodels.family.varfuncs.mu_cubed</dd>
+</dl>
+<p>statsmodels.genmod.families.family.Family</p>
+<p>The inverse Guassian distribution is sometimes referred to in the
+literature as the wald distribution.</p>
+<dl class="method">
+<dt id="pade.family.InverseGaussian.deviance">
+<tt class="descname">deviance</tt><big>(</big><em>Y</em>, <em>mu</em>, <em>scale=1.0</em><big>)</big><a class="reference internal" href="../_modules/pade/family.html#InverseGaussian.deviance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.family.InverseGaussian.deviance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Inverse Gaussian deviance function</p>
+<dl class="docutils">
+<dt>Y <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Endogenous response variable</dd>
+<dt>mu <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Fitted mean response variable</dd>
+<dt>scale <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd>An optional scale argument</dd>
+</dl>
+<dl class="docutils">
+<dt>deviance <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd>Deviance function as defined below</dd>
+</dl>
+<p><cite>deviance</cite> = sum((Y=mu)**2/(Y*mu**2))</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pade.family.InverseGaussian.links">
+<tt class="descname">links</tt><em class="property"> = [&lt;class 'pade.links.inverse_squared'&gt;, &lt;class 'pade.links.inverse_power'&gt;, &lt;class 'pade.links.identity'&gt;, &lt;class 'pade.links.log'&gt;]</em><a class="headerlink" href="#pade.family.InverseGaussian.links" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pade.family.InverseGaussian.loglike">
+<tt class="descname">loglike</tt><big>(</big><em>Y</em>, <em>mu</em>, <em>scale=1.0</em><big>)</big><a class="reference internal" href="../_modules/pade/family.html#InverseGaussian.loglike"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.family.InverseGaussian.loglike" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loglikelihood function for inverse Gaussian distribution.</p>
+<dl class="docutils">
+<dt>Y <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Endogenous response variable</dd>
+<dt>mu <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Fitted mean response variable</dd>
+<dt>scale <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd>The default is 1.</dd>
+</dl>
+<dl class="docutils">
+<dt>llf <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd>The value of the loglikelihood function evaluated at (Y,mu,scale)
+as defined below.</dd>
+</dl>
+<p><cite>llf</cite> = -(1/2.)*sum((Y-mu)**2/(Y*mu**2*scale) + log(scale*Y**3)                 + log(2*pi))</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pade.family.InverseGaussian.resid_anscombe">
+<tt class="descname">resid_anscombe</tt><big>(</big><em>Y</em>, <em>mu</em><big>)</big><a class="reference internal" href="../_modules/pade/family.html#InverseGaussian.resid_anscombe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.family.InverseGaussian.resid_anscombe" title="Permalink to this definition">¶</a></dt>
+<dd><p>The Anscombe residuals for the inverse Gaussian distribution</p>
+<dl class="docutils">
+<dt>Y <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>Endogenous response variable</dd>
+<dt>mu <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>Fitted mean response variable</dd>
+</dl>
+<dl class="docutils">
+<dt>resid_anscombe <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>The Anscombe residuals for the inverse Gaussian distribution  as
+defined below</dd>
+</dl>
+<p><cite>resid_anscombe</cite> =  log(Y/mu)/sqrt(mu)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pade.family.InverseGaussian.resid_dev">
+<tt class="descname">resid_dev</tt><big>(</big><em>Y</em>, <em>mu</em>, <em>scale=1.0</em><big>)</big><a class="reference internal" href="../_modules/pade/family.html#InverseGaussian.resid_dev"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.family.InverseGaussian.resid_dev" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the deviance residuals for the inverse Gaussian family.</p>
+<dl class="docutils">
+<dt>Y <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Endogenous response variable</dd>
+<dt>mu <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Fitted mean response variable</dd>
+<dt>scale <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd>An optional argument to divide the residuals by scale</dd>
+</dl>
+<dl class="docutils">
+<dt>resid_dev <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>Deviance residuals as defined below</dd>
+</dl>
+<p><cite>dev_resid</cite> = sign(Y-mu)*sqrt((Y-mu)**2/(Y*mu**2))</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pade.family.InverseGaussian.variance">
+<tt class="descname">variance</tt><em class="property"> = &lt;pade.varfuncs.Power object at 0x7751f10&gt;</em><a class="headerlink" href="#pade.family.InverseGaussian.variance" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pade.family.NegativeBinomial">
+<em class="property">class </em><tt class="descclassname">pade.family.</tt><tt class="descname">NegativeBinomial</tt><big>(</big><em>link=&lt;class 'pade.links.log'&gt;</em>, <em>alpha=1.0</em><big>)</big><a class="reference internal" href="../_modules/pade/family.html#NegativeBinomial"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.family.NegativeBinomial" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pade.family.Family" title="pade.family.Family"><tt class="xref py py-class docutils literal"><span class="pre">pade.family.Family</span></tt></a></p>
+<p>Negative Binomial exponential family.</p>
+<dl class="docutils">
+<dt>link <span class="classifier-delimiter">:</span> <span class="classifier">a link instance, optional</span></dt>
+<dd>The default link for the negative binomial family is the log link.
+Available links are log, cloglog, identity, nbinom and power.
+See statsmodels.family.links for more information.</dd>
+<dt>alpha <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd>The ancillary parameter for the negative binomial distribution.
+For now <cite>alpha</cite> is assumed to be nonstochastic.  The default value
+is 1.  Permissible values are usually assumed to be between .01 and 2.</dd>
+</dl>
+<dl class="docutils">
+<dt>NegativeBinomial.link <span class="classifier-delimiter">:</span> <span class="classifier">a link instance</span></dt>
+<dd>The link function of the negative binomial instance</dd>
+<dt>NegativeBinomial.variance <span class="classifier-delimiter">:</span> <span class="classifier">varfunc instance</span></dt>
+<dd><cite>variance</cite> is an instance of statsmodels.family.varfuncs.nbinom</dd>
+</dl>
+<p>statsmodels.genmod.families.family.Family</p>
+<p>Support for Power link functions is not yet supported.</p>
+<dl class="method">
+<dt id="pade.family.NegativeBinomial.deviance">
+<tt class="descname">deviance</tt><big>(</big><em>Y</em>, <em>mu</em>, <em>scale=1.0</em><big>)</big><a class="reference internal" href="../_modules/pade/family.html#NegativeBinomial.deviance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.family.NegativeBinomial.deviance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the value of the deviance function.</p>
+<dl class="docutils">
+<dt>Y <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Endogenous response variable</dd>
+<dt>mu <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Fitted mean response variable</dd>
+<dt>scale <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd>An optional scale argument</dd>
+</dl>
+<dl class="docutils">
+<dt>deviance <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd>Deviance function as defined below</dd>
+</dl>
+<p><cite>deviance</cite> = sum(piecewise)</p>
+<p>where piecewise is defined as</p>
+<p>if <span class="math">\(Y_{i} == 0:\)</span></p>
+<p>piecewise_i = <span class="math">\(2\log\left(1+\alpha*\mu\right)/\alpha\)</span></p>
+<p>if <span class="math">\(Y_{i} &gt; 0\)</span>:</p>
+<p>piecewise_i = <span class="math">\(2 Y \log(Y/\mu)-2/\alpha(1+\alpha Y)*\log((1+\alpha Y)/(1+\alpha\mu))\)</span></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pade.family.NegativeBinomial.links">
+<tt class="descname">links</tt><em class="property"> = [&lt;class 'pade.links.log'&gt;, &lt;class 'pade.links.cloglog'&gt;, &lt;class 'pade.links.identity'&gt;, &lt;class 'pade.links.nbinom'&gt;, &lt;class 'pade.links.Power'&gt;]</em><a class="headerlink" href="#pade.family.NegativeBinomial.links" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pade.family.NegativeBinomial.loglike">
+<tt class="descname">loglike</tt><big>(</big><em>Y</em>, <em>fittedvalues=None</em><big>)</big><a class="reference internal" href="../_modules/pade/family.html#NegativeBinomial.loglike"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.family.NegativeBinomial.loglike" title="Permalink to this definition">¶</a></dt>
+<dd><p>The loglikelihood function for the negative binomial family.</p>
+<dl class="docutils">
+<dt>Y <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Endogenous response variable</dd>
+<dt>fittedvalues <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>The linear fitted values of the model.  This is dot(exog,params).</dd>
+</dl>
+<dl class="docutils">
+<dt>llf <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd>The value of the loglikelihood function evaluated at (Y,mu,scale)
+as defined below.</dd>
+</dl>
+<p>sum(Y*log(alpha*exp(fittedvalues)/(1+alpha*exp(fittedvalues))) -                log(1+alpha*exp(fittedvalues))/alpha + constant)</p>
+<p>where constant is defined as
+constant = gammaln(Y + 1/alpha) - gammaln(Y + 1) - gammaln(1/alpha)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pade.family.NegativeBinomial.resid_anscombe">
+<tt class="descname">resid_anscombe</tt><big>(</big><em>Y</em>, <em>mu</em><big>)</big><a class="reference internal" href="../_modules/pade/family.html#NegativeBinomial.resid_anscombe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.family.NegativeBinomial.resid_anscombe" title="Permalink to this definition">¶</a></dt>
+<dd><p>The Anscombe residuals for the negative binomial family</p>
+<dl class="docutils">
+<dt>Y <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Endogenous response variable</dd>
+<dt>mu <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Fitted mean response variable</dd>
+</dl>
+<dl class="docutils">
+<dt>resid_anscombe <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>The Anscombe residuals as defined below.</dd>
+</dl>
+<p><cite>resid_anscombe</cite> = (hyp2f1(-alpha*Y)-hyp2f1(-alpha*mu)+                1.5*(Y**(2/3.)-mu**(2/3.)))/(mu+alpha*mu**2)**(1/6.)</p>
+<p>where hyp2f1 is the hypergeometric 2f1 function parameterized as
+hyp2f1(x) = hyp2f1(2/3.,1/3.,5/3.,x)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pade.family.NegativeBinomial.resid_dev">
+<tt class="descname">resid_dev</tt><big>(</big><em>Y</em>, <em>mu</em>, <em>scale=1.0</em><big>)</big><a class="reference internal" href="../_modules/pade/family.html#NegativeBinomial.resid_dev"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.family.NegativeBinomial.resid_dev" title="Permalink to this definition">¶</a></dt>
+<dd><p>Negative Binomial Deviance Residual</p>
+<dl class="docutils">
+<dt>Y <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd><cite>Y</cite> is the response variable</dd>
+<dt>mu <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd><cite>mu</cite> is the fitted value of the model</dd>
+<dt>scale <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd>An optional argument to divide the residuals by scale</dd>
+</dl>
+<dl class="docutils">
+<dt>resid_dev <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>The array of deviance residuals</dd>
+</dl>
+<p><cite>resid_dev</cite> = sign(Y-mu) * sqrt(piecewise)</p>
+<p>where piecewise is defined as
+if <span class="math">\(Y_i = 0\)</span>:
+<span class="math">\(piecewise_i = 2*log(1+alpha*mu)/alpha\)</span></p>
+<p>if <span class="math">\(Y_i &gt; 0\)</span>:
+<span class="math">\(piecewise_i = 2*Y*log(Y/\mu)-2/\alpha*(1+\alpha*Y)*log((1+\alpha*Y)/(1+\alpha*\mu))\)</span></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pade.family.NegativeBinomial.variance">
+<tt class="descname">variance</tt><em class="property"> = &lt;pade.varfuncs.NegativeBinomial object at 0x7751fb0&gt;</em><a class="headerlink" href="#pade.family.NegativeBinomial.variance" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pade.family.Poisson">
+<em class="property">class </em><tt class="descclassname">pade.family.</tt><tt class="descname">Poisson</tt><big>(</big><em>link=&lt;class 'pade.links.log'&gt;</em><big>)</big><a class="reference internal" href="../_modules/pade/family.html#Poisson"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.family.Poisson" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pade.family.Family" title="pade.family.Family"><tt class="xref py py-class docutils literal"><span class="pre">pade.family.Family</span></tt></a></p>
+<p>Poisson exponential family.</p>
+<dl class="docutils">
+<dt>link <span class="classifier-delimiter">:</span> <span class="classifier">a link instance, optional</span></dt>
+<dd>The default link for the Poisson family is the log link. Available
+links are log, identity, and sqrt. See statsmodels.family.links for
+more information.</dd>
+</dl>
+<dl class="docutils">
+<dt>Poisson.link <span class="classifier-delimiter">:</span> <span class="classifier">a link instance</span></dt>
+<dd>The link function of the Poisson instance.</dd>
+<dt>Poisson.variance <span class="classifier-delimiter">:</span> <span class="classifier">varfuncs instance</span></dt>
+<dd><cite>variance</cite> is an instance of
+statsmodels.genmod.families.family.varfuncs.mu</dd>
+</dl>
+<p>statsmodels.genmod.families.family.Family</p>
+<dl class="method">
+<dt id="pade.family.Poisson.deviance">
+<tt class="descname">deviance</tt><big>(</big><em>Y</em>, <em>mu</em>, <em>scale=1.0</em><big>)</big><a class="reference internal" href="../_modules/pade/family.html#Poisson.deviance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.family.Poisson.deviance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Poisson deviance function</p>
+<dl class="docutils">
+<dt>Y <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Endogenous response variable</dd>
+<dt>mu <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Fitted mean response variable</dd>
+<dt>scale <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd>An optional scale argument</dd>
+</dl>
+<dl class="docutils">
+<dt>deviance <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd>The deviance function at (Y,mu) as defined below.</dd>
+</dl>
+<p>If a constant term is included it is defined as</p>
+<p><span class="math">\(deviance = 2*\sum_{i}(Y*\log(Y/\mu))\)</span></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pade.family.Poisson.links">
+<tt class="descname">links</tt><em class="property"> = [&lt;class 'pade.links.log'&gt;, &lt;class 'pade.links.identity'&gt;, &lt;class 'pade.links.sqrt'&gt;]</em><a class="headerlink" href="#pade.family.Poisson.links" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pade.family.Poisson.loglike">
+<tt class="descname">loglike</tt><big>(</big><em>Y</em>, <em>mu</em>, <em>scale=1.0</em><big>)</big><a class="reference internal" href="../_modules/pade/family.html#Poisson.loglike"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.family.Poisson.loglike" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loglikelihood function for Poisson exponential family distribution.</p>
+<dl class="docutils">
+<dt>Y <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Endogenous response variable</dd>
+<dt>mu <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Fitted mean response variable</dd>
+<dt>scale <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd>The default is 1.</dd>
+</dl>
+<dl class="docutils">
+<dt>llf <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd>The value of the loglikelihood function evaluated at (Y,mu,scale)
+as defined below.</dd>
+</dl>
+<p>llf = scale * sum(-mu + Y*log(mu) - gammaln(Y+1))
+where gammaln is the log gamma function</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pade.family.Poisson.resid_anscombe">
+<tt class="descname">resid_anscombe</tt><big>(</big><em>Y</em>, <em>mu</em><big>)</big><a class="reference internal" href="../_modules/pade/family.html#Poisson.resid_anscombe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.family.Poisson.resid_anscombe" title="Permalink to this definition">¶</a></dt>
+<dd><p>Anscombe residuals for the Poisson exponential family distribution</p>
+<dl class="docutils">
+<dt>Y <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Endogenous response variable</dd>
+<dt>mu <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Fitted mean response variable</dd>
+</dl>
+<dl class="docutils">
+<dt>resid_anscombe <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>The Anscome residuals for the Poisson family defined below</dd>
+</dl>
+<p>resid_anscombe = <span class="math">\((3/2.)*(Y^{2/3.} - \mu**(2/3.))/\mu^{1/6.}\)</span></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pade.family.Poisson.resid_dev">
+<tt class="descname">resid_dev</tt><big>(</big><em>Y</em>, <em>mu</em>, <em>scale=1.0</em><big>)</big><a class="reference internal" href="../_modules/pade/family.html#Poisson.resid_dev"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.family.Poisson.resid_dev" title="Permalink to this definition">¶</a></dt>
+<dd><p>Poisson deviance residual</p>
+<dl class="docutils">
+<dt>Y <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Endogenous response variable</dd>
+<dt>mu <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Fitted mean response variable</dd>
+<dt>scale <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd>An optional argument to divide the residuals by scale</dd>
+</dl>
+<dl class="docutils">
+<dt>resid_dev <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>Deviance residuals as defined below</dd>
+</dl>
+<p>resid_dev = sign(Y-mu)*sqrt(2*Y*log(Y/mu)-2*(Y-mu))</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pade.family.Poisson.valid">
+<tt class="descname">valid</tt><em class="property"> = [0, inf]</em><a class="headerlink" href="#pade.family.Poisson.valid" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pade.family.Poisson.variance">
+<tt class="descname">variance</tt><em class="property"> = &lt;pade.varfuncs.Power object at 0x7751eb0&gt;</em><a class="headerlink" href="#pade.family.Poisson.variance" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-pade.glm">
+<span id="glm-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">glm</span></tt> Module<a class="headerlink" href="#module-pade.glm" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="pade.glm.GlmResults">
+<em class="property">class </em><tt class="descclassname">pade.glm.</tt><tt class="descname">GlmResults</tt><a class="headerlink" href="#pade.glm.GlmResults" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">tuple</span></tt></p>
+<p>GlmResults(beta, mu, weights, normalized_cov_params, scale)</p>
+<dl class="attribute">
+<dt id="pade.glm.GlmResults.beta">
+<tt class="descname">beta</tt><a class="headerlink" href="#pade.glm.GlmResults.beta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pade.glm.GlmResults.mu">
+<tt class="descname">mu</tt><a class="headerlink" href="#pade.glm.GlmResults.mu" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pade.glm.GlmResults.normalized_cov_params">
+<tt class="descname">normalized_cov_params</tt><a class="headerlink" href="#pade.glm.GlmResults.normalized_cov_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 3</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pade.glm.GlmResults.scale">
+<tt class="descname">scale</tt><a class="headerlink" href="#pade.glm.GlmResults.scale" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 4</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pade.glm.GlmResults.weights">
+<tt class="descname">weights</tt><a class="headerlink" href="#pade.glm.GlmResults.weights" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 2</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="pade.glm.estimate_scale">
+<tt class="descclassname">pade.glm.</tt><tt class="descname">estimate_scale</tt><big>(</big><em>mu</em>, <em>family</em>, <em>endog</em>, <em>scaletype=None</em>, <em>df_resid=None</em><big>)</big><a class="reference internal" href="../_modules/pade/glm.html#estimate_scale"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.glm.estimate_scale" title="Permalink to this definition">¶</a></dt>
+<dd><p>Estimates the dispersion/scale.</p>
+<p>Type of scale can be chose in the fit method.</p>
+<dl class="docutils">
+<dt>mu <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>mu is the mean response estimate</dd>
+</dl>
+<p>Estimate of scale</p>
+<p>The default scale for Binomial and Poisson families is 1.  The default
+for the other families is Pearson&#8217;s Chi-Square estimate.</p>
+<p>statsmodels.glm.fit for more information</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pade.glm.f_test">
+<tt class="descclassname">pade.glm.</tt><tt class="descname">f_test</tt><big>(</big><em>betas</em>, <em>r_matrix</em>, <em>cov_ps</em>, <em>scale</em>, <em>smoothing=0.0</em><big>)</big><a class="reference internal" href="../_modules/pade/glm.html#f_test"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.glm.f_test" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.glm.f_test_two_cond">
+<tt class="descclassname">pade.glm.</tt><tt class="descname">f_test_two_cond</tt><big>(</big><em>betas</em>, <em>cov_ps</em>, <em>smoothing=0.0</em><big>)</big><a class="reference internal" href="../_modules/pade/glm.html#f_test_two_cond"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.glm.f_test_two_cond" title="Permalink to this definition">¶</a></dt>
+<dd><p>Special case of the f-test for when r_matrix is [ [ 0, 1 ] ].</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pade.glm.fit_glm">
+<tt class="descclassname">pade.glm.</tt><tt class="descname">fit_glm</tt><big>(</big><em>endog</em>, <em>exog</em>, <em>family=None</em>, <em>maxiter=100</em>, <em>tol=1e-08</em>, <em>scaletype=None</em><big>)</big><a class="reference internal" href="../_modules/pade/glm.html#fit_glm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.glm.fit_glm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fits a generalized linear model for a given family.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>endog</strong> &#8211; </li>
+<li><strong>exog</strong> &#8211; </li>
+<li><strong>family</strong> &#8211; </li>
+<li><strong>maxiter</strong> &#8211; </li>
+<li><strong>scale</strong> &#8211; </li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pade.glm.fit_wls">
+<tt class="descclassname">pade.glm.</tt><tt class="descname">fit_wls</tt><big>(</big><em>endog</em>, <em>exog</em>, <em>weights=1.0</em><big>)</big><a class="reference internal" href="../_modules/pade/glm.html#fit_wls"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.glm.fit_wls" title="Permalink to this definition">¶</a></dt>
+<dd><p>Full fit of the model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">a 2-tuple with the parameters and the estimated covariance
+matrix.</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>endog</strong> &#8211; the 2-d endogenous matrix</li>
+<li><strong>exog</strong> &#8211; the 2-d exogenous matrix</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pade.glm.rank">
+<tt class="descclassname">pade.glm.</tt><tt class="descname">rank</tt><big>(</big><em>X</em>, <em>cond=1e-12</em><big>)</big><a class="reference internal" href="../_modules/pade/glm.html#rank"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.glm.rank" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.glm.whiten">
+<tt class="descclassname">pade.glm.</tt><tt class="descname">whiten</tt><big>(</big><em>weights</em>, <em>X</em><big>)</big><a class="reference internal" href="../_modules/pade/glm.html#whiten"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.glm.whiten" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whitener for WLS model, multiplies each column by sqrt(self.weights)</p>
+<p>X : array-like
+Data to be whitened</p>
+<p>sqrt(weights)*X</p>
+</dd></dl>
+
 </div>
 <div class="section" id="module-pade.layout">
 <span id="layout-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">layout</span></tt> Module<a class="headerlink" href="#module-pade.layout" title="Permalink to this headline">¶</a></h2>
@@ -381,7 +1460,7 @@ layout0 with a group in layout1.</p>
 <dl class="function">
 <dt id="pade.layout.layout_is_paired">
 <tt class="descclassname">pade.layout.</tt><tt class="descname">layout_is_paired</tt><big>(</big><em>layout</em><big>)</big><a class="reference internal" href="../_modules/pade/layout.html#layout_is_paired"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.layout.layout_is_paired" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns true of the layout appears to be &#8216;paired&#8217;.</p>
+<dd><p>Returns true if the layout appears to be &#8216;paired&#8217;.</p>
 <p>A paired layout is one where each group contains two values.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -461,6 +1540,448 @@ reduced layout will be shuffled.</p>
 </dd></dl>
 
 </div>
+<div class="section" id="module-pade.links">
+<span id="links-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">links</span></tt> Module<a class="headerlink" href="#module-pade.links" title="Permalink to this headline">¶</a></h2>
+<p>Defines the link functions to be used with GLM families.</p>
+<p>This is based on statsmodels/genmod/families/family.py in the
+statsmodels project: <a class="reference external" href="https://github.com/statsmodels/statsmodels">https://github.com/statsmodels/statsmodels</a>.</p>
+<p>I have copied and modified the source from statsmodels in order to
+optimize the algorithms for our purposes. PADE is interested in
+fitting many models, one for each feature in the input (from tens of
+thousands to millions). In a single job, all the models have the same
+number of parameters, and that number is typically quite small, such
+as 2. We also have a relatively small number of observations, since
+each one represents a replicate of an experiment.</p>
+<p>In order to fit these models quickly, we have changed many of the
+statsmodels methods to add an additional dimension to parameters and
+return values; this extra dimension representing the features. I
+started to modify a forked version of the statsmodels project, with
+the intention of contributing the changes back to statsmodels, but it
+would have been impossible to make these changes in a way that did not
+break the original statsmodels behavior. This is because many of the
+functions already accept input of varying dimensionality, and behave
+differently depending on how many dimensions their input arrays have.</p>
+<p>The statsmodels license follows:</p>
+<blockquote>
+<div><p>Copyright (C) 2006, Jonathan E. Taylor
+All rights reserved.</p>
+<p>Copyright (c) 2006-2008 Scipy Developers.
+All rights reserved.</p>
+<p>Copyright (c) 2009-2012 Statsmodels Developers.
+All rights reserved.</p>
+<p>Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:</p>
+<blockquote>
+<div><ol class="loweralpha simple">
+<li>Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.</li>
+<li>Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.</li>
+<li>Neither the name of Statsmodels nor the names of its contributors
+may be used to endorse or promote products derived from this software
+without specific prior written permission.</li>
+</ol>
+</div></blockquote>
+<p>THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &#8220;AS IS&#8221;
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL STATSMODELS OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+DAMAGE.</p>
+</div></blockquote>
+<dl class="class">
+<dt id="pade.links.CDFLink">
+<em class="property">class </em><tt class="descclassname">pade.links.</tt><tt class="descname">CDFLink</tt><big>(</big><em>dbn=&lt;scipy.stats.distributions.norm_gen object at 0x75010b0&gt;</em><big>)</big><a class="reference internal" href="../_modules/pade/links.html#CDFLink"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.links.CDFLink" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pade.links.Logit" title="pade.links.Logit"><tt class="xref py py-class docutils literal"><span class="pre">pade.links.Logit</span></tt></a></p>
+<p>The use the CDF of a scipy.stats distribution</p>
+<p>CDFLink is a subclass of logit in order to use its _clean method
+for the link and its derivative.</p>
+<dl class="docutils">
+<dt>dbn <span class="classifier-delimiter">:</span> <span class="classifier">scipy.stats distribution</span></dt>
+<dd>Default is dbn=scipy.stats.norm</dd>
+</dl>
+<p>The CDF link is untested.</p>
+<dl class="method">
+<dt id="pade.links.CDFLink.deriv">
+<tt class="descname">deriv</tt><big>(</big><em>p</em><big>)</big><a class="reference internal" href="../_modules/pade/links.html#CDFLink.deriv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.links.CDFLink.deriv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Derivative of CDF link</p>
+<dl class="docutils">
+<dt>p <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>mean parameters</dd>
+</dl>
+<dl class="docutils">
+<dt>g&#8217;(p) <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>The derivative of CDF transform at <cite>p</cite></dd>
+</dl>
+<p>g&#8217;(<cite>p</cite>) = 1./ <cite>dbn</cite>.pdf(<cite>dbn</cite>.ppf(<cite>p</cite>))</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pade.links.CDFLink.inverse">
+<tt class="descname">inverse</tt><big>(</big><em>z</em><big>)</big><a class="reference internal" href="../_modules/pade/links.html#CDFLink.inverse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.links.CDFLink.inverse" title="Permalink to this definition">¶</a></dt>
+<dd><p>The inverse of the CDF link</p>
+<dl class="docutils">
+<dt>z <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>The value of the inverse of the link function at <cite>p</cite></dd>
+</dl>
+<dl class="docutils">
+<dt>p <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>Mean probabilities.  The value of the inverse of CDF link of <cite>z</cite></dd>
+</dl>
+<p>g^(-1)(<cite>z</cite>) = <cite>dbn</cite>.cdf(<cite>z</cite>)</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pade.links.CLogLog">
+<em class="property">class </em><tt class="descclassname">pade.links.</tt><tt class="descname">CLogLog</tt><a class="reference internal" href="../_modules/pade/links.html#CLogLog"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.links.CLogLog" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pade.links.Logit" title="pade.links.Logit"><tt class="xref py py-class docutils literal"><span class="pre">pade.links.Logit</span></tt></a></p>
+<p>The complementary log-log transform</p>
+<p>CLogLog inherits from Logit in order to have access to its _clean method
+for the link and its derivative.</p>
+<p>CLogLog is untested.</p>
+<dl class="method">
+<dt id="pade.links.CLogLog.deriv">
+<tt class="descname">deriv</tt><big>(</big><em>p</em><big>)</big><a class="reference internal" href="../_modules/pade/links.html#CLogLog.deriv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.links.CLogLog.deriv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Derivatve of C-Log-Log transform link function</p>
+<dl class="docutils">
+<dt>p <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Mean parameters</dd>
+</dl>
+<dl class="docutils">
+<dt>g&#8217;(p) <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>The derivative of the CLogLog transform link function</dd>
+</dl>
+<p>g&#8217;(p) = - 1 / (log(p) * p)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pade.links.CLogLog.inverse">
+<tt class="descname">inverse</tt><big>(</big><em>z</em><big>)</big><a class="reference internal" href="../_modules/pade/links.html#CLogLog.inverse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.links.CLogLog.inverse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Inverse of C-Log-Log transform link function</p>
+<dl class="docutils">
+<dt>z <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>The value of the inverse of the CLogLog link function at <cite>p</cite></dd>
+</dl>
+<dl class="docutils">
+<dt>p <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>Mean parameters</dd>
+</dl>
+<p>g^(-1)(<cite>z</cite>) = 1-exp(-exp(<cite>z</cite>))</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pade.links.Link">
+<em class="property">class </em><tt class="descclassname">pade.links.</tt><tt class="descname">Link</tt><a class="reference internal" href="../_modules/pade/links.html#Link"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.links.Link" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>A generic link function for one-parameter exponential family.</p>
+<p><cite>Link</cite> does nothing, but lays out the methods expected of any subclass.</p>
+<dl class="method">
+<dt id="pade.links.Link.deriv">
+<tt class="descname">deriv</tt><big>(</big><em>p</em><big>)</big><a class="reference internal" href="../_modules/pade/links.html#Link.deriv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.links.Link.deriv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Derivative of the link function g&#8217;(p).  Just a placeholder.</p>
+<p>p : array-like</p>
+<p>The value of the derivative of the link function g&#8217;(p)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pade.links.Link.inverse">
+<tt class="descname">inverse</tt><big>(</big><em>z</em><big>)</big><a class="reference internal" href="../_modules/pade/links.html#Link.inverse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.links.Link.inverse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Inverse of the link function.  Just a placeholder.</p>
+<dl class="docutils">
+<dt>z <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd><cite>z</cite> is usually the linear predictor of the transformed variable
+in the IRLS algorithm for GLM.</dd>
+</dl>
+<p>The value of the inverse of the link function g^(-1)(z) = p</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pade.links.Log">
+<em class="property">class </em><tt class="descclassname">pade.links.</tt><tt class="descname">Log</tt><a class="reference internal" href="../_modules/pade/links.html#Log"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.links.Log" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pade.links.Link" title="pade.links.Link"><tt class="xref py py-class docutils literal"><span class="pre">pade.links.Link</span></tt></a></p>
+<p>The log transform</p>
+<p>call and derivative call a private method _clean to trim the data by
+1e-10 so that p is in (0,1). log is an alias of Log.</p>
+<dl class="method">
+<dt id="pade.links.Log.deriv">
+<tt class="descname">deriv</tt><big>(</big><em>p</em><big>)</big><a class="reference internal" href="../_modules/pade/links.html#Log.deriv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.links.Log.deriv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Derivative of log transform link function</p>
+<dl class="docutils">
+<dt>p <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Mean parameters</dd>
+</dl>
+<dl class="docutils">
+<dt>g&#8217;(p) <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>derivative of log transform of x</dd>
+</dl>
+<p>g(x) = 1/x</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pade.links.Log.inverse">
+<tt class="descname">inverse</tt><big>(</big><em>z</em><big>)</big><a class="reference internal" href="../_modules/pade/links.html#Log.inverse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.links.Log.inverse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Inverse of log transform link function</p>
+<dl class="docutils">
+<dt>z <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>The inverse of the link function at <cite>p</cite></dd>
+</dl>
+<dl class="docutils">
+<dt>p <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>The mean probabilities given the value of the inverse <cite>z</cite></dd>
+</dl>
+<p>g^{-1}(z) = exp(z)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pade.links.Log.tol">
+<tt class="descname">tol</tt><em class="property"> = 1e-10</em><a class="headerlink" href="#pade.links.Log.tol" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pade.links.Logit">
+<em class="property">class </em><tt class="descclassname">pade.links.</tt><tt class="descname">Logit</tt><a class="reference internal" href="../_modules/pade/links.html#Logit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.links.Logit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pade.links.Link" title="pade.links.Link"><tt class="xref py py-class docutils literal"><span class="pre">pade.links.Link</span></tt></a></p>
+<p>The logit transform</p>
+<p>call and derivative use a private method _clean to make trim p by
+1e-10 so that p is in (0,1)</p>
+<p>Alias of Logit:
+logit = Logit()</p>
+<dl class="method">
+<dt id="pade.links.Logit.deriv">
+<tt class="descname">deriv</tt><big>(</big><em>p</em><big>)</big><a class="reference internal" href="../_modules/pade/links.html#Logit.deriv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.links.Logit.deriv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Derivative of the logit transform</p>
+<dl class="docutils">
+<dt>p: array-like</dt>
+<dd>Probabilities</dd>
+</dl>
+<dl class="docutils">
+<dt>g&#8217;(p) <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>Value of the derivative of logit transform at <cite>p</cite></dd>
+</dl>
+<p>g&#8217;(p) = 1 / (p * (1 - p))</p>
+<p>Alias for <cite>Logit</cite>:
+logit = Logit()</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pade.links.Logit.inverse">
+<tt class="descname">inverse</tt><big>(</big><em>z</em><big>)</big><a class="reference internal" href="../_modules/pade/links.html#Logit.inverse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.links.Logit.inverse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Inverse of the logit transform</p>
+<dl class="docutils">
+<dt>z <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>The value of the logit transform at <cite>p</cite></dd>
+</dl>
+<dl class="docutils">
+<dt>p <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>Probabilities</dd>
+</dl>
+<p>g^(-1)(z) = exp(z)/(1+exp(z))</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pade.links.Logit.tol">
+<tt class="descname">tol</tt><em class="property"> = 1e-10</em><a class="headerlink" href="#pade.links.Logit.tol" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pade.links.NegativeBinomial">
+<em class="property">class </em><tt class="descclassname">pade.links.</tt><tt class="descname">NegativeBinomial</tt><big>(</big><em>alpha=1.0</em><big>)</big><a class="reference internal" href="../_modules/pade/links.html#NegativeBinomial"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.links.NegativeBinomial" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>The negative binomial link function</p>
+<dl class="docutils">
+<dt>alpha <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd>Alpha is the ancillary parameter of the Negative Binomial link function.
+It is assumed to be nonstochastic.  The default value is 1. Permissible
+values are usually assumed to be in (.01,2).</dd>
+</dl>
+<dl class="method">
+<dt id="pade.links.NegativeBinomial.deriv">
+<tt class="descname">deriv</tt><big>(</big><em>p</em><big>)</big><a class="reference internal" href="../_modules/pade/links.html#NegativeBinomial.deriv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.links.NegativeBinomial.deriv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Derivative of the negative binomial transform</p>
+<dl class="docutils">
+<dt>p <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Mean parameters</dd>
+</dl>
+<dl class="docutils">
+<dt>g&#8217;(p) <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>The derivative of the negative binomial transform link function</dd>
+</dl>
+<p>g&#8217;(x) = 1/(x+alpha*x^2)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pade.links.NegativeBinomial.inverse">
+<tt class="descname">inverse</tt><big>(</big><em>z</em><big>)</big><a class="reference internal" href="../_modules/pade/links.html#NegativeBinomial.inverse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.links.NegativeBinomial.inverse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Inverse of the negative binomial transform</p>
+<dl class="docutils">
+<dt>z <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>The value of the inverse of the negative binomial link at <cite>p</cite>.</dd>
+</dl>
+<dl class="docutils">
+<dt>p <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>Mean parameters</dd>
+</dl>
+<p>g^(-1)(z) = exp(z)/(alpha*(1-exp(z)))</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pade.links.NegativeBinomial.tol">
+<tt class="descname">tol</tt><em class="property"> = 1e-10</em><a class="headerlink" href="#pade.links.NegativeBinomial.tol" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pade.links.Power">
+<em class="property">class </em><tt class="descclassname">pade.links.</tt><tt class="descname">Power</tt><big>(</big><em>power=1.0</em><big>)</big><a class="reference internal" href="../_modules/pade/links.html#Power"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.links.Power" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pade.links.Link" title="pade.links.Link"><tt class="xref py py-class docutils literal"><span class="pre">pade.links.Link</span></tt></a></p>
+<p>The power transform</p>
+<dl class="docutils">
+<dt>power <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd>The exponent of the power transform</dd>
+</dl>
+<p>Aliases of Power:
+inverse = Power(power=-1)
+sqrt = Power(power=.5)
+inverse_squared = Power(power=-2.)
+identity = Power(power=1.)</p>
+<dl class="method">
+<dt id="pade.links.Power.deriv">
+<tt class="descname">deriv</tt><big>(</big><em>p</em><big>)</big><a class="reference internal" href="../_modules/pade/links.html#Power.deriv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.links.Power.deriv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Derivative of the power transform</p>
+<dl class="docutils">
+<dt>p <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Mean parameters</dd>
+</dl>
+<dl class="docutils">
+<dt>g&#8217;(p) <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>Derivative of power transform of <cite>p</cite></dd>
+</dl>
+<p>g&#8217;(<cite>p</cite>) = <cite>power</cite> * <cite>p`**(`power</cite> - 1)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pade.links.Power.inverse">
+<tt class="descname">inverse</tt><big>(</big><em>z</em><big>)</big><a class="reference internal" href="../_modules/pade/links.html#Power.inverse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.links.Power.inverse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Inverse of the power transform link function</p>
+<dl class="docutils">
+<dt><cite>z</cite> <span class="classifier-delimiter">:</span> <span class="classifier">array-like</span></dt>
+<dd>Value of the transformed mean parameters at <cite>p</cite></dd>
+</dl>
+<dl class="docutils">
+<dt><cite>p</cite> <span class="classifier-delimiter">:</span> <span class="classifier">array</span></dt>
+<dd>Mean parameters</dd>
+</dl>
+<p>g^(-1)(z`) = <cite>z`**(1/`power</cite>)</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pade.links.cauchy">
+<em class="property">class </em><tt class="descclassname">pade.links.</tt><tt class="descname">cauchy</tt><a class="reference internal" href="../_modules/pade/links.html#cauchy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.links.cauchy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pade.links.CDFLink" title="pade.links.CDFLink"><tt class="xref py py-class docutils literal"><span class="pre">pade.links.CDFLink</span></tt></a></p>
+<p>The Cauchy (standard Cauchy CDF) transform</p>
+<p>g(p) = scipy.stats.cauchy.ppf(p)</p>
+<p>cauchy is an alias of CDFLink with dbn=scipy.stats.cauchy</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="pade.links.cloglog">
+<em class="property">class </em><tt class="descclassname">pade.links.</tt><tt class="descname">cloglog</tt><a class="reference internal" href="../_modules/pade/links.html#cloglog"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.links.cloglog" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pade.links.CLogLog" title="pade.links.CLogLog"><tt class="xref py py-class docutils literal"><span class="pre">pade.links.CLogLog</span></tt></a></p>
+<p>The CLogLog transform link function.</p>
+<p>g(<cite>p</cite>) = log(-log(1-<cite>p</cite>))</p>
+<p>cloglog is an alias for CLogLog
+cloglog = CLogLog()</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="pade.links.identity">
+<em class="property">class </em><tt class="descclassname">pade.links.</tt><tt class="descname">identity</tt><a class="reference internal" href="../_modules/pade/links.html#identity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.links.identity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pade.links.Power" title="pade.links.Power"><tt class="xref py py-class docutils literal"><span class="pre">pade.links.Power</span></tt></a></p>
+<p>The identity transform</p>
+<p>g(<cite>p</cite>) = <cite>p</cite></p>
+<p>Alias of statsmodels.family.links.Power(power=1.)</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="pade.links.inverse_power">
+<em class="property">class </em><tt class="descclassname">pade.links.</tt><tt class="descname">inverse_power</tt><a class="reference internal" href="../_modules/pade/links.html#inverse_power"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.links.inverse_power" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pade.links.Power" title="pade.links.Power"><tt class="xref py py-class docutils literal"><span class="pre">pade.links.Power</span></tt></a></p>
+<p>The inverse transform</p>
+<p>g(p) = 1/p</p>
+<p>Alias of statsmodels.family.links.Power(power=-1.)</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="pade.links.inverse_squared">
+<em class="property">class </em><tt class="descclassname">pade.links.</tt><tt class="descname">inverse_squared</tt><a class="reference internal" href="../_modules/pade/links.html#inverse_squared"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.links.inverse_squared" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pade.links.Power" title="pade.links.Power"><tt class="xref py py-class docutils literal"><span class="pre">pade.links.Power</span></tt></a></p>
+<p>The inverse squared transform</p>
+<p>g(<cite>p</cite>) = 1/(<cite>p</cite>**2)</p>
+<p>Alias of statsmodels.family.links.Power(power=2.)</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="pade.links.log">
+<em class="property">class </em><tt class="descclassname">pade.links.</tt><tt class="descname">log</tt><a class="reference internal" href="../_modules/pade/links.html#log"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.links.log" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pade.links.Log" title="pade.links.Log"><tt class="xref py py-class docutils literal"><span class="pre">pade.links.Log</span></tt></a></p>
+<p>The log transform</p>
+<p>log is a an alias of Log.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="pade.links.logit">
+<em class="property">class </em><tt class="descclassname">pade.links.</tt><tt class="descname">logit</tt><a class="reference internal" href="../_modules/pade/links.html#logit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.links.logit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pade.links.Logit" title="pade.links.Logit"><tt class="xref py py-class docutils literal"><span class="pre">pade.links.Logit</span></tt></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="pade.links.nbinom">
+<em class="property">class </em><tt class="descclassname">pade.links.</tt><tt class="descname">nbinom</tt><big>(</big><em>alpha=1.0</em><big>)</big><a class="reference internal" href="../_modules/pade/links.html#nbinom"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.links.nbinom" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pade.links.NegativeBinomial" title="pade.links.NegativeBinomial"><tt class="xref py py-class docutils literal"><span class="pre">pade.links.NegativeBinomial</span></tt></a></p>
+<p>The negative binomial link function.</p>
+<p>g(p) = log(p/(p + 1/alpha))</p>
+<p>nbinom is an alias of NegativeBinomial.
+nbinom = NegativeBinomial(alpha=1.)</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="pade.links.probit">
+<em class="property">class </em><tt class="descclassname">pade.links.</tt><tt class="descname">probit</tt><big>(</big><em>dbn=&lt;scipy.stats.distributions.norm_gen object at 0x75010b0&gt;</em><big>)</big><a class="reference internal" href="../_modules/pade/links.html#probit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.links.probit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pade.links.CDFLink" title="pade.links.CDFLink"><tt class="xref py py-class docutils literal"><span class="pre">pade.links.CDFLink</span></tt></a></p>
+<p>The probit (standard normal CDF) transform</p>
+<p>g(p) = scipy.stats.norm.ppf(p)</p>
+<p>probit is an alias of CDFLink.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="pade.links.sqrt">
+<em class="property">class </em><tt class="descclassname">pade.links.</tt><tt class="descname">sqrt</tt><a class="reference internal" href="../_modules/pade/links.html#sqrt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.links.sqrt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pade.links.Power" title="pade.links.Power"><tt class="xref py py-class docutils literal"><span class="pre">pade.links.Power</span></tt></a></p>
+<p>The square-root transform</p>
+<p>g(<cite>p</cite>) = sqrt(<cite>p</cite>)</p>
+<p>Alias of statsmodels.family.links.Power(power=.5)</p>
+</dd></dl>
+
+</div>
 <div class="section" id="module-pade.main">
 <span id="main-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">main</span></tt> Module<a class="headerlink" href="#module-pade.main" title="Permalink to this headline">¶</a></h2>
 <p>The main program for pade.</p>
@@ -502,6 +2023,11 @@ reduced layout will be shuffled.</p>
 <dd></dd></dl>
 
 <dl class="function">
+<dt id="pade.main.do_view">
+<tt class="descclassname">pade.main.</tt><tt class="descname">do_view</tt><big>(</big><em>args</em><big>)</big><a class="reference internal" href="../_modules/pade/main.html#do_view"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.main.do_view" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
 <dt id="pade.main.fix_newlines">
 <tt class="descclassname">pade.main.</tt><tt class="descname">fix_newlines</tt><big>(</big><em>msg</em><big>)</big><a class="reference internal" href="../_modules/pade/main.html#fix_newlines"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.main.fix_newlines" title="Permalink to this definition">¶</a></dt>
 <dd><p>Attempt to wrap long lines as paragraphs.</p>
@@ -519,7 +2045,7 @@ object.</p>
 
 <dl class="function">
 <dt id="pade.main.init_job">
-<tt class="descclassname">pade.main.</tt><tt class="descname">init_job</tt><big>(</big><em>infile</em>, <em>factors</em>, <em>schema_path=None</em>, <em>force=False</em><big>)</big><a class="reference internal" href="../_modules/pade/main.html#init_job"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.main.init_job" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">pade.main.</tt><tt class="descname">init_job</tt><big>(</big><em>infile</em>, <em>factors</em>, <em>schema_path=None</em><big>)</big><a class="reference internal" href="../_modules/pade/main.html#init_job"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.main.init_job" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
@@ -542,13 +2068,13 @@ system.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pade.main.print_profile">
-<tt class="descclassname">pade.main.</tt><tt class="descname">print_profile</tt><big>(</big><em>job</em><big>)</big><a class="reference internal" href="../_modules/pade/main.html#print_profile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.main.print_profile" title="Permalink to this definition">¶</a></dt>
+<dt id="pade.main.print_summary">
+<tt class="descclassname">pade.main.</tt><tt class="descname">print_summary</tt><big>(</big><em>job</em><big>)</big><a class="reference internal" href="../_modules/pade/main.html#print_summary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.main.print_summary" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
-<dt id="pade.main.print_summary">
-<tt class="descclassname">pade.main.</tt><tt class="descname">print_summary</tt><big>(</big><em>job</em><big>)</big><a class="reference internal" href="../_modules/pade/main.html#print_summary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.main.print_summary" title="Permalink to this definition">¶</a></dt>
+<dt id="pade.main.quote_and_join">
+<tt class="descclassname">pade.main.</tt><tt class="descname">quote_and_join</tt><big>(</big><em>xs</em><big>)</big><a class="reference internal" href="../_modules/pade/main.html#quote_and_join"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.main.quote_and_join" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
@@ -559,6 +2085,11 @@ system.</p>
 <dl class="function">
 <dt id="pade.main.setup_logging">
 <tt class="descclassname">pade.main.</tt><tt class="descname">setup_logging</tt><big>(</big><em>args</em><big>)</big><a class="reference internal" href="../_modules/pade/main.html#setup_logging"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.main.setup_logging" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.main.validate_settings">
+<tt class="descclassname">pade.main.</tt><tt class="descname">validate_settings</tt><big>(</big><em>schema</em>, <em>settings</em><big>)</big><a class="reference internal" href="../_modules/pade/main.html#validate_settings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.main.validate_settings" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </div>
@@ -579,6 +2110,11 @@ system.</p>
 <tt class="descname">description</tt><em class="property"> = None</em><a class="headerlink" href="#pade.metadb.InputFileMeta.description" title="Permalink to this definition">¶</a></dt>
 <dd><p>Longer, free-form description of the object.</p>
 </dd></dl>
+
+<dl class="attribute">
+<dt id="pade.metadb.InputFileMeta.extension">
+<tt class="descname">extension</tt><em class="property"> = 'txt'</em><a class="headerlink" href="#pade.metadb.InputFileMeta.extension" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="attribute">
 <dt id="pade.metadb.InputFileMeta.input_file_to_schemas">
@@ -605,7 +2141,7 @@ system.</p>
 
 <dl class="class">
 <dt id="pade.metadb.JobMeta">
-<em class="property">class </em><tt class="descclassname">pade.metadb.</tt><tt class="descname">JobMeta</tt><big>(</big><em>obj_id</em>, <em>name</em>, <em>path</em>, <em>dt_created=None</em>, <em>description=None</em>, <em>raw_file_id=None</em>, <em>schema_id=None</em><big>)</big><a class="reference internal" href="../_modules/pade/metadb.html#JobMeta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.metadb.JobMeta" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">pade.metadb.</tt><tt class="descname">JobMeta</tt><big>(</big><em>obj_id</em>, <em>name</em>, <em>path</em>, <em>dt_created=None</em>, <em>description=None</em>, <em>raw_file_id=None</em>, <em>schema_id=None</em>, <em>imported=None</em><big>)</big><a class="reference internal" href="../_modules/pade/metadb.html#JobMeta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.metadb.JobMeta" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#pade.metadb.ObjMeta" title="pade.metadb.ObjMeta"><tt class="xref py py-class docutils literal"><span class="pre">pade.metadb.ObjMeta</span></tt></a></p>
 <p>Meta-data for an HDF5 job database.</p>
 <dl class="attribute">
@@ -618,6 +2154,11 @@ system.</p>
 <tt class="descname">description</tt><em class="property"> = None</em><a class="headerlink" href="#pade.metadb.JobMeta.description" title="Permalink to this definition">¶</a></dt>
 <dd><p>Longer, free-form description of the object.</p>
 </dd></dl>
+
+<dl class="attribute">
+<dt id="pade.metadb.JobMeta.extension">
+<tt class="descname">extension</tt><em class="property"> = 'pade'</em><a class="headerlink" href="#pade.metadb.JobMeta.extension" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="attribute">
 <dt id="pade.metadb.JobMeta.name">
@@ -655,7 +2196,7 @@ system.</p>
 
 <dl class="method">
 <dt id="pade.metadb.MetaDB.add_job">
-<tt class="descname">add_job</tt><big>(</big><em>name</em>, <em>description</em>, <em>raw_file_meta</em>, <em>schema_meta</em><big>)</big><a class="reference internal" href="../_modules/pade/metadb.html#MetaDB.add_job"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.metadb.MetaDB.add_job" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">add_job</tt><big>(</big><em>name</em>, <em>description</em>, <em>raw_file_meta=None</em>, <em>schema_meta=None</em>, <em>stream=None</em><big>)</big><a class="reference internal" href="../_modules/pade/metadb.html#MetaDB.add_job"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.metadb.MetaDB.add_job" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -766,6 +2307,11 @@ system.</p>
 <dd><p>Longer, free-form description of the object.</p>
 </dd></dl>
 
+<dl class="attribute">
+<dt id="pade.metadb.SchemaMeta.extension">
+<tt class="descname">extension</tt><em class="property"> = 'yaml'</em><a class="headerlink" href="#pade.metadb.SchemaMeta.extension" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="method">
 <dt id="pade.metadb.SchemaMeta.load">
 <tt class="descname">load</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/metadb.html#SchemaMeta.load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.metadb.SchemaMeta.load" title="Permalink to this definition">¶</a></dt>
@@ -825,6 +2371,12 @@ with a header line.</td>
 
 </dd></dl>
 
+<dl class="exception">
+<dt id="pade.model.InvalidSettingsException">
+<em class="property">exception </em><tt class="descclassname">pade.model.</tt><tt class="descname">InvalidSettingsException</tt><a class="reference internal" href="../_modules/pade/model.html#InvalidSettingsException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.model.InvalidSettingsException" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">exceptions.Exception</span></tt></p>
+</dd></dl>
+
 <dl class="class">
 <dt id="pade.model.Job">
 <em class="property">class </em><tt class="descclassname">pade.model.</tt><tt class="descname">Job</tt><big>(</big><em>job_id=None</em>, <em>input=None</em>, <em>schema=None</em>, <em>settings=None</em>, <em>results=None</em>, <em>summary=None</em><big>)</big><a class="reference internal" href="../_modules/pade/model.html#Job"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.model.Job" title="Permalink to this definition">¶</a></dt>
@@ -856,6 +2408,12 @@ job, and a summary of those results.</p>
 <dt id="pade.model.Job.full_variables">
 <tt class="descname">full_variables</tt><a class="reference internal" href="../_modules/pade/model.html#Job.full_variables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.model.Job.full_variables" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="method">
+<dt id="pade.model.Job.get_stat_fn">
+<tt class="descname">get_stat_fn</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/model.html#Job.get_stat_fn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.model.Job.get_stat_fn" title="Permalink to this definition">¶</a></dt>
+<dd><p>The statistic used for this job.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="pade.model.Job.layout">
@@ -1007,11 +2565,6 @@ Schema.dump.</p>
 to those factors.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="pade.model.Schema.remove_factor">
-<tt class="descname">remove_factor</tt><big>(</big><em>factor</em><big>)</big><a class="reference internal" href="../_modules/pade/model.html#Schema.remove_factor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.model.Schema.remove_factor" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 <dl class="attribute">
 <dt id="pade.model.Schema.sample_column_names">
 <tt class="descname">sample_column_names</tt><a class="reference internal" href="../_modules/pade/model.html#Schema.sample_column_names"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.model.Schema.sample_column_names" title="Permalink to this definition">¶</a></dt>
@@ -1068,7 +2621,7 @@ sample.</p>
 
 <dl class="class">
 <dt id="pade.model.Settings">
-<em class="property">class </em><tt class="descclassname">pade.model.</tt><tt class="descname">Settings</tt><big>(</big><em>stat_name='f_test', num_bins=1000, num_samples=1000, sample_from_residuals=False, sample_with_replacement=False, condition_variables=None, block_variables=None, min_conf=0.25, equalize_means=True, conf_interval=0.05, tuning_params=[0.001, 0.01, 0.1, 1, 3, 10, 30, 100, 300, 1000, 3000], equalize_means_ids=None</em><big>)</big><a class="reference internal" href="../_modules/pade/model.html#Settings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.model.Settings" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">pade.model.</tt><tt class="descname">Settings</tt><big>(</big><em>stat=None, glm_family='', num_bins=1000, num_samples=1000, sample_from_residuals=False, sample_with_replacement=False, condition_variables=[], block_variables=[], summary_min_conf=0.1, equalize_means=False, summary_step_size=0.05, tuning_params=[0.0001, 0.001, 0.01, 0.1, 1, 3, 10, 30, 100, 300, 1000, 3000], equalize_means_ids=None</em><big>)</big><a class="reference internal" href="../_modules/pade/model.html#Settings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.model.Settings" title="Permalink to this definition">¶</a></dt>
 <dd><p>The settings that control how the job is run.</p>
 <dl class="attribute">
 <dt id="pade.model.Settings.block_variables">
@@ -1080,12 +2633,6 @@ sample.</p>
 <dt id="pade.model.Settings.condition_variables">
 <tt class="descname">condition_variables</tt><em class="property"> = None</em><a class="headerlink" href="#pade.model.Settings.condition_variables" title="Permalink to this definition">¶</a></dt>
 <dd><p>List of variables you want to test for differential effects.</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="pade.model.Settings.conf_interval">
-<tt class="descname">conf_interval</tt><em class="property"> = None</em><a class="headerlink" href="#pade.model.Settings.conf_interval" title="Permalink to this definition">¶</a></dt>
-<dd><p>Interval of confidence values to report on.</p>
 </dd></dl>
 
 <dl class="attribute">
@@ -1101,9 +2648,9 @@ sample.</p>
 </dd></dl>
 
 <dl class="attribute">
-<dt id="pade.model.Settings.min_conf">
-<tt class="descname">min_conf</tt><em class="property"> = None</em><a class="headerlink" href="#pade.model.Settings.min_conf" title="Permalink to this definition">¶</a></dt>
-<dd><p>Minimum confidence level to report on.</p>
+<dt id="pade.model.Settings.glm_family">
+<tt class="descname">glm_family</tt><em class="property"> = None</em><a class="headerlink" href="#pade.model.Settings.glm_family" title="Permalink to this definition">¶</a></dt>
+<dd><p>Name of statistic to use.</p>
 </dd></dl>
 
 <dl class="attribute">
@@ -1132,9 +2679,21 @@ sample.</p>
 </dd></dl>
 
 <dl class="attribute">
-<dt id="pade.model.Settings.stat_name">
-<tt class="descname">stat_name</tt><em class="property"> = None</em><a class="headerlink" href="#pade.model.Settings.stat_name" title="Permalink to this definition">¶</a></dt>
-<dd><p>Name of the statistic to use.</p>
+<dt id="pade.model.Settings.stat">
+<tt class="descname">stat</tt><em class="property"> = None</em><a class="headerlink" href="#pade.model.Settings.stat" title="Permalink to this definition">¶</a></dt>
+<dd><p>Name of statistic to use.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pade.model.Settings.summary_min_conf">
+<tt class="descname">summary_min_conf</tt><em class="property"> = None</em><a class="headerlink" href="#pade.model.Settings.summary_min_conf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Minimum confidence level to report on.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="pade.model.Settings.summary_step_size">
+<tt class="descname">summary_step_size</tt><em class="property"> = None</em><a class="headerlink" href="#pade.model.Settings.summary_step_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Interval of confidence values to report on.</p>
 </dd></dl>
 
 <dl class="attribute">
@@ -1180,41 +2739,6 @@ sample.</p>
 <dt id="pade.model.write_yaml_block_comment">
 <tt class="descclassname">pade.model.</tt><tt class="descname">write_yaml_block_comment</tt><big>(</big><em>fh</em>, <em>comment</em><big>)</big><a class="reference internal" href="../_modules/pade/model.html#write_yaml_block_comment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.model.write_yaml_block_comment" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
-
-</div>
-<div class="section" id="module-pade.performance">
-<span id="performance-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">performance</span></tt> Module<a class="headerlink" href="#module-pade.performance" title="Permalink to this headline">¶</a></h2>
-<p>Utilities for measuring performance of PaGE.</p>
-<dl class="exception">
-<dt id="pade.performance.ProfileStackException">
-<em class="property">exception </em><tt class="descclassname">pade.performance.</tt><tt class="descname">ProfileStackException</tt><a class="reference internal" href="../_modules/pade/performance.html#ProfileStackException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.performance.ProfileStackException" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">exceptions.Exception</span></tt></p>
-<p>Thrown when the profile stack is corrupt.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="pade.performance.maxrss">
-<tt class="descclassname">pade.performance.</tt><tt class="descname">maxrss</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/performance.html#maxrss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.performance.maxrss" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return the current maximum RSS allocation in GB.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="pade.performance.profiled">
-<tt class="descclassname">pade.performance.</tt><tt class="descname">profiled</tt><big>(</big><em>method</em><big>)</big><a class="reference internal" href="../_modules/pade/performance.html#profiled"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.performance.profiled" title="Permalink to this definition">¶</a></dt>
-<dd><p>Decorator for profiling a function.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="pade.performance.profiling">
-<tt class="descclassname">pade.performance.</tt><tt class="descname">profiling</tt><big>(</big><em>*args</em>, <em>**kwds</em><big>)</big><a class="reference internal" href="../_modules/pade/performance.html#profiling"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.performance.profiling" title="Permalink to this definition">¶</a></dt>
-<dd><p>Context manager for capturing performance metrics of a block.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="pade.performance.walk_profile">
-<tt class="descclassname">pade.performance.</tt><tt class="descname">walk_profile</tt><big>(</big><em>profile_log=</em><span class="optional">[</span><span class="optional">]</span><big>)</big><a class="reference internal" href="../_modules/pade/performance.html#walk_profile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.performance.walk_profile" title="Permalink to this definition">¶</a></dt>
-<dd><p>Analyze the given list of events and return a table.</p>
-</dd></dl>
 
 </div>
 <div class="section" id="module-pade.redis_session">
@@ -1263,9 +2787,6 @@ sample.</p>
 </dd></dl>
 
 </div>
-<div class="section" id="server-module">
-<h2><tt class="xref py py-mod docutils literal"><span class="pre">server</span></tt> Module<a class="headerlink" href="#server-module" title="Permalink to this headline">¶</a></h2>
-</div>
 <div class="section" id="module-pade.stat">
 <span id="stat-module"></span><h2><a class="reference external" href="http://docs.python.org/library/stat.html#stat" title="(in Python v2.7)"><tt class="xref py py-mod docutils literal"><span class="pre">stat</span></tt></a> Module<a class="headerlink" href="#module-pade.stat" title="Permalink to this headline">¶</a></h2>
 <p>Low-level statistical methods.</p>
@@ -1273,8 +2794,8 @@ sample.</p>
 on the data model used in PADE or the workflow. The idea is that we
 may use these functions outside of the standard PADE workflow.</p>
 <dl class="class">
-<dt id="pade.stat.Ftest">
-<em class="property">class </em><tt class="descclassname">pade.stat.</tt><tt class="descname">Ftest</tt><big>(</big><em>condition_layout</em>, <em>block_layout</em>, <em>alphas=None</em><big>)</big><a class="reference internal" href="../_modules/pade/stat.html#Ftest"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.Ftest" title="Permalink to this definition">¶</a></dt>
+<dt id="pade.stat.FStat">
+<em class="property">class </em><tt class="descclassname">pade.stat.</tt><tt class="descname">FStat</tt><big>(</big><em>condition_layout</em>, <em>block_layout</em>, <em>alphas=None</em><big>)</big><a class="reference internal" href="../_modules/pade/stat.html#FStat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.FStat" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#pade.stat.LayoutPairTest" title="pade.stat.LayoutPairTest"><tt class="xref py py-class docutils literal"><span class="pre">pade.stat.LayoutPairTest</span></tt></a></p>
 <p>Computes the F-test.</p>
 <p>Some sample data</p>
@@ -1291,7 +2812,7 @@ layout has all columns in one group.</p>
 </pre></div>
 </div>
 <p>Construct one ftest based on our layouts</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">ftest</span> <span class="o">=</span> <span class="n">Ftest</span><span class="p">(</span><span class="n">condition_layout</span><span class="p">,</span> <span class="n">block_layout</span><span class="p">)</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">ftest</span> <span class="o">=</span> <span class="n">FStat</span><span class="p">(</span><span class="n">condition_layout</span><span class="p">,</span> <span class="n">block_layout</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Test one row</p>
@@ -1306,8 +2827,62 @@ layout has all columns in one group.</p>
 </pre></div>
 </div>
 <dl class="attribute">
-<dt id="pade.stat.Ftest.name">
-<tt class="descname">name</tt><em class="property"> = 'F-test'</em><a class="headerlink" href="#pade.stat.Ftest.name" title="Permalink to this definition">¶</a></dt>
+<dt id="pade.stat.FStat.ALLOWS_EQUALIZED_MEANS">
+<tt class="descname">ALLOWS_EQUALIZED_MEANS</tt><em class="property"> = True</em><a class="headerlink" href="#pade.stat.FStat.ALLOWS_EQUALIZED_MEANS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pade.stat.FStat.NAME">
+<tt class="descname">NAME</tt><em class="property"> = 'f'</em><a class="headerlink" href="#pade.stat.FStat.NAME" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pade.stat.FStat.validate_layouts">
+<tt class="descname">validate_layouts</tt><big>(</big><em>condition_layout</em>, <em>block_layout</em><big>)</big><a class="reference internal" href="../_modules/pade/stat.html#FStat.validate_layouts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.FStat.validate_layouts" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pade.stat.GLMFStat">
+<em class="property">class </em><tt class="descclassname">pade.stat.</tt><tt class="descname">GLMFStat</tt><big>(</big><em>condition_layout</em>, <em>block_layout</em>, <em>alphas=None</em>, <em>family='gaussian'</em><big>)</big><a class="reference internal" href="../_modules/pade/stat.html#GLMFStat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.GLMFStat" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pade.stat.LayoutPairTest" title="pade.stat.LayoutPairTest"><tt class="xref py py-class docutils literal"><span class="pre">pade.stat.LayoutPairTest</span></tt></a></p>
+<p>Computes an f-test using a generalized linear model.</p>
+<p>Some sample data</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">2.</span><span class="p">,</span>  <span class="mf">3.</span><span class="p">,</span> <span class="mf">6.</span><span class="p">])</span>                                      
+<span class="gp">&gt;&gt;&gt; </span><span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">2.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span>  <span class="mf">1.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">])</span>                                      
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">3.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="mf">10.</span><span class="p">,</span> <span class="mf">4.</span><span class="p">])</span>                                      
+</pre></div>
+</div>
+<p>The condition layout has the first two columns in one group and          
+the second two in another. There is no blocking, so the block            
+layout has all columns in one group.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">condition_layout</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]]</span>                                  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">block_layout</span>     <span class="o">=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]]</span>                                    
+</pre></div>
+</div>
+<p>Construct one ftest based on our layouts</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">f</span> <span class="o">=</span> <span class="n">GLMFStat</span><span class="p">(</span><span class="n">condition_layout</span><span class="p">,</span> <span class="n">block_layout</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">])</span>                                           
+<span class="gp">&gt;&gt;&gt; </span><span class="n">f</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>                                                              
+<span class="go">array([ 3.6,  1. ,  2.5])</span>
+</pre></div>
+</div>
+<dl class="attribute">
+<dt id="pade.stat.GLMFStat.contrast">
+<tt class="descname">contrast</tt><a class="reference internal" href="../_modules/pade/stat.html#GLMFStat.contrast"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.GLMFStat.contrast" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pade.stat.GLMFStat.fittedvalues">
+<tt class="descname">fittedvalues</tt><big>(</big><em>y</em><big>)</big><a class="reference internal" href="../_modules/pade/stat.html#GLMFStat.fittedvalues"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.GLMFStat.fittedvalues" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pade.stat.GLMFStat.x">
+<tt class="descname">x</tt><a class="reference internal" href="../_modules/pade/stat.html#GLMFStat.x"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.GLMFStat.x" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -1354,15 +2929,25 @@ greater than the other one.</li>
 </tbody>
 </table>
 <dl class="attribute">
-<dt id="pade.stat.MeansRatio.name">
-<tt class="descname">name</tt><em class="property"> = 'means ratio'</em><a class="headerlink" href="#pade.stat.MeansRatio.name" title="Permalink to this definition">¶</a></dt>
+<dt id="pade.stat.MeansRatio.ALLOWS_EQUALIZED_MEANS">
+<tt class="descname">ALLOWS_EQUALIZED_MEANS</tt><em class="property"> = False</em><a class="headerlink" href="#pade.stat.MeansRatio.ALLOWS_EQUALIZED_MEANS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pade.stat.MeansRatio.NAME">
+<tt class="descname">NAME</tt><em class="property"> = 'means_ratio'</em><a class="headerlink" href="#pade.stat.MeansRatio.NAME" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pade.stat.MeansRatio.validate_layouts">
+<tt class="descname">validate_layouts</tt><big>(</big><em>condition_layout</em>, <em>block_layout</em><big>)</big><a class="reference internal" href="../_modules/pade/stat.html#MeansRatio.validate_layouts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.MeansRatio.validate_layouts" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 <dl class="class">
-<dt id="pade.stat.OneSampleDifferenceTTest">
-<em class="property">class </em><tt class="descclassname">pade.stat.</tt><tt class="descname">OneSampleDifferenceTTest</tt><big>(</big><em>condition_layout</em>, <em>block_layout</em>, <em>alphas=None</em><big>)</big><a class="reference internal" href="../_modules/pade/stat.html#OneSampleDifferenceTTest"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.OneSampleDifferenceTTest" title="Permalink to this definition">¶</a></dt>
+<dt id="pade.stat.OneSampleDifferenceTStat">
+<em class="property">class </em><tt class="descclassname">pade.stat.</tt><tt class="descname">OneSampleDifferenceTStat</tt><big>(</big><em>condition_layout</em>, <em>block_layout</em>, <em>alphas=None</em><big>)</big><a class="reference internal" href="../_modules/pade/stat.html#OneSampleDifferenceTStat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.OneSampleDifferenceTStat" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#pade.stat.LayoutPairTest" title="pade.stat.LayoutPairTest"><tt class="xref py py-class docutils literal"><span class="pre">pade.stat.LayoutPairTest</span></tt></a></p>
 <p>A one-sample t-test where the input is given as pairs.</p>
 <p>Input with two features (one on each row), eight samples
@@ -1378,25 +2963,30 @@ are the other</p>
 </pre></div>
 </div>
 <p>Construct the test function with the condition and block layouts.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">test</span> <span class="o">=</span> <span class="n">OneSampleDifferenceTTest</span><span class="p">(</span><span class="n">condition_layout</span><span class="p">,</span> <span class="n">block_layout</span><span class="p">)</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">test</span> <span class="o">=</span> <span class="n">OneSampleDifferenceTStat</span><span class="p">(</span><span class="n">condition_layout</span><span class="p">,</span> <span class="n">block_layout</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Apply it to 1d input (the first feature in the table):</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="nb">round</span><span class="p">(</span><span class="n">test</span><span class="p">(</span><span class="n">table</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="mi">7</span><span class="p">)</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="nb">round</span><span class="p">(</span><span class="n">test</span><span class="p">(</span><span class="n">table</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="mi">7</span><span class="p">)</span>
 <span class="go">4.472136</span>
 </pre></div>
 </div>
 <p>Now 2d input (both features in the table):</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">results</span> <span class="o">=</span> <span class="n">test</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="nb">round</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">7</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">round</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">7</span><span class="p">)</span>
 <span class="go">4.472136</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="nb">round</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">7</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">round</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">7</span><span class="p">)</span>
 <span class="go">0.5656854</span>
 </pre></div>
 </div>
 <dl class="attribute">
-<dt id="pade.stat.OneSampleDifferenceTTest.name">
-<tt class="descname">name</tt><em class="property"> = 'OneSampleDifferenceTTest'</em><a class="headerlink" href="#pade.stat.OneSampleDifferenceTTest.name" title="Permalink to this definition">¶</a></dt>
+<dt id="pade.stat.OneSampleDifferenceTStat.ALLOWS_EQUALIZED_MEANS">
+<tt class="descname">ALLOWS_EQUALIZED_MEANS</tt><em class="property"> = False</em><a class="headerlink" href="#pade.stat.OneSampleDifferenceTStat.ALLOWS_EQUALIZED_MEANS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pade.stat.OneSampleDifferenceTStat.NAME">
+<tt class="descname">NAME</tt><em class="property"> = 'one_sample_t'</em><a class="headerlink" href="#pade.stat.OneSampleDifferenceTStat.NAME" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -1404,7 +2994,64 @@ are the other</p>
 <dl class="class">
 <dt id="pade.stat.OneSampleTTest">
 <em class="property">class </em><tt class="descclassname">pade.stat.</tt><tt class="descname">OneSampleTTest</tt><big>(</big><em>alphas=None</em><big>)</big><a class="reference internal" href="../_modules/pade/stat.html#OneSampleTTest"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.OneSampleTTest" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="pade.stat.OneSampleTTest.ALLOWS_EQUALIZED_MEANS">
+<tt class="descname">ALLOWS_EQUALIZED_MEANS</tt><em class="property"> = False</em><a class="headerlink" href="#pade.stat.OneSampleTTest.ALLOWS_EQUALIZED_MEANS" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pade.stat.SeparationStat">
+<em class="property">class </em><tt class="descclassname">pade.stat.</tt><tt class="descname">SeparationStat</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pade/stat.html#SeparationStat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.SeparationStat" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pade.stat.LayoutPairTest" title="pade.stat.LayoutPairTest"><tt class="xref py py-class docutils literal"><span class="pre">pade.stat.LayoutPairTest</span></tt></a></p>
+<p>Computes a statistic based on the distance between the means.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="n">SeparationStat</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="o">.</span><span class="n">sep</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">7</span><span class="p">])</span>
+<span class="go">5.0</span>
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="o">.</span><span class="n">sep</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">7</span><span class="p">])</span>
+<span class="go">2.0</span>
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="o">.</span><span class="n">sep</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">])</span>
+<span class="go">0.0</span>
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="nb">round</span><span class="p">(</span><span class="n">s</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">7</span><span class="p">]),</span> <span class="mi">1</span><span class="p">)</span>
+<span class="go">1.0</span>
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="nb">round</span><span class="p">(</span><span class="n">s</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">7</span><span class="p">]),</span> <span class="mi">1</span><span class="p">)</span>
+<span class="go">0.4</span>
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">])</span>
+<span class="go">0.0</span>
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="n">SeparationStat</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="o">.</span><span class="n">sep</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">7</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">10</span><span class="p">]])</span>
+<span class="go">array([ 5.,  4.])</span>
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">7</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">10</span><span class="p">]])</span>
+<span class="go">array([ 1. ,  0.8])</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt id="pade.stat.SeparationStat.sep">
+<tt class="descname">sep</tt><big>(</big><em>data</em><big>)</big><a class="reference internal" href="../_modules/pade/stat.html#SeparationStat.sep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.SeparationStat.sep" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="exception">
+<dt id="pade.stat.UnknownStatisticException">
+<em class="property">exception </em><tt class="descclassname">pade.stat.</tt><tt class="descname">UnknownStatisticException</tt><a class="reference internal" href="../_modules/pade/stat.html#UnknownStatisticException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.UnknownStatisticException" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">exceptions.Exception</span></tt></p>
+</dd></dl>
 
 <dl class="exception">
 <dt id="pade.stat.UnsupportedLayoutException">
@@ -1522,9 +3169,81 @@ falling in the range associated with the corresponding bin.</p>
 </dd></dl>
 
 <dl class="function">
+<dt id="pade.stat.categories">
+<tt class="descclassname">pade.stat.</tt><tt class="descname">categories</tt><big>(</big><em>cond_layout</em>, <em>block_layout</em><big>)</big><a class="reference internal" href="../_modules/pade/stat.html#categories"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.categories" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a categorical matrix for the pair of layouts.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">categories</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]],</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]])</span> 
+<span class="go">array([[1, 0],</span>
+<span class="go">       [1, 0],</span>
+<span class="go">       [1, 1],</span>
+<span class="go">       [1, 1]])</span>
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">categories</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">]],</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">]])</span> 
+<span class="go">array([[1, 0, 0],</span>
+<span class="go">       [1, 0, 0],</span>
+<span class="go">       [1, 1, 0],</span>
+<span class="go">       [1, 1, 0],</span>
+<span class="go">       [1, 0, 1],</span>
+<span class="go">       [1, 0, 1]])</span>
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">categories</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">]],</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">7</span><span class="p">]])</span> 
+<span class="go">array([[1, 0, 0],</span>
+<span class="go">       [1, 1, 0],</span>
+<span class="go">       [1, 0, 0],</span>
+<span class="go">       [1, 1, 0],</span>
+<span class="go">       [1, 0, 1],</span>
+<span class="go">       [1, 1, 1],</span>
+<span class="go">       [1, 0, 1],</span>
+<span class="go">       [1, 1, 1]])</span>
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">categories</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span> <span class="p">[</span><span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">11</span><span class="p">],</span> <span class="p">[</span><span class="mi">12</span><span class="p">,</span> <span class="mi">13</span><span class="p">,</span> <span class="mi">14</span> <span class="p">,</span><span class="mi">15</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">17</span><span class="p">]],</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">15</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">13</span><span class="p">,</span> <span class="mi">16</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">14</span><span class="p">,</span> <span class="mi">17</span><span class="p">]])</span>
+<span class="go">array([[1, 0, 0, 0, 0],</span>
+<span class="go">       [1, 1, 0, 0, 0],</span>
+<span class="go">       [1, 0, 1, 0, 0],</span>
+<span class="go">       [1, 0, 0, 0, 0],</span>
+<span class="go">       [1, 1, 0, 0, 0],</span>
+<span class="go">       [1, 0, 1, 0, 0],</span>
+<span class="go">       [1, 0, 0, 1, 0],</span>
+<span class="go">       [1, 1, 0, 1, 0],</span>
+<span class="go">       [1, 0, 1, 1, 0],</span>
+<span class="go">       [1, 0, 0, 1, 0],</span>
+<span class="go">       [1, 1, 0, 1, 0],</span>
+<span class="go">       [1, 0, 1, 1, 0],</span>
+<span class="go">       [1, 0, 0, 0, 1],</span>
+<span class="go">       [1, 1, 0, 0, 1],</span>
+<span class="go">       [1, 0, 1, 0, 1],</span>
+<span class="go">       [1, 0, 0, 0, 1],</span>
+<span class="go">       [1, 1, 0, 0, 1],</span>
+<span class="go">       [1, 0, 1, 0, 1]])</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
 <dt id="pade.stat.confidence_scores">
 <tt class="descclassname">pade.stat.</tt><tt class="descname">confidence_scores</tt><big>(</big><em>raw_counts</em>, <em>perm_counts</em>, <em>num_features</em><big>)</big><a class="reference internal" href="../_modules/pade/stat.html#confidence_scores"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.confidence_scores" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return confidence scores.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pade.stat.contrast">
+<tt class="descclassname">pade.stat.</tt><tt class="descname">contrast</tt><big>(</big><em>cond_layout</em>, <em>block_layout</em><big>)</big><a class="reference internal" href="../_modules/pade/stat.html#contrast"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.contrast" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the contrast matrix for the given layout pair.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">contrast</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]],</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]])</span>
+<span class="go">array([[0, 1]])</span>
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">contrast</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">]],</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">]])</span> 
+<span class="go">array([[0, 1, 0], [0, 0, 1]])</span>
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">contrast</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">]],</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">7</span><span class="p">]])</span> 
+<span class="go">array([[0, 0, 1]])</span>
+</pre></div>
+</div>
 </dd></dl>
 
 <dl class="function">
@@ -1557,6 +3276,45 @@ has one less element.</p>
 <tt class="descclassname">pade.stat.</tt><tt class="descname">ensure_scores_increase</tt><big>(</big><em>scores</em><big>)</big><a class="reference internal" href="../_modules/pade/stat.html#ensure_scores_increase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.ensure_scores_increase" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a copy of the given ndarray with monotonically increasing values.</p>
 </dd></dl>
+
+<dl class="function">
+<dt id="pade.stat.get_stat">
+<tt class="descclassname">pade.stat.</tt><tt class="descname">get_stat</tt><big>(</big><em>name</em>, <em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pade/stat.html#get_stat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.get_stat" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a statistic function by name.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">f</span> <span class="o">=</span> <span class="n">get_stat</span><span class="p">(</span><span class="s">&#39;f&#39;</span><span class="p">,</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]],</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">type</span><span class="p">(</span><span class="n">f</span><span class="p">)</span><span class="o">.</span><span class="n">__name__</span>
+<span class="go">&#39;FStat&#39;</span>
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">f</span><span class="o">.</span><span class="n">condition_layout</span>
+<span class="go">[[0, 1], [2, 3]]</span>
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">f</span><span class="o">.</span><span class="n">block_layout</span>
+<span class="go">[[0, 1, 2, 3]]</span>
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">get_stat</span><span class="p">(</span><span class="s">&#39;t&#39;</span><span class="p">,</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]],</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">OneSampleDifferenceTStat</span><span class="p">)</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">mr</span> <span class="o">=</span> <span class="n">get_stat</span><span class="p">(</span><span class="s">&#39;means_ratio&#39;</span><span class="p">,</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]],</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">isinstance</span><span class="p">(</span><span class="n">mr</span><span class="p">,</span> <span class="n">MeansRatio</span><span class="p">)</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">glm</span> <span class="o">=</span> <span class="n">get_stat</span><span class="p">(</span><span class="s">&#39;glm&#39;</span><span class="p">,</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]],</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">isinstance</span><span class="p">(</span><span class="n">glm</span><span class="p">,</span> <span class="n">GLMFStat</span><span class="p">)</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="pade.stat.glm_families">
+<tt class="descclassname">pade.stat.</tt><tt class="descname">glm_families</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/stat.html#glm_families"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.glm_families" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="function">
 <dt id="pade.stat.group_means">
@@ -1647,6 +3405,11 @@ no grouping will be used.</li>
 </div>
 </dd></dl>
 
+<dl class="function">
+<dt id="pade.stat.stat_names">
+<tt class="descclassname">pade.stat.</tt><tt class="descname">stat_names</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/stat.html#stat_names"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.stat.stat_names" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </div>
 <div class="section" id="module-pade.tasks">
 <span id="tasks-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">tasks</span></tt> Module<a class="headerlink" href="#module-pade.tasks" title="Permalink to this headline">¶</a></h2>
@@ -1701,28 +3464,187 @@ together.</p>
 <tt class="descclassname">pade.tasks.</tt><tt class="descname">steps</tt><big>(</big><em>settings</em>, <em>schema</em>, <em>infile_path</em>, <em>sample_indexes_path</em>, <em>path</em>, <em>job_id</em><big>)</big><a class="reference internal" href="../_modules/pade/tasks.html#steps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.tasks.steps" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+<dl class="function">
+<dt id="pade.tasks.timing">
+<tt class="descclassname">pade.tasks.</tt><tt class="descname">timing</tt><big>(</big><em>*args</em>, <em>**kwds</em><big>)</big><a class="reference internal" href="../_modules/pade/tasks.html#timing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.tasks.timing" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-pade.varfuncs">
+<span id="varfuncs-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">varfuncs</span></tt> Module<a class="headerlink" href="#module-pade.varfuncs" title="Permalink to this headline">¶</a></h2>
+<p>Variance functions for use with the link functions in statsmodels.family.links</p>
+<p>This is based on statsmodels/genmod/families/family.py in the
+statsmodels project: <a class="reference external" href="https://github.com/statsmodels/statsmodels">https://github.com/statsmodels/statsmodels</a>.</p>
+<p>I have copied and modified the source from statsmodels in order to
+optimize the algorithms for our purposes. PADE is interested in
+fitting many models, one for each feature in the input (from tens of
+thousands to millions). In a single job, all the models have the same
+number of parameters, and that number is typically quite small, such
+as 2. We also have a relatively small number of observations, since
+each one represents a replicate of an experiment.</p>
+<p>In order to fit these models quickly, we have changed many of the
+statsmodels methods to add an additional dimension to parameters and
+return values; this extra dimension representing the features. I
+started to modify a forked version of the statsmodels project, with
+the intention of contributing the changes back to statsmodels, but it
+would have been impossible to make these changes in a way that did not
+break the original statsmodels behavior. This is because many of the
+functions already accept input of varying dimensionality, and behave
+differently depending on how many dimensions their input arrays have.</p>
+<p>The statsmodels license follows:</p>
+<blockquote>
+<div><p>Copyright (C) 2006, Jonathan E. Taylor
+All rights reserved.</p>
+<p>Copyright (c) 2006-2008 Scipy Developers.
+All rights reserved.</p>
+<p>Copyright (c) 2009-2012 Statsmodels Developers.
+All rights reserved.</p>
+<p>Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:</p>
+<blockquote>
+<div><ol class="loweralpha simple">
+<li>Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.</li>
+<li>Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.</li>
+<li>Neither the name of Statsmodels nor the names of its contributors
+may be used to endorse or promote products derived from this software
+without specific prior written permission.</li>
+</ol>
+</div></blockquote>
+<p>THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &#8220;AS IS&#8221;
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL STATSMODELS OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+DAMAGE.</p>
+</div></blockquote>
+<dl class="class">
+<dt id="pade.varfuncs.Binomial">
+<em class="property">class </em><tt class="descclassname">pade.varfuncs.</tt><tt class="descname">Binomial</tt><big>(</big><em>n=1</em><big>)</big><a class="reference internal" href="../_modules/pade/varfuncs.html#Binomial"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.varfuncs.Binomial" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>Binomial variance function</p>
+<dl class="docutils">
+<dt>n <span class="classifier-delimiter">:</span> <span class="classifier">int, optional</span></dt>
+<dd>The number of trials for a binomial variable.  The default is 1 for
+p in (0,1)</dd>
+</dl>
+<dl class="docutils">
+<dt>call</dt>
+<dd>Returns the binomial variance</dd>
+</dl>
+<p>V(mu) = p * (1 - p) * n</p>
+<p>where p = mu / n</p>
+<p>Alias for Binomial:
+binary = Binomial()</p>
+<p>A private method _clean trims the data by 1e-10 so that p is in (0,1)</p>
+<dl class="attribute">
+<dt id="pade.varfuncs.Binomial.tol">
+<tt class="descname">tol</tt><em class="property"> = 1e-10</em><a class="headerlink" href="#pade.varfuncs.Binomial.tol" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pade.varfuncs.NegativeBinomial">
+<em class="property">class </em><tt class="descclassname">pade.varfuncs.</tt><tt class="descname">NegativeBinomial</tt><big>(</big><em>alpha=1.0</em><big>)</big><a class="reference internal" href="../_modules/pade/varfuncs.html#NegativeBinomial"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.varfuncs.NegativeBinomial" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>Negative binomial variance function</p>
+<dl class="docutils">
+<dt>alpha <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd>The ancillary parameter for the negative binomial variance function.
+<cite>alpha</cite> is assumed to be nonstochastic.  The default is 1.</dd>
+</dl>
+<dl class="docutils">
+<dt>call</dt>
+<dd>Returns the negative binomial variance</dd>
+</dl>
+<p>V(mu) = mu + alpha*mu**2</p>
+<p>Alias for NegativeBinomial:
+nbinom = NegativeBinomial()</p>
+<p>A private method _clean trims the data by 1e-10 so that p is in (0,inf)</p>
+<dl class="attribute">
+<dt id="pade.varfuncs.NegativeBinomial.tol">
+<tt class="descname">tol</tt><em class="property"> = 1e-10</em><a class="headerlink" href="#pade.varfuncs.NegativeBinomial.tol" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pade.varfuncs.Power">
+<em class="property">class </em><tt class="descclassname">pade.varfuncs.</tt><tt class="descname">Power</tt><big>(</big><em>power=1.0</em><big>)</big><a class="reference internal" href="../_modules/pade/varfuncs.html#Power"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.varfuncs.Power" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>Power variance function</p>
+<dl class="docutils">
+<dt>power <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd>exponent used in power variance function</dd>
+</dl>
+<dl class="docutils">
+<dt>call</dt>
+<dd>Returns the power variance</dd>
+</dl>
+<p>V(mu) = numpy.fabs(mu)**power</p>
+<p>Aliases for Power:
+mu = Power()
+mu_squared = Power(power=2)
+mu_cubed = Power(power=3)</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="pade.varfuncs.VarianceFunction">
+<em class="property">class </em><tt class="descclassname">pade.varfuncs.</tt><tt class="descname">VarianceFunction</tt><a class="reference internal" href="../_modules/pade/varfuncs.html#VarianceFunction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.varfuncs.VarianceFunction" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>Relates the variance of a random variable to its mean. Defaults to 1.</p>
+<dl class="docutils">
+<dt>call</dt>
+<dd>Returns an array of ones that is the same shape as <cite>mu</cite></dd>
+</dl>
+<p>After a variance function is initialized, its call method can be used.</p>
+<p>Alias for VarianceFunction:
+constant = VarianceFunction()</p>
+<p>statsmodels.family.family</p>
+</dd></dl>
+
 </div>
 <div class="section" id="subpackages">
 <h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this headline">¶</a></h2>
 <div class="toctree-wrapper compound">
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="pade.http.html">http Package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pade.http.html#module-pade.http.inputfile"><tt class="docutils literal"><span class="pre">inputfile</span></tt> Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pade.http.html#module-pade.http.jobbrowser"><tt class="docutils literal"><span class="pre">jobbrowser</span></tt> Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pade.http.html#module-pade.http.jobdetails"><tt class="docutils literal"><span class="pre">jobdetails</span></tt> Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pade.http.html#module-pade.http.newjob"><tt class="docutils literal"><span class="pre">newjob</span></tt> Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pade.http.html#module-pade.http.server"><tt class="docutils literal"><span class="pre">server</span></tt> Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pade.http.html#subpackages">Subpackages</a><ul class="simple">
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="pade.test.html">test Package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="pade.test.html#id1"><tt class="docutils literal"><span class="pre">test</span></tt> Package</a></li>
-<li class="toctree-l2"><a class="reference internal" href="pade.test.html#module-pade.test.test_common"><tt class="docutils literal"><span class="pre">test_common</span></tt> Module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="pade.test.html#module-pade.test.test_job"><tt class="docutils literal"><span class="pre">test_job</span></tt> Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pade.test.html#module-pade.test.padeconfig"><tt class="docutils literal"><span class="pre">padeconfig</span></tt> Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pade.test.html#module-pade.test.test_analysis"><tt class="docutils literal"><span class="pre">test_analysis</span></tt> Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pade.test.html#module-pade.test.test_glm"><tt class="docutils literal"><span class="pre">test_glm</span></tt> Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pade.test.html#module-pade.test.test_main"><tt class="docutils literal"><span class="pre">test_main</span></tt> Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pade.test.html#module-pade.test.test_metadb"><tt class="docutils literal"><span class="pre">test_metadb</span></tt> Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pade.test.html#module-pade.test.test_model"><tt class="docutils literal"><span class="pre">test_model</span></tt> Module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="pade.test.html#module-pade.test.test_profile"><tt class="docutils literal"><span class="pre">test_profile</span></tt> Module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="pade.test.html#module-pade.test.test_schema"><tt class="docutils literal"><span class="pre">test_schema</span></tt> Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pade.test.html#module-pade.test.test_server"><tt class="docutils literal"><span class="pre">test_server</span></tt> Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pade.test.html#module-pade.test.test_stat"><tt class="docutils literal"><span class="pre">test_stat</span></tt> Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pade.test.html#module-pade.test.utils"><tt class="docutils literal"><span class="pre">utils</span></tt> Module</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="pade.tools.html">tools Package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="pade.tools.html#id1"><tt class="docutils literal"><span class="pre">tools</span></tt> Package</a></li>
-<li class="toctree-l2"><a class="reference internal" href="pade.tools.html#module-pade.tools.make_perf_input"><tt class="docutils literal"><span class="pre">make_perf_input</span></tt> Module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="pade.tools.html#module-pade.tools.perlvspython"><tt class="docutils literal"><span class="pre">perlvspython</span></tt> Module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="pade.tools.html#module-pade.tools.profile"><tt class="docutils literal"><span class="pre">profile</span></tt> Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pade.tools.html#profile-glm-module"><tt class="docutils literal"><span class="pre">profile_glm</span></tt> Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pade.tools.html#module-pade.tools.time_glm"><tt class="docutils literal"><span class="pre">time_glm</span></tt> Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pade.tools.html#module-pade.tools.time_stat"><tt class="docutils literal"><span class="pre">time_stat</span></tt> Module</a></li>
 </ul>
 </li>
 </ul>
@@ -1742,15 +3664,18 @@ together.</p>
 <li><a class="reference internal" href="#id1"><tt class="docutils literal"><span class="pre">pade</span></tt> Package</a></li>
 <li><a class="reference internal" href="#module-pade.analysis"><tt class="docutils literal"><span class="pre">analysis</span></tt> Module</a></li>
 <li><a class="reference internal" href="#module-pade.celery"><tt class="docutils literal"><span class="pre">celery</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-pade.config"><tt class="docutils literal"><span class="pre">config</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-pade.family"><tt class="docutils literal"><span class="pre">family</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-pade.glm"><tt class="docutils literal"><span class="pre">glm</span></tt> Module</a></li>
 <li><a class="reference internal" href="#module-pade.layout"><tt class="docutils literal"><span class="pre">layout</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-pade.links"><tt class="docutils literal"><span class="pre">links</span></tt> Module</a></li>
 <li><a class="reference internal" href="#module-pade.main"><tt class="docutils literal"><span class="pre">main</span></tt> Module</a></li>
 <li><a class="reference internal" href="#module-pade.metadb"><tt class="docutils literal"><span class="pre">metadb</span></tt> Module</a></li>
 <li><a class="reference internal" href="#module-pade.model"><tt class="docutils literal"><span class="pre">model</span></tt> Module</a></li>
-<li><a class="reference internal" href="#module-pade.performance"><tt class="docutils literal"><span class="pre">performance</span></tt> Module</a></li>
 <li><a class="reference internal" href="#module-pade.redis_session"><tt class="docutils literal"><span class="pre">redis_session</span></tt> Module</a></li>
-<li><a class="reference internal" href="#server-module"><tt class="docutils literal"><span class="pre">server</span></tt> Module</a></li>
 <li><a class="reference internal" href="#module-pade.stat"><tt class="docutils literal"><span class="pre">stat</span></tt> Module</a></li>
 <li><a class="reference internal" href="#module-pade.tasks"><tt class="docutils literal"><span class="pre">tasks</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-pade.varfuncs"><tt class="docutils literal"><span class="pre">varfuncs</span></tt> Module</a></li>
 <li><a class="reference internal" href="#subpackages">Subpackages</a><ul>
 </ul>
 </li>
@@ -1762,8 +3687,8 @@ together.</p>
   <p class="topless"><a href="../api.html"
                         title="previous chapter">API Documentation</a></p>
   <h4>Next topic</h4>
-  <p class="topless"><a href="pade.test.html"
-                        title="next chapter">test Package</a></p>
+  <p class="topless"><a href="pade.http.html"
+                        title="next chapter">http Package</a></p>
   <h3>This Page</h3>
   <ul class="this-page-menu">
     <li><a href="../_sources/generated/pade.txt"
@@ -1796,7 +3721,7 @@ together.</p>
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="pade.test.html" title="test Package"
+          <a href="pade.http.html" title="http Package"
              >next</a> |</li>
         <li class="right" >
           <a href="../api.html" title="API Documentation"

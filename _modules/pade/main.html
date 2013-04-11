@@ -59,9 +59,10 @@
 <span class="c">#  + pade_results.hdf5</span>
 
 
+
 <span class="sd">&quot;&quot;&quot;The main program for pade.&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span>
 
 <span class="c"># External imports</span>
 
@@ -79,12 +80,18 @@
 <span class="kn">import</span> <span class="nn">celery</span>
 <span class="kn">import</span> <span class="nn">pade.tasks</span>
 <span class="kn">import</span> <span class="nn">textwrap</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">pade.config</span>
+<span class="kn">import</span> <span class="nn">webbrowser</span>
+<span class="kn">import</span> <span class="nn">urllib2</span>
+<span class="kn">import</span> <span class="nn">pade.analysis</span> <span class="kn">as</span> <span class="nn">an</span>
 
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">namedtuple</span>
 <span class="kn">from</span> <span class="nn">numpy.lib.recfunctions</span> <span class="kn">import</span> <span class="n">append_fields</span>
-<span class="kn">from</span> <span class="nn">pade.performance</span> <span class="kn">import</span> <span class="o">*</span>
 <span class="kn">from</span> <span class="nn">pade.model</span> <span class="kn">import</span> <span class="n">Job</span><span class="p">,</span> <span class="n">Model</span><span class="p">,</span> <span class="n">Settings</span><span class="p">,</span> <span class="n">Input</span><span class="p">,</span> <span class="n">Results</span><span class="p">,</span> <span class="n">Schema</span>
-<span class="kn">from</span> <span class="nn">pade.stat</span> <span class="kn">import</span> <span class="n">GroupSymbols</span>
-
+<span class="kn">from</span> <span class="nn">pade.stat</span> <span class="kn">import</span> <span class="n">GroupSymbols</span><span class="p">,</span> <span class="n">stat_names</span><span class="p">,</span> <span class="n">glm_families</span>
+<span class="kn">from</span> <span class="nn">pade.metadb</span> <span class="kn">import</span> <span class="n">JobMeta</span>
+<span class="kn">from</span> <span class="nn">threading</span> <span class="kn">import</span> <span class="n">Thread</span>
 
 <span class="n">REAL_PATH</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">realpath</span><span class="p">(</span><span class="n">__file__</span><span class="p">)</span>
 
@@ -111,19 +118,17 @@
 <span class="c">###</span>
 </div>
 <div class="viewcode-block" id="print_summary"><a class="viewcode-back" href="../../generated/pade.html#pade.main.print_summary">[docs]</a><span class="k">def</span> <span class="nf">print_summary</span><span class="p">(</span><span class="n">job</span><span class="p">):</span>
-    <span class="k">print</span> <span class="s">&quot;&quot;&quot;</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">&quot;&quot;&quot;</span>
 <span class="s">Summary of features by confidence level:</span>
 
 <span class="s">Confidence |   Num.   | Tuning</span>
 <span class="s">   Level   | Features | Param.</span>
-<span class="s">-----------+----------+-------&quot;&quot;&quot;</span>
+<span class="s">-----------+----------+-------&quot;&quot;&quot;</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">counts</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
-        <span class="k">print</span> <span class="s">&quot;{bin:10.1%} | {count:8d} | {param:0.4f}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-            <span class="nb">bin</span><span class="o">=</span><span class="n">job</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">bins</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-            <span class="n">count</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">counts</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span>
-            <span class="n">param</span><span class="o">=</span><span class="n">job</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">tuning_params</span><span class="p">[</span><span class="n">job</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">best_param_idxs</span><span class="p">[</span><span class="n">i</span><span class="p">]])</span>
-
-
+        <span class="k">print</span><span class="p">(</span><span class="s">&quot;{bin:10.1%} | {count:8d} | {param:0.4f}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="nb">bin</span><span class="o">=</span><span class="n">job</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">bins</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                <span class="n">count</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">counts</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span>
+                <span class="n">param</span><span class="o">=</span><span class="n">job</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">tuning_params</span><span class="p">[</span><span class="n">job</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">best_param_idxs</span><span class="p">[</span><span class="n">i</span><span class="p">]]))</span>
 
 
 <span class="c">########################################################################</span>
@@ -134,31 +139,34 @@
 <div class="viewcode-block" id="do_setup"><a class="viewcode-back" href="../../generated/pade.html#pade.main.do_setup">[docs]</a><span class="k">def</span> <span class="nf">do_setup</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
     <span class="n">schema</span> <span class="o">=</span> <span class="n">init_job</span><span class="p">(</span>
         <span class="n">infile</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">infile</span><span class="p">,</span>
-        <span class="n">schema_path</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">schema</span><span class="p">,</span>
-        <span class="n">factors</span><span class="o">=</span><span class="p">{</span><span class="n">f</span> <span class="p">:</span> <span class="bp">None</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">factor</span><span class="p">},</span>
-        <span class="n">force</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">force</span><span class="p">)</span>
+        <span class="n">schema_path</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">output</span><span class="p">,</span>
+        <span class="n">factors</span><span class="o">=</span><span class="p">{</span><span class="n">f</span> <span class="p">:</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">factor</span><span class="p">})</span>
 
-    <span class="k">print</span> <span class="n">fix_newlines</span><span class="p">(</span><span class="s">&quot;&quot;&quot;</span>
-<span class="s">I have generated a schema for your input file, with factors {factors}, and saved it to &quot;{filename}&quot;. You should now edit that file to set the factors for each sample. The file contains instructions on how to edit it.</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">&quot;&quot;&quot;</span>
+<span class="s">I have generated a schema for your input file, with factors {factors},</span>
+<span class="s">and saved it to &quot;{filename}&quot;. You should now edit that file to set the</span>
+<span class="s">factors for each sample. The file contains instructions on how to edit</span>
+<span class="s">it.</span>
 
-<span class="s">Once you have finished the schema, you will need to run &quot;pade run&quot; to do the analysis. See &quot;pade run -h&quot; for its usage.</span>
-<span class="s">&quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">factors</span><span class="o">=</span><span class="n">schema</span><span class="o">.</span><span class="n">factors</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span>
+<span class="s">Once you have finished the schema, you will need to run &quot;pade run&quot; to</span>
+<span class="s">do the analysis. See &quot;pade run -h&quot; for its usage.</span>
+<span class="s">&quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">factors</span><span class="o">=</span><span class="n">schema</span><span class="o">.</span><span class="n">factors</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">output</span><span class="p">))</span>
 </div>
 <div class="viewcode-block" id="do_makesamples"><a class="viewcode-back" href="../../generated/pade.html#pade.main.do_makesamples">[docs]</a><span class="k">def</span> <span class="nf">do_makesamples</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
 
-    <span class="n">settings</span><span class="o">=</span><span class="n">Settings</span><span class="p">(</span>
-        <span class="n">sample_with_replacement</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">sample_with_replacement</span><span class="p">,</span>
+    <span class="n">settings</span> <span class="o">=</span> <span class="n">Settings</span><span class="p">(</span>
         <span class="n">num_samples</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">num_samples</span><span class="p">,</span>
         <span class="n">block_variables</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">block</span><span class="p">,</span>
-        <span class="n">condition_variables</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">condition</span><span class="p">)</span>
+        <span class="n">condition_variables</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">condition</span><span class="p">,</span>
+        <span class="n">stat</span><span class="o">=</span><span class="s">&#39;f&#39;</span><span class="p">)</span>
 
     <span class="n">schema</span> <span class="o">=</span> <span class="n">load_schema</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span>
-    <span class="nb">input</span>  <span class="o">=</span> <span class="n">Input</span><span class="o">.</span><span class="n">from_raw_file</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">infile</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">schema</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="nb">input</span>  <span class="o">=</span> <span class="n">Input</span><span class="o">.</span><span class="n">from_raw_file</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">infile</span><span class="p">,</span> <span class="n">schema</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">job</span> <span class="o">=</span> <span class="n">Job</span><span class="p">(</span><span class="nb">input</span><span class="o">=</span><span class="nb">input</span><span class="p">,</span>
               <span class="n">settings</span><span class="o">=</span><span class="n">settings</span><span class="p">,</span>
               <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">)</span>
 
-    <span class="n">res</span> <span class="o">=</span> <span class="n">new_sample_indexes</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">an</span><span class="o">.</span><span class="n">new_sample_indexes</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">output</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
         <span class="n">output</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span>
     <span class="k">else</span><span class="p">:</span>
@@ -173,83 +181,153 @@
         <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">row</span><span class="p">:</span>
             <span class="n">output</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39; {:3d}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
         <span class="n">output</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot; # &quot;</span> <span class="o">+</span> <span class="n">test</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">row</span><span class="p">))</span> <span class="o">+</span> <span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="quote_and_join"><a class="viewcode-back" href="../../generated/pade.html#pade.main.quote_and_join">[docs]</a><span class="k">def</span> <span class="nf">quote_and_join</span><span class="p">(</span><span class="n">xs</span><span class="p">):</span>
+    <span class="n">xs</span> <span class="o">=</span> <span class="p">[</span> <span class="s">&#39;&quot;&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;&quot;&#39;</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">xs</span> <span class="p">]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s">&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">xs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">xs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s">&quot; and &quot;</span> <span class="o">+</span> <span class="n">xs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">xs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot;and &quot;</span> <span class="o">+</span> <span class="n">xs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">return</span> <span class="s">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
 
 </div>
+<div class="viewcode-block" id="validate_settings"><a class="viewcode-back" href="../../generated/pade.html#pade.main.validate_settings">[docs]</a><span class="k">def</span> <span class="nf">validate_settings</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">settings</span><span class="p">):</span>
+    <span class="nb">vars</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">settings</span><span class="o">.</span><span class="n">condition_variables</span> <span class="o">+</span> <span class="n">settings</span><span class="o">.</span><span class="n">block_variables</span><span class="p">)</span>
+    <span class="n">known_vars</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">factors</span><span class="p">)</span>
+    <span class="n">bad_vars</span> <span class="o">=</span> <span class="nb">vars</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="n">known_vars</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">bad_vars</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        
+        <span class="k">raise</span> <span class="n">UsageException</span><span class="p">(</span>
+            <span class="s">&quot;Unknown variables &quot;</span> <span class="o">+</span> <span class="n">quote_and_join</span><span class="p">(</span><span class="n">bad_vars</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot;.  Valid variables are &quot;</span> <span class="o">+</span> <span class="n">quote_and_join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">known_vars</span><span class="p">))</span> <span class="o">+</span> <span class="s">&quot;.&quot;</span> <span class="p">)</span>
+</div>
 <div class="viewcode-block" id="do_run"><a class="viewcode-back" href="../../generated/pade.html#pade.main.do_run">[docs]</a><span class="k">def</span> <span class="nf">do_run</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
-    <span class="k">print</span> <span class="s">&quot;&quot;&quot;</span>
-<span class="s">Analyzing {filename}, which is described by the schema {schema}.</span>
-<span class="s">&quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">infile</span><span class="p">,</span>
-           <span class="n">schema</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">&quot;Analyzing {filename}, which is described by the schema {schema}.&quot;</span>
+          <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">infile</span><span class="p">,</span>
+                  <span class="n">schema</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">schema</span><span class="p">))</span>
 
     <span class="n">infile</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">infile</span><span class="p">)</span>
-    <span class="n">db</span>     <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">db</span><span class="p">)</span>
+    <span class="n">db</span>     <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">output</span><span class="p">)</span>
+
+    <span class="n">schema</span> <span class="o">=</span> <span class="n">load_schema</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span>
+    <span class="n">settings</span> <span class="o">=</span> <span class="n">args_to_settings</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+
+    <span class="n">validate_settings</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">settings</span><span class="p">)</span>
 
     <span class="n">steps</span> <span class="o">=</span> <span class="n">pade</span><span class="o">.</span><span class="n">tasks</span><span class="o">.</span><span class="n">steps</span><span class="p">(</span>
         <span class="n">infile_path</span><span class="o">=</span><span class="n">infile</span><span class="p">,</span>
-        <span class="n">schema</span><span class="o">=</span><span class="n">load_schema</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">schema</span><span class="p">),</span>
-        <span class="n">settings</span><span class="o">=</span><span class="n">args_to_settings</span><span class="p">(</span><span class="n">args</span><span class="p">),</span>
+        <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">,</span>
+        <span class="n">settings</span><span class="o">=</span><span class="n">settings</span><span class="p">,</span>
         <span class="n">sample_indexes_path</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">sample_indexes</span><span class="p">,</span>
-        <span class="n">path</span><span class="o">=</span><span class="n">db</span><span class="p">)</span>
+        <span class="n">path</span><span class="o">=</span><span class="n">db</span><span class="p">,</span>
+        <span class="n">job_id</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">distrib</span><span class="p">:</span>
         <span class="n">celery</span><span class="o">.</span><span class="n">chain</span><span class="p">(</span><span class="n">steps</span><span class="p">)()</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="n">steps</span><span class="p">:</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
             <span class="n">res</span> <span class="o">=</span> <span class="n">step</span><span class="o">.</span><span class="n">apply</span><span class="p">()</span>
+            <span class="n">end</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">res</span><span class="o">.</span><span class="n">successful</span><span class="p">():</span>
                 <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">traceback</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Task &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">step</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot; completed in &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot; seconds&quot;</span><span class="p">)</span>
 
     <span class="n">job</span> <span class="o">=</span> <span class="n">pade</span><span class="o">.</span><span class="n">tasks</span><span class="o">.</span><span class="n">load_job</span><span class="p">(</span><span class="n">db</span><span class="p">)</span>
     <span class="n">print_summary</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
 
-    <span class="k">print</span> <span class="s">&quot;&quot;&quot;&lt;</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">&quot;&quot;&quot;</span>
 <span class="s">The results for the job are saved in {path}. To generate a text</span>
 <span class="s">report, run:</span>
 
-<span class="s">  pade report --db {path}</span>
+<span class="s">  {pade} report --output REPORT_FILE {path}</span>
 
-<span class="s">To launch a small web server to generate the HTML reports, run:</span>
+<span class="s">To launch a small web server to generate HTML reports, run:</span>
 
-<span class="s">  pade server --db {path}</span>
-<span class="s">&quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">db</span><span class="p">)</span>
+<span class="s">  {pade} view {path}</span>
+<span class="s">&quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">output</span><span class="p">,</span>
+          <span class="n">pade</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
 </div>
 <div class="viewcode-block" id="do_server"><a class="viewcode-back" href="../../generated/pade.html#pade.main.do_server">[docs]</a><span class="k">def</span> <span class="nf">do_server</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
-    <span class="kn">import</span> <span class="nn">pade.server</span>
+    <span class="kn">import</span> <span class="nn">pade.http.server</span>
 
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">prod</span><span class="p">:</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="n">pade</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">search</span><span class="p">()</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="n">pade</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">default</span>
+    <span class="n">app</span> <span class="o">=</span> <span class="n">pade</span><span class="o">.</span><span class="n">http</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">PadeRunner</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
-        <span class="n">pade</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="bp">True</span>
-    <span class="n">pade</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">port</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">port</span><span class="p">)</span>
-    
+        <span class="n">app</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="bp">True</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">port</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">port</span><span class="p">)</span>
 </div>
-<div class="viewcode-block" id="do_report"><a class="viewcode-back" href="../../generated/pade.html#pade.main.do_report">[docs]</a><span class="k">def</span> <span class="nf">do_report</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
-    <span class="n">path</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">db</span>
+<div class="viewcode-block" id="do_view"><a class="viewcode-back" href="../../generated/pade.html#pade.main.do_view">[docs]</a><span class="k">def</span> <span class="nf">do_view</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
 
-    <span class="k">print</span> <span class="s">&quot;&quot;&quot;</span>
-<span class="s">Generating report for result database {job}.</span>
-<span class="s">&quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">job</span><span class="o">=</span><span class="n">path</span><span class="p">)</span>
-    <span class="n">job</span> <span class="o">=</span> <span class="n">load_job</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="kn">import</span> <span class="nn">pade.http.server</span>
+    <span class="n">app</span> <span class="o">=</span> <span class="n">pade</span><span class="o">.</span><span class="n">http</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">PadeViewer</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
+        <span class="n">app</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="bp">True</span>
+
+    <span class="n">job_dbs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">path</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">pade_results</span><span class="p">):</span>
+        <span class="n">job_dbs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">JobMeta</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">imported</span><span class="o">=</span><span class="bp">True</span><span class="p">))</span>
+    <span class="n">pade</span><span class="o">.</span><span class="n">http</span><span class="o">.</span><span class="n">jobdetails</span><span class="o">.</span><span class="n">job_dbs</span> <span class="o">=</span> <span class="n">job_dbs</span>
+
+    <span class="k">def</span> <span class="nf">open_browser</span><span class="p">():</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="s">&quot;http://localhost:5000&quot;</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+            <span class="n">code</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">resp</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+                <span class="n">code</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">getcode</span><span class="p">()</span>
+                <span class="n">webbrowser</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s">&quot;http://localhost:5000&quot;</span><span class="p">)</span>                    
+                <span class="k">return</span>
+            <span class="k">except</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">URLError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            
+        <span class="k">print</span><span class="p">(</span><span class="s">&quot;I can&#39;t seem to start the server&quot;</span><span class="p">)</span>
+
+    <span class="n">t</span> <span class="o">=</span> <span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">open_browser</span><span class="p">)</span>
+        
+    <span class="n">t</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">port</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">port</span><span class="p">)</span>
+
+    </div>
+<div class="viewcode-block" id="do_report"><a class="viewcode-back" href="../../generated/pade.html#pade.main.do_report">[docs]</a><span class="k">def</span> <span class="nf">do_report</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">pade_results</span>
+
+    <span class="k">print</span><span class="p">(</span><span class="s">&quot;Generating report for result database {job}.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">job</span><span class="o">=</span><span class="n">path</span><span class="p">))</span>
+    <span class="n">job</span> <span class="o">=</span> <span class="n">pade</span><span class="o">.</span><span class="n">tasks</span><span class="o">.</span><span class="n">load_job</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
     <span class="n">filename</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">output</span>
     <span class="n">save_text_output</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">)</span>
-    <span class="k">print</span> <span class="s">&quot;Saved text report to &quot;</span><span class="p">,</span> <span class="n">filename</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">&quot;Saved text report to &quot;</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
 
 
 </div>
 <div class="viewcode-block" id="args_to_settings"><a class="viewcode-back" href="../../generated/pade.html#pade.main.args_to_settings">[docs]</a><span class="k">def</span> <span class="nf">args_to_settings</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
 
+    <span class="n">schema</span> <span class="o">=</span> <span class="n">load_schema</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span>
+
     <span class="c"># If they said paired, override the choice of stat</span>
     <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">paired</span><span class="p">:</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;You&#39;ve given the --paired option, so I&#39;ll use a one-sample t-test.&quot;</span><span class="p">)</span>
-        <span class="n">stat</span> <span class="o">=</span> <span class="s">&#39;one_sample_t_test&#39;</span>
+        <span class="n">stat</span> <span class="o">=</span> <span class="s">&#39;t&#39;</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">stat</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">stat</span>
 
-    <span class="c"># If they chose one_sample_t_test or means_ratio, we can&#39;t</span>
-    <span class="c"># equalize the means.</span>
-    <span class="k">if</span> <span class="n">stat</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">([</span><span class="s">&#39;one_sample_t_test&#39;</span><span class="p">,</span> <span class="s">&#39;means_ratio&#39;</span><span class="p">]):</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;We&#39;re using stat &quot;</span> <span class="o">+</span> <span class="n">stat</span> <span class="o">+</span> <span class="s">&quot;, so I won&#39;t equalize means&quot;</span><span class="p">)</span>
-        <span class="n">equalize_means</span> <span class="o">=</span> <span class="bp">False</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">equalize_means</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">equalize_means</span>
+    <span class="k">if</span> <span class="n">stat</span> <span class="o">==</span> <span class="s">&#39;glm&#39;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">glm_family</span> <span class="o">==</span> <span class="s">&#39;&#39;</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s">&quot;If you give --stat glm, you must specify a distribution &quot;</span> <span class="o">+</span>
+                   <span class="s">&quot;family with the --glm-family option. Valid arguments &quot;</span> <span class="o">+</span>
+                   <span class="s">&quot;for --glm-family are &quot;</span> <span class="o">+</span> 
+                   <span class="n">quote_and_join</span><span class="p">(</span><span class="n">pade</span><span class="o">.</span><span class="n">stat</span><span class="o">.</span><span class="n">glm_families</span><span class="p">())</span> <span class="o">+</span> <span class="s">&quot;.&quot;</span><span class="p">)</span>
+                   
+            <span class="k">raise</span> <span class="n">UsageException</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
     <span class="c"># Block and condition variables</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">block</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">condition</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
@@ -262,12 +340,12 @@
         <span class="n">block_variables</span>     <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">reduced_model</span><span class="o">.</span><span class="n">expr</span><span class="o">.</span><span class="n">variables</span><span class="p">)</span>
         <span class="n">condition_variables</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">full_model</span><span class="o">.</span><span class="n">expr</span><span class="o">.</span><span class="n">variables</span><span class="p">)</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="n">block_vars</span><span class="p">)</span>
 
-    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">factors</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="n">condition_variables</span> <span class="o">=</span> <span class="n">factors</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">factors</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
         <span class="n">block_variables</span> <span class="o">=</span> <span class="p">[]</span>
-    
+        <span class="n">condition_variables</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">factors</span>
+
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;Since you have multiple factors, please specify a full model&quot;</span><span class="p">)</span>
+        <span class="k">raise</span><span class="p">(</span><span class="n">UsageException</span><span class="p">(</span><span class="s">&quot;You have more than one factor, so please specify one to test using --condition (or -c)&quot;</span><span class="p">))</span>
 
     <span class="c"># Tuning params</span>
     <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">tuning_param</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">tuning_param</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="p">:</span>
@@ -285,14 +363,15 @@
         <span class="n">num_samples</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">num_samples</span><span class="p">,</span>
         <span class="n">sample_from_residuals</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">sample_from_residuals</span><span class="p">,</span>
         <span class="n">sample_with_replacement</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">sample_with_replacement</span><span class="p">,</span>
-        <span class="n">min_conf</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">min_conf</span><span class="p">,</span>
-        <span class="n">conf_interval</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">conf_interval</span><span class="p">,</span>
+        <span class="n">summary_min_conf</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">summary_min_conf</span><span class="p">,</span>
+        <span class="n">summary_step_size</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">summary_step_size</span><span class="p">,</span>
         <span class="n">equalize_means_ids</span><span class="o">=</span><span class="n">equalize_means_ids</span><span class="p">,</span>
         <span class="n">tuning_params</span><span class="o">=</span><span class="n">tuning_params</span><span class="p">,</span>
         <span class="n">block_variables</span><span class="o">=</span><span class="n">block_variables</span><span class="p">,</span>
         <span class="n">condition_variables</span><span class="o">=</span><span class="n">condition_variables</span><span class="p">,</span>
-        <span class="n">stat_name</span><span class="o">=</span><span class="n">stat</span><span class="p">,</span>
-        <span class="n">equalize_means</span><span class="o">=</span><span class="n">equalize_means</span>
+        <span class="n">stat</span><span class="o">=</span><span class="n">stat</span><span class="p">,</span>
+        <span class="n">glm_family</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">glm_family</span><span class="p">,</span>
+        <span class="n">equalize_means</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">equalize_means</span>
         <span class="p">)</span>
 </div>
 <div class="viewcode-block" id="load_schema"><a class="viewcode-back" href="../../generated/pade.html#pade.main.load_schema">[docs]</a><span class="k">def</span> <span class="nf">load_schema</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
@@ -373,30 +452,6 @@
                    <span class="n">delimiter</span><span class="o">=</span><span class="s">&quot;</span><span class="se">\t</span><span class="s">&quot;</span><span class="p">)</span>
 
 </div>
-<div class="viewcode-block" id="print_profile"><a class="viewcode-back" href="../../generated/pade.html#pade.main.print_profile">[docs]</a><span class="k">def</span> <span class="nf">print_profile</span><span class="p">(</span><span class="n">job</span><span class="p">):</span>
-
-    <span class="n">walked</span> <span class="o">=</span> <span class="n">walk_profile</span><span class="p">()</span>
-    <span class="n">env</span> <span class="o">=</span> <span class="n">jinja2</span><span class="o">.</span><span class="n">Environment</span><span class="p">(</span><span class="n">loader</span><span class="o">=</span><span class="n">jinja2</span><span class="o">.</span><span class="n">PackageLoader</span><span class="p">(</span><span class="s">&#39;pade&#39;</span><span class="p">))</span>
-    <span class="n">template</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">get_template</span><span class="p">(</span><span class="s">&#39;profile.html&#39;</span><span class="p">)</span>
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;profile.html&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">out</span><span class="p">:</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Saving profile&quot;</span><span class="p">)</span>
-        <span class="n">out</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="n">profile</span><span class="o">=</span><span class="n">walked</span><span class="p">))</span>
-
-    <span class="n">fmt</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">fmt</span> <span class="o">+=</span> <span class="p">[</span><span class="s">&quot;</span><span class="si">%d</span><span class="s">&quot;</span><span class="p">,</span> <span class="s">&quot;</span><span class="si">%d</span><span class="s">&quot;</span><span class="p">,</span> <span class="s">&quot;</span><span class="si">%s</span><span class="s">&quot;</span><span class="p">,</span> <span class="s">&quot;</span><span class="si">%f</span><span class="s">&quot;</span><span class="p">,</span> <span class="s">&quot;</span><span class="si">%f</span><span class="s">&quot;</span><span class="p">,</span> <span class="s">&quot;</span><span class="si">%f</span><span class="s">&quot;</span><span class="p">,</span> <span class="s">&quot;</span><span class="si">%f</span><span class="s">&quot;</span><span class="p">,</span> <span class="s">&quot;</span><span class="si">%f</span><span class="s">&quot;</span><span class="p">,</span> <span class="s">&quot;</span><span class="si">%f</span><span class="s">&quot;</span><span class="p">]</span>
-    <span class="n">fmt</span> <span class="o">+=</span> <span class="p">[</span><span class="s">&quot;</span><span class="si">%d</span><span class="s">&quot;</span><span class="p">,</span> <span class="s">&quot;</span><span class="si">%d</span><span class="s">&quot;</span><span class="p">]</span>
-
-    <span class="n">features</span> <span class="o">=</span> <span class="p">[</span> <span class="nb">len</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">table</span><span class="p">)</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">walked</span> <span class="p">]</span>
-    <span class="n">samples</span>  <span class="o">=</span> <span class="p">[</span> <span class="nb">len</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">table</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">walked</span> <span class="p">]</span>
-
-    <span class="n">walked</span> <span class="o">=</span> <span class="n">append_fields</span><span class="p">(</span><span class="n">walked</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="s">&#39;features&#39;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">features</span><span class="p">)</span>
-    <span class="n">walked</span> <span class="o">=</span> <span class="n">append_fields</span><span class="p">(</span><span class="n">walked</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="s">&#39;samples&#39;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">samples</span><span class="p">)</span>
-
-
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;../profile.txt&#39;</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">out</span><span class="p">:</span>
-        <span class="n">out</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;</span><span class="se">\t</span><span class="s">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">walked</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
-        <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">walked</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="n">fmt</span><span class="p">)</span>
-</div>
 <div class="viewcode-block" id="setup_logging"><a class="viewcode-back" href="../../generated/pade.html#pade.main.setup_logging">[docs]</a><span class="k">def</span> <span class="nf">setup_logging</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
     <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">,</span>
                         <span class="n">format</span><span class="o">=</span><span class="s">&#39;</span><span class="si">%(asctime)s</span><span class="s"> </span><span class="si">%(name)-12s</span><span class="s"> </span><span class="si">%(levelname)-8s</span><span class="s"> </span><span class="si">%(message)s</span><span class="s">&#39;</span><span class="p">,</span>
@@ -428,16 +483,19 @@
     <span class="n">setup_logging</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
     <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&#39;Pade starting&#39;</span><span class="p">)</span>
 
+    <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">args</span><span class="o">.</span><span class="n">func</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
 
     <span class="k">except</span> <span class="n">UsageException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">&quot;&quot;</span><span class="p">)</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span><span class="s">&quot;Pade exiting because of usage error&quot;</span><span class="p">)</span>
-        <span class="k">print</span> <span class="n">fix_newlines</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">message</span><span class="p">)</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">&quot;&quot;</span><span class="p">)</span>
+        <span class="k">print</span><span class="p">(</span><span class="n">fix_newlines</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">message</span><span class="p">))</span>
         <span class="nb">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">end</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
     
-    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&#39;Pade finishing&#39;</span><span class="p">)</span>    
-
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&#39;Pade finished in &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39; seconds&#39;</span><span class="p">)</span>
 </div>
 <div class="viewcode-block" id="init_schema"><a class="viewcode-back" href="../../generated/pade.html#pade.main.init_schema">[docs]</a><span class="k">def</span> <span class="nf">init_schema</span><span class="p">(</span><span class="n">infile</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Creates a new schema based on the given infile.</span>
@@ -452,7 +510,7 @@
     <span class="k">return</span> <span class="n">Schema</span><span class="p">(</span><span class="n">column_names</span><span class="o">=</span><span class="n">csvfile</span><span class="o">.</span><span class="n">fieldnames</span><span class="p">,</span> <span class="n">column_roles</span><span class="o">=</span><span class="n">roles</span><span class="p">)</span>
 
 </div>
-<div class="viewcode-block" id="init_job"><a class="viewcode-back" href="../../generated/pade.html#pade.main.init_job">[docs]</a><span class="k">def</span> <span class="nf">init_job</span><span class="p">(</span><span class="n">infile</span><span class="p">,</span> <span class="n">factors</span><span class="p">,</span> <span class="n">schema_path</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+<div class="viewcode-block" id="init_job"><a class="viewcode-back" href="../../generated/pade.html#pade.main.init_job">[docs]</a><span class="k">def</span> <span class="nf">init_job</span><span class="p">(</span><span class="n">infile</span><span class="p">,</span> <span class="n">factors</span><span class="p">,</span> <span class="n">schema_path</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
 
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">infile</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
         <span class="n">infile</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">infile</span><span class="p">)</span>
@@ -461,18 +519,10 @@
     <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">values</span> <span class="ow">in</span> <span class="n">factors</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
         <span class="n">schema</span><span class="o">.</span><span class="n">add_factor</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">values</span><span class="p">)</span>
 
-    <span class="n">mode</span> <span class="o">=</span> <span class="s">&#39;w&#39;</span> <span class="k">if</span> <span class="n">force</span> <span class="k">else</span> <span class="s">&#39;wx&#39;</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">schema_path</span><span class="p">,</span> <span class="n">mode</span><span class="p">)</span> <span class="k">as</span> <span class="n">out</span><span class="p">:</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Saving schema to &quot;</span> <span class="o">+</span> <span class="n">out</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-            <span class="n">schema</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">IOError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">errno</span> <span class="o">==</span> <span class="n">errno</span><span class="o">.</span><span class="n">EEXIST</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">UsageException</span><span class="p">(</span><span class="s">&quot;&quot;&quot;</span><span class="se">\</span>
-<span class="s">                   The schema file </span><span class="se">\&quot;</span><span class="s">{}</span><span class="se">\&quot;</span><span class="s"> already exists. If you want to</span>
-<span class="s">                   overwrite it, use the --force or -f argument.&quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                    <span class="n">schema_path</span><span class="p">))</span>
-        <span class="k">raise</span> <span class="n">e</span>
+    <span class="n">mode</span> <span class="o">=</span> <span class="s">&#39;w&#39;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">schema_path</span><span class="p">,</span> <span class="n">mode</span><span class="p">)</span> <span class="k">as</span> <span class="n">out</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Saving schema to &quot;</span> <span class="o">+</span> <span class="n">out</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">schema</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">schema</span>
 
@@ -491,8 +541,8 @@
 
     <span class="n">subparsers</span> <span class="o">=</span> <span class="n">uberparser</span><span class="o">.</span><span class="n">add_subparsers</span><span class="p">(</span>
         <span class="n">title</span><span class="o">=</span><span class="s">&#39;actions&#39;</span><span class="p">,</span>
-        <span class="n">description</span><span class="o">=</span><span class="s">&quot;&quot;&quot;Normal usage is to run &#39;pade.py setup ...&#39;, then manually edit the</span>
-<span class="s">pade_schema.yaml file, then run &#39;pade.py run ...&#39;.&quot;&quot;&quot;</span><span class="p">)</span>
+        <span class="n">description</span><span class="o">=</span><span class="s">&quot;&quot;&quot;Normal usage is to run &#39;pade setup -o schema.yaml --factor &lt;FACTOR&gt; ... &lt;INPUT&gt;&#39;, then manually edit the schema.yaml file, then run &#39;pade run -f schema.yaml &lt;INPUT&gt; [OPTIONS]&#39;.</span>
+<span class="s">&quot;&quot;&quot;</span><span class="p">)</span>
 
     <span class="c"># Set up &quot;parent&quot; parser, which contains some arguments used by all other parsers</span>
     <span class="n">parents</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">add_help</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
@@ -554,16 +604,15 @@
         <span class="p">)</span>
     <span class="n">schema_in_parent</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">add_help</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
     <span class="n">schema_in_parent</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s">&#39;--schema&#39;</span><span class="p">,</span> 
+        <span class="s">&#39;--schema&#39;</span><span class="p">,</span> <span class="s">&#39;-f&#39;</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s">&quot;The schema YAML file to load&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="s">&quot;pade_schema.yaml&quot;</span><span class="p">)</span>
+        <span class="n">required</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
 
     <span class="n">db_in_parent</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">add_help</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
     <span class="n">db_in_parent</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s">&#39;--db&#39;</span><span class="p">,</span> 
-        <span class="n">help</span><span class="o">=</span><span class="s">&quot;Path to the db file to read results from&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="s">&quot;pade_db.h5&quot;</span><span class="p">)</span>
-
+        <span class="s">&#39;pade_results&#39;</span><span class="p">,</span> 
+        <span class="n">nargs</span><span class="o">=</span><span class="s">&#39;+&#39;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s">&quot;Path to the db file to read results from&quot;</span><span class="p">)</span>
 
     <span class="c">###</span>
     <span class="c">### Add sub-parsers</span>
@@ -587,11 +636,17 @@
         <span class="s">&#39;report&#39;</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s">&quot;&quot;&quot;Generate report&quot;&quot;&quot;</span><span class="p">,</span>
         <span class="n">formatter_class</span><span class="o">=</span><span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentDefaultsHelpFormatter</span><span class="p">,</span>
-        <span class="n">parents</span><span class="o">=</span><span class="p">[</span><span class="n">parents</span><span class="p">,</span> <span class="n">db_in_parent</span><span class="p">])</span>
+        <span class="n">parents</span><span class="o">=</span><span class="p">[</span><span class="n">parents</span><span class="p">])</span>
 
     <span class="n">server_parser</span> <span class="o">=</span> <span class="n">subparsers</span><span class="o">.</span><span class="n">add_parser</span><span class="p">(</span>
         <span class="s">&#39;server&#39;</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s">&quot;&quot;&quot;Start server to show results&quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">formatter_class</span><span class="o">=</span><span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentDefaultsHelpFormatter</span><span class="p">,</span>
+        <span class="n">parents</span><span class="o">=</span><span class="p">[</span><span class="n">parents</span><span class="p">])</span>
+
+    <span class="n">view_parser</span> <span class="o">=</span> <span class="n">subparsers</span><span class="o">.</span><span class="n">add_parser</span><span class="p">(</span>
+        <span class="s">&#39;view&#39;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s">&quot;&quot;&quot;View results of a job in a browser&quot;&quot;&quot;</span><span class="p">,</span>
         <span class="n">formatter_class</span><span class="o">=</span><span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentDefaultsHelpFormatter</span><span class="p">,</span>
         <span class="n">parents</span><span class="o">=</span><span class="p">[</span><span class="n">parents</span><span class="p">,</span> <span class="n">db_in_parent</span><span class="p">])</span>
 
@@ -613,22 +668,18 @@
 <span class="s">        specify this option more than once, to use more than one</span>
 <span class="s">        class.&quot;&quot;&quot;</span><span class="p">)</span>
     <span class="n">setup_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s">&#39;--force&#39;</span><span class="p">,</span> <span class="s">&#39;-f&#39;</span><span class="p">,</span>
-        <span class="n">action</span><span class="o">=</span><span class="s">&#39;store_true&#39;</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s">&quot;&quot;&quot;Overwrite any existing files&quot;&quot;&quot;</span><span class="p">)</span>
-    <span class="n">setup_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s">&#39;--schema&#39;</span><span class="p">,</span> 
+        <span class="s">&#39;--output&#39;</span><span class="p">,</span> <span class="s">&#39;-o&#39;</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s">&quot;Path to write the schema file to&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="s">&quot;pade_schema.yaml&quot;</span><span class="p">)</span>
+        <span class="n">required</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
 
     <span class="c">###</span>
     <span class="c">### Custom args for run parser</span>
     <span class="c">###</span>
 
     <span class="n">run_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s">&#39;--db&#39;</span><span class="p">,</span> 
+        <span class="s">&#39;--output&#39;</span><span class="p">,</span> <span class="s">&#39;-o&#39;</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s">&quot;Path to the binary output file&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="s">&quot;pade_db.h5&quot;</span><span class="p">)</span>
+        <span class="n">required</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
 
     <span class="n">run_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s">&#39;--distrib&#39;</span><span class="p">,</span>
@@ -637,7 +688,6 @@
 
     <span class="n">run_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s">&#39;--sample-indexes&#39;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">file</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s">&quot;&quot;&quot;File specifying lists of indexes to use for sampling. See &#39;pade makesamples&#39;.&quot;&quot;&quot;</span><span class="p">)</span>
 
     <span class="n">grp</span> <span class="o">=</span> <span class="n">run_parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span>
@@ -645,10 +695,15 @@
         <span class="n">description</span><span class="o">=</span><span class="s">&quot;&quot;&quot;These options control how we estimate the confidence levels. You can probably leave them unchanged, in which case I&#39;ll compute it using a permutation test with an f-test as the statistic, using a maximum of 1000 permutations.&quot;&quot;&quot;</span><span class="p">)</span>
     <span class="n">grp</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s">&#39;--stat&#39;</span><span class="p">,</span> <span class="s">&#39;-s&#39;</span><span class="p">,</span>
-<span class="c">#        choices=[&#39;f&#39;, &#39;t&#39;, &#39;f_sqrt&#39;],</span>
-        <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;f_test&#39;</span><span class="p">,</span> <span class="s">&#39;one_sample_t_test&#39;</span><span class="p">,</span> <span class="s">&#39;means_ratio&#39;</span><span class="p">],</span>
-        <span class="n">default</span><span class="o">=</span><span class="n">pade</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">DEFAULT_STATISTIC</span><span class="p">,</span>
+        <span class="n">choices</span><span class="o">=</span><span class="n">stat_names</span><span class="p">(),</span>
+        <span class="n">default</span><span class="o">=</span><span class="s">&#39;f&#39;</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s">&quot;The statistic to use.&quot;</span><span class="p">)</span>
+
+    <span class="n">grp</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s">&#39;--glm-family&#39;</span><span class="p">,</span>
+        <span class="n">choices</span><span class="o">=</span><span class="n">glm_families</span><span class="p">(),</span>
+        <span class="n">default</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s">&quot;The distribution family to use for the &#39;glm&#39; stat.&quot;</span><span class="p">)</span>
 
     <span class="n">grp</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s">&#39;--tuning-param&#39;</span><span class="p">,</span>
@@ -675,20 +730,20 @@
         <span class="n">help</span><span class="o">=</span><span class="s">&quot;&quot;&quot;Sample from residuals rather than raw data.&quot;&quot;&quot;</span><span class="p">)</span>
 
     <span class="n">grp</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s">&#39;--min-conf&#39;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="n">pade</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">DEFAULT_MIN_CONF</span><span class="p">,</span>
+        <span class="s">&#39;--summary-min-conf&#39;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="n">pade</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">DEFAULT_SUMMARY_MIN_CONF</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s">&quot;Smallest confidence level to report&quot;</span><span class="p">)</span>
 
     <span class="n">grp</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s">&#39;--conf-interval&#39;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="n">pade</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">DEFAULT_CONF_INTERVAL</span><span class="p">,</span>
+        <span class="s">&#39;--summary-step-size&#39;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="n">pade</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">DEFAULT_SUMMARY_STEP_SIZE</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s">&quot;Interval of confidence levels&quot;</span><span class="p">)</span>
 
     <span class="n">grp</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s">&#39;--no-equalize-means&#39;</span><span class="p">,</span>
-        <span class="n">action</span><span class="o">=</span><span class="s">&#39;store_false&#39;</span><span class="p">,</span>
+        <span class="s">&#39;--equalize-means&#39;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s">&#39;store_true&#39;</span><span class="p">,</span>
         <span class="n">dest</span><span class="o">=</span><span class="s">&#39;equalize_means&#39;</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="n">pade</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">DEFAULT_EQUALIZE_MEANS</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s">&quot;&quot;&quot;Shift values of samples within same group for same feature so that their mean is 0 before the permutation test. This will likely cause Pade to be more conservative in selecting features.&quot;&quot;&quot;</span><span class="p">)</span>
@@ -705,8 +760,11 @@
 
     <span class="n">report_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s">&#39;--output&#39;</span><span class="p">,</span> <span class="s">&#39;-o&#39;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="s">&quot;pade_report.txt&quot;</span><span class="p">,</span>
+        <span class="n">required</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s">&quot;&quot;&quot;Location to write report to&quot;&quot;&quot;</span><span class="p">)</span>
+    <span class="n">report_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s">&#39;pade_results&#39;</span><span class="p">,</span> 
+        <span class="n">help</span><span class="o">=</span><span class="s">&quot;Path to the db file to read results from&quot;</span><span class="p">)</span>
 
     <span class="c">###</span>
     <span class="c">### Custom args for server parser</span>
@@ -716,17 +774,35 @@
         <span class="s">&#39;--port&#39;</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s">&quot;Specify the port for the server to listen on&quot;</span><span class="p">)</span>
+    <span class="n">server_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s">&#39;--prod&#39;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s">&#39;store_true&#39;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s">&quot;Indicates that this is a &#39;production&#39; instance&quot;</span><span class="p">)</span>
+    <span class="n">view_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s">&#39;--port&#39;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s">&quot;Specify the port for the server to listen on&quot;</span><span class="p">)</span>
+
+    
+
+    <span class="c">###</span>
+    <span class="c">### Custom args for server parser</span>
+    <span class="c">###</span>
 
     <span class="n">makesamples_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s">&#39;--output&#39;</span><span class="p">,</span> <span class="s">&#39;-o&#39;</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="n">argparse</span><span class="o">.</span><span class="n">FileType</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s">&#39;w&#39;</span><span class="p">),</span>
         <span class="n">help</span><span class="o">=</span><span class="s">&quot;File to write sample indexes to&quot;</span><span class="p">)</span>
 
-    <span class="n">report_parser</span><span class="o">.</span><span class="n">set_defaults</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">do_report</span><span class="p">)</span>
-    <span class="n">run_parser</span><span class="o">.</span><span class="n">set_defaults</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">do_run</span><span class="p">)</span>
-    <span class="n">setup_parser</span><span class="o">.</span><span class="n">set_defaults</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">do_setup</span><span class="p">)</span>
-    <span class="n">server_parser</span><span class="o">.</span><span class="n">set_defaults</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">do_server</span><span class="p">)</span>
-    <span class="n">makesamples_parser</span><span class="o">.</span><span class="n">set_defaults</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">do_makesamples</span><span class="p">)</span>
+    <span class="n">defaults</span> <span class="o">=</span> <span class="p">[</span> <span class="p">(</span><span class="n">report_parser</span><span class="p">,</span>      <span class="n">do_report</span><span class="p">),</span>
+                 <span class="p">(</span><span class="n">run_parser</span><span class="p">,</span>         <span class="n">do_run</span><span class="p">),</span>
+                 <span class="p">(</span><span class="n">setup_parser</span><span class="p">,</span>       <span class="n">do_setup</span><span class="p">),</span>
+                 <span class="p">(</span><span class="n">server_parser</span><span class="p">,</span>      <span class="n">do_server</span><span class="p">),</span>
+                 <span class="p">(</span><span class="n">view_parser</span><span class="p">,</span>        <span class="n">do_view</span><span class="p">),</span>
+                 <span class="p">(</span><span class="n">makesamples_parser</span><span class="p">,</span> <span class="n">do_makesamples</span><span class="p">)</span> <span class="p">]</span>
+                 
+    <span class="k">for</span> <span class="p">(</span><span class="n">parser</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span> <span class="ow">in</span> <span class="n">defaults</span><span class="p">:</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">set_defaults</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">fn</span><span class="p">)</span>
     
     <span class="k">return</span> <span class="n">uberparser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
 

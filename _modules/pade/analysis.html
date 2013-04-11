@@ -50,6 +50,8 @@
           <div class="body">
             
   <h1>Source code for pade.analysis</h1><div class="highlight"><pre>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span>
+
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">pade.model</span>
@@ -58,7 +60,7 @@
 <span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">combinations</span>
 
 <span class="kn">from</span> <span class="nn">pade.stat</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">OneSampleDifferenceTTest</span><span class="p">,</span> <span class="n">Ftest</span><span class="p">,</span> <span class="n">MeansRatio</span><span class="p">,</span> <span class="n">residuals</span><span class="p">,</span> <span class="n">bootstrap</span><span class="p">)</span>
+    <span class="n">OneSampleDifferenceTStat</span><span class="p">,</span> <span class="n">FStat</span><span class="p">,</span> <span class="n">MeansRatio</span><span class="p">,</span> <span class="n">residuals</span><span class="p">,</span> <span class="n">bootstrap</span><span class="p">)</span>
 
 <span class="kn">from</span> <span class="nn">pade.model</span> <span class="kn">import</span> <span class="n">TableWithHeader</span><span class="p">,</span> <span class="n">Summary</span>
 <span class="kn">from</span> <span class="nn">pade.layout</span> <span class="kn">import</span> <span class="n">random_orderings</span><span class="p">,</span> <span class="n">layout_is_paired</span>
@@ -94,7 +96,7 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
     
-    <span class="n">bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">min_conf</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">conf_interval</span><span class="p">)</span>
+    <span class="n">bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">summary_min_conf</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">summary_step_size</span><span class="p">)</span>
     <span class="n">best_param_idxs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">bins</span><span class="p">))</span>
     <span class="n">counts</span>          <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">bins</span><span class="p">))</span>
 
@@ -140,7 +142,7 @@
     <span class="n">test_factors</span>     <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">condition_variables</span>
 
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">test_factors</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">UsageException</span><span class="p">(</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
             <span class="sd">&quot;&quot;&quot;You can only have one condition variable. We will change this soon.&quot;&quot;&quot;</span><span class="p">)</span>
 
     <span class="n">nuisance_assignments</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">possible_assignments</span><span class="p">(</span><span class="n">nuisance_factors</span><span class="p">)</span>
@@ -209,31 +211,6 @@
 
     <span class="k">return</span> <span class="n">result</span>
 </div>
-<div class="viewcode-block" id="get_stat_fn"><a class="viewcode-back" href="../../generated/pade.html#pade.analysis.get_stat_fn">[docs]</a><span class="k">def</span> <span class="nf">get_stat_fn</span><span class="p">(</span><span class="n">job</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;The statistic used for this job.&quot;&quot;&quot;</span>
-    <span class="n">name</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">stat_name</span>
-
-    <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s">&#39;one_sample_t_test&#39;</span><span class="p">:</span>
-        <span class="n">constructor</span> <span class="o">=</span> <span class="n">OneSampleDifferenceTTest</span>
-    <span class="k">elif</span> <span class="n">name</span> <span class="o">==</span> <span class="s">&#39;f_test&#39;</span><span class="p">:</span>
-        <span class="n">constructor</span> <span class="o">=</span> <span class="n">Ftest</span>
-    <span class="k">elif</span> <span class="n">name</span> <span class="o">==</span> <span class="s">&#39;means_ratio&#39;</span><span class="p">:</span>
-        <span class="n">constructor</span> <span class="o">=</span> <span class="n">MeansRatio</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;No statistic called &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">stat_name</span><span class="p">))</span>
-
-    <span class="k">if</span> <span class="n">constructor</span> <span class="o">==</span> <span class="n">Ftest</span> <span class="ow">and</span> <span class="n">layout_is_paired</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">block_layout</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="n">UsageException</span><span class="p">(</span>
-<span class="sd">&quot;&quot;&quot;I can&#39;t use the f-test with this data, because the reduced model</span>
-<span class="sd">you specified has groups with only one sample. It seems like you have</span>
-<span class="sd">a paired layout. If this is the case, please use the --paired option.</span>
-<span class="sd">&quot;&quot;&quot;</span><span class="p">)</span>        
-
-    <span class="k">return</span> <span class="n">constructor</span><span class="p">(</span>
-        <span class="n">condition_layout</span><span class="o">=</span><span class="n">job</span><span class="o">.</span><span class="n">condition_layout</span><span class="p">,</span>
-        <span class="n">block_layout</span><span class="o">=</span><span class="n">job</span><span class="o">.</span><span class="n">block_layout</span><span class="p">,</span>
-        <span class="n">alphas</span><span class="o">=</span><span class="n">job</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">tuning_params</span><span class="p">)</span>
-</div>
 <div class="viewcode-block" id="new_sample_indexes"><a class="viewcode-back" href="../../generated/pade.html#pade.analysis.new_sample_indexes">[docs]</a><span class="k">def</span> <span class="nf">new_sample_indexes</span><span class="p">(</span><span class="n">job</span><span class="p">):</span>
 
     <span class="sd">&quot;&quot;&quot;Create array of sample indexes.&quot;&quot;&quot;</span>
@@ -263,7 +240,7 @@
     <span class="n">table</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">table</span>
     <span class="n">bins</span>  <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">bins</span>
     <span class="n">perms</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">sample_indexes</span>
-    <span class="n">stat_fn</span> <span class="o">=</span> <span class="n">get_stat_fn</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+    <span class="n">stat_fn</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">get_stat_fn</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">sample_from_residuals</span><span class="p">:</span>
         <span class="n">prediction</span> <span class="o">=</span> <span class="n">predicted_values</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
@@ -279,6 +256,7 @@
         <span class="c"># Shift all values in the data by the means of the groups from</span>
         <span class="c"># the full model, so that the mean of each group is 0.</span>
         <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">equalize_means</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Equalizing means&quot;</span><span class="p">)</span>
             <span class="n">shifted</span> <span class="o">=</span> <span class="n">residuals</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">full_layout</span><span class="p">)</span>
             <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">equalize_means_ids</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
@@ -301,6 +279,7 @@
             <span class="k">return</span> <span class="n">bootstrap</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">stat_fn</span><span class="p">,</span> <span class="n">permutations</span><span class="o">=</span><span class="n">perms</span><span class="p">,</span><span class="n">bins</span><span class="o">=</span><span class="n">bins</span><span class="p">)</span>
 
         <span class="k">else</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Not equalizing means&quot;</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">bootstrap</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">stat_fn</span><span class="p">,</span> <span class="n">permutations</span><span class="o">=</span><span class="n">perms</span><span class="p">,</span><span class="n">bins</span><span class="o">=</span><span class="n">bins</span><span class="p">)</span>
 
 </div>

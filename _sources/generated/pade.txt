@@ -25,10 +25,42 @@ pade Package
     :undoc-members:
     :show-inheritance:
 
+:mod:`config` Module
+--------------------
+
+.. automodule:: pade.config
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`family` Module
+--------------------
+
+.. automodule:: pade.family
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`glm` Module
+-----------------
+
+.. automodule:: pade.glm
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 :mod:`layout` Module
 --------------------
 
 .. automodule:: pade.layout
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`links` Module
+-------------------
+
+.. automodule:: pade.links
     :members:
     :undoc-members:
     :show-inheritance:
@@ -57,26 +89,10 @@ pade Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`performance` Module
--------------------------
-
-.. automodule:: pade.performance
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 :mod:`redis_session` Module
 ---------------------------
 
 .. automodule:: pade.redis_session
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-:mod:`server` Module
---------------------
-
-.. automodule:: pade.server
     :members:
     :undoc-members:
     :show-inheritance:
@@ -97,12 +113,20 @@ pade Package
     :undoc-members:
     :show-inheritance:
 
+:mod:`varfuncs` Module
+----------------------
+
+.. automodule:: pade.varfuncs
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 Subpackages
 -----------
 
 .. toctree::
 
-    pade.templates
+    pade.http
     pade.test
     pade.tools
 

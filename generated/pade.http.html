@@ -1,0 +1,640 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>http Package &mdash; PADE 6.0 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '6.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="PADE 6.0 documentation" href="../index.html" />
+    <link rel="up" title="pade Package" href="pade.html" />
+    <link rel="next" title="test Package" href="pade.test.html" />
+    <link rel="prev" title="pade Package" href="pade.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="pade.test.html" title="test Package"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="pade.html" title="pade Package"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">PADE 6.0 documentation</a> &raquo;</li>
+          <li><a href="../api.html" >API Documentation</a> &raquo;</li>
+          <li><a href="pade.html" accesskey="U">pade Package</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="http-package">
+<h1>http Package<a class="headerlink" href="#http-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-pade.http.inputfile">
+<span id="inputfile-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">inputfile</span></tt> Module<a class="headerlink" href="#module-pade.http.inputfile" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="pade.http.inputfile.InputFileUploadForm">
+<em class="property">class </em><tt class="descclassname">pade.http.inputfile.</tt><tt class="descname">InputFileUploadForm</tt><big>(</big><em>formdata=&lt;class flask_wtf.form._Auto at 0x2761458&gt;</em>, <em>obj=None</em>, <em>prefix=''</em>, <em>csrf_context=None</em>, <em>secret_key=None</em>, <em>csrf_enabled=None</em>, <em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pade/http/inputfile.html#InputFileUploadForm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.inputfile.InputFileUploadForm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">flask_wtf.form.Form</span></tt></p>
+<dl class="attribute">
+<dt id="pade.http.inputfile.InputFileUploadForm.description">
+<tt class="descname">description</tt><em class="property"> = &lt;UnboundField(TextAreaField, ('Description (optional)',), {})&gt;</em><a class="headerlink" href="#pade.http.inputfile.InputFileUploadForm.description" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pade.http.inputfile.InputFileUploadForm.input_file">
+<tt class="descname">input_file</tt><em class="property"> = &lt;UnboundField(FileField, ('Input file',), {})&gt;</em><a class="headerlink" href="#pade.http.inputfile.InputFileUploadForm.input_file" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pade.http.inputfile.InputFileUploadForm.submit">
+<tt class="descname">submit</tt><em class="property"> = &lt;UnboundField(SubmitField, ('Upload',), {})&gt;</em><a class="headerlink" href="#pade.http.inputfile.InputFileUploadForm.submit" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="pade.http.inputfile.input_file_details">
+<tt class="descclassname">pade.http.inputfile.</tt><tt class="descname">input_file_details</tt><big>(</big><em>raw_file_id</em><big>)</big><a class="reference internal" href="../_modules/pade/http/inputfile.html#input_file_details"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.inputfile.input_file_details" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.http.inputfile.input_file_list">
+<tt class="descclassname">pade.http.inputfile.</tt><tt class="descname">input_file_list</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/http/inputfile.html#input_file_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.inputfile.input_file_list" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.http.inputfile.upload_raw_file">
+<tt class="descclassname">pade.http.inputfile.</tt><tt class="descname">upload_raw_file</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/http/inputfile.html#upload_raw_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.inputfile.upload_raw_file" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-pade.http.jobbrowser">
+<span id="jobbrowser-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">jobbrowser</span></tt> Module<a class="headerlink" href="#module-pade.http.jobbrowser" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="pade.http.jobbrowser.JobImportForm">
+<em class="property">class </em><tt class="descclassname">pade.http.jobbrowser.</tt><tt class="descname">JobImportForm</tt><big>(</big><em>formdata=&lt;class flask_wtf.form._Auto at 0x2761458&gt;</em>, <em>obj=None</em>, <em>prefix=''</em>, <em>csrf_context=None</em>, <em>secret_key=None</em>, <em>csrf_enabled=None</em>, <em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pade/http/jobbrowser.html#JobImportForm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.jobbrowser.JobImportForm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">flask_wtf.form.Form</span></tt></p>
+<dl class="attribute">
+<dt id="pade.http.jobbrowser.JobImportForm.description">
+<tt class="descname">description</tt><em class="property"> = &lt;UnboundField(TextAreaField, ('Description (optional)',), {})&gt;</em><a class="headerlink" href="#pade.http.jobbrowser.JobImportForm.description" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pade.http.jobbrowser.JobImportForm.job_file">
+<tt class="descname">job_file</tt><em class="property"> = &lt;UnboundField(FileField, ('Job file:',), {})&gt;</em><a class="headerlink" href="#pade.http.jobbrowser.JobImportForm.job_file" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pade.http.jobbrowser.JobImportForm.name">
+<tt class="descname">name</tt><em class="property"> = &lt;UnboundField(StringField, ('Name',), {})&gt;</em><a class="headerlink" href="#pade.http.jobbrowser.JobImportForm.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pade.http.jobbrowser.JobImportForm.submit">
+<tt class="descname">submit</tt><em class="property"> = &lt;UnboundField(SubmitField, ('Upload',), {})&gt;</em><a class="headerlink" href="#pade.http.jobbrowser.JobImportForm.submit" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="pade.http.jobbrowser.import_job">
+<tt class="descclassname">pade.http.jobbrowser.</tt><tt class="descname">import_job</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/http/jobbrowser.html#import_job"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.jobbrowser.import_job" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.http.jobbrowser.index">
+<tt class="descclassname">pade.http.jobbrowser.</tt><tt class="descname">index</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/http/jobbrowser.html#index"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.jobbrowser.index" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-pade.http.jobdetails">
+<span id="jobdetails-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">jobdetails</span></tt> Module<a class="headerlink" href="#module-pade.http.jobdetails" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="pade.http.jobdetails.all_conf_dist_plot">
+<tt class="descclassname">pade.http.jobdetails.</tt><tt class="descname">all_conf_dist_plot</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/http/jobdetails.html#all_conf_dist_plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.jobdetails.all_conf_dist_plot" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.http.jobdetails.all_job_metas">
+<tt class="descclassname">pade.http.jobdetails.</tt><tt class="descname">all_job_metas</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/http/jobdetails.html#all_job_metas"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.jobdetails.all_job_metas" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.http.jobdetails.bin_to_features_plot">
+<tt class="descclassname">pade.http.jobdetails.</tt><tt class="descname">bin_to_features_plot</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pade/http/jobdetails.html#bin_to_features_plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.jobdetails.bin_to_features_plot" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.http.jobdetails.bin_to_score_plot">
+<tt class="descclassname">pade.http.jobdetails.</tt><tt class="descname">bin_to_score_plot</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pade/http/jobdetails.html#bin_to_score_plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.jobdetails.bin_to_score_plot" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.http.jobdetails.conf_dist_plot">
+<tt class="descclassname">pade.http.jobdetails.</tt><tt class="descname">conf_dist_plot</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pade/http/jobdetails.html#conf_dist_plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.jobdetails.conf_dist_plot" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.http.jobdetails.confidence_dist">
+<tt class="descclassname">pade.http.jobdetails.</tt><tt class="descname">confidence_dist</tt><big>(</big><em>job_id</em><big>)</big><a class="reference internal" href="../_modules/pade/http/jobdetails.html#confidence_dist"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.jobdetails.confidence_dist" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.http.jobdetails.details">
+<tt class="descclassname">pade.http.jobdetails.</tt><tt class="descname">details</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pade/http/jobdetails.html#details"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.jobdetails.details" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.http.jobdetails.feature">
+<tt class="descclassname">pade.http.jobdetails.</tt><tt class="descname">feature</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pade/http/jobdetails.html#feature"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.jobdetails.feature" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.http.jobdetails.feature_count_and_score_by_stat">
+<tt class="descclassname">pade.http.jobdetails.</tt><tt class="descname">feature_count_and_score_by_stat</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pade/http/jobdetails.html#feature_count_and_score_by_stat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.jobdetails.feature_count_and_score_by_stat" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.http.jobdetails.figure_response">
+<tt class="descclassname">pade.http.jobdetails.</tt><tt class="descname">figure_response</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/http/jobdetails.html#figure_response"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.jobdetails.figure_response" title="Permalink to this definition">¶</a></dt>
+<dd><p>Turns a matplotlib figure into an HTTP response.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pade.http.jobdetails.interaction_plot">
+<tt class="descclassname">pade.http.jobdetails.</tt><tt class="descname">interaction_plot</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pade/http/jobdetails.html#interaction_plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.jobdetails.interaction_plot" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.http.jobdetails.job_context">
+<tt class="descclassname">pade.http.jobdetails.</tt><tt class="descname">job_context</tt><big>(</big><em>f</em><big>)</big><a class="reference internal" href="../_modules/pade/http/jobdetails.html#job_context"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.jobdetails.job_context" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.http.jobdetails.job_details">
+<tt class="descclassname">pade.http.jobdetails.</tt><tt class="descname">job_details</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pade/http/jobdetails.html#job_details"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.jobdetails.job_details" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.http.jobdetails.job_level_kwargs">
+<tt class="descclassname">pade.http.jobdetails.</tt><tt class="descname">job_level_kwargs</tt><big>(</big><em>job_meta</em><big>)</big><a class="reference internal" href="../_modules/pade/http/jobdetails.html#job_level_kwargs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.jobdetails.job_level_kwargs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.http.jobdetails.job_list">
+<tt class="descclassname">pade.http.jobdetails.</tt><tt class="descname">job_list</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/http/jobdetails.html#job_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.jobdetails.job_list" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.http.jobdetails.load_job">
+<tt class="descclassname">pade.http.jobdetails.</tt><tt class="descname">load_job</tt><big>(</big><em>job_id</em><big>)</big><a class="reference internal" href="../_modules/pade/http/jobdetails.html#load_job"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.jobdetails.load_job" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load the Job object with the given meta job id.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pade.http.jobdetails.max_features_found">
+<tt class="descclassname">pade.http.jobdetails.</tt><tt class="descname">max_features_found</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/http/jobdetails.html#max_features_found"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.jobdetails.max_features_found" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.http.jobdetails.mean_vs_variance">
+<tt class="descclassname">pade.http.jobdetails.</tt><tt class="descname">mean_vs_variance</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pade/http/jobdetails.html#mean_vs_variance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.jobdetails.mean_vs_variance" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.http.jobdetails.measurement_bars">
+<tt class="descclassname">pade.http.jobdetails.</tt><tt class="descname">measurement_bars</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pade/http/jobdetails.html#measurement_bars"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.jobdetails.measurement_bars" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.http.jobdetails.measurement_scatter">
+<tt class="descclassname">pade.http.jobdetails.</tt><tt class="descname">measurement_scatter</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pade/http/jobdetails.html#measurement_scatter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.jobdetails.measurement_scatter" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.http.jobdetails.result_db">
+<tt class="descclassname">pade.http.jobdetails.</tt><tt class="descname">result_db</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pade/http/jobdetails.html#result_db"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.jobdetails.result_db" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.http.jobdetails.score_dist_by_tuning_param">
+<tt class="descclassname">pade.http.jobdetails.</tt><tt class="descname">score_dist_by_tuning_param</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pade/http/jobdetails.html#score_dist_by_tuning_param"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.jobdetails.score_dist_by_tuning_param" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.http.jobdetails.stat_dist_plot">
+<tt class="descclassname">pade.http.jobdetails.</tt><tt class="descname">stat_dist_plot</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pade/http/jobdetails.html#stat_dist_plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.jobdetails.stat_dist_plot" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.http.jobdetails.stat_dist_plots_page">
+<tt class="descclassname">pade.http.jobdetails.</tt><tt class="descname">stat_dist_plots_page</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pade/http/jobdetails.html#stat_dist_plots_page"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.jobdetails.stat_dist_plots_page" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-pade.http.newjob">
+<span id="newjob-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">newjob</span></tt> Module<a class="headerlink" href="#module-pade.http.newjob" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="pade.http.newjob.ColumnLabelsForm">
+<em class="property">class </em><tt class="descclassname">pade.http.newjob.</tt><tt class="descname">ColumnLabelsForm</tt><big>(</big><em>formdata=&lt;class flask_wtf.form._Auto at 0x2761458&gt;</em>, <em>obj=None</em>, <em>prefix=''</em>, <em>csrf_context=None</em>, <em>secret_key=None</em>, <em>csrf_enabled=None</em>, <em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pade/http/newjob.html#ColumnLabelsForm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.newjob.ColumnLabelsForm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">flask_wtf.form.Form</span></tt></p>
+<dl class="attribute">
+<dt id="pade.http.newjob.ColumnLabelsForm.assignments">
+<tt class="descname">assignments</tt><em class="property"> = &lt;UnboundField(FieldList, (&lt;UnboundField(SelectField, (), {})&gt;,), {})&gt;</em><a class="headerlink" href="#pade.http.newjob.ColumnLabelsForm.assignments" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pade.http.newjob.ColumnRolesForm">
+<em class="property">class </em><tt class="descclassname">pade.http.newjob.</tt><tt class="descname">ColumnRolesForm</tt><big>(</big><em>formdata=&lt;class flask_wtf.form._Auto at 0x2761458&gt;</em>, <em>obj=None</em>, <em>prefix=''</em>, <em>csrf_context=None</em>, <em>secret_key=None</em>, <em>csrf_enabled=None</em>, <em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pade/http/newjob.html#ColumnRolesForm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.newjob.ColumnRolesForm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">flask_wtf.form.Form</span></tt></p>
+<dl class="method">
+<dt id="pade.http.newjob.ColumnRolesForm.cols_with_role">
+<tt class="descname">cols_with_role</tt><big>(</big><em>role</em><big>)</big><a class="reference internal" href="../_modules/pade/http/newjob.html#ColumnRolesForm.cols_with_role"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.newjob.ColumnRolesForm.cols_with_role" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pade.http.newjob.ColumnRolesForm.roles">
+<tt class="descname">roles</tt><em class="property"> = &lt;UnboundField(FieldList, (&lt;UnboundField(SelectField, (), {'choices': [('feature_id', 'Feature ID'), ('sample', 'Sample'), ('ignored', 'Ignored')]})&gt;,), {})&gt;</em><a class="headerlink" href="#pade.http.newjob.ColumnRolesForm.roles" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pade.http.newjob.ColumnRolesForm.submit">
+<tt class="descname">submit</tt><em class="property"> = &lt;UnboundField(SubmitField, (), {})&gt;</em><a class="headerlink" href="#pade.http.newjob.ColumnRolesForm.submit" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pade.http.newjob.JobFactorForm">
+<em class="property">class </em><tt class="descclassname">pade.http.newjob.</tt><tt class="descname">JobFactorForm</tt><big>(</big><em>formdata=&lt;class flask_wtf.form._Auto at 0x2761458&gt;</em>, <em>obj=None</em>, <em>prefix=''</em>, <em>csrf_context=None</em>, <em>secret_key=None</em>, <em>csrf_enabled=None</em>, <em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pade/http/newjob.html#JobFactorForm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.newjob.JobFactorForm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">flask_wtf.form.Form</span></tt></p>
+<dl class="attribute">
+<dt id="pade.http.newjob.JobFactorForm.factor_roles">
+<tt class="descname">factor_roles</tt><em class="property"> = &lt;UnboundField(FieldList, (&lt;UnboundField(SelectField, (), {'choices': [('block', 'Block'), ('condition', 'Condition'), ('ignored', 'Ignored')]})&gt;,), {})&gt;</em><a class="headerlink" href="#pade.http.newjob.JobFactorForm.factor_roles" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pade.http.newjob.JobFactorForm.submit">
+<tt class="descname">submit</tt><em class="property"> = &lt;UnboundField(SubmitField, (), {})&gt;</em><a class="headerlink" href="#pade.http.newjob.JobFactorForm.submit" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pade.http.newjob.JobSettingsForm">
+<em class="property">class </em><tt class="descclassname">pade.http.newjob.</tt><tt class="descname">JobSettingsForm</tt><big>(</big><em>formdata=&lt;class flask_wtf.form._Auto at 0x2761458&gt;</em>, <em>obj=None</em>, <em>prefix=''</em>, <em>csrf_context=None</em>, <em>secret_key=None</em>, <em>csrf_enabled=None</em>, <em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pade/http/newjob.html#JobSettingsForm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.newjob.JobSettingsForm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">flask_wtf.form.Form</span></tt></p>
+<dl class="attribute">
+<dt id="pade.http.newjob.JobSettingsForm.bins">
+<tt class="descname">bins</tt><em class="property"> = &lt;UnboundField(IntegerField, ('Number of bins',), {'default': 1000, 'validators': [&lt;wtforms.validators.Required object at 0x9a80070&gt;]})&gt;</em><a class="headerlink" href="#pade.http.newjob.JobSettingsForm.bins" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pade.http.newjob.JobSettingsForm.choices">
+<tt class="descname">choices</tt><em class="property"> = [('means_ratio', 'means_ratio'), ('glm (poisson)', 'glm (poisson)'), ('glm (negative_binomial)', 'glm (negative_binomial)'), ('glm (gaussian)', 'glm (gaussian)'), ('glm (gamma)', 'glm (gamma)'), ('t', 't'), ('separation', 'separation'), ('f', 'f')]</em><a class="headerlink" href="#pade.http.newjob.JobSettingsForm.choices" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pade.http.newjob.JobSettingsForm.equalize_means">
+<tt class="descname">equalize_means</tt><em class="property"> = &lt;UnboundField(BooleanField, ('Equalize means',), {'default': False, 'validators': [&lt;wtforms.validators.Required object at 0x9a801f0&gt;]})&gt;</em><a class="headerlink" href="#pade.http.newjob.JobSettingsForm.equalize_means" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pade.http.newjob.JobSettingsForm.family">
+<tt class="descname">family</tt><em class="property"> = 'gamma'</em><a class="headerlink" href="#pade.http.newjob.JobSettingsForm.family" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pade.http.newjob.JobSettingsForm.name">
+<tt class="descname">name</tt><em class="property"> = 'f'</em><a class="headerlink" href="#pade.http.newjob.JobSettingsForm.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pade.http.newjob.JobSettingsForm.permutations">
+<tt class="descname">permutations</tt><em class="property"> = &lt;UnboundField(IntegerField, ('Maximum number of permutations',), {'default': 1000, 'validators': [&lt;wtforms.validators.Required object at 0x9a800d0&gt;]})&gt;</em><a class="headerlink" href="#pade.http.newjob.JobSettingsForm.permutations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pade.http.newjob.JobSettingsForm.sample_from_residuals">
+<tt class="descname">sample_from_residuals</tt><em class="property"> = &lt;UnboundField(BooleanField, ('Sample from residuals',), {'default': False, 'validators': [&lt;wtforms.validators.Required object at 0x9a80130&gt;]})&gt;</em><a class="headerlink" href="#pade.http.newjob.JobSettingsForm.sample_from_residuals" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pade.http.newjob.JobSettingsForm.sample_with_replacement">
+<tt class="descname">sample_with_replacement</tt><em class="property"> = &lt;UnboundField(BooleanField, ('Use bootstrapping (instead of permutation test)',), {'default': False, 'validators': [&lt;wtforms.validators.Required object at 0x9a80190&gt;]})&gt;</em><a class="headerlink" href="#pade.http.newjob.JobSettingsForm.sample_with_replacement" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pade.http.newjob.JobSettingsForm.statistic">
+<tt class="descname">statistic</tt><em class="property"> = &lt;UnboundField(SelectField, ('Statistic',), {'choices': [('means_ratio', 'means_ratio'), ('glm (poisson)', 'glm (poisson)'), ('glm (negative_binomial)', 'glm (negative_binomial)'), ('glm (gaussian)', 'glm (gaussian)'), ('glm (gamma)', 'glm (gamma)'), ('t', 't'), ('separation', 'separation'), ('f', 'f')]})&gt;</em><a class="headerlink" href="#pade.http.newjob.JobSettingsForm.statistic" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pade.http.newjob.JobSettingsForm.submit">
+<tt class="descname">submit</tt><em class="property"> = &lt;UnboundField(SubmitField, (), {})&gt;</em><a class="headerlink" href="#pade.http.newjob.JobSettingsForm.submit" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pade.http.newjob.JobSettingsForm.summary_min_conf_level">
+<tt class="descname">summary_min_conf_level</tt><em class="property"> = &lt;UnboundField(FloatField, ('Minimum confidence level',), {'default': 0.1, 'validators': [&lt;wtforms.validators.Required object at 0x9a80250&gt;]})&gt;</em><a class="headerlink" href="#pade.http.newjob.JobSettingsForm.summary_min_conf_level" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pade.http.newjob.JobSettingsForm.summary_step_size">
+<tt class="descname">summary_step_size</tt><em class="property"> = &lt;UnboundField(FloatField, ('Summary step size',), {'default': 0.05, 'validators': [&lt;wtforms.validators.Required object at 0x9a802b0&gt;]})&gt;</em><a class="headerlink" href="#pade.http.newjob.JobSettingsForm.summary_step_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pade.http.newjob.JobSettingsForm.tuning_params">
+<tt class="descname">tuning_params</tt><em class="property"> = &lt;UnboundField(StringField, ('Tuning parameters',), {'default': '0.0001 0.001 0.01 0.1 1 3 10 30 100 300 1000 3000', 'validators': [&lt;wtforms.validators.Required object at 0x9a80310&gt;]})&gt;</em><a class="headerlink" href="#pade.http.newjob.JobSettingsForm.tuning_params" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pade.http.newjob.JobSettingsForm.x">
+<tt class="descname">x</tt><em class="property"> = 'glm (gamma)'</em><a class="headerlink" href="#pade.http.newjob.JobSettingsForm.x" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pade.http.newjob.NewFactorForm">
+<em class="property">class </em><tt class="descclassname">pade.http.newjob.</tt><tt class="descname">NewFactorForm</tt><big>(</big><em>formdata=&lt;class flask_wtf.form._Auto at 0x2761458&gt;</em>, <em>obj=None</em>, <em>prefix=''</em>, <em>csrf_context=None</em>, <em>secret_key=None</em>, <em>csrf_enabled=None</em>, <em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="../_modules/pade/http/newjob.html#NewFactorForm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.newjob.NewFactorForm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">flask_wtf.form.Form</span></tt></p>
+<dl class="attribute">
+<dt id="pade.http.newjob.NewFactorForm.factor_name">
+<tt class="descname">factor_name</tt><em class="property"> = &lt;UnboundField(StringField, ('Factor name',), {'validators': [&lt;wtforms.validators.Required object at 0x9a179f0&gt;]})&gt;</em><a class="headerlink" href="#pade.http.newjob.NewFactorForm.factor_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pade.http.newjob.NewFactorForm.possible_values">
+<tt class="descname">possible_values</tt><em class="property"> = &lt;UnboundField(FieldList, (&lt;UnboundField(StringField, ('',), {})&gt;,), {})&gt;</em><a class="headerlink" href="#pade.http.newjob.NewFactorForm.possible_values" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pade.http.newjob.NewFactorForm.submit">
+<tt class="descname">submit</tt><em class="property"> = &lt;UnboundField(SubmitField, (), {})&gt;</em><a class="headerlink" href="#pade.http.newjob.NewFactorForm.submit" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pade.http.newjob.Workflow">
+<em class="property">class </em><tt class="descclassname">pade.http.newjob.</tt><tt class="descname">Workflow</tt><big>(</big><em>input_file_id</em><big>)</big><a class="reference internal" href="../_modules/pade/http/newjob.html#Workflow"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.newjob.Workflow" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="pade.http.newjob.Workflow.can_continue_past_factors">
+<tt class="descname">can_continue_past_factors</tt><a class="reference internal" href="../_modules/pade/http/newjob.html#Workflow.can_continue_past_factors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.newjob.Workflow.can_continue_past_factors" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pade.http.newjob.Workflow.column_roles">
+<tt class="descname">column_roles</tt><a class="reference internal" href="../_modules/pade/http/newjob.html#Workflow.column_roles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.newjob.Workflow.column_roles" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pade.http.newjob.Workflow.factor_values">
+<tt class="descname">factor_values</tt><a class="reference internal" href="../_modules/pade/http/newjob.html#Workflow.factor_values"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.newjob.Workflow.factor_values" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pade.http.newjob.Workflow.field_names">
+<tt class="descname">field_names</tt><a class="reference internal" href="../_modules/pade/http/newjob.html#Workflow.field_names"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.newjob.Workflow.field_names" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pade.http.newjob.Workflow.input_file_meta">
+<tt class="descname">input_file_meta</tt><a class="reference internal" href="../_modules/pade/http/newjob.html#Workflow.input_file_meta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.newjob.Workflow.input_file_meta" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pade.http.newjob.Workflow.remove_factor">
+<tt class="descname">remove_factor</tt><big>(</big><em>factor</em><big>)</big><a class="reference internal" href="../_modules/pade/http/newjob.html#Workflow.remove_factor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.newjob.Workflow.remove_factor" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pade.http.newjob.Workflow.schema">
+<tt class="descname">schema</tt><a class="reference internal" href="../_modules/pade/http/newjob.html#Workflow.schema"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.newjob.Workflow.schema" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="pade.http.newjob.Workflow.settings">
+<tt class="descname">settings</tt><a class="reference internal" href="../_modules/pade/http/newjob.html#Workflow.settings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.newjob.Workflow.settings" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="pade.http.newjob.add_factor">
+<tt class="descclassname">pade.http.newjob.</tt><tt class="descname">add_factor</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/http/newjob.html#add_factor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.newjob.add_factor" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.http.newjob.clear_workflow">
+<tt class="descclassname">pade.http.newjob.</tt><tt class="descname">clear_workflow</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/http/newjob.html#clear_workflow"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.newjob.clear_workflow" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.http.newjob.column_labels">
+<tt class="descclassname">pade.http.newjob.</tt><tt class="descname">column_labels</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/http/newjob.html#column_labels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.newjob.column_labels" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.http.newjob.column_roles">
+<tt class="descclassname">pade.http.newjob.</tt><tt class="descname">column_roles</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/http/newjob.html#column_roles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.newjob.column_roles" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.http.newjob.current_workflow">
+<tt class="descclassname">pade.http.newjob.</tt><tt class="descname">current_workflow</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/http/newjob.html#current_workflow"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.newjob.current_workflow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the Workflow stored in the session.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pade.http.newjob.factor_list">
+<tt class="descclassname">pade.http.newjob.</tt><tt class="descname">factor_list</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/http/newjob.html#factor_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.newjob.factor_list" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.http.newjob.job_confirmation">
+<tt class="descclassname">pade.http.newjob.</tt><tt class="descname">job_confirmation</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/http/newjob.html#job_confirmation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.newjob.job_confirmation" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.http.newjob.job_settings">
+<tt class="descclassname">pade.http.newjob.</tt><tt class="descname">job_settings</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/http/newjob.html#job_settings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.newjob.job_settings" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.http.newjob.parse_stat">
+<tt class="descclassname">pade.http.newjob.</tt><tt class="descname">parse_stat</tt><big>(</big><em>s</em><big>)</big><a class="reference internal" href="../_modules/pade/http/newjob.html#parse_stat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.newjob.parse_stat" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.http.newjob.remove_factor">
+<tt class="descclassname">pade.http.newjob.</tt><tt class="descname">remove_factor</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/http/newjob.html#remove_factor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.newjob.remove_factor" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.http.newjob.select_input_file">
+<tt class="descclassname">pade.http.newjob.</tt><tt class="descname">select_input_file</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/http/newjob.html#select_input_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.newjob.select_input_file" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.http.newjob.setup_job_factors">
+<tt class="descclassname">pade.http.newjob.</tt><tt class="descname">setup_job_factors</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/http/newjob.html#setup_job_factors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.newjob.setup_job_factors" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="pade.http.newjob.submit_job">
+<tt class="descclassname">pade.http.newjob.</tt><tt class="descname">submit_job</tt><big>(</big><big>)</big><a class="reference internal" href="../_modules/pade/http/newjob.html#submit_job"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.newjob.submit_job" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-pade.http.server">
+<span id="server-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">server</span></tt> Module<a class="headerlink" href="#module-pade.http.server" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="pade.http.server.PadeRunner">
+<em class="property">class </em><tt class="descclassname">pade.http.server.</tt><tt class="descname">PadeRunner</tt><big>(</big><em>config</em><big>)</big><a class="reference internal" href="../_modules/pade/http/server.html#PadeRunner"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.server.PadeRunner" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pade.http.server.PadeServer" title="pade.http.server.PadeServer"><tt class="xref py py-class docutils literal"><span class="pre">pade.http.server.PadeServer</span></tt></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="pade.http.server.PadeServer">
+<em class="property">class </em><tt class="descclassname">pade.http.server.</tt><tt class="descname">PadeServer</tt><a class="reference internal" href="../_modules/pade/http/server.html#PadeServer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.server.PadeServer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">flask.app.Flask</span></tt></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="pade.http.server.PadeViewer">
+<em class="property">class </em><tt class="descclassname">pade.http.server.</tt><tt class="descname">PadeViewer</tt><a class="reference internal" href="../_modules/pade/http/server.html#PadeViewer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.server.PadeViewer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pade.http.server.PadeServer" title="pade.http.server.PadeServer"><tt class="xref py py-class docutils literal"><span class="pre">pade.http.server.PadeServer</span></tt></a></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pade.http.server.datetime_format">
+<tt class="descclassname">pade.http.server.</tt><tt class="descname">datetime_format</tt><big>(</big><em>dt</em><big>)</big><a class="reference internal" href="../_modules/pade/http/server.html#datetime_format"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.server.datetime_format" title="Permalink to this definition">¶</a></dt>
+<dd><p>Jinja2 filter for formatting datetime objects.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="pade.http.server.job_label">
+<tt class="descclassname">pade.http.server.</tt><tt class="descname">job_label</tt><big>(</big><em>job_meta</em><big>)</big><a class="reference internal" href="../_modules/pade/http/server.html#job_label"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pade.http.server.job_label" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul class="simple">
+</ul>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">http Package</a><ul>
+<li><a class="reference internal" href="#module-pade.http.inputfile"><tt class="docutils literal"><span class="pre">inputfile</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-pade.http.jobbrowser"><tt class="docutils literal"><span class="pre">jobbrowser</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-pade.http.jobdetails"><tt class="docutils literal"><span class="pre">jobdetails</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-pade.http.newjob"><tt class="docutils literal"><span class="pre">newjob</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-pade.http.server"><tt class="docutils literal"><span class="pre">server</span></tt> Module</a></li>
+<li><a class="reference internal" href="#subpackages">Subpackages</a><ul>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="pade.html"
+                        title="previous chapter">pade Package</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="pade.test.html"
+                        title="next chapter">test Package</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/generated/pade.http.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="pade.test.html" title="test Package"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="pade.html" title="pade Package"
+             >previous</a> |</li>
+        <li><a href="../index.html">PADE 6.0 documentation</a> &raquo;</li>
+          <li><a href="../api.html" >API Documentation</a> &raquo;</li>
+          <li><a href="pade.html" >pade Package</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, University of Pennsylvania.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.2.
+    </div>
+  </body>
+</html>

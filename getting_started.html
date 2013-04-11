@@ -57,46 +57,76 @@
             
   <div class="section" id="getting-started">
 <h1>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="prerequisites">
-<h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this headline">¶</a></h2>
-<p>Pade requires a number of libraries that aren&#8217;t built in to Python:</p>
+<div class="section" id="installing-pade">
+<h2>Installing PADE<a class="headerlink" href="#installing-pade" title="Permalink to this headline">¶</a></h2>
+<p>Pade is written in Python, and depends heavily on several Python
+libraries, such as:</p>
 <ul class="simple">
 <li>jinja2</li>
 <li>matplotlib</li>
-<li>numpy</li>
 <li>scipy</li>
-<li>yaml</li>
+<li>numpy</li>
+<li>redis</li>
+<li>celery</li>
+<li>h5py</li>
+<li>flask</li>
+<li>Flask-WTF</li>
 </ul>
-<p>If you are using Linux, you may be able to install these packages
-quite easily using pip (<a class="reference external" href="http://pypi.python.org/pypi/pip">http://pypi.python.org/pypi/pip</a>) or another
-package management tool.</p>
-<p>If you are using a Mac, installing scipy can be tricky. The easiest
-way to get up and running may be to use a Python distribution that has
-scientific computing libraries pre-packaged with it. You should be
-able to use the <em>Enthought Python Distribution</em>, available here:
-<a class="reference external" href="http://www.enthought.com/products/epd.php">http://www.enthought.com/products/epd.php</a>.</p>
+<p>PADE has been primarily tested on Ubuntu 12.04.1, so installing it on
+similar Ubuntu systems should be easy. You can most likely install it
+on other Linux distributions or Mac OS X, although OS X can be a bit
+tricky.</p>
+<div class="section" id="on-an-amazon-ec2-instance">
+<h3>On an Amazon EC2 Instance<a class="headerlink" href="#on-an-amazon-ec2-instance" title="Permalink to this headline">¶</a></h3>
+<p>Installing and running PADE on an Amazon EC2 instance is very straightforward. We recommend starting an instance based on the <tt class="docutils literal"><span class="pre">ami-3fec7956</span></tt> AMI. Then ssh to the instance, and run:</p>
+<div class="highlight-python"><pre>wget https://raw.github.com/itmat/pade/master/ubuntu_dev_setup.sh -O - | bash</pre>
 </div>
-<div class="section" id="obtaining">
-<h2>Obtaining<a class="headerlink" href="#obtaining" title="Permalink to this headline">¶</a></h2>
-<p>You can obtain Pade by cloning or forking it from github here:
-<a class="reference external" href="https://github.com/itmat/pade">https://github.com/itmat/pade</a>.</p>
-<div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">We need to create a tarball and put it somewhere to be downloaded.</p>
+<p>This will install git and several Python packages system-wide, create
+a local Python environment using virtual env, install PADE&#8217;s
+dependencies into that environment, and link PADE&#8217;s executable and
+libraries into that environment. Then simply run:</p>
+<div class="highlight-python"><pre>source padeenv/bin/activate</pre>
 </div>
+<p>to activate the environment, and then you should be able to run
+<tt class="docutils literal"><span class="pre">pade</span></tt>.</p>
 </div>
-<div class="section" id="installing">
-<h2>Installing<a class="headerlink" href="#installing" title="Permalink to this headline">¶</a></h2>
-<p>Once you&#8217;ve obtained Pade, you can either run it from the directory
-where you&#8217;ve unpacked it, or install it globally. If you run it from a
-local directory, you&#8217;ll need to update your PYTHONPATH environment
-variable to point to the root of the Pade directory. For example, if
-you&#8217;ve downloaded Pade to ~/projects/, you might want to add</p>
-<div class="highlight-python"><pre>export PYTHONPATH=$PYTHONPATH:$HOME/projects/pade</pre>
+<div class="section" id="on-ubuntu">
+<h3>On Ubuntu<a class="headerlink" href="#on-ubuntu" title="Permalink to this headline">¶</a></h3>
+<p>You should be able to use the above instructions for installing PADE
+on an Amazon EC2 instance to install PADE on any Ubuntu machine,
+however the ubuntu_dev_setup.sh script has been primarily tested on
+fresh EC2 instances.</p>
+<p>We recommend installing the following packages via apt-get:</p>
+<div class="highlight-python"><pre>apt-get install git python-numpy python-scipy python-matplotlib python-h5py redis-server python-setuptools python-pip</pre>
 </div>
-<p>to your ~/.profile or ~/.bashrc file.</p>
-<p>You can install it simply by running <tt class="docutils literal"><span class="pre">python</span> <span class="pre">setup.py</span> <span class="pre">install</span></tt>.  Note
-that you may need to run this as root or under sudo.</p>
+<p>Then install virtualenv via pip:</p>
+<div class="highlight-python"><pre>pip install virtualenv</pre>
+</div>
+<p>Create a virtualenv environment:</p>
+<div class="highlight-python"><pre>virtualenv --system-site-packages padeenv</pre>
+</div>
+<p>Activate the environment:</p>
+<div class="highlight-python"><pre>source padeenv/bin/activate</pre>
+</div>
+<p>Obtain pade and install it into your newly active padeenv environment:</p>
+<blockquote>
+<div>git clone <a class="reference external" href="https://github.com/itmat/pade.git">https://github.com/itmat/pade.git</a>
+cd pade
+python setup.py develop</div></blockquote>
+<p>Then you should be able to run <tt class="docutils literal"><span class="pre">pade</span></tt>.</p>
+</div>
+<div class="section" id="on-mac-os-x">
+<h3>On Mac OS X<a class="headerlink" href="#on-mac-os-x" title="Permalink to this headline">¶</a></h3>
+<p>Installing numpy, scipy and h5py on a Mac can be difficult. The
+easiest way to get up and running may be to use a Python distribution
+that has scientific computing libraries pre-packaged with it. You
+should be able to use the <em>Enthought Python Distribution</em>, available
+here: <a class="reference external" href="http://www.enthought.com/products/epd.php">http://www.enthought.com/products/epd.php</a>. After you install
+EPD, <em>please make sure that the python you&#8217;re using when you run
+``python`` is actually the one from EPD</em>. Then you should be able to
+install PADE by running <tt class="docutils literal"><span class="pre">sudo</span> <span class="pre">python</span> <span class="pre">setup.py</span> <span class="pre">install</span></tt> from within
+the PADE source directory.</p>
+</div>
 </div>
 <div class="section" id="running-a-sample-job">
 <h2>Running a sample job<a class="headerlink" href="#running-a-sample-job" title="Permalink to this headline">¶</a></h2>
@@ -107,15 +137,14 @@ before attempting to run it on your own data.</p>
 in the <tt class="docutils literal"><span class="pre">sample_data</span></tt> directory.</p>
 <div class="section" id="input-files">
 <h3>Input files<a class="headerlink" href="#input-files" title="Permalink to this headline">¶</a></h3>
-<p>The input to any pade job (at this time) is a tab-delimited file. The
-file must contain a header row, plus one row for each feature. There
-should be one column that contains a unique identifier for the
-features (for example a gene id). Then each of the samples should have
-their expression values for each feature in its own column. So for
-example if you 2 conditions, each with 4 replicates, and 1000
-features, you would have a tab file with a header row plus 1000 data
-rows, with 9 columns (1 for the feature id and 8 for the expression
-data).</p>
+<p>The input to any pade job is a tab-delimited file. The file must
+contain a header row, plus one row for each feature. There should be
+one column that contains a unique identifier for the features (for
+example a gene id). Then each of the samples should have their
+expression values for each feature in its own column. So for example
+if you 2 conditions, each with 4 replicates, and 1000 features, you
+would have a tab file with a header row plus 1000 data rows, with 9
+columns (1 for the feature id and 8 for the expression data).</p>
 <p>The names of the columns do not matter, except that each column&#8217;s name
 must be unique.</p>
 </div>
@@ -130,14 +159,13 @@ the columns. For example, suppose say we are trying to find genes that
 are differentially expressed due to some treatment, and we want to
 treat gender as a &#8220;nuisance&#8221; variables. So we have two factors:
 &#8220;treated&#8221; and &#8220;gender&#8221;. We would setup the job as follows:</p>
-<div class="highlight-python"><pre>pade setup --factor gender --factor treated sample_data/sample_data_4_class.txt</pre>
+<div class="highlight-python"><pre>pade setup --factor gender --factor treated sample_data/sample_data_4_class.txt -o schema.yaml</pre>
 </div>
 <p>This will read in the input file and create a skeleton &#8220;schema&#8221; file
-based on it, in pade_schema.yaml (this can be changed with the
-<tt class="docutils literal"><span class="pre">--schema</span></tt> option). We then need to edit this file to list the
-values available for each of the two factors, and to assign those
+based on it, in schema.yaml. We then need to edit this file to list
+the values available for each of the two factors, and to assign those
 factor values to each of the sample column names.</p>
-<p>First, in the very top section of the pade_schema.yaml file,
+<p>First, in the very top section of the schema.yaml file,
 list the valid values for the factors. Change it to look like this:</p>
 <div class="highlight-python"><pre>factors:
 - name: treated
@@ -175,7 +203,7 @@ gender and whether or not it was treated:</p>
 <h3>Running the analysis<a class="headerlink" href="#running-the-analysis" title="Permalink to this headline">¶</a></h3>
 <p>Once you have created the schema file, you are ready to run the
 analysis, using <tt class="docutils literal"><span class="pre">pade</span> <span class="pre">run</span></tt>. You&#8217;ll need to specify a couple options,
-most importantly <tt class="docutils literal"><span class="pre">--condition</span></tt> and optionally <tt class="docutils literal"><span class="pre">--block</span></tt>.</p>
+most importantly <tt class="docutils literal"><span class="pre">--condition</span></tt> and <tt class="docutils literal"><span class="pre">--schema</span></tt>.</p>
 <div class="section" id="condition-and-block">
 <h4>Condition and Block<a class="headerlink" href="#condition-and-block" title="Permalink to this headline">¶</a></h4>
 <p><tt class="docutils literal"><span class="pre">--condition</span></tt> allows you to specify the factor the represents the
@@ -193,7 +221,7 @@ gender, you would run:</p>
 <div class="section" id="default-settings">
 <h4>Default settings<a class="headerlink" href="#default-settings" title="Permalink to this headline">¶</a></h4>
 <p>The simplest Pade job for our 4-class sample input would be something like:</p>
-<div class="highlight-python"><pre>pade run --condition treated --block gender sample_data/sample_data_4_class.txt</pre>
+<div class="highlight-python"><pre>pade run --condition treated --block gender --schema schema.yaml sample_data/sample_data_4_class.txt -o results.pade</pre>
 </div>
 <p>This should take less than a minute. Note that you need to provide the
 input file on the command line.</p>
@@ -223,24 +251,27 @@ option. Currently we support the following statistics:</p>
 <dt>means_ratio:</dt>
 <dd>Ratio of means. Can only be used when there are two conditions. Can
 be used with or without blocking. Works with paired data also.</dd>
+<dt>glm: A generalized linear model. If you specify this statistic, you</dt>
+<dd>must also specify a distribution family using the &#8216;&#8211;glm-family&#8217;
+option. Please see <tt class="docutils literal"><span class="pre">pade</span> <span class="pre">help</span> <span class="pre">run</span></tt> for a list of the supported
+families.</dd>
 </dl>
 </div>
 </div>
 <div class="section" id="viewing-reports">
 <h3>Viewing reports<a class="headerlink" href="#viewing-reports" title="Permalink to this headline">¶</a></h3>
 <p>When you run <tt class="docutils literal"><span class="pre">pade</span> <span class="pre">run</span></tt>, it will store the results of the analysis
-in a binary file called <tt class="docutils literal"><span class="pre">pade_db.h5</span></tt>. The file name can be changed
-with the <tt class="docutils literal"><span class="pre">--db</span></tt> option. Once that step is done, you can generate a
-tab-delimited text file containing the reuslts, or launch a small web
-server to display the results in HTML format. To generate the text
-file output, run:</p>
-<div class="highlight-python"><pre>pade report --text</pre>
+in a binary file (you specify the path with the &#8211;output option).
+Once that step is done, you can generate a tab-delimited text file
+containing the results, or launch a small web server to display the
+results in HTML format. To generate the text file output, run:</p>
+<div class="highlight-python"><pre>pade report results.pade</pre>
 </div>
-<p>To start the Pade server, run:</p>
-<blockquote>
-<div>pade server</div></blockquote>
-<p>It will take several seconds to start up. Then visit localhost:5000 in
-a browser to look at the reports.</p>
+<p>To start the HTML viewer, run:</p>
+<div class="highlight-python"><pre>pade view results1.pade results2.pade ...</pre>
+</div>
+<p>It will take a few seconds to start up, and should open a web browser
+pointing to the results.</p>
 </div>
 </div>
 </div>
@@ -254,9 +285,12 @@ a browser to look at the reports.</p>
   <h3><a href="index.html">Table Of Contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">Getting Started</a><ul>
-<li><a class="reference internal" href="#prerequisites">Prerequisites</a></li>
-<li><a class="reference internal" href="#obtaining">Obtaining</a></li>
-<li><a class="reference internal" href="#installing">Installing</a></li>
+<li><a class="reference internal" href="#installing-pade">Installing PADE</a><ul>
+<li><a class="reference internal" href="#on-an-amazon-ec2-instance">On an Amazon EC2 Instance</a></li>
+<li><a class="reference internal" href="#on-ubuntu">On Ubuntu</a></li>
+<li><a class="reference internal" href="#on-mac-os-x">On Mac OS X</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#running-a-sample-job">Running a sample job</a><ul>
 <li><a class="reference internal" href="#input-files">Input files</a></li>
 <li><a class="reference internal" href="#creating-the-schema">Creating the schema</a></li>

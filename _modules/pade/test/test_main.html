@@ -1,0 +1,142 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pade.test.test_main &mdash; PADE 6.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '6.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="PADE 6.0 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">PADE 6.0 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for pade.test.test_main</h1><div class="highlight"><pre>
+<span class="kn">import</span> <span class="nn">unittest</span>
+
+<span class="kn">from</span> <span class="nn">pade.main</span> <span class="kn">import</span> <span class="o">*</span>
+
+<div class="viewcode-block" id="MainTest"><a class="viewcode-back" href="../../../generated/pade.test.html#pade.test.test_main.MainTest">[docs]</a><span class="k">class</span> <span class="nc">MainTest</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+
+<div class="viewcode-block" id="MainTest.test_fix_newlines"><a class="viewcode-back" href="../../../generated/pade.test.html#pade.test.test_main.MainTest.test_fix_newlines">[docs]</a>    <span class="k">def</span> <span class="nf">test_fix_newlines</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span>
+            <span class="s">&quot;a</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">fix_newlines</span><span class="p">(</span><span class="s">&quot;a&quot;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span>
+            <span class="s">&quot;a b</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">fix_newlines</span><span class="p">(</span><span class="s">&quot;a</span><span class="se">\n</span><span class="s">b&quot;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span>
+            <span class="s">&quot;a b</span><span class="se">\n</span><span class="s">c d</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">fix_newlines</span><span class="p">(</span><span class="s">&quot;a</span><span class="se">\n</span><span class="s">b</span><span class="se">\n\n</span><span class="s">c</span><span class="se">\n</span><span class="s">d&quot;</span><span class="p">))</span>
+        <span class="n">foo</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;</span><span class="se">\</span>
+<span class="s">                   The schema file </span><span class="se">\&quot;</span><span class="s">{}</span><span class="se">\&quot;</span><span class="s"> already exists. If you want to</span>
+<span class="s">                   overwrite it, use the --force or -f argument.&quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s">&quot;foo&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="s">&quot;The schema file </span><span class="se">\&quot;</span><span class="s">foo</span><span class="se">\&quot;</span><span class="s"> already exists. If you want to overwrite it, use</span><span class="se">\n</span><span class="s">the --force or -f argument.</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span>
+                          <span class="n">fix_newlines</span><span class="p">(</span><span class="n">foo</span><span class="p">))</span>
+</div>
+<div class="viewcode-block" id="MainTest.test_validate_settings"><a class="viewcode-back" href="../../../generated/pade.test.html#pade.test.test_main.MainTest.test_validate_settings">[docs]</a>    <span class="k">def</span> <span class="nf">test_validate_settings</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">schema</span> <span class="o">=</span> <span class="n">Schema</span><span class="p">(</span>
+            <span class="p">[</span><span class="s">&#39;id&#39;</span><span class="p">,</span> <span class="s">&#39;a&#39;</span><span class="p">,</span> <span class="s">&#39;b&#39;</span><span class="p">,</span> <span class="s">&#39;c&#39;</span><span class="p">,</span> <span class="s">&#39;d&#39;</span><span class="p">],</span>
+            <span class="p">[</span><span class="s">&#39;feature_id&#39;</span><span class="p">,</span> <span class="s">&#39;sample&#39;</span><span class="p">,</span> <span class="s">&#39;sample&#39;</span><span class="p">,</span> <span class="s">&#39;sample&#39;</span><span class="p">,</span> <span class="s">&#39;sample&#39;</span><span class="p">])</span>
+
+        <span class="n">schema</span><span class="o">.</span><span class="n">add_factor</span><span class="p">(</span><span class="s">&#39;treated&#39;</span><span class="p">,</span> <span class="p">[</span><span class="bp">False</span><span class="p">,</span> <span class="bp">True</span><span class="p">])</span>
+        <span class="n">schema</span><span class="o">.</span><span class="n">add_factor</span><span class="p">(</span><span class="s">&#39;dose&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s">&#39;high&#39;</span><span class="p">,</span> <span class="s">&#39;medium&#39;</span><span class="p">,</span> <span class="s">&#39;low&#39;</span><span class="p">])</span>
+        <span class="n">schema</span><span class="o">.</span><span class="n">add_factor</span><span class="p">(</span><span class="s">&#39;gender&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s">&#39;male&#39;</span><span class="p">,</span> <span class="s">&#39;female&#39;</span><span class="p">])</span>
+        
+        <span class="n">settings</span> <span class="o">=</span> <span class="n">Settings</span><span class="p">(</span>
+            <span class="n">stat</span><span class="o">=</span><span class="s">&#39;f&#39;</span><span class="p">,</span>
+            <span class="n">condition_variables</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;treated&#39;</span><span class="p">],</span>
+            <span class="n">block_variables</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;gender&#39;</span><span class="p">])</span>
+
+        <span class="n">validate_settings</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">settings</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">assertRaisesRegexp</span><span class="p">(</span><span class="n">UsageException</span><span class="p">,</span> <span class="s">&#39;foo.*&quot;dose&quot;, &quot;gender&quot;, and &quot;treated&quot;&#39;</span><span class="p">):</span>
+            <span class="n">settings</span> <span class="o">=</span> <span class="n">Settings</span><span class="p">(</span>
+                <span class="n">stat</span><span class="o">=</span><span class="s">&#39;f&#39;</span><span class="p">,</span>
+                <span class="n">condition_variables</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;foo&#39;</span><span class="p">])</span>
+            <span class="n">validate_settings</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">settings</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="MainTest.test_quote_and_join"><a class="viewcode-back" href="../../../generated/pade.test.html#pade.test.test_main.MainTest.test_quote_and_join">[docs]</a>    <span class="k">def</span> <span class="nf">test_quote_and_join</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="s">&#39;&quot;a&quot;&#39;</span><span class="p">,</span> <span class="n">quote_and_join</span><span class="p">([</span><span class="s">&#39;a&#39;</span><span class="p">]))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="s">&#39;&quot;a&quot; and &quot;b&quot;&#39;</span><span class="p">,</span> <span class="n">quote_and_join</span><span class="p">([</span><span class="s">&#39;a&#39;</span><span class="p">,</span> <span class="s">&#39;b&#39;</span><span class="p">]))</span>
+</div></div>
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">unittest</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">PADE 6.0 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, University of Pennsylvania.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.2.
+    </div>
+  </body>
+</html>

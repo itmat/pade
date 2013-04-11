@@ -1,0 +1,401 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pade.varfuncs &mdash; PADE 6.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '6.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="PADE 6.0 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">PADE 6.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for pade.varfuncs</h1><div class="highlight"><pre>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Variance functions for use with the link functions in statsmodels.family.links</span>
+
+<span class="sd">This is based on statsmodels/genmod/families/family.py in the</span>
+<span class="sd">statsmodels project: https://github.com/statsmodels/statsmodels. </span>
+
+<span class="sd">I have copied and modified the source from statsmodels in order to</span>
+<span class="sd">optimize the algorithms for our purposes. PADE is interested in</span>
+<span class="sd">fitting many models, one for each feature in the input (from tens of</span>
+<span class="sd">thousands to millions). In a single job, all the models have the same</span>
+<span class="sd">number of parameters, and that number is typically quite small, such</span>
+<span class="sd">as 2. We also have a relatively small number of observations, since</span>
+<span class="sd">each one represents a replicate of an experiment.</span>
+
+<span class="sd">In order to fit these models quickly, we have changed many of the</span>
+<span class="sd">statsmodels methods to add an additional dimension to parameters and</span>
+<span class="sd">return values; this extra dimension representing the features. I</span>
+<span class="sd">started to modify a forked version of the statsmodels project, with</span>
+<span class="sd">the intention of contributing the changes back to statsmodels, but it</span>
+<span class="sd">would have been impossible to make these changes in a way that did not</span>
+<span class="sd">break the original statsmodels behavior. This is because many of the</span>
+<span class="sd">functions already accept input of varying dimensionality, and behave</span>
+<span class="sd">differently depending on how many dimensions their input arrays have.</span>
+
+<span class="sd">The statsmodels license follows:</span>
+
+<span class="sd">    Copyright (C) 2006, Jonathan E. Taylor</span>
+<span class="sd">    All rights reserved.</span>
+
+<span class="sd">    Copyright (c) 2006-2008 Scipy Developers.</span>
+<span class="sd">    All rights reserved.</span>
+
+<span class="sd">    Copyright (c) 2009-2012 Statsmodels Developers.</span>
+<span class="sd">    All rights reserved.</span>
+
+
+<span class="sd">    Redistribution and use in source and binary forms, with or without</span>
+<span class="sd">    modification, are permitted provided that the following conditions are met:</span>
+
+<span class="sd">      a. Redistributions of source code must retain the above copyright notice,</span>
+<span class="sd">         this list of conditions and the following disclaimer.</span>
+<span class="sd">      b. Redistributions in binary form must reproduce the above copyright</span>
+<span class="sd">         notice, this list of conditions and the following disclaimer in the</span>
+<span class="sd">         documentation and/or other materials provided with the distribution.</span>
+<span class="sd">      c. Neither the name of Statsmodels nor the names of its contributors</span>
+<span class="sd">         may be used to endorse or promote products derived from this software</span>
+<span class="sd">         without specific prior written permission.</span>
+
+
+<span class="sd">    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot;</span>
+<span class="sd">    AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE</span>
+<span class="sd">    IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE</span>
+<span class="sd">    ARE DISCLAIMED. IN NO EVENT SHALL STATSMODELS OR CONTRIBUTORS BE LIABLE FOR</span>
+<span class="sd">    ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL</span>
+<span class="sd">    DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR</span>
+<span class="sd">    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER</span>
+<span class="sd">    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT</span>
+<span class="sd">    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY</span>
+<span class="sd">    OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH</span>
+<span class="sd">    DAMAGE.</span>
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="n">__docformat__</span> <span class="o">=</span> <span class="s">&#39;restructuredtext&#39;</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+
+<div class="viewcode-block" id="VarianceFunction"><a class="viewcode-back" href="../../generated/pade.html#pade.varfuncs.VarianceFunction">[docs]</a><span class="k">class</span> <span class="nc">VarianceFunction</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Relates the variance of a random variable to its mean. Defaults to 1.</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+<span class="sd">    call</span>
+<span class="sd">        Returns an array of ones that is the same shape as `mu`</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    After a variance function is initialized, its call method can be used.</span>
+
+<span class="sd">    Alias for VarianceFunction:</span>
+<span class="sd">    constant = VarianceFunction()</span>
+
+<span class="sd">    See also</span>
+<span class="sd">    --------</span>
+<span class="sd">    statsmodels.family.family</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mu</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Default variance function</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        -----------</span>
+<span class="sd">        mu : array-like</span>
+<span class="sd">            mean parameters</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        v : array</span>
+<span class="sd">            ones(mu.shape)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">mu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">mu</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">mu</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+</div>
+<span class="n">constant</span> <span class="o">=</span> <span class="n">VarianceFunction</span><span class="p">()</span>
+<span class="n">constant</span><span class="o">.</span><span class="n">__doc__</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">The call method of constnat returns a constant variance, ie., a vector of ones.</span>
+
+<span class="s">constant is an alias of VarianceFunction()</span>
+<span class="s">&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="Power"><a class="viewcode-back" href="../../generated/pade.html#pade.varfuncs.Power">[docs]</a><span class="k">class</span> <span class="nc">Power</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Power variance function</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    power : float</span>
+<span class="sd">        exponent used in power variance function</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+<span class="sd">    call</span>
+<span class="sd">        Returns the power variance</span>
+
+<span class="sd">    Formulas</span>
+<span class="sd">    --------</span>
+<span class="sd">    V(mu) = numpy.fabs(mu)**power</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Aliases for Power:</span>
+<span class="sd">    mu = Power()</span>
+<span class="sd">    mu_squared = Power(power=2)</span>
+<span class="sd">    mu_cubed = Power(power=3)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">power</span><span class="o">=</span><span class="mf">1.</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">power</span> <span class="o">=</span> <span class="n">power</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mu</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Power variance function</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        mu : array-like</span>
+<span class="sd">            mean parameters</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        variance : array</span>
+<span class="sd">            numpy.fabs(mu)**self.power</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">fabs</span><span class="p">(</span><span class="n">mu</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">power</span><span class="p">)</span>
+</div>
+<span class="n">mu</span> <span class="o">=</span> <span class="n">Power</span><span class="p">()</span>
+<span class="n">mu</span><span class="o">.</span><span class="n">__doc__</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">Returns np.fabs(mu)</span>
+
+<span class="s">Notes</span>
+<span class="s">-----</span>
+<span class="s">This is an alias of Power()</span>
+<span class="s">&quot;&quot;&quot;</span>
+<span class="n">mu_squared</span> <span class="o">=</span> <span class="n">Power</span><span class="p">(</span><span class="n">power</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">mu_squared</span><span class="o">.</span><span class="n">__doc__</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">Returns np.fabs(mu)**2</span>
+
+<span class="s">Notes</span>
+<span class="s">-----</span>
+<span class="s">This is an alias of statsmodels.family.links.Power(power=2)</span>
+<span class="s">&quot;&quot;&quot;</span>
+<span class="n">mu_cubed</span> <span class="o">=</span> <span class="n">Power</span><span class="p">(</span><span class="n">power</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">mu_cubed</span><span class="o">.</span><span class="n">__doc__</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">Returns np.fabs(mu)**3</span>
+
+<span class="s">Notes</span>
+<span class="s">-----</span>
+<span class="s">This is an alias of statsmodels.family.links.Power(power=3)</span>
+<span class="s">&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="Binomial"><a class="viewcode-back" href="../../generated/pade.html#pade.varfuncs.Binomial">[docs]</a><span class="k">class</span> <span class="nc">Binomial</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Binomial variance function</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    n : int, optional</span>
+<span class="sd">        The number of trials for a binomial variable.  The default is 1 for</span>
+<span class="sd">        p in (0,1)</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+<span class="sd">    call</span>
+<span class="sd">        Returns the binomial variance</span>
+
+<span class="sd">    Formulas</span>
+<span class="sd">    --------</span>
+<span class="sd">    V(mu) = p * (1 - p) * n</span>
+
+<span class="sd">    where p = mu / n</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Alias for Binomial:</span>
+<span class="sd">    binary = Binomial()</span>
+
+<span class="sd">    A private method _clean trims the data by 1e-10 so that p is in (0,1)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">tol</span> <span class="o">=</span> <span class="mf">1.0e-10</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">=</span> <span class="n">n</span>
+
+    <span class="k">def</span> <span class="nf">_clean</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">Binomial</span><span class="o">.</span><span class="n">tol</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">Binomial</span><span class="o">.</span><span class="n">tol</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mu</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Binomial variance function</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        -----------</span>
+<span class="sd">        mu : array-like</span>
+<span class="sd">            mean parameters</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        variance : array</span>
+<span class="sd">           variance = mu/n * (1 - mu/n) * self.n</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_clean</span><span class="p">(</span><span class="n">mu</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">p</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">p</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">n</span>
+</div>
+<span class="n">binary</span> <span class="o">=</span> <span class="n">Binomial</span><span class="p">()</span>
+<span class="n">binary</span><span class="o">.</span><span class="n">__doc__</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">The binomial variance function for n = 1</span>
+
+<span class="s">Notes</span>
+<span class="s">-----</span>
+<span class="s">This is an alias of Binomial(n=1)</span>
+<span class="s">&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="NegativeBinomial"><a class="viewcode-back" href="../../generated/pade.html#pade.varfuncs.NegativeBinomial">[docs]</a><span class="k">class</span> <span class="nc">NegativeBinomial</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Negative binomial variance function</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    alpha : float</span>
+<span class="sd">        The ancillary parameter for the negative binomial variance function.</span>
+<span class="sd">        `alpha` is assumed to be nonstochastic.  The default is 1.</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+<span class="sd">    call</span>
+<span class="sd">        Returns the negative binomial variance</span>
+
+<span class="sd">    Formulas</span>
+<span class="sd">    --------</span>
+<span class="sd">    V(mu) = mu + alpha*mu**2</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Alias for NegativeBinomial:</span>
+<span class="sd">    nbinom = NegativeBinomial()</span>
+
+<span class="sd">    A private method _clean trims the data by 1e-10 so that p is in (0,inf)</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="n">tol</span> <span class="o">=</span> <span class="mf">1.0e-10</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">1.</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">alpha</span>
+
+    <span class="k">def</span> <span class="nf">_clean</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">NegativeBinomial</span><span class="o">.</span><span class="n">tol</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mu</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Negative binomial variance function</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        mu : array-like</span>
+<span class="sd">            mean parameters</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        variance : array</span>
+<span class="sd">            variance = mu + alpha*mu**2</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_clean</span><span class="p">(</span><span class="n">mu</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">mu</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="o">*</span><span class="n">mu</span><span class="o">**</span><span class="mi">2</span>
+</div>
+<span class="n">nbinom</span> <span class="o">=</span> <span class="n">NegativeBinomial</span><span class="p">()</span>
+<span class="n">nbinom</span><span class="o">.</span><span class="n">__doc__</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">Negative Binomial variance function.</span>
+
+<span class="s">Notes</span>
+<span class="s">-----</span>
+<span class="s">This is an alias of NegativeBinomial(alpha=1.)</span>
+<span class="s">&quot;&quot;&quot;</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">PADE 6.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, University of Pennsylvania.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.2.
+    </div>
+  </body>
+</html>

@@ -9,26 +9,26 @@ tools Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`make_perf_input` Module
------------------------------
+:mod:`profile_glm` Module
+-------------------------
 
-.. automodule:: pade.tools.make_perf_input
+.. automodule:: pade.tools.profile_glm
     :members:
     :undoc-members:
     :show-inheritance:
 
-:mod:`perlvspython` Module
---------------------------
+:mod:`time_glm` Module
+----------------------
 
-.. automodule:: pade.tools.perlvspython
+.. automodule:: pade.tools.time_glm
     :members:
     :undoc-members:
     :show-inheritance:
 
-:mod:`profile` Module
----------------------
+:mod:`time_stat` Module
+-----------------------
 
-.. automodule:: pade.tools.profile
+.. automodule:: pade.tools.time_stat
     :members:
     :undoc-members:
     :show-inheritance:

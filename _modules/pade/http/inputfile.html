@@ -1,0 +1,162 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pade.http.inputfile &mdash; PADE 6.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '6.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="PADE 6.0 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">PADE 6.0 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for pade.http.inputfile</h1><div class="highlight"><pre>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span>
+
+<span class="kn">from</span> <span class="nn">flask.ext.wtf</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Form</span><span class="p">,</span> <span class="n">FileField</span><span class="p">,</span> <span class="n">TextAreaField</span><span class="p">,</span> <span class="n">SubmitField</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">flask</span> <span class="kn">import</span> <span class="n">Blueprint</span><span class="p">,</span> <span class="n">render_template</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">make_response</span><span class="p">,</span> <span class="n">redirect</span><span class="p">,</span> <span class="n">url_for</span>
+<span class="kn">import</span> <span class="nn">csv</span><span class="o">,</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">werkzeug</span> <span class="kn">import</span> <span class="n">secure_filename</span>
+
+<span class="n">bp</span> <span class="o">=</span> <span class="n">Blueprint</span><span class="p">(</span>
+    <span class="s">&#39;inputfile&#39;</span><span class="p">,</span> <span class="n">__name__</span><span class="p">,</span>
+    <span class="n">template_folder</span><span class="o">=</span><span class="s">&#39;templates&#39;</span><span class="p">)</span>
+
+<span class="n">mdb</span> <span class="o">=</span> <span class="bp">None</span>
+
+<div class="viewcode-block" id="InputFileUploadForm"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.inputfile.InputFileUploadForm">[docs]</a><span class="k">class</span> <span class="nc">InputFileUploadForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+    <span class="n">input_file</span> <span class="o">=</span> <span class="n">FileField</span><span class="p">(</span><span class="s">&#39;Input file&#39;</span><span class="p">)</span>
+    <span class="n">description</span> <span class="o">=</span> <span class="n">TextAreaField</span><span class="p">(</span><span class="s">&#39;Description (optional)&#39;</span><span class="p">)</span>
+    <span class="n">submit</span>     <span class="o">=</span> <span class="n">SubmitField</span><span class="p">(</span><span class="s">&quot;Upload&quot;</span><span class="p">)</span>
+
+</div>
+<span class="nd">@bp.route</span><span class="p">(</span><span class="s">&quot;/&lt;raw_file_id&gt;&quot;</span><span class="p">)</span>
+<div class="viewcode-block" id="input_file_details"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.inputfile.input_file_details">[docs]</a><span class="k">def</span> <span class="nf">input_file_details</span><span class="p">(</span><span class="n">raw_file_id</span><span class="p">):</span>
+    <span class="n">raw_file</span> <span class="o">=</span> <span class="n">mdb</span><span class="o">.</span><span class="n">input_file</span><span class="p">(</span><span class="n">raw_file_id</span><span class="p">)</span>
+
+    <span class="n">fieldnames</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">max_rows</span> <span class="o">=</span> <span class="mi">10</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">raw_file</span><span class="o">.</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">infile</span><span class="p">:</span>
+        <span class="n">csvfile</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">DictReader</span><span class="p">(</span><span class="n">infile</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s">&quot;</span><span class="se">\t</span><span class="s">&quot;</span><span class="p">)</span>
+        <span class="n">fieldnames</span> <span class="o">=</span> <span class="n">csvfile</span><span class="o">.</span><span class="n">fieldnames</span>    
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">csvfile</span><span class="p">):</span>
+            <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="n">max_rows</span><span class="p">:</span>
+                <span class="k">break</span>
+    
+    <span class="k">return</span> <span class="n">render_template</span><span class="p">(</span>
+        <span class="s">&#39;input_file.html&#39;</span><span class="p">,</span>
+        <span class="n">raw_file</span><span class="o">=</span><span class="n">raw_file</span><span class="p">,</span>
+        <span class="n">fieldnames</span><span class="o">=</span><span class="n">fieldnames</span><span class="p">,</span>
+        <span class="n">sample_rows</span><span class="o">=</span><span class="n">rows</span><span class="p">)</span>
+        
+</div>
+<span class="nd">@bp.route</span><span class="p">(</span><span class="s">&quot;/&quot;</span><span class="p">)</span>
+<div class="viewcode-block" id="input_file_list"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.inputfile.input_file_list">[docs]</a><span class="k">def</span> <span class="nf">input_file_list</span><span class="p">():</span>
+    <span class="n">files</span> <span class="o">=</span> <span class="n">mdb</span><span class="o">.</span><span class="n">all_input_files</span><span class="p">()</span>
+    <span class="n">files</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">f</span><span class="p">:</span><span class="n">f</span><span class="o">.</span><span class="n">obj_id</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">render_template</span><span class="p">(</span>
+        <span class="s">&#39;input_files.html&#39;</span><span class="p">,</span>
+        <span class="n">input_file_metas</span><span class="o">=</span><span class="n">files</span><span class="p">)</span>
+
+</div>
+<span class="nd">@bp.route</span><span class="p">(</span><span class="s">&quot;/upload_raw_file&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;GET&#39;</span><span class="p">,</span> <span class="s">&#39;POST&#39;</span><span class="p">])</span>
+<div class="viewcode-block" id="upload_raw_file"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.inputfile.upload_raw_file">[docs]</a><span class="k">def</span> <span class="nf">upload_raw_file</span><span class="p">():</span>
+
+    <span class="n">form</span> <span class="o">=</span> <span class="n">InputFileUploadForm</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s">&#39;GET&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">render_template</span><span class="p">(</span><span class="s">&#39;upload_raw_file.html&#39;</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="n">form</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s">&#39;POST&#39;</span><span class="p">:</span>
+
+        <span class="nb">file</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">files</span><span class="p">[</span><span class="s">&#39;input_file&#39;</span><span class="p">]</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="n">secure_filename</span><span class="p">(</span><span class="nb">file</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Adding input file to meta db&quot;</span><span class="p">)</span>
+        <span class="n">meta</span> <span class="o">=</span> <span class="n">mdb</span><span class="o">.</span><span class="n">add_input_file</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="nb">file</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="n">form</span><span class="o">.</span><span class="n">description</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">url_for</span><span class="p">(</span><span class="s">&#39;.input_file_list&#39;</span><span class="p">))</span>
+</pre></div></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">PADE 6.0 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, University of Pennsylvania.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.2.
+    </div>
+  </body>
+</html>

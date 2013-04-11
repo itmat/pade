@@ -1,51 +1,90 @@
 Getting Started
 ===============
 
-Prerequisites
--------------
+Installing PADE
+---------------
 
-Pade requires a number of libraries that aren't built in to Python:
+Pade is written in Python, and depends heavily on several Python
+libraries, such as:
 
 * jinja2
 * matplotlib
-* numpy
 * scipy
-* yaml
+* numpy
+* redis
+* celery
+* h5py
+* flask
+* Flask-WTF
 
-If you are using Linux, you may be able to install these packages
-quite easily using pip (http://pypi.python.org/pypi/pip) or another
-package management tool.
+PADE has been primarily tested on Ubuntu 12.04.1, so installing it on
+similar Ubuntu systems should be easy. You can most likely install it
+on other Linux distributions or Mac OS X, although OS X can be a bit
+tricky.
 
-If you are using a Mac, installing scipy can be tricky. The easiest
-way to get up and running may be to use a Python distribution that has
-scientific computing libraries pre-packaged with it. You should be
-able to use the *Enthought Python Distribution*, available here:
-http://www.enthought.com/products/epd.php.
+On an Amazon EC2 Instance
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Obtaining
----------
+Installing and running PADE on an Amazon EC2 instance is very straightforward. We recommend starting an instance based on the ``ami-3fec7956`` AMI. Then ssh to the instance, and run::
 
-You can obtain Pade by cloning or forking it from github here:
-https://github.com/itmat/pade. 
+  wget https://raw.github.com/itmat/pade/master/ubuntu_dev_setup.sh -O - | bash
 
-.. NOTE::
-   We need to create a tarball and put it somewhere to be downloaded.
+This will install git and several Python packages system-wide, create
+a local Python environment using virtual env, install PADE's
+dependencies into that environment, and link PADE's executable and
+libraries into that environment. Then simply run::
 
-Installing
-----------
+  source padeenv/bin/activate
 
-Once you've obtained Pade, you can either run it from the directory
-where you've unpacked it, or install it globally. If you run it from a
-local directory, you'll need to update your PYTHONPATH environment
-variable to point to the root of the Pade directory. For example, if
-you've downloaded Pade to ~/projects/, you might want to add ::
+to activate the environment, and then you should be able to run
+``pade``.
 
-  export PYTHONPATH=$PYTHONPATH:$HOME/projects/pade
+On Ubuntu
+^^^^^^^^^
 
-to your ~/.profile or ~/.bashrc file.
+You should be able to use the above instructions for installing PADE
+on an Amazon EC2 instance to install PADE on any Ubuntu machine,
+however the ubuntu_dev_setup.sh script has been primarily tested on
+fresh EC2 instances.
 
-You can install it simply by running ``python setup.py install``.  Note
-that you may need to run this as root or under sudo.
+We recommend installing the following packages via apt-get::
+
+  apt-get install git python-numpy python-scipy python-matplotlib python-h5py redis-server python-setuptools python-pip
+
+Then install virtualenv via pip::
+
+  pip install virtualenv
+
+Create a virtualenv environment::
+
+  virtualenv --system-site-packages padeenv 
+
+Activate the environment::
+
+  source padeenv/bin/activate
+
+Obtain pade and install it into your newly active padeenv environment:
+
+  git clone https://github.com/itmat/pade.git
+  cd pade
+  python setup.py develop
+
+Then you should be able to run ``pade``.
+
+
+On Mac OS X
+^^^^^^^^^^^
+
+Installing numpy, scipy and h5py on a Mac can be difficult. The
+easiest way to get up and running may be to use a Python distribution
+that has scientific computing libraries pre-packaged with it. You
+should be able to use the *Enthought Python Distribution*, available
+here: http://www.enthought.com/products/epd.php. After you install
+EPD, *please make sure that the python you're using when you run
+``python`` is actually the one from EPD*. Then you should be able to
+install PADE by running ``sudo python setup.py install`` from within
+the PADE source directory.
+
    
 Running a sample job
 --------------------
@@ -60,15 +99,14 @@ in the ``sample_data`` directory.
 Input files
 ^^^^^^^^^^^
 
-The input to any pade job (at this time) is a tab-delimited file. The
-file must contain a header row, plus one row for each feature. There
-should be one column that contains a unique identifier for the
-features (for example a gene id). Then each of the samples should have
-their expression values for each feature in its own column. So for
-example if you 2 conditions, each with 4 replicates, and 1000
-features, you would have a tab file with a header row plus 1000 data
-rows, with 9 columns (1 for the feature id and 8 for the expression
-data).
+The input to any pade job is a tab-delimited file. The file must
+contain a header row, plus one row for each feature. There should be
+one column that contains a unique identifier for the features (for
+example a gene id). Then each of the samples should have their
+expression values for each feature in its own column. So for example
+if you 2 conditions, each with 4 replicates, and 1000 features, you
+would have a tab file with a header row plus 1000 data rows, with 9
+columns (1 for the feature id and 8 for the expression data).
 
 The names of the columns do not matter, except that each column's name
 must be unique. 
@@ -86,15 +124,14 @@ are differentially expressed due to some treatment, and we want to
 treat gender as a "nuisance" variables. So we have two factors:
 "treated" and "gender". We would setup the job as follows::
 
-  pade setup --factor gender --factor treated sample_data/sample_data_4_class.txt
+  pade setup --factor gender --factor treated sample_data/sample_data_4_class.txt -o schema.yaml
 
 This will read in the input file and create a skeleton "schema" file
-based on it, in pade_schema.yaml (this can be changed with the
-``--schema`` option). We then need to edit this file to list the
-values available for each of the two factors, and to assign those
+based on it, in schema.yaml. We then need to edit this file to list
+the values available for each of the two factors, and to assign those
 factor values to each of the sample column names.
 
-First, in the very top section of the pade_schema.yaml file,
+First, in the very top section of the schema.yaml file,
 list the valid values for the factors. Change it to look like this::
 
   factors:
@@ -135,7 +172,7 @@ Running the analysis
 
 Once you have created the schema file, you are ready to run the
 analysis, using ``pade run``. You'll need to specify a couple options,
-most importantly ``--condition`` and optionally ``--block``.
+most importantly ``--condition`` and ``--schema``.
 
 Condition and Block
 """""""""""""""""""
@@ -158,7 +195,7 @@ Default settings
 
 The simplest Pade job for our 4-class sample input would be something like::
 
-  pade run --condition treated --block gender sample_data/sample_data_4_class.txt
+  pade run --condition treated --block gender --schema schema.yaml sample_data/sample_data_4_class.txt -o results.pade
 
 This should take less than a minute. Note that you need to provide the
 input file on the command line.
@@ -195,22 +232,26 @@ means_ratio:
   Ratio of means. Can only be used when there are two conditions. Can
   be used with or without blocking. Works with paired data also.
 
+glm: A generalized linear model. If you specify this statistic, you
+  must also specify a distribution family using the '--glm-family'
+  option. Please see ``pade help run`` for a list of the supported
+  families.
+
 Viewing reports
 ^^^^^^^^^^^^^^^
 
 When you run ``pade run``, it will store the results of the analysis
-in a binary file called ``pade_db.h5``. The file name can be changed
-with the ``--db`` option. Once that step is done, you can generate a
-tab-delimited text file containing the reuslts, or launch a small web
-server to display the results in HTML format. To generate the text
-file output, run::
+in a binary file (you specify the path with the --output option).
+Once that step is done, you can generate a tab-delimited text file
+containing the results, or launch a small web server to display the
+results in HTML format. To generate the text file output, run::
 
-  pade report --text
+  pade report results.pade
 
-To start the Pade server, run:
+To start the HTML viewer, run::
 
-  pade server
+  pade view results1.pade results2.pade ...
 
-It will take several seconds to start up. Then visit localhost:5000 in
-a browser to look at the reports.
+It will take a few seconds to start up, and should open a web browser
+pointing to the results.
 

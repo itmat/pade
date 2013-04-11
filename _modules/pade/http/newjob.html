@@ -1,0 +1,538 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pade.http.newjob &mdash; PADE 6.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '6.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="PADE 6.0 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">PADE 6.0 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for pade.http.newjob</h1><div class="highlight"><pre>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span>
+
+<span class="kn">from</span> <span class="nn">flask</span> <span class="kn">import</span> <span class="n">Blueprint</span><span class="p">,</span> <span class="n">render_template</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">session</span><span class="p">,</span> <span class="n">redirect</span><span class="p">,</span> <span class="n">url_for</span>
+<span class="kn">from</span> <span class="nn">flask.ext.wtf</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Form</span><span class="p">,</span> <span class="n">StringField</span><span class="p">,</span> <span class="n">Required</span><span class="p">,</span> <span class="n">FieldList</span><span class="p">,</span> <span class="n">SelectField</span><span class="p">,</span> 
+    <span class="n">FileField</span><span class="p">,</span> <span class="n">SubmitField</span><span class="p">,</span> <span class="n">BooleanField</span><span class="p">,</span> <span class="n">IntegerField</span><span class="p">,</span> <span class="n">FloatField</span><span class="p">,</span>
+    <span class="n">TextAreaField</span><span class="p">,</span> <span class="n">FormField</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">repeat</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span><span class="p">,</span> <span class="n">OrderedDict</span>
+<span class="kn">from</span> <span class="nn">pade.analysis</span> <span class="kn">import</span> <span class="n">assignment_name</span>
+<span class="kn">from</span> <span class="nn">pade.model</span> <span class="kn">import</span> <span class="n">Job</span><span class="p">,</span> <span class="n">Settings</span><span class="p">,</span> <span class="n">Schema</span>
+<span class="kn">import</span> <span class="nn">pade.stat</span> <span class="kn">as</span> <span class="nn">stat</span>
+
+<span class="kn">import</span> <span class="nn">pade.model</span>
+<span class="kn">import</span> <span class="nn">logging</span><span class="o">,</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">csv</span><span class="o">,</span> <span class="nn">celery</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">re</span>
+
+<span class="n">bp</span> <span class="o">=</span> <span class="n">Blueprint</span><span class="p">(</span>
+    <span class="s">&#39;new_job&#39;</span><span class="p">,</span> <span class="n">__name__</span><span class="p">,</span>
+    <span class="n">template_folder</span><span class="o">=</span><span class="s">&#39;templates&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Workflow"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.newjob.Workflow">[docs]</a><span class="k">class</span> <span class="nc">Workflow</span><span class="p">():</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_file_id</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input_file_id</span> <span class="o">=</span> <span class="n">input_file_id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">column_roles_form</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">factor_forms</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">column_labels_form</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">job_factor_form</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">other_settings_form</span> <span class="o">=</span> <span class="bp">None</span>
+
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="Workflow.field_names"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.newjob.Workflow.field_names">[docs]</a>    <span class="k">def</span> <span class="nf">field_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">raw_file</span> <span class="o">=</span> <span class="n">mdb</span><span class="o">.</span><span class="n">input_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_file_id</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">raw_file</span><span class="o">.</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">infile</span><span class="p">:</span>
+            <span class="n">csvfile</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">DictReader</span><span class="p">(</span><span class="n">infile</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s">&quot;</span><span class="se">\t</span><span class="s">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">csvfile</span><span class="o">.</span><span class="n">fieldnames</span>    
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="Workflow.can_continue_past_factors"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.newjob.Workflow.can_continue_past_factors">[docs]</a>    <span class="k">def</span> <span class="nf">can_continue_past_factors</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">factor_forms</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
+</div>
+<div class="viewcode-block" id="Workflow.remove_factor"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.newjob.Workflow.remove_factor">[docs]</a>    <span class="k">def</span> <span class="nf">remove_factor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">factor</span><span class="p">):</span>
+        <span class="n">keep</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">factor_name</span><span class="o">.</span><span class="n">data</span> <span class="o">!=</span> <span class="n">factor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">factor_forms</span> <span class="o">=</span> <span class="nb">filter</span><span class="p">(</span><span class="n">keep</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">factor_forms</span><span class="p">)</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="Workflow.column_roles"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.newjob.Workflow.column_roles">[docs]</a>    <span class="k">def</span> <span class="nf">column_roles</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span> <span class="n">x</span><span class="o">.</span><span class="n">data</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">column_roles_form</span><span class="o">.</span><span class="n">roles</span> <span class="p">]</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="Workflow.factor_values"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.newjob.Workflow.factor_values">[docs]</a>    <span class="k">def</span> <span class="nf">factor_values</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">factor_to_values</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">factor_form</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">factor_forms</span><span class="p">:</span>
+            <span class="n">factor</span> <span class="o">=</span> <span class="n">factor_form</span><span class="o">.</span><span class="n">factor_name</span><span class="o">.</span><span class="n">data</span>
+            <span class="n">values</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">data</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">factor_form</span><span class="o">.</span><span class="n">possible_values</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">data</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span>
+            <span class="n">factor_to_values</span><span class="p">[</span><span class="n">factor</span><span class="p">]</span> <span class="o">=</span> <span class="n">values</span>
+        <span class="k">return</span> <span class="n">factor_to_values</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="Workflow.input_file_meta"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.newjob.Workflow.input_file_meta">[docs]</a>    <span class="k">def</span> <span class="nf">input_file_meta</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">mdb</span><span class="o">.</span><span class="n">input_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_file_id</span><span class="p">)</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="Workflow.schema"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.newjob.Workflow.schema">[docs]</a>    <span class="k">def</span> <span class="nf">schema</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="n">wf</span> <span class="o">=</span> <span class="n">current_workflow</span><span class="p">()</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">wf</span><span class="o">.</span><span class="n">field_names</span><span class="p">)</span>
+        <span class="n">roles</span>   <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">wf</span><span class="o">.</span><span class="n">column_roles</span><span class="p">)</span>
+        <span class="n">factors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">factor_values</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+        
+        <span class="k">if</span> <span class="n">columns</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">roles</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">columns</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">roles</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;I can&#39;t create a schema without columns or roles&quot;</span><span class="p">)</span>
+
+        <span class="n">schema</span> <span class="o">=</span> <span class="n">Schema</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">columns</span><span class="p">),</span>
+                        <span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">wf</span><span class="o">.</span><span class="n">column_roles</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">factor</span><span class="p">,</span> <span class="n">values</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">factor_values</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">schema</span><span class="o">.</span><span class="n">add_factor</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">factor</span><span class="p">),</span> <span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">values</span><span class="p">))</span>
+
+        <span class="n">counter</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">columns</span><span class="p">[</span><span class="n">roles</span> <span class="o">==</span> <span class="s">&#39;sample&#39;</span><span class="p">]):</span>
+            <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">f</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">factors</span><span class="p">):</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">column_label_form</span><span class="o">.</span><span class="n">assignments</span><span class="p">[</span><span class="n">counter</span><span class="p">]</span><span class="o">.</span><span class="n">data</span>
+                <span class="k">except</span> <span class="ne">IndexError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;No assignment &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">counter</span><span class="p">))</span>
+                <span class="n">schema</span><span class="o">.</span><span class="n">set_factor</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">c</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">f</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+                <span class="n">counter</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">return</span> <span class="n">schema</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="Workflow.settings"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.newjob.Workflow.settings">[docs]</a>    <span class="k">def</span> <span class="nf">settings</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="n">form</span>            <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">other_settings_form</span>
+        <span class="n">job_factor_form</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">job_factor_form</span>
+
+        <span class="n">tuning_params</span><span class="o">=</span><span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">form</span><span class="o">.</span><span class="n">tuning_params</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot; &quot;</span><span class="p">)]</span>
+
+        <span class="n">condition_vars</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">block_vars</span> <span class="o">=</span> <span class="p">[]</span>
+    
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">factor</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">factors</span><span class="p">):</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">job_factor_form</span><span class="o">.</span><span class="n">factor_roles</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">data</span>
+            <span class="k">if</span> <span class="n">value</span> <span class="o">==</span> <span class="s">&#39;condition&#39;</span><span class="p">:</span>
+                <span class="n">condition_vars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">factor</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">value</span> <span class="o">==</span> <span class="s">&#39;block&#39;</span><span class="p">:</span>
+                <span class="n">block_vars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">factor</span><span class="p">)</span>    
+
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="n">parse_stat</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">form</span><span class="o">.</span><span class="n">statistic</span><span class="o">.</span><span class="n">data</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">Settings</span><span class="p">(</span>
+            <span class="n">condition_variables</span><span class="o">=</span><span class="n">condition_vars</span><span class="p">,</span>
+            <span class="n">block_variables</span><span class="o">=</span><span class="n">block_vars</span><span class="p">,</span>
+            <span class="n">equalize_means</span> <span class="o">=</span> <span class="n">form</span><span class="o">.</span><span class="n">equalize_means</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+            <span class="n">num_bins</span> <span class="o">=</span> <span class="n">form</span><span class="o">.</span><span class="n">bins</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+            <span class="n">num_samples</span> <span class="o">=</span> <span class="n">form</span><span class="o">.</span><span class="n">permutations</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+            <span class="n">sample_from_residuals</span> <span class="o">=</span> <span class="n">form</span><span class="o">.</span><span class="n">sample_from_residuals</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+            <span class="n">sample_with_replacement</span> <span class="o">=</span> <span class="n">form</span><span class="o">.</span><span class="n">sample_with_replacement</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+            <span class="n">summary_min_conf</span> <span class="o">=</span> <span class="n">form</span><span class="o">.</span><span class="n">summary_min_conf_level</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+            <span class="n">summary_step_size</span> <span class="o">=</span> <span class="n">form</span><span class="o">.</span><span class="n">summary_step_size</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+            <span class="n">tuning_params</span> <span class="o">=</span> <span class="n">tuning_params</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+
+
+<span class="c">########################################################################</span>
+<span class="c">###</span>
+<span class="c">### Form classes</span>
+<span class="c">###</span>
+</div></div>
+<div class="viewcode-block" id="ColumnRolesForm"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.newjob.ColumnRolesForm">[docs]</a><span class="k">class</span> <span class="nc">ColumnRolesForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+    <span class="n">roles</span> <span class="o">=</span> <span class="n">FieldList</span><span class="p">(</span>
+        <span class="n">SelectField</span><span class="p">(</span><span class="n">choices</span><span class="o">=</span><span class="p">[(</span><span class="s">&#39;feature_id&#39;</span><span class="p">,</span> <span class="s">&#39;Feature ID&#39;</span><span class="p">),</span>
+                             <span class="p">(</span><span class="s">&#39;sample&#39;</span><span class="p">,</span>     <span class="s">&#39;Sample&#39;</span><span class="p">),</span>
+                             <span class="p">(</span><span class="s">&#39;ignored&#39;</span><span class="p">,</span>    <span class="s">&#39;Ignored&#39;</span><span class="p">)]))</span>
+    <span class="n">submit</span> <span class="o">=</span> <span class="n">SubmitField</span><span class="p">()</span>
+
+<div class="viewcode-block" id="ColumnRolesForm.cols_with_role"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.newjob.ColumnRolesForm.cols_with_role">[docs]</a>    <span class="k">def</span> <span class="nf">cols_with_role</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">role</span><span class="p">):</span>
+        <span class="n">has_role</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">data</span> <span class="o">==</span> <span class="n">role</span>
+        <span class="k">return</span> <span class="nb">filter</span><span class="p">(</span><span class="n">has_role</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">roles</span><span class="p">)</span>
+</div></div>
+<div class="viewcode-block" id="NewFactorForm"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.newjob.NewFactorForm">[docs]</a><span class="k">class</span> <span class="nc">NewFactorForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+    <span class="n">factor_name</span> <span class="o">=</span> <span class="n">StringField</span><span class="p">(</span><span class="s">&#39;Factor name&#39;</span><span class="p">,</span> <span class="n">validators</span><span class="o">=</span><span class="p">[</span><span class="n">Required</span><span class="p">()])</span>
+    <span class="n">possible_values</span> <span class="o">=</span> <span class="n">FieldList</span><span class="p">(</span><span class="n">StringField</span><span class="p">(</span><span class="s">&#39;&#39;</span><span class="p">))</span>
+    <span class="n">submit</span> <span class="o">=</span> <span class="n">SubmitField</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="ColumnLabelsForm"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.newjob.ColumnLabelsForm">[docs]</a><span class="k">class</span> <span class="nc">ColumnLabelsForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+    <span class="n">assignments</span> <span class="o">=</span> <span class="n">FieldList</span><span class="p">(</span><span class="n">SelectField</span><span class="p">())</span>
+
+</div>
+<div class="viewcode-block" id="JobFactorForm"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.newjob.JobFactorForm">[docs]</a><span class="k">class</span> <span class="nc">JobFactorForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+    <span class="n">factor_roles</span> <span class="o">=</span> <span class="n">FieldList</span><span class="p">(</span>
+        <span class="n">SelectField</span><span class="p">(</span><span class="n">choices</span><span class="o">=</span><span class="p">[(</span><span class="s">&#39;block&#39;</span><span class="p">,</span> <span class="s">&#39;Block&#39;</span><span class="p">),</span>
+                             <span class="p">(</span><span class="s">&#39;condition&#39;</span><span class="p">,</span>     <span class="s">&#39;Condition&#39;</span><span class="p">),</span>
+                             <span class="p">(</span><span class="s">&#39;ignored&#39;</span><span class="p">,</span>    <span class="s">&#39;Ignored&#39;</span><span class="p">)]))</span>
+    <span class="n">submit</span> <span class="o">=</span> <span class="n">SubmitField</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="JobSettingsForm"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.newjob.JobSettingsForm">[docs]</a><span class="k">class</span> <span class="nc">JobSettingsForm</span><span class="p">(</span><span class="n">Form</span><span class="p">):</span>
+
+    <span class="n">choices</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">stat</span><span class="o">.</span><span class="n">stat_names</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s">&#39;glm&#39;</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">family</span> <span class="ow">in</span> <span class="n">stat</span><span class="o">.</span><span class="n">glm_families</span><span class="p">():</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="n">name</span> <span class="o">+</span> <span class="s">&quot; (&quot;</span> <span class="o">+</span> <span class="n">family</span> <span class="o">+</span> <span class="s">&quot;)&quot;</span>
+                <span class="n">choices</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">x</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">choices</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">name</span><span class="p">,</span> <span class="n">name</span><span class="p">))</span>
+
+    <span class="n">statistic</span> <span class="o">=</span> <span class="n">SelectField</span><span class="p">(</span><span class="s">&#39;Statistic&#39;</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="n">choices</span><span class="p">)</span>
+    <span class="n">bins</span> <span class="o">=</span> <span class="n">IntegerField</span><span class="p">(</span>
+        <span class="s">&#39;Number of bins&#39;</span><span class="p">,</span> 
+        <span class="n">validators</span><span class="o">=</span><span class="p">[</span><span class="n">Required</span><span class="p">()],</span>
+        <span class="n">default</span><span class="o">=</span><span class="n">pade</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">DEFAULT_NUM_BINS</span><span class="p">)</span>
+
+    <span class="n">permutations</span> <span class="o">=</span> <span class="n">IntegerField</span><span class="p">(</span>
+        <span class="s">&#39;Maximum number of permutations&#39;</span><span class="p">,</span> 
+        <span class="n">validators</span><span class="o">=</span><span class="p">[</span><span class="n">Required</span><span class="p">()],</span>
+        <span class="n">default</span><span class="o">=</span><span class="n">pade</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">DEFAULT_NUM_SAMPLES</span><span class="p">)</span>
+
+    <span class="n">sample_from_residuals</span> <span class="o">=</span> <span class="n">BooleanField</span><span class="p">(</span>
+        <span class="s">&#39;Sample from residuals&#39;</span><span class="p">,</span>
+        <span class="n">validators</span><span class="o">=</span><span class="p">[</span><span class="n">Required</span><span class="p">()],</span>
+        <span class="n">default</span><span class="o">=</span><span class="n">pade</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">DEFAULT_SAMPLE_FROM_RESIDUALS</span><span class="p">)</span>
+
+    <span class="n">sample_with_replacement</span> <span class="o">=</span> <span class="n">BooleanField</span><span class="p">(</span>
+        <span class="s">&#39;Use bootstrapping (instead of permutation test)&#39;</span><span class="p">,</span> 
+        <span class="n">validators</span><span class="o">=</span><span class="p">[</span><span class="n">Required</span><span class="p">()],</span>
+        <span class="n">default</span><span class="o">=</span><span class="n">pade</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">DEFAULT_SAMPLE_WITH_REPLACEMENT</span><span class="p">)</span>
+
+    <span class="n">equalize_means</span> <span class="o">=</span> <span class="n">BooleanField</span><span class="p">(</span>
+        <span class="s">&#39;Equalize means&#39;</span><span class="p">,</span> 
+        <span class="n">validators</span><span class="o">=</span><span class="p">[</span><span class="n">Required</span><span class="p">()],</span>
+        <span class="n">default</span><span class="o">=</span><span class="n">pade</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">DEFAULT_EQUALIZE_MEANS</span><span class="p">)</span>
+
+    <span class="n">summary_min_conf_level</span> <span class="o">=</span> <span class="n">FloatField</span><span class="p">(</span>
+        <span class="s">&#39;Minimum confidence level&#39;</span><span class="p">,</span> 
+        <span class="n">validators</span><span class="o">=</span><span class="p">[</span><span class="n">Required</span><span class="p">()],</span>
+        <span class="n">default</span><span class="o">=</span><span class="n">pade</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">DEFAULT_SUMMARY_MIN_CONF</span><span class="p">)</span>
+
+    <span class="n">summary_step_size</span> <span class="o">=</span> <span class="n">FloatField</span><span class="p">(</span>
+        <span class="s">&#39;Summary step size&#39;</span><span class="p">,</span> 
+        <span class="n">validators</span><span class="o">=</span><span class="p">[</span><span class="n">Required</span><span class="p">()],</span>
+        <span class="n">default</span><span class="o">=</span><span class="n">pade</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">DEFAULT_SUMMARY_STEP_SIZE</span><span class="p">)</span>
+    
+    <span class="n">tuning_params</span> <span class="o">=</span> <span class="n">StringField</span><span class="p">(</span>
+        <span class="s">&#39;Tuning parameters&#39;</span><span class="p">,</span> 
+        <span class="n">validators</span><span class="o">=</span><span class="p">[</span><span class="n">Required</span><span class="p">()],</span>
+        <span class="n">default</span><span class="o">=</span><span class="s">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">pade</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">DEFAULT_TUNING_PARAMS</span><span class="p">)))</span>
+
+    <span class="n">submit</span> <span class="o">=</span> <span class="n">SubmitField</span><span class="p">()</span>
+
+</div>
+<div class="viewcode-block" id="parse_stat"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.newjob.parse_stat">[docs]</a><span class="k">def</span> <span class="nf">parse_stat</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+
+    <span class="n">glm_family_re</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s">&quot;(glm) \((.*)\)&quot;</span><span class="p">)</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">glm_family_re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">m</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span> <span class="s">&#39;stat&#39;</span> <span class="p">:</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+                 <span class="s">&#39;glm_family&#39;</span> <span class="p">:</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="p">}</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span> <span class="s">&#39;stat&#39;</span> <span class="p">:</span> <span class="n">s</span> <span class="p">}</span>
+
+
+
+<span class="c">###</span>
+<span class="c">### Helpers.</span>
+<span class="c">### </span>
+
+</div>
+<div class="viewcode-block" id="current_workflow"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.newjob.current_workflow">[docs]</a><span class="k">def</span> <span class="nf">current_workflow</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Return the Workflow stored in the session.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">session</span><span class="p">[</span><span class="s">&#39;workflow&#39;</span><span class="p">]</span>
+</div>
+<span class="nd">@bp.route</span><span class="p">(</span><span class="s">&quot;/clear_workflow&quot;</span><span class="p">)</span>
+<div class="viewcode-block" id="clear_workflow"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.newjob.clear_workflow">[docs]</a><span class="k">def</span> <span class="nf">clear_workflow</span><span class="p">():</span>
+    <span class="k">if</span> <span class="s">&#39;workflow&#39;</span> <span class="ow">in</span> <span class="n">session</span><span class="p">:</span>
+        <span class="k">del</span> <span class="n">session</span><span class="p">[</span><span class="s">&#39;workflow&#39;</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">url_for</span><span class="p">(</span><span class="s">&#39;job_browser.index&#39;</span><span class="p">))</span>
+
+</div>
+<span class="nd">@bp.route</span><span class="p">(</span><span class="s">&quot;/select_input_file&quot;</span><span class="p">)</span>
+<div class="viewcode-block" id="select_input_file"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.newjob.select_input_file">[docs]</a><span class="k">def</span> <span class="nf">select_input_file</span><span class="p">():</span>
+
+    <span class="n">input_file_id</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;input_file_id&#39;</span><span class="p">))</span>
+
+    <span class="n">session</span><span class="p">[</span><span class="s">&#39;workflow&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Workflow</span><span class="p">(</span><span class="n">input_file_id</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">url_for</span><span class="p">(</span><span class="s">&#39;.column_roles&#39;</span><span class="p">))</span>
+
+</div>
+<span class="nd">@bp.route</span><span class="p">(</span><span class="s">&quot;/column_roles&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;GET&#39;</span><span class="p">,</span> <span class="s">&#39;POST&#39;</span><span class="p">])</span>
+<div class="viewcode-block" id="column_roles"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.newjob.column_roles">[docs]</a><span class="k">def</span> <span class="nf">column_roles</span><span class="p">():</span>
+
+    <span class="n">wf</span> <span class="o">=</span> <span class="n">current_workflow</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s">&#39;GET&#39;</span><span class="p">:</span>
+
+        <span class="n">fieldnames</span> <span class="o">=</span> <span class="n">current_workflow</span><span class="p">()</span><span class="o">.</span><span class="n">field_names</span>
+
+        <span class="n">form</span> <span class="o">=</span> <span class="n">ColumnRolesForm</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">fieldname</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">fieldnames</span><span class="p">):</span>
+            <span class="n">entry</span> <span class="o">=</span> <span class="n">form</span><span class="o">.</span><span class="n">roles</span><span class="o">.</span><span class="n">append_entry</span><span class="p">()</span>
+            <span class="n">entry</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="n">fieldname</span>
+            <span class="n">entry</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="s">&#39;feature_id&#39;</span> <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="s">&#39;sample&#39;</span>
+
+        <span class="k">return</span> <span class="n">render_template</span><span class="p">(</span>
+            <span class="s">&#39;column_roles.html&#39;</span><span class="p">,</span>
+            <span class="n">form</span><span class="o">=</span><span class="n">form</span><span class="p">,</span>
+            <span class="n">filename</span><span class="o">=</span><span class="n">wf</span><span class="o">.</span><span class="n">input_file_meta</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s">&#39;POST&#39;</span><span class="p">:</span>
+        <span class="n">wf</span><span class="o">.</span><span class="n">column_roles_form</span> <span class="o">=</span> <span class="n">ColumnRolesForm</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">url_for</span><span class="p">(</span><span class="s">&#39;.factor_list&#39;</span><span class="p">))</span>
+
+</div>
+<span class="nd">@bp.route</span><span class="p">(</span><span class="s">&quot;/factor_list&quot;</span><span class="p">)</span>
+<div class="viewcode-block" id="factor_list"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.newjob.factor_list">[docs]</a><span class="k">def</span> <span class="nf">factor_list</span><span class="p">():</span>
+
+    <span class="n">wf</span> <span class="o">=</span> <span class="n">current_workflow</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">wf</span><span class="o">.</span><span class="n">can_continue_past_factors</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">url_for</span><span class="p">(</span><span class="s">&#39;.add_factor&#39;</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">render_template</span><span class="p">(</span><span class="s">&#39;factors.html&#39;</span><span class="p">,</span>
+                           <span class="n">factor_forms</span><span class="o">=</span><span class="n">wf</span><span class="o">.</span><span class="n">factor_forms</span><span class="p">,</span>
+                           <span class="n">allow_next</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+</div>
+<span class="nd">@bp.route</span><span class="p">(</span><span class="s">&quot;/add_factor&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;GET&#39;</span><span class="p">,</span> <span class="s">&#39;POST&#39;</span><span class="p">])</span>
+<div class="viewcode-block" id="add_factor"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.newjob.add_factor">[docs]</a><span class="k">def</span> <span class="nf">add_factor</span><span class="p">():</span>
+
+    <span class="n">wf</span> <span class="o">=</span> <span class="n">current_workflow</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s">&#39;GET&#39;</span><span class="p">:</span>
+        <span class="n">form</span> <span class="o">=</span> <span class="n">NewFactorForm</span><span class="p">()</span>
+
+        <span class="n">sample_entries</span> <span class="o">=</span> <span class="n">wf</span><span class="o">.</span><span class="n">column_roles_form</span><span class="o">.</span><span class="n">cols_with_role</span><span class="p">(</span><span class="s">&#39;sample&#39;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sample_entries</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span><span class="p">):</span>
+            <span class="n">form</span><span class="o">.</span><span class="n">possible_values</span><span class="o">.</span><span class="n">append_entry</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">render_template</span><span class="p">(</span><span class="s">&#39;add_factor.html&#39;</span><span class="p">,</span>
+                               <span class="n">form</span><span class="o">=</span><span class="n">form</span><span class="p">,</span>
+                               <span class="n">allow_next</span><span class="o">=</span><span class="n">wf</span><span class="o">.</span><span class="n">can_continue_past_factors</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s">&#39;POST&#39;</span><span class="p">:</span>
+        <span class="n">wf</span><span class="o">.</span><span class="n">factor_forms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">NewFactorForm</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">))</span>
+        <span class="n">session</span><span class="o">.</span><span class="n">modified</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">url_for</span><span class="p">(</span><span class="s">&#39;.factor_list&#39;</span><span class="p">))</span>
+
+</div>
+<span class="nd">@bp.route</span><span class="p">(</span><span class="s">&quot;/remove_factor&quot;</span><span class="p">)</span>
+<div class="viewcode-block" id="remove_factor"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.newjob.remove_factor">[docs]</a><span class="k">def</span> <span class="nf">remove_factor</span><span class="p">():</span>
+
+    <span class="n">factor</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;factor&#39;</span><span class="p">)</span>
+    <span class="n">wf</span> <span class="o">=</span> <span class="n">current_workflow</span><span class="p">()</span>
+    <span class="n">wf</span><span class="o">.</span><span class="n">remove_factor</span><span class="p">(</span><span class="n">factor</span><span class="p">)</span>
+    <span class="n">session</span><span class="o">.</span><span class="n">modified</span> <span class="o">=</span> <span class="bp">True</span>
+
+    <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">url_for</span><span class="p">(</span><span class="s">&#39;.factor_list&#39;</span><span class="p">))</span>
+
+</div>
+<span class="nd">@bp.route</span><span class="p">(</span><span class="s">&quot;/column_labels&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;GET&#39;</span><span class="p">,</span> <span class="s">&#39;POST&#39;</span><span class="p">])</span>
+<div class="viewcode-block" id="column_labels"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.newjob.column_labels">[docs]</a><span class="k">def</span> <span class="nf">column_labels</span><span class="p">():</span>
+
+    <span class="n">wf</span> <span class="o">=</span> <span class="n">current_workflow</span><span class="p">()</span>
+    <span class="n">field_names</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">wf</span><span class="o">.</span><span class="n">field_names</span><span class="p">)</span>
+    <span class="n">roles</span>       <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">wf</span><span class="o">.</span><span class="n">column_roles</span><span class="p">)</span>
+    <span class="n">sample_field_names</span> <span class="o">=</span> <span class="n">field_names</span><span class="p">[</span><span class="n">roles</span> <span class="o">==</span> <span class="s">&#39;sample&#39;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s">&#39;POST&#39;</span><span class="p">:</span>
+        <span class="n">form</span> <span class="o">=</span> <span class="n">ColumnLabelsForm</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">)</span>
+        <span class="n">wf</span><span class="o">.</span><span class="n">column_label_form</span> <span class="o">=</span> <span class="n">form</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">url_for</span><span class="p">(</span><span class="s">&#39;.setup_job_factors&#39;</span><span class="p">))</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">factor_to_values</span> <span class="o">=</span> <span class="n">wf</span><span class="o">.</span><span class="n">factor_values</span>
+
+        <span class="n">form</span> <span class="o">=</span> <span class="n">ColumnLabelsForm</span><span class="p">()</span>
+        
+        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">sample_field_names</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">factor</span> <span class="ow">in</span> <span class="n">factor_to_values</span><span class="p">:</span>
+                <span class="n">entry</span> <span class="o">=</span> <span class="n">form</span><span class="o">.</span><span class="n">assignments</span><span class="o">.</span><span class="n">append_entry</span><span class="p">()</span>
+                <span class="n">entry</span><span class="o">.</span><span class="n">choices</span> <span class="o">=</span> <span class="p">[</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">factor_to_values</span><span class="p">[</span><span class="n">factor</span><span class="p">]</span> <span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">render_template</span><span class="p">(</span><span class="s">&quot;column_labels.html&quot;</span><span class="p">,</span>
+                               <span class="n">form</span><span class="o">=</span><span class="n">form</span><span class="p">,</span>
+                               <span class="n">column_names</span><span class="o">=</span><span class="n">sample_field_names</span><span class="p">,</span>
+                               <span class="n">factors</span><span class="o">=</span><span class="n">factor_to_values</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span>
+                               <span class="n">input_file_meta</span><span class="o">=</span><span class="n">wf</span><span class="o">.</span><span class="n">input_file_meta</span><span class="p">)</span>
+    
+</div>
+<span class="nd">@bp.route</span><span class="p">(</span><span class="s">&quot;/setup_job_factors&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;GET&#39;</span><span class="p">,</span> <span class="s">&#39;POST&#39;</span><span class="p">])</span>
+<div class="viewcode-block" id="setup_job_factors"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.newjob.setup_job_factors">[docs]</a><span class="k">def</span> <span class="nf">setup_job_factors</span><span class="p">():</span>
+
+    <span class="n">wf</span> <span class="o">=</span> <span class="n">current_workflow</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s">&#39;GET&#39;</span><span class="p">:</span>
+
+        <span class="n">form</span> <span class="o">=</span> <span class="n">JobFactorForm</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">factor</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">wf</span><span class="o">.</span><span class="n">factor_values</span><span class="p">):</span>
+            <span class="n">entry</span> <span class="o">=</span> <span class="n">form</span><span class="o">.</span><span class="n">factor_roles</span><span class="o">.</span><span class="n">append_entry</span><span class="p">()</span>
+            <span class="n">entry</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="n">factor</span>
+            <span class="n">entry</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="s">&#39;condition&#39;</span> <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="s">&#39;block&#39;</span>
+
+        <span class="k">return</span> <span class="n">render_template</span><span class="p">(</span><span class="s">&#39;setup_job_factors.html&#39;</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="n">form</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s">&#39;POST&#39;</span><span class="p">:</span>
+        <span class="n">wf</span><span class="o">.</span><span class="n">job_factor_form</span> <span class="o">=</span> <span class="n">JobFactorForm</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">)</span>
+        <span class="n">session</span><span class="o">.</span><span class="n">modified</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">url_for</span><span class="p">(</span><span class="s">&#39;.job_settings&#39;</span><span class="p">))</span>
+
+</div>
+<span class="nd">@bp.route</span><span class="p">(</span><span class="s">&quot;/other_settings&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;GET&#39;</span><span class="p">,</span> <span class="s">&#39;POST&#39;</span><span class="p">])</span>
+<div class="viewcode-block" id="job_settings"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.newjob.job_settings">[docs]</a><span class="k">def</span> <span class="nf">job_settings</span><span class="p">():</span>
+
+    <span class="n">wf</span> <span class="o">=</span> <span class="n">current_workflow</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s">&#39;POST&#39;</span><span class="p">:</span>
+        <span class="n">wf</span><span class="o">.</span><span class="n">other_settings_form</span> <span class="o">=</span> <span class="n">JobSettingsForm</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">url_for</span><span class="p">(</span><span class="s">&#39;.job_confirmation&#39;</span><span class="p">))</span>
+
+    <span class="k">else</span><span class="p">:</span>
+
+        <span class="n">schema</span> <span class="o">=</span> <span class="n">wf</span><span class="o">.</span><span class="n">schema</span>
+
+        <span class="n">form</span> <span class="o">=</span> <span class="n">JobSettingsForm</span><span class="p">()</span>
+
+        <span class="n">form</span><span class="o">.</span><span class="n">bins</span><span class="o">.</span><span class="n">data</span>                    <span class="o">=</span> <span class="n">pade</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">DEFAULT_NUM_BINS</span>
+        <span class="n">form</span><span class="o">.</span><span class="n">permutations</span><span class="o">.</span><span class="n">data</span>            <span class="o">=</span> <span class="n">pade</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">DEFAULT_NUM_SAMPLES</span>
+        <span class="n">form</span><span class="o">.</span><span class="n">sample_from_residuals</span><span class="o">.</span><span class="n">data</span>   <span class="o">=</span> <span class="bp">False</span>
+        <span class="n">form</span><span class="o">.</span><span class="n">sample_with_replacement</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="n">form</span><span class="o">.</span><span class="n">equalize_means</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="n">form</span><span class="o">.</span><span class="n">summary_min_conf_level</span><span class="o">.</span><span class="n">data</span>  <span class="o">=</span> <span class="n">pade</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">DEFAULT_SUMMARY_MIN_CONF</span>
+        <span class="n">form</span><span class="o">.</span><span class="n">summary_step_size</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">pade</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">DEFAULT_SUMMARY_STEP_SIZE</span>
+
+        <span class="n">form</span><span class="o">.</span><span class="n">tuning_params</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">pade</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">DEFAULT_TUNING_PARAMS</span><span class="p">))</span>
+        <span class="n">wf</span><span class="o">.</span><span class="n">other_settings_form</span> <span class="o">=</span> <span class="n">form</span>
+
+        <span class="k">return</span> <span class="n">render_template</span><span class="p">(</span><span class="s">&#39;setup_job.html&#39;</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="n">form</span><span class="p">)</span>
+</div>
+<span class="nd">@bp.route</span><span class="p">(</span><span class="s">&quot;/confirmation&quot;</span><span class="p">)</span>
+<div class="viewcode-block" id="job_confirmation"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.newjob.job_confirmation">[docs]</a><span class="k">def</span> <span class="nf">job_confirmation</span><span class="p">():</span>
+    <span class="n">wf</span> <span class="o">=</span> <span class="n">current_workflow</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">render_template</span><span class="p">(</span>
+        <span class="s">&#39;job_confirmation.html&#39;</span><span class="p">,</span>
+        <span class="n">input_file_meta</span><span class="o">=</span><span class="n">wf</span><span class="o">.</span><span class="n">input_file_meta</span><span class="p">,</span>
+        <span class="n">schema</span><span class="o">=</span><span class="n">wf</span><span class="o">.</span><span class="n">schema</span><span class="p">,</span>
+        <span class="n">settings</span><span class="o">=</span><span class="n">wf</span><span class="o">.</span><span class="n">settings</span><span class="p">)</span>
+
+</div>
+<span class="nd">@bp.route</span><span class="p">(</span><span class="s">&quot;/submit&quot;</span><span class="p">)</span>
+<div class="viewcode-block" id="submit_job"><a class="viewcode-back" href="../../../generated/pade.http.html#pade.http.newjob.submit_job">[docs]</a><span class="k">def</span> <span class="nf">submit_job</span><span class="p">():</span>
+    <span class="n">wf</span> <span class="o">=</span> <span class="n">current_workflow</span><span class="p">()</span>
+
+    <span class="c"># Create the file for the schema and add it to the db</span>
+    <span class="n">schema_meta</span> <span class="o">=</span> <span class="n">mdb</span><span class="o">.</span><span class="n">add_schema</span><span class="p">(</span>
+        <span class="s">&#39;Schema&#39;</span><span class="p">,</span> <span class="s">&#39;Comments&#39;</span><span class="p">,</span> <span class="n">wf</span><span class="o">.</span><span class="n">schema</span><span class="p">,</span> <span class="n">wf</span><span class="o">.</span><span class="n">input_file_meta</span><span class="p">)</span>
+
+    <span class="c"># Add the job to the database</span>
+    <span class="n">job_meta</span> <span class="o">=</span> <span class="n">mdb</span><span class="o">.</span><span class="n">add_job</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">raw_file_meta</span><span class="o">=</span><span class="n">wf</span><span class="o">.</span><span class="n">input_file_meta</span><span class="p">,</span>
+        <span class="n">schema_meta</span><span class="o">=</span><span class="n">schema_meta</span><span class="p">)</span>
+    
+    <span class="n">steps</span> <span class="o">=</span> <span class="n">pade</span><span class="o">.</span><span class="n">tasks</span><span class="o">.</span><span class="n">steps</span><span class="p">(</span>
+        <span class="n">infile_path</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">wf</span><span class="o">.</span><span class="n">input_file_meta</span><span class="o">.</span><span class="n">path</span><span class="p">),</span>
+        <span class="n">schema</span><span class="o">=</span><span class="n">wf</span><span class="o">.</span><span class="n">schema</span><span class="p">,</span>
+        <span class="n">settings</span><span class="o">=</span><span class="n">wf</span><span class="o">.</span><span class="n">settings</span><span class="p">,</span>
+        <span class="n">sample_indexes_path</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+        <span class="n">path</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">job_meta</span><span class="o">.</span><span class="n">path</span><span class="p">),</span>
+        <span class="n">job_id</span><span class="o">=</span><span class="n">job_meta</span><span class="o">.</span><span class="n">obj_id</span><span class="p">)</span>
+
+    <span class="n">chained</span> <span class="o">=</span> <span class="n">celery</span><span class="o">.</span><span class="n">chain</span><span class="p">(</span><span class="n">steps</span><span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">chained</span><span class="o">.</span><span class="n">apply_async</span><span class="p">()</span>
+    <span class="n">mdb</span><span class="o">.</span><span class="n">add_task_id</span><span class="p">(</span><span class="n">job_meta</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">task_id</span><span class="p">)</span>
+    <span class="n">clear_workflow</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">url_for</span><span class="p">(</span><span class="s">&#39;job.job_details&#39;</span><span class="p">,</span> <span class="n">job_id</span><span class="o">=</span><span class="n">job_meta</span><span class="o">.</span><span class="n">obj_id</span><span class="p">))</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">PADE 6.0 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, University of Pennsylvania.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.2.
+    </div>
+  </body>
+</html>

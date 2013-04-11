@@ -80,7 +80,7 @@
 <div class="viewcode-block" id="StatTest.test_ftest_no_tuning_params"><a class="viewcode-back" href="../../../generated/pade.test.html#pade.test.test_stat.StatTest.test_ftest_no_tuning_params">[docs]</a>    <span class="k">def</span> <span class="nf">test_ftest_no_tuning_params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
         <span class="n">expected</span> <span class="o">=</span> <span class="mf">9.26470588235</span>
-        <span class="n">ftest</span> <span class="o">=</span> <span class="n">Ftest</span><span class="p">(</span>
+        <span class="n">ftest</span> <span class="o">=</span> <span class="n">FStat</span><span class="p">(</span>
             <span class="n">condition_layout</span><span class="o">=</span><span class="p">[</span><span class="nb">range</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="mi">18</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">)],</span>
             <span class="n">block_layout</span><span class="o">=</span><span class="p">[</span><span class="nb">range</span><span class="p">(</span><span class="mi">18</span><span class="p">)])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="n">expected</span><span class="p">,</span> <span class="n">ftest</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ftest_in</span><span class="p">))</span>
@@ -98,7 +98,7 @@
         <span class="n">alphas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
 
         <span class="n">expected</span> <span class="o">=</span> <span class="mf">9.26470588235</span>
-        <span class="n">ftest</span> <span class="o">=</span> <span class="n">Ftest</span><span class="p">(</span>
+        <span class="n">ftest</span> <span class="o">=</span> <span class="n">FStat</span><span class="p">(</span>
             <span class="n">condition_layout</span><span class="o">=</span><span class="p">[</span><span class="nb">range</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="mi">18</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">)],</span>
             <span class="n">block_layout</span><span class="o">=</span><span class="p">[</span><span class="nb">range</span><span class="p">(</span><span class="mi">18</span><span class="p">)],</span>
             <span class="n">alphas</span><span class="o">=</span><span class="n">alphas</span><span class="p">)</span>
@@ -378,6 +378,112 @@
         <span class="n">test</span> <span class="o">=</span> <span class="n">GroupSymbols</span><span class="p">([</span> <span class="p">[</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span> <span class="p">],</span> <span class="p">[</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span> <span class="p">])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">test</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">])),</span> <span class="s">&#39;AA BB&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="n">test</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">])),</span> <span class="s">&#39;AB AB&#39;</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="StatTest.test_glm_without_alphas"><a class="viewcode-back" href="../../../generated/pade.test.html#pade.test.test_stat.StatTest.test_glm_without_alphas">[docs]</a>    <span class="k">def</span> <span class="nf">test_glm_without_alphas</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+                <span class="p">[</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">],</span>
+                <span class="p">[</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">9</span><span class="p">],</span>
+                <span class="p">[</span> <span class="mi">9</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                <span class="p">[</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">],</span>
+                <span class="p">[</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]],</span>
+                        <span class="nb">float</span><span class="p">)</span>
+
+        <span class="n">blocks</span> <span class="o">=</span> <span class="p">[</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span> <span class="p">]</span>
+        <span class="n">conds</span>  <span class="o">=</span> <span class="p">[</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> 
+                   <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span> <span class="p">]</span>
+
+        <span class="n">f</span> <span class="o">=</span> <span class="n">FStat</span><span class="p">(</span><span class="n">conds</span><span class="p">,</span> <span class="n">blocks</span><span class="p">)</span>
+        <span class="n">gaussian</span> <span class="o">=</span> <span class="n">GLMFStat</span><span class="p">(</span><span class="n">conds</span><span class="p">,</span> <span class="n">blocks</span><span class="p">,</span> <span class="n">family</span><span class="o">=</span><span class="s">&#39;gaussian&#39;</span><span class="p">)</span>
+
+        <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_almost_equal</span><span class="p">(</span>
+            <span class="n">f</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="n">gaussian</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+</div>
+<div class="viewcode-block" id="StatTest.test_glm_three_cond"><a class="viewcode-back" href="../../../generated/pade.test.html#pade.test.test_stat.StatTest.test_glm_three_cond">[docs]</a>    <span class="k">def</span> <span class="nf">test_glm_three_cond</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+                <span class="p">[</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">],</span>
+                <span class="p">[</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="mi">9</span><span class="p">],</span>
+                <span class="p">[</span> <span class="mi">9</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                <span class="p">[</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">8</span><span class="p">],</span>
+                <span class="p">[</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]],</span>
+                        <span class="nb">float</span><span class="p">)</span>      
+
+        <span class="n">blocks</span> <span class="o">=</span> <span class="p">[</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span> <span class="p">]</span>
+        <span class="n">conds</span>  <span class="o">=</span> <span class="p">[</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> 
+                   <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span>
+                   <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span> <span class="p">]</span>
+
+        <span class="n">f</span> <span class="o">=</span> <span class="n">FStat</span><span class="p">(</span><span class="n">conds</span><span class="p">,</span> <span class="n">blocks</span><span class="p">)</span>
+        <span class="n">gaussian</span> <span class="o">=</span> <span class="n">GLMFStat</span><span class="p">(</span><span class="n">conds</span><span class="p">,</span> <span class="n">blocks</span><span class="p">,</span> <span class="n">family</span><span class="o">=</span><span class="s">&#39;gaussian&#39;</span><span class="p">)</span>
+
+        <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_almost_equal</span><span class="p">(</span>
+            <span class="n">f</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="n">gaussian</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>  
+
+
+
+<span class="c">#    def  test_glm_two_block_two_cond(self):</span>
+<span class="c">#         data = np.array([</span>
+<span class="c">#                 [ 0, 1, 5, 3, 9, 8, 7, 8],</span>
+<span class="c">#                 [ 1, 3, 2, 1, 6, 9, 8, 9],</span>
+<span class="c">#                 [ 9, 7, 8, 7, 1, 4, 2, 0],</span>
+<span class="c">#                 [ 1, 2, 3, 4, 5, 6, 7, 8],</span>
+<span class="c">#                 [ 1, 2, 1, 2, 1, 1, 1, 2]],</span>
+<span class="c">#                         float)</span>
+
+<span class="c">#         conds  = [ [0, 1, 2, 3], [4, 5, 6, 7] ]</span>
+<span class="c">#         blocks = [ [0, 2, 4, 6], [1, 3, 5, 7] ]</span>
+
+<span class="c">#         f = FStat(conds, blocks)</span>
+<span class="c">#         gaussian = GLMFStat(conds, blocks, family=&#39;gaussian&#39;)</span>
+
+<span class="c">#         print(&quot;X is &quot;, gaussian.x)</span>
+<span class="c">#         print(&quot;Contrast is &quot;, gaussian.contrast)</span>
+
+<span class="c">#         x = np.array([</span>
+<span class="c">#                 [1, 0, 0],</span>
+<span class="c">#                 [1, 1, 0],</span>
+<span class="c">#                 [1, 0, 0],</span>
+<span class="c">#                 [1, 1, 0],</span>
+<span class="c">#                 [1, 0, 1],</span>
+<span class="c">#                 [1, 1, 1],</span>
+<span class="c">#                 [1, 0, 1],</span>
+<span class="c">#                 [1, 1, 1]])</span>
+                
+<span class="c">#         model = sm.GLM(data[0], x)</span>
+<span class="c">#         fitted = model.fit()</span>
+        
+<span class="c">#         print(&quot;Model is&quot;, fitted.f_test([[0, 0, 1]]))</span>
+
+<span class="c">#         np.testing.assert_almost_equal(</span>
+<span class="c">#             f(data), gaussian(data))  </span>
+
+</div>
+<div class="viewcode-block" id="StatTest.test_glm_with_alphas"><a class="viewcode-back" href="../../../generated/pade.test.html#pade.test.test_stat.StatTest.test_glm_with_alphas">[docs]</a>    <span class="k">def</span> <span class="nf">test_glm_with_alphas</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+                <span class="p">[</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">],</span>
+                <span class="p">[</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">9</span><span class="p">],</span>
+                <span class="p">[</span> <span class="mi">9</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                <span class="p">[</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">],</span>
+                <span class="p">[</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]],</span>
+                        <span class="nb">float</span><span class="p">)</span>
+
+        <span class="n">blocks</span> <span class="o">=</span> <span class="p">[</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span> <span class="p">]</span>
+        <span class="n">conds</span>  <span class="o">=</span> <span class="p">[</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> 
+                   <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span> <span class="p">]</span>
+
+        <span class="n">alphas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">])</span>
+
+        <span class="n">f</span> <span class="o">=</span> <span class="n">FStat</span><span class="p">(</span><span class="n">conds</span><span class="p">,</span> <span class="n">blocks</span><span class="p">,</span> <span class="n">alphas</span><span class="p">)</span>
+        <span class="n">gaussian</span> <span class="o">=</span> <span class="n">GLMFStat</span><span class="p">(</span><span class="n">conds</span><span class="p">,</span> <span class="n">blocks</span><span class="p">,</span> <span class="n">family</span><span class="o">=</span><span class="s">&#39;gaussian&#39;</span><span class="p">,</span> <span class="n">alphas</span><span class="o">=</span><span class="n">alphas</span><span class="p">)</span>
+        <span class="n">poisson</span>  <span class="o">=</span> <span class="n">GLMFStat</span><span class="p">(</span><span class="n">conds</span><span class="p">,</span> <span class="n">blocks</span><span class="p">,</span> <span class="n">family</span><span class="o">=</span><span class="s">&#39;poisson&#39;</span><span class="p">,</span> <span class="n">alphas</span><span class="o">=</span><span class="n">alphas</span><span class="p">)</span>
+
+        <span class="n">gaussian</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="c"># I know this won&#39;t be equal...</span>
+        <span class="c"># np.testing.assert_almost_equal(</span>
+        <span class="c">#    f(data), gaussian(data))</span>
+
 </div></div>
 <span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
     <span class="n">unittest</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>

@@ -1,0 +1,355 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pade.glm &mdash; PADE 6.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '6.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="PADE 6.0 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">PADE 6.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for pade.glm</h1><div class="highlight"><pre>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">pade.family</span> <span class="kn">as</span> <span class="nn">fam</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy.linalg</span> <span class="kn">import</span> <span class="n">svdvals</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">namedtuple</span>
+
+<span class="n">GlmResults</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s">&#39;GlmResults&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s">&#39;beta&#39;</span><span class="p">,</span> <span class="s">&#39;mu&#39;</span><span class="p">,</span> <span class="s">&#39;weights&#39;</span><span class="p">,</span> <span class="s">&#39;normalized_cov_params&#39;</span><span class="p">,</span> <span class="s">&#39;scale&#39;</span><span class="p">])</span>
+
+<div class="viewcode-block" id="f_test_two_cond"><a class="viewcode-back" href="../../generated/pade.html#pade.glm.f_test_two_cond">[docs]</a><span class="k">def</span> <span class="nf">f_test_two_cond</span><span class="p">(</span><span class="n">betas</span><span class="p">,</span> <span class="n">cov_ps</span><span class="p">,</span> <span class="n">smoothing</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Special case of the f-test for when r_matrix is [ [ 0, 1 ] ].</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">numer</span> <span class="o">=</span> <span class="n">betas</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span>
+
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">smoothing</span><span class="p">)</span> <span class="ow">is</span> <span class="p">():</span>
+        <span class="n">F</span> <span class="o">=</span> <span class="n">numer</span> <span class="o">/</span> <span class="p">(</span><span class="n">cov_ps</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">smoothing</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">F</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">smoothing</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">betas</span><span class="p">),))</span>
+        <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">smoothing</span><span class="p">):</span>
+            <span class="n">F</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">numer</span> <span class="o">/</span> <span class="p">(</span><span class="n">cov_ps</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">a</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">shape</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+</div>
+<div class="viewcode-block" id="f_test"><a class="viewcode-back" href="../../generated/pade.html#pade.glm.f_test">[docs]</a><span class="k">def</span> <span class="nf">f_test</span><span class="p">(</span><span class="n">betas</span><span class="p">,</span> <span class="n">r_matrix</span><span class="p">,</span> <span class="n">cov_ps</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">smoothing</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">cov_ps</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&#39;need covariance of parameters for computing &#39;</span>
+                         <span class="s">&#39;F statistics&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">scale</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">scale</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">betas</span><span class="p">))</span>
+
+    <span class="n">F</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="n">scale</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">scale</span><span class="p">,</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">scale</span><span class="p">),</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">scaled_cov_ps</span> <span class="o">=</span> <span class="n">cov_ps</span> <span class="o">*</span> <span class="n">scale</span>
+
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">r_matrix</span><span class="p">)</span> <span class="o">==</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="ow">and</span> <span class="n">r_matrix</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">r_matrix</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">f_test_two_cond</span><span class="p">(</span><span class="n">betas</span><span class="p">,</span> <span class="n">scaled_cov_ps</span><span class="p">,</span> <span class="n">smoothing</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">beta</span><span class="p">,</span> <span class="n">cov_p</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">betas</span><span class="p">,</span> <span class="n">scaled_cov_ps</span><span class="p">):</span>
+        
+        <span class="n">Rbq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">r_matrix</span><span class="p">,</span> <span class="n">beta</span><span class="p">[:,</span> <span class="bp">None</span><span class="p">])</span>
+        
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">smoothing</span><span class="p">)</span> <span class="ow">is</span> <span class="p">():</span>
+            <span class="n">cov</span> <span class="o">=</span> <span class="n">r_matrix</span><span class="o">.</span><span class="n">dot</span><span class="p">((</span><span class="n">cov_p</span> <span class="o">+</span> <span class="n">smoothing</span><span class="p">)</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">r_matrix</span><span class="o">.</span><span class="n">T</span><span class="p">))</span>
+
+            <span class="n">invcov</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">cov</span><span class="p">)</span>
+
+            <span class="n">res</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Rbq</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">invcov</span><span class="p">),</span> <span class="n">Rbq</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">F</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="n">F</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">betas</span><span class="p">),)</span> <span class="o">+</span> <span class="n">res</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+            <span class="n">F</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">res</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">smoothing</span><span class="p">):</span>
+                <span class="n">cov</span> <span class="o">=</span> <span class="n">r_matrix</span><span class="o">.</span><span class="n">dot</span><span class="p">((</span><span class="n">cov_p</span> <span class="o">+</span> <span class="n">a</span><span class="p">)</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">r_matrix</span><span class="o">.</span><span class="n">T</span><span class="p">))</span>
+
+                <span class="n">invcov</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">cov</span><span class="p">)</span>
+
+                <span class="n">res</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Rbq</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">invcov</span><span class="p">),</span> <span class="n">Rbq</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">F</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                    <span class="n">F</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">smoothing</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">betas</span><span class="p">),)</span> <span class="o">+</span> <span class="n">res</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                <span class="n">F</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">res</span>
+
+        <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="n">J</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">r_matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>  <span class="c"># number of restrictions</span>
+    <span class="k">return</span> <span class="n">F</span> <span class="o">/</span> <span class="n">J</span>
+</div>
+<div class="viewcode-block" id="estimate_scale"><a class="viewcode-back" href="../../generated/pade.html#pade.glm.estimate_scale">[docs]</a><span class="k">def</span> <span class="nf">estimate_scale</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="n">family</span><span class="p">,</span> <span class="n">endog</span><span class="p">,</span> <span class="n">scaletype</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">df_resid</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Estimates the dispersion/scale.</span>
+
+<span class="sd">    Type of scale can be chose in the fit method.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    mu : array</span>
+<span class="sd">        mu is the mean response estimate</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Estimate of scale</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    The default scale for Binomial and Poisson families is 1.  The default</span>
+<span class="sd">    for the other families is Pearson&#39;s Chi-Square estimate.</span>
+
+<span class="sd">    See also</span>
+<span class="sd">    --------</span>
+<span class="sd">    statsmodels.glm.fit for more information</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">scaletype</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">family</span><span class="p">,</span> <span class="p">(</span><span class="n">fam</span><span class="o">.</span><span class="n">Binomial</span><span class="p">,</span> <span class="n">fam</span><span class="o">.</span><span class="n">Poisson</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">mu</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">resid</span> <span class="o">=</span> <span class="n">endog</span> <span class="o">-</span> <span class="n">mu</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">resid</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">family</span><span class="o">.</span><span class="n">variance</span><span class="p">(</span><span class="n">mu</span><span class="p">))</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> \
+                <span class="o">/</span> <span class="n">df_resid</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">res</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">scaletype</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">scaletype</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">scaletype</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">scaletype</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s">&#39;x2&#39;</span><span class="p">:</span>
+            <span class="n">resid</span> <span class="o">=</span> <span class="n">endog</span> <span class="o">-</span> <span class="n">mu</span>
+            <span class="k">return</span> <span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">resid</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">family</span><span class="o">.</span><span class="n">variance</span><span class="p">(</span><span class="n">mu</span><span class="p">))</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> \
+                <span class="o">/</span> <span class="n">df_resid</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">scaletype</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s">&#39;dev&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">family</span><span class="o">.</span><span class="n">deviance</span><span class="p">(</span><span class="n">endog</span><span class="p">,</span> <span class="n">mu</span><span class="p">)</span><span class="o">/</span><span class="n">df_resid</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;Scale </span><span class="si">%s</span><span class="s"> with type </span><span class="si">%s</span><span class="s"> not understood&quot;</span> <span class="o">%</span>\
+                <span class="p">(</span><span class="n">scaletype</span><span class="p">,</span><span class="nb">type</span><span class="p">(</span><span class="n">scaletype</span><span class="p">)))</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;Scale </span><span class="si">%s</span><span class="s"> with type </span><span class="si">%s</span><span class="s"> not understood&quot;</span> <span class="o">%</span>\
+            <span class="p">(</span><span class="n">scaletype</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">scaletype</span><span class="p">)))</span>
+
+</div>
+<div class="viewcode-block" id="rank"><a class="viewcode-back" href="../../generated/pade.html#pade.glm.rank">[docs]</a><span class="k">def</span> <span class="nf">rank</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">cond</span><span class="o">=</span><span class="mf">1.0e-12</span><span class="p">):</span>
+    <span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">D</span> <span class="o">=</span> <span class="n">svdvals</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">greater</span><span class="p">(</span><span class="n">D</span> <span class="o">/</span> <span class="n">D</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">cond</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">alltrue</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="mf">0.</span><span class="p">)))</span>
+
+
+</div>
+<div class="viewcode-block" id="fit_glm"><a class="viewcode-back" href="../../generated/pade.html#pade.glm.fit_glm">[docs]</a><span class="k">def</span> <span class="nf">fit_glm</span><span class="p">(</span><span class="n">endog</span><span class="p">,</span> <span class="n">exog</span><span class="p">,</span> <span class="n">family</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">maxiter</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">,</span> <span class="n">scaletype</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Fits a generalized linear model for a given family.</span>
+
+<span class="sd">    :param endog:</span>
+
+<span class="sd">    :param exog:</span>
+
+<span class="sd">    :param family:</span>
+
+<span class="sd">    :param maxiter:</span>
+
+<span class="sd">    :param scale:</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="n">exog</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span> <span class="n">exog</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">endog</span> <span class="p">])</span>
+
+    <span class="n">mu</span>  <span class="o">=</span> <span class="n">family</span><span class="o">.</span><span class="n">starting_mu</span><span class="p">(</span><span class="n">endog</span><span class="p">)</span>
+    <span class="n">eta</span> <span class="o">=</span> <span class="n">family</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">mu</span><span class="p">)</span>
+    <span class="n">dev</span> <span class="o">=</span> <span class="n">family</span><span class="o">.</span><span class="n">deviance</span><span class="p">(</span><span class="n">endog</span><span class="p">,</span> <span class="n">mu</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">dev</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;The first guess on the deviance function &quot;</span>
+                             <span class="s">&quot;returned a nan.  This could be a boundary &quot;</span>
+                             <span class="s">&quot; problem and should be reported.&quot;</span><span class="p">)</span>
+
+    <span class="n">iteration</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">converged</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="n">deviance</span> <span class="o">=</span> <span class="p">[</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="n">dev</span> <span class="p">]</span>
+
+    <span class="n">df_resid</span> <span class="o">=</span> <span class="n">exog</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">rank</span><span class="p">(</span><span class="n">exog</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="k">while</span> <span class="ow">not</span> <span class="n">converged</span><span class="p">:</span>
+
+        <span class="n">weights</span>  <span class="o">=</span> <span class="n">family</span><span class="o">.</span><span class="n">weights</span><span class="p">(</span><span class="n">mu</span><span class="p">)</span>
+        <span class="n">wlsendog</span> <span class="o">=</span> <span class="n">eta</span> <span class="o">+</span> <span class="n">family</span><span class="o">.</span><span class="n">link</span><span class="o">.</span><span class="n">deriv</span><span class="p">(</span><span class="n">mu</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">endog</span> <span class="o">-</span> <span class="n">mu</span><span class="p">)</span>
+        <span class="p">(</span><span class="n">beta</span><span class="p">,</span> <span class="n">normalized_cov_params</span><span class="p">)</span> <span class="o">=</span> <span class="n">fit_wls</span><span class="p">(</span><span class="n">wlsendog</span><span class="p">,</span> <span class="n">exog</span><span class="p">,</span> <span class="n">weights</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">eta</span><span class="p">)):</span>
+            <span class="n">eta</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">exog</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">beta</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+        <span class="n">mu</span> <span class="o">=</span> <span class="n">family</span><span class="o">.</span><span class="n">fitted</span><span class="p">(</span><span class="n">eta</span><span class="p">)</span>
+        <span class="n">deviance</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">family</span><span class="o">.</span><span class="n">deviance</span><span class="p">(</span><span class="n">endog</span><span class="p">,</span> <span class="n">mu</span><span class="p">))</span>
+        <span class="n">scale</span> <span class="o">=</span> <span class="n">estimate_scale</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="n">family</span><span class="o">=</span><span class="n">family</span><span class="p">,</span> <span class="n">endog</span><span class="o">=</span><span class="n">endog</span><span class="p">,</span> <span class="n">scaletype</span><span class="o">=</span><span class="n">scaletype</span><span class="p">,</span> <span class="n">df_resid</span><span class="o">=</span><span class="n">df_resid</span><span class="p">)</span>
+        <span class="n">iteration</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">if</span> <span class="n">endog</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">mu</span> <span class="o">-</span> <span class="n">endog</span><span class="p">,</span> <span class="mi">0</span><span class="p">):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s">&quot;Perfect separation detected, results not available&quot;</span>
+            <span class="k">raise</span> <span class="n">PerfectSeparationError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="n">converged</span> <span class="o">=</span> <span class="n">_check_convergence</span><span class="p">(</span><span class="n">deviance</span><span class="p">,</span> <span class="n">iteration</span><span class="p">,</span> <span class="n">tol</span><span class="p">,</span> <span class="n">maxiter</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">GlmResults</span><span class="p">(</span><span class="n">beta</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">normalized_cov_params</span><span class="p">,</span> <span class="n">scale</span><span class="p">)</span>
+
+
+<span class="c"># TODO: I think I need to fix this.</span></div>
+<span class="k">def</span> <span class="nf">_check_convergence</span><span class="p">(</span><span class="n">criterion</span><span class="p">,</span> <span class="n">iteration</span><span class="p">,</span> <span class="n">tol</span><span class="p">,</span> <span class="n">maxiter</span><span class="p">):</span>
+    
+    <span class="n">delta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fabs</span><span class="p">(</span><span class="n">criterion</span><span class="p">[</span><span class="n">iteration</span><span class="p">]</span> <span class="o">-</span> <span class="n">criterion</span><span class="p">[</span><span class="n">iteration</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">delta</span> <span class="o">&lt;=</span> <span class="n">tol</span><span class="p">)</span> <span class="ow">or</span> <span class="n">iteration</span> <span class="o">&gt;</span> <span class="n">maxiter</span>
+
+<div class="viewcode-block" id="whiten"><a class="viewcode-back" href="../../generated/pade.html#pade.glm.whiten">[docs]</a><span class="k">def</span> <span class="nf">whiten</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Whitener for WLS model, multiplies each column by sqrt(self.weights)</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X : array-like</span>
+<span class="sd">    Data to be whitened</span>
+<span class="sd">    </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    sqrt(weights)*X</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+        <span class="c">#print weights.var()</span>
+
+    <span class="k">if</span> <span class="n">weights</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="n">X</span><span class="o">.</span><span class="n">ndim</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span> <span class="o">*</span> <span class="n">X</span>
+    <span class="k">elif</span> <span class="n">weights</span><span class="o">.</span><span class="n">ndim</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">==</span> <span class="n">X</span><span class="o">.</span><span class="n">ndim</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">weights</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="bp">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">X</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;Incompatible shapes&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">weights</span><span class="p">))</span>
+                        <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">X</span><span class="p">)))</span>
+
+</div>
+<div class="viewcode-block" id="fit_wls"><a class="viewcode-back" href="../../generated/pade.html#pade.glm.fit_wls">[docs]</a><span class="k">def</span> <span class="nf">fit_wls</span><span class="p">(</span><span class="n">endog</span><span class="p">,</span> <span class="n">exog</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="mf">1.</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Full fit of the model.</span>
+
+<span class="sd">    :return: </span>
+<span class="sd">      a 2-tuple with the parameters and the estimated covariance</span>
+<span class="sd">      matrix.</span>
+
+<span class="sd">    :param endog:</span>
+<span class="sd">      the 2-d endogenous matrix</span>
+
+<span class="sd">    :param exog:</span>
+<span class="sd">      the 2-d exogenous matrix</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">wexog</span>  <span class="o">=</span> <span class="n">whiten</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">exog</span><span class="p">)</span>
+    <span class="n">wendog</span> <span class="o">=</span> <span class="n">whiten</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">endog</span><span class="p">)</span>
+
+    <span class="p">(</span><span class="n">n_models</span><span class="p">,</span> <span class="n">n_obs</span><span class="p">,</span> <span class="n">n_regressors</span><span class="p">)</span> <span class="o">=</span> <span class="n">wexog</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">normalized_cov_params</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_models</span><span class="p">,</span> <span class="n">n_regressors</span><span class="p">,</span> <span class="n">n_regressors</span><span class="p">))</span>
+    <span class="n">beta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_models</span><span class="p">,</span> <span class="n">n_regressors</span><span class="p">))</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">wexog</span><span class="p">)):</span>
+        <span class="n">pinv_wexog</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">pinv</span><span class="p">(</span><span class="n">wexog</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="n">normalized_cov_params</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">pinv_wexog</span><span class="p">,</span> <span class="n">pinv_wexog</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+        <span class="n">beta</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">pinv_wexog</span><span class="p">,</span> <span class="n">wendog</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="p">(</span><span class="n">beta</span><span class="p">,</span> <span class="n">normalized_cov_params</span><span class="p">)</span>
+
+</div>
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">PADE 6.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, University of Pennsylvania.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.2.
+    </div>
+  </body>
+</html>
