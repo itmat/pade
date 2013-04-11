@@ -71,8 +71,6 @@ class Workflow():
         roles   = np.array(wf.column_roles)
         factors = self.factor_values.keys()
         
-        logging.info("Initializing schema with columns " + str(columns) + " and roles " + str(roles))
-
         if columns is None or roles is None or len(columns) == 0 or len(roles) == 0:
             raise Exception("I can't create a schema without columns or roles")
 
@@ -248,7 +246,6 @@ def clear_workflow():
 
 @bp.route("/select_input_file")
 def select_input_file():
-    logging.info("Setting input file id\n")
 
     input_file_id = int(request.args.get('input_file_id'))
 
@@ -339,7 +336,6 @@ def column_labels():
     if request.method == 'POST':
         form = ColumnLabelsForm(request.form)
         wf.column_label_form = form
-        logging.info("I got " + str(len(form.assignments)) + " assignments")
         return redirect(url_for('.setup_job_factors'))
 
     else:

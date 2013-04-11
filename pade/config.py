@@ -88,15 +88,15 @@ default = PadeConfig(
 
 test = PadeConfig(
     metadb_host='localhost',
-    metadb_port=6379,
+    metadb_port=6381,
     metadb_db=1,
 
     session_host='localhost',
-    session_port=6379,
+    session_port=6381,
     session_db=1,
 
     celery_host='localhost',
-    celery_port=6379,
+    celery_port=6381,
     celery_db=1,
 
     metadb_dir='padedb_test')
