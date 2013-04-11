@@ -244,13 +244,6 @@ class GLMFStat(LayoutPairTest):
                                                                              
     >>> f = GLMFStat(condition_layout, block_layout)
                                                                              
-    Test one row                                                             
-                                                                             
-    >>> round(f(a), 1)
-    3.6
-                                                                     
-    Test multiple rows at once                                               
-                                                                             
     >>> data = np.array([a, b, c])                                           
     >>> f(data)                                                              
     array([ 3.6,  1. ,  2.5])
