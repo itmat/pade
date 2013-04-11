@@ -292,6 +292,9 @@ def args_to_settings(args):
         block_variables = []
         condition_variables = schema.factors
 
+    else:
+        raise(UsageException("You have more than one factor, so please specify one to test using --condition (or -c)"))
+
     # Tuning params
     if args.tuning_param is None or len(args.tuning_param) == 0 :
         tuning_params = np.array(pade.model.DEFAULT_TUNING_PARAMS)
@@ -549,7 +552,7 @@ pade_schema.yaml file, then run 'pade.py run ...'.""")
         )
     schema_in_parent = argparse.ArgumentParser(add_help=False)
     schema_in_parent.add_argument(
-        '--schema',
+        '--schema', '-f',
         help="The schema YAML file to load",
         required=True)
 
