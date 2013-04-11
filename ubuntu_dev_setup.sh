@@ -11,7 +11,9 @@ virtualenv --system-site-packages padeenv
 source padeenv/bin/activate
 
 # Clone the repo
-git clone https://github.com/itmat/pade.git
+if [ ! -d pade ]; then
+  git clone https://github.com/itmat/pade.git
+fi
 
 cd pade
 python setup.py develop
