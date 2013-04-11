@@ -71,7 +71,6 @@ Obtain pade and install it into your newly active padeenv environment:
 
 Then you should be able to run ``pade``.
 
-
 On Mac OS X
 ^^^^^^^^^^^
 
