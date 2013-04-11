@@ -302,10 +302,47 @@ class GLMFStat(LayoutPairTest):
     def fittedvalues(self, y):
         return glm.fit_glm(y, self.x, self.family).mu
 
-class BestSeparationStat(LayoutPairTest):
-    def __call__(self, data):
-        (a, b) = self.condition_layout
+class SeparationStat(LayoutPairTest):
+
+    """Computes a statistic based on the distance between the means.
+
+    >>> s = SeparationStat([[0, 1], [2, 3]])
+    >>> s.sep([0, 2, 5, 7])
+    5.0
+
+    >>> s.sep([0, 5, 2, 7])
+    2.0
+
+    >>> s.sep([0, 7, 2, 5])
+    0.0
+    
+    >>> round(s([0, 2, 5, 7]), 1)
+    1.0
+
+    >>> round(s([0, 5, 2, 7]), 1)
+    0.4
+
+    >>> s([0, 7, 2, 5])
+    0.0
+
+    """
+
+    def __init__(self, *args, **kwargs):
+        kwargs['block_layout'] = None
+        super(SeparationStat, self).__init__(*args, **kwargs)
+        self.best_sep = None
         
+    def sep(self, data):
+        data = np.asarray(data)
+        cond = self.condition_layout
+        return np.abs(np.mean(data[cond[0]]) - np.mean(data[cond[1]]))
+
+    def __call__(self, data):
+        if self.best_sep is None:
+            self.best_sep = self.sep(data)
+
+        return self.sep(data) / self.best_sep
+
 
 class FStat(LayoutPairTest):
     """Computes the F-test.
@@ -581,7 +618,8 @@ STAT_NAME_TO_CLASS = {
     'f' : FStat,
     't' : OneSampleDifferenceTStat,
     'means_ratio' : MeansRatio,
-    'glm' : GLMFStat
+    'glm' : GLMFStat,
+    'separation', SeparationStat
     }
 
 GLM_FAMILIES = {
