@@ -274,7 +274,18 @@ def args_to_settings(args):
                    "family with the --glm-family option. Valid arguments " +
                    "for --glm-family are " + 
                    quote_and_join(pade.stat.glm_families()) + ".")
-                   
+            raise UsageException(msg)
+
+    if args.glm_family != '':
+        if stat != 'glm':
+             msg = ("If you specify a distribution family with the --glm-family "
+                    "option, you must also specify --stat glm.")
+             raise UsageException(msg)
+
+    if args.shrink == True:
+        if args.glm_family != 'negative_binomial':
+            msg = ("Option --shrink can only be used with " + 
+                   "--glm-family negative_binomial.")
             raise UsageException(msg)
 
     # Block and condition variables
@@ -319,7 +330,8 @@ def args_to_settings(args):
         condition_variables=condition_variables,
         stat=stat,
         glm_family=args.glm_family,
-        equalize_means=args.equalize_means
+        equalize_means=args.equalize_means,
+        shrink=args.shrink
         )
 
 def load_schema(path):
@@ -650,8 +662,14 @@ def get_arguments():
     grp.add_argument(
         '--glm-family',
         choices=glm_families(),
-        default='',
+        default='N/A',
         help="The distribution family to use for the 'glm' stat.")
+
+    grp.add_argument(
+        '--shrink',
+        action='store_true',
+        default=False,
+        help="Calculate dispersion for negative binomial glm using shrinkage method.")
 
     grp.add_argument(
         '--tuning-param',

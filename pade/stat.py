@@ -249,7 +249,7 @@ class GLMFStat(LayoutPairTest):
     array([ 3.6,  1. ,  2.5])
 
     """                                                                      
-    def __init__(self, condition_layout, block_layout, alphas=None, family='gaussian'):
+    def __init__(self, condition_layout, block_layout, alphas=None, family='gaussian', shrink=False):
         
         super(GLMFStat, self).__init__(condition_layout, block_layout)       
                                                                              
@@ -257,6 +257,7 @@ class GLMFStat(LayoutPairTest):
         self.alphas = alphas
         ctor = GLM_FAMILIES[family]
         self.family = ctor()
+        self.shrink = shrink
 
     @property
     def x(self):
@@ -281,6 +282,13 @@ class GLMFStat(LayoutPairTest):
         if np.ndim(y) == 1:
             raise Exception("I only do 2d arrays")
 
+        shrink = self.shrink
+
+        if shrink:
+            ctor = GLM_FAMILIES['negative_binomial']
+            family = ctor()
+            print("Using shrinkage estimator of dispersal in negative binomial GLM.")
+            raise Exception("yay!")
 
         m = len(y)
         alphas = self.alphas

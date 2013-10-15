@@ -118,6 +118,9 @@ def estimate_scale(mu, family, endog, scaletype=None, df_resid=None):
                 / df_resid)
         elif scaletype.lower() == 'dev':
             return family.deviance(endog, mu)/df_resid
+        elif (scaletype.lower() == 'shrinkage') and isinstance(family, fam.NegativeBinomial):
+            raise ValueError("Scale %s here" %scaletype)
+            #return shrinkage_dispersion( FIXME parameters) 
         else:
             raise ValueError("Scale %s with type %s not understood" %\
                 (scaletype,type(scaletype)))

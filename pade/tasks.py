@@ -66,6 +66,7 @@ def copy_input(path, input_path, schema, settings, job_id):
         db.attrs['summary_min_conf'] = settings.summary_min_conf
         db.attrs['summary_step_size'] = settings.summary_step_size
         db.attrs['equalize_means'] = settings.equalize_means
+        db.attrs['shrink'] = settings.shrink
 
         # Save the schema object
         schema_str = StringIO()
@@ -282,7 +283,8 @@ def load_settings(db):
         summary_step_size = db.attrs['summary_step_size'],
         tuning_params = db['tuning_params'][...],
         equalize_means_ids = equalize_means_ids,
-        equalize_means = db.attrs['equalize_means'])
+        equalize_means = db.attrs['equalize_means'],
+        shrink = db.attrs['shrink'])
 
 def load_table(db, name):
     if name in db:

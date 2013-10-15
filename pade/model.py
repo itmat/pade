@@ -223,7 +223,8 @@ class Settings:
         equalize_means=DEFAULT_EQUALIZE_MEANS,
         summary_step_size=DEFAULT_SUMMARY_STEP_SIZE,
         tuning_params=DEFAULT_TUNING_PARAMS,
-        equalize_means_ids=None):
+        equalize_means_ids=None,
+        shrink=False):
 
         if stat is None:
             raise Exception('stat is a required option')
@@ -234,7 +235,13 @@ class Settings:
         if self.stat == 'glm' and glm_family == '':
             raise Exception("glm_family is required, since stat is glm")
         self.glm_family = glm_family
-        """Name of statistic to use."""
+        """GLM family to use in calculating statistic."""
+
+        if self.stat == 'shrink' and glm_family != 'negative_binomial':
+            raise Exception("Shrinkage estimate of dispersion only to be used " +
+            "with glm_family negative_binomial")
+        self.shrink = shrink
+        """Whether to use shrinkage estimate of dispersion in negative binomial GLM."""
 
         self.num_samples = num_samples
         """Max number of samples to use for permutation test or bootstrapping"""
@@ -336,6 +343,9 @@ class Job:
 
         if self.settings.glm_family != '':
             kwargs['family'] = self.settings.glm_family
+
+        if self.settings.shrink:
+            kwargs['shrink'] = True
 
         return pade.stat.get_stat(self.settings.stat, **kwargs)
 
