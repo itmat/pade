@@ -429,5 +429,5 @@ If you have questions on the program or its usage or if you want to report any b
 -----
 
 ## Install PADE on your mac
-1. Make sure you have the clang version of Python. You can 
+1. Make sure you have the clang version of Python.
 		brew install python
