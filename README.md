@@ -433,5 +433,6 @@ If you have questions on the program or its usage or if you want to report any b
 		
 		brew install python
 
-For more information, please see <http://pragmaticstartup.wordpress.com/2012/12/25/error-command-llvm-gcc-4-2-failed-with-exit-status-1/>
+	For more information, please see <http://pragmaticstartup.wordpress.com/2012/12/25/error-command-llvm-gcc-4-2-failed-with-exit-status-1/>
+
 2. 
