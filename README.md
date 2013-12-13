@@ -460,7 +460,7 @@ If you have questions on the program or its usage or if you want to report any b
 
 		brew install hdf5
 	
-	(if that doesn't work, try:)
+	(if that doesn't work, try: )
 
 	    brew tap homebrew/science
     	brew install hdf5
