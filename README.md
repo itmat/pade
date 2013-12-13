@@ -429,8 +429,9 @@ If you have questions on the program or its usage or if you want to report any b
 -----
 
 ## Install PADE on your mac
-1. Make sure you have the **clang version of Python** and not the apple's version which is compiled with llvm-gcc. For more information, please see <http://pragmaticstartup.wordpress.com/2012/12/25/error-command-llvm-gcc-4-2-failed-with-exit-status-1/>
+1. Make sure you have the **clang version of Python** and not the apple's version which is compiled with llvm-gcc. 
 		
 		brew install python
 
+For more information, please see <http://pragmaticstartup.wordpress.com/2012/12/25/error-command-llvm-gcc-4-2-failed-with-exit-status-1/>
 2. 
