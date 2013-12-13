@@ -1,0 +1,7 @@
+{% macro cancel() -%}
+  <a href="{{url_for('.clear_workflow')}}" class="button">Cancel</a>
+{%- endmacro %}
+
+{% macro previous(url) -%}
+  <a href="{{url}}" class="button">Previous</a>
+{%- endmacro %}

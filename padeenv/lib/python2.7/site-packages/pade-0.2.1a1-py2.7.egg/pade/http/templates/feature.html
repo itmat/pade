@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}Job {{ job_name }} | Feature {{ feature_id }} {% endblock %}
+{% block content %}
+
+<a href="{{url_for('.job_details', job_id=job_id)}}">Back to job {{ job_id }}</a>
+
+<p>Feature number: {{ feature_num }}</p>
+<p>Feature id: {{ feature_id }}</p>
+
+<h2>Details for feature {{ feature_id }}</h2>
+
+<table class="feature_detail">
+
+  <tr>
+    <th></th>
+    <th></th>
+    <th colspan="{{ factors | length }}">Factors</th>
+    <th></th>
+    <th></th>
+  </tr>
+
+  <tr>
+    <th>Column name</th>
+
+    {% for f in factors %}
+    <th>{{ f }}</th>
+    {% endfor %}
+    <th>Measured value</th>
+    <th>Fitted value</th>
+    <th>Residual</th>
+
+  </tr>
+
+  {% for grp in layout %}
+  {% for i in grp %}
+  
+  <tr>
+    <td>{{ sample_names[i] }}</td>
+    {% for f in factors %}
+    <td> {{ factor_values[sample_names[i]][f] }} </td>
+    {% endfor %}
+    <td>{{ measurements[i] }}</td>
+    <td>{{ "%.2f"|format(fittedvalues[i])}}</td>
+    <td>{{ "%.2f"|format(measurements[i] - fittedvalues[i]) }}</td>
+  </tr>
+  {% endfor %}
+  {% endfor %}
+</table>
+
+<h2>Plots</h2>
+
+{% if job.settings.block_variables|length() > 0 %}
+
+<img src="{{ url_for('.interaction_plot', job_id=job_id, feature_num=feature_num) }}"></img>
+
+{% else %}
+<img src="{{ url_for('.measurement_bars', job_id=job_id, feature_num=feature_num) }}"></img>
+{% endif %}
+
+<h2>Details by tuning parameter</h2>
+
+This table shows the details for this feature, for each of the
+different tuning parameters we tried.
+
+For each tuning parameter, we show:
+
+<dl>
+  <dt>Tuning param</dt>
+  <dd>The value of the tuning param</dd>
+
+  <dt>Statistic</dt>
+  <dd>The f-test value for this feature using that tuning parameter.</dd>
+
+  <dt>Max stat</dt>
+  <dd>Max stat is the largest statistic for any feature using this tuning parameter.</dd>
+
+  <dt>Bin</dt>
+  <dd>
+    Each bin represents 1/{{num_bins}}th of the maximum statistic. So
+    features with bin 0 have a statistic less than 1/{{num_bins}} of
+    the maximum. A low bin number means that many features have a
+    higher statistic than this feature.
+  </dd>
+
+  <dt>Unperm count</dt>
+  <dd>
+    Unperm count is the number of features whose f-test (unpermuted)
+    is in the same bin or a higher bin than this feature.
+  </dd>
+
+  <dt>Mean perm count</dt>
+  <dd>
+    Mean perm count is the mean number of features across all
+    permutations of the samples whose f-test is in the same bin or a
+    higher bin than this feature.
+  </dd>
+
+  <dt>Adjusted perm count</dt>
+  <dd>
+    We adjust the "mean perm count" down in an iterative manner. For a
+    description of why we do this, please see the
+    original <a href="http://www.cbil.upenn.edu/PaGE/doc/perl/PaGE_documentation_technical_manual.pdf">PaGE
+    Technical Manual</a>. 
+  </dd>
+
+  <dt>Confidence</dt>
+  <dd>Confidence is the confidence score (1 - FDR) for this feature. The confidence score is simply (unperm_count - adjusted_perm_count) / unperm_count.</dd>
+
+</dl>
+<table class="feature_detail_by_alpha">
+  <tr>
+    <th>Tuning param</th>
+    <th>Statistic</th>
+    <th>Max stat (of all features)</th>
+    <th>Bin (out of {{ num_bins -1}})</th>
+    <th>Unperm count</th>
+    <th>Mean perm count</th>
+    <th>Adjusted perm count</th>
+    <th>Confidence</th>
+  </tr>
+
+  {% for i in range(tuning_params|length) %}
+  <tr>
+    <td>{{ tuning_params[i] }}</td>
+    <td>{{ "%.3f"|format(stats[i]) }}</td>
+    <td>{{ "%.3f"|format(max_stat[i]) }}</td>
+    <td>{{ bins[i] }}</td>
+    <td>{{ "%d"|format(unperm_count[i]) }}</td>
+    <td>{{ "%.1f"|format(mean_perm_count[i]) }}</td>
+    <td>{{ "%.1f"|format(adjusted_perm_count[i]) }}</td>
+
+    <td>{{ "%.4f"|format(scores[i]) }}</td>
+
+
+  </tr>
+  {% endfor %}
+</table>
+
+{% endblock %}

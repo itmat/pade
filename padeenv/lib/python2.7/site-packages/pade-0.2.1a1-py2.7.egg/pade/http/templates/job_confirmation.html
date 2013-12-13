@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Index{% endblock %}
+{% block content %}
+
+<h2>Job confirmation</h2>
+
+Please review the settings for the job.
+
+<h3>Raw input file:</h3>
+<p>
+  Analyzing {{input_file_meta.name}}, {{input_file_meta.size}} bytes, uploaded {{ input_file_meta.dt_created|datetime }}
+</p>
+
+<h3>
+Schema:
+</h3>
+
+Feature ids are in column <em>{{schema.feature_id_column_names|join(', ')}}</em>.
+
+<p>
+I will test for differential effects due to these factors: <em>{{settings.condition_variables|join(', ')}}</em>. 
+
+{% if settings.block_variables|length > 0 %}
+I will treat these factors as nuisance variables: {{settings.block_variables|join(', ')}}.
+{% endif %}
+The columns are labeled as follows:
+</p>
+
+<table>
+  <tr>
+    <th></th>
+    {% for factor in schema.factors %}
+    <th>{{factor}}</th>
+    {% endfor %}
+  </tr>
+  {% for name in schema.sample_column_names %}
+  <tr>
+    <td>{{name}}</td>
+    {% for factor in schema.factors %}
+    <td>{{schema.get_factor(name, factor)}}</td>
+    {% endfor %}
+  </tr>
+  {% endfor %}
+</table>
+
+
+
+<h3>Other settings</h3>
+<p>
+Using statistic {{settings.stat_name}} with tuning params {{settings.tuning_params|join(', ')}}.
+</p>
+
+<p>
+Constructing simulated data by taking a maximum of {{
+settings.num_samples }} 
+{% if settings.sample_with_replacement %}
+bootstrap samples
+{% else %}
+permutations.
+{% endif %}
+
+{% if settings.sample_from_residuals %}
+Each sample will be computed by subtracting the raw values from the group mean, shuffling those residuals, and adding them back to the group mean.
+{% else %}
+Each sample will be a permutation of the raw columns.
+{% endif %}
+</p>
+
+
+I will use {{settings.num_bins}} bins to model the distribution of the statistic.
+
+
+<p>
+I will report confidence levels in increments of {{
+settings.summary_step_size }} starting at {{ settings.summary_min_conf }}.
+</p>
+
+{{ forms.cancel() }}
+{{ forms.previous(url_for('.job_settings')) }}
+<a href="{{url_for('.submit_job')}}" class="button">Submit job</a>
+
+{% endblock %}
