@@ -435,4 +435,4 @@ If you have questions on the program or its usage or if you want to report any b
 
 	For more information, please see <http://pragmaticstartup.wordpress.com/2012/12/25/error-command-llvm-gcc-4-2-failed-with-exit-status-1/>
 
-2. 
+2. Install command line tools with the latest version of Xcode. You can download it [here]:(https://developer.apple.com/xcode/)
