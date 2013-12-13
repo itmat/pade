@@ -471,15 +471,11 @@ If you have questions on the program or its usage or if you want to report any b
 
 	Install redis-server:
 
-		wget http://download.redis.io/redis-stable.tar.gz
-		tar xvzf redis-stable.tar.gz
-		cd redis-stable
-		make
-		sudo cp redis-server /usr/local/bin/
+		brew install redis
 
 	Install freetype. You can download it [here](http://sourceforge.net/projects/freetype/files/latest/download). Then: 
 
-		cd */freetype-2.5.2
+		cd path/to/freetype-2.5.2
 		./configure
 		make
 		make install
