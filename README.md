@@ -435,4 +435,60 @@ If you have questions on the program or its usage or if you want to report any b
 
 	For more information, please see <http://pragmaticstartup.wordpress.com/2012/12/25/error-command-llvm-gcc-4-2-failed-with-exit-status-1/>
 
-2. Install command line tools with the latest version of Xcode. You can download it [here](https://developer.apple.com/xcode/)
+2. Install command line tools with the latest version of Xcode. You can download the Xcode [here](https://developer.apple.com/xcode/). To install the command line tools:
+	
+	1. Start Xcode on the Mac.
+	2. Choose Preferences from the Xcode menu.
+	3. In the General panel, click Downloads.
+ 	4. On the Downloads window, choose the Components tab.
+	5. Click the Install button next to Command Line Tools.
+
+3. Install pip.
+		
+		easy-install pip
+
+4. Install required dependencies.
+	
+	Install numpy, scipy, yaml and setuptools:
+
+		pip install numpy
+		pip install scipy
+		pip install pyyaml
+		pip install setuptools
+
+	Install hdf5:
+
+		brew install hdf5
+	
+	(if that doesn't work, try:)
+
+	    brew tap homebrew/science
+    	brew install hdf5
+
+    Then, you can install h5py:
+
+		pip install h5py
+
+	Install redis-server:
+
+		wget http://download.redis.io/redis-stable.tar.gz
+		tar xvzf redis-stable.tar.gz
+		cd redis-stable
+		make
+		sudo cp redis-server /usr/local/bin/
+
+	Install freetype. You can download it [here](http://sourceforge.net/projects/freetype/files/latest/download). Then: 
+
+		cd */freetype-2.5.2
+		./configure
+		make
+		make install
+		sudo ln -s /usr/local/include/freetype2/ /usr/include/freetype 
+
+	Finally, install matplotlib:
+
+		sudo pip install matplotlib
+
+5. Install PADE
+
+		python setup.py install
