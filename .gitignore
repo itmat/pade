@@ -5,3 +5,7 @@
 doc/_build
 \#*\#
 .\#*
+
+build/*
+dist/*
+pade.egg*
