@@ -1,4 +1,4 @@
-#!/Users/kimeunj/github/pade/padeenv/bin/python
+#!/usr/local/Cellar/python/2.7.6/Frameworks/Python.framework/Versions/2.7/Resources/Python.app/Contents/MacOS/Python
 
 import sys
 
