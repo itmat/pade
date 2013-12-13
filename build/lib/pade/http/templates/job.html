@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Job {{ job_name }} {% endblock %}
+{% block content %}
+
+<h2>Details for job {{ job_name }} </h2>
+
+<h3>Settings</h3>
+
+<table>
+  <tr>
+    <td>Statistic:</td>
+    <td>{{ job.settings.stat }}</td>
+  </tr>
+  
+  <tr>
+    <td>Number of bins:</td>
+    <td>{{ job.settings.num_bins }}</td>
+  </tr>
+
+  <tr>
+    <td>Number of samples:</td>
+    <td>{{ job.settings.num_samples }}</td>
+  </tr>
+
+
+  <tr>
+    <td>Sample from residuals:</td>
+    <td>{{ job.settings.sample_from_residuals }}</td>
+  </tr>
+  <tr>
+    <td>Sample with replacement:</td>
+    <td>{{ job.settings.sample_with_replacement }}</td>
+  </tr>
+
+  <tr>
+    <td>Condition variables</td>
+    <td>{{ job.settings.condition_variables|join(', ') }}</td>
+  </tr>
+
+  <tr>
+    <td>Block variables</td>
+    <td>{{ job.settings.block_variables|join(', ') }}</td>
+  </tr>
+
+  <tr>
+    <td>Tuning params</td>
+    <td>{{ job.settings.tuning_params|join(', ') }}</td>
+  </tr>
+
+  <tr>
+    <td>Equalize means</td>
+    <td>{{ job.settings.equalize_means }}</td>
+  </tr>
+
+  <tr>
+    <td>Minimum confidence</td>
+    <td>{{ job.settings.summary_min_conf }}</td>
+  </tr>
+  <tr>
+    <td>Confidence interval</td>
+    <td>{{ job.settings.summary_step_size }}</td>
+  </tr>
+
+</table>
+
+<h3>Features by confidence level</h3>
+
+<div class="grid_3 alpha">
+
+<table>
+  <tr>
+    <th>Score</th>
+    <th>Features</th>
+    <th>Tuning param</th>
+  </tr>
+
+  {% for i in range(job.summary.counts | length)|reverse() %}
+  <tr>
+    <td class="numeric">{{ "%.0f%%"|format(job.summary.bins[i]*100) }}</td>
+    <td class="numeric"><a href="{{url_for('.details', job_id=job_id, conf_level=i)}}">{{ job.summary.counts[i] }}</a></td>
+    <td class="numeric">{{ job.settings.tuning_params[job.summary.best_param_idxs[i]] }}</td>
+  </tr>
+  {% endfor %}
+
+</table>
+
+</div>
+
+<div class="grid_9 omega">
+  <img src="{{url_for('.conf_dist_plot', job_id=job_id)}}" width="80%"></img>
+</div>
+
+<div class="grid_12 alpha omega">
+
+<h3>Plots</h3>
+<ul>
+  <li><a href="{{url_for('.confidence_dist', job_id=job_id)}}">Confidence score distribution</a></li>
+  <li><a href="{{url_for('.stat_dist_plots_page', job_id=job_id)}}">Statistic distribution</a></li>
+  <li><a href="{{url_for('.feature_count_and_score_by_stat', job_id=job_id)}}">Feature count and score by statistic</a></li>
+  <li><a href="{{url_for('.mean_vs_variance', job_id=job_id)}}">Mean vs variance</a></li>
+</ul>
+
+
+{% if is_runner %}
+<h3>Files</h3>
+
+<a href="{{url_for('.result_db', job_id=job_id)}}">Download results database</a>
+
+{% endif %}
+
+</div>
+
+
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Index{% endblock %}
+{% block content %}
+
+
+<h2>Column roles</h2>
+
+<p>
+  Next you need to tell me which column contains the feature ids and
+  which ones contain the samples. By default I assume that the first
+  column contains the feature IDs and the rest contain samples. To
+  ignore a column in this analysis, set its role to "Ignore".
+</p>
+
+<form action="{{url_for('.column_roles')}}" method="post">
+
+  <table>
+    <tr>
+      <th>Field name</th>
+      <th>Role</th>
+    </tr>
+
+    {% for entry in form.roles %}
+    <tr>
+      <td>{{ entry.label }}</td>
+      <td>{{ entry()|safe }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  <p>
+    {{ forms.cancel() }}
+    {{ forms.previous(url_for('inputfile.input_file_list')) }}
+    {{ form.submit(class='button') }}
+  </p>
+
+</form>
+
+{% endblock %}
+

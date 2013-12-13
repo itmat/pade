@@ -1,0 +1,16 @@
+
+<h3>Condition "{{ job.condition_names[condition] }}":</h3>
+<table>
+  <tr>
+    <th>Conf.</th>
+    <th>Num. Up</th>
+    <th>Num. Down</th>
+  </tr>
+  {% for level in results.conf_levels: %}
+  <tr>
+    <td>{{level}}</td>
+    <td>{{results.best_counts[0, loop.index0, condition]}}</td>
+    <td>{{results.best_counts[1, loop.index0, condition]}}</td>
+  </tr>
+  {% endfor %}
+</table>

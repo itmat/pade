@@ -1,0 +1,5 @@
+#!/Users/kimeunj/github/pade/padeenv/bin/python
+# EASY-INSTALL-SCRIPT: 'pade==0.2.1a1','pade'
+__requires__ = 'pade==0.2.1a1'
+import pkg_resources
+pkg_resources.run_script('pade==0.2.1a1', 'pade')

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Index{% endblock %}
+{% block content %}
+
+<h2>Pick block and condition factors</h2>
+
+Now you need to pick one factor to test for differential effects; this
+will be the "condition" factor. For the other factors, you have two
+options. 
+
+<p>
+You can set them as "block" factors, which means that we will only
+compare the effects of the condition factor <em>within each
+block</em>. For example, if you have a blocking factor called
+"gender", and a condition called "treated", we will only compare
+treated males to untreated males, and treated females to untreated
+females.
+</p>
+
+<p>
+  You can also ignore other factors. In our example above, if we
+  ignore "gender", it would be as if the factor didn't exist at
+  all. We would compare all treated samples to all untreated samples,
+  ignoring the effects of gender.
+</p>
+<form action="setup_job_factors" method="post">
+
+  <table>
+    {% for entry in form.factor_roles %}
+    <tr>
+      <td>{{ entry.label }}: </td>
+      <td>{{ entry()|safe }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+
+<p>
+{{ forms.cancel() }} {{forms.previous(url_for('.column_labels'))}} {{form.submit(class='button')}}
+</p>
+  
+
+</form>
+
+
+
+
+
+{% endblock %}

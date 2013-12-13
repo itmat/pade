@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Profile{% endblock %}
+{% block content %}
+
+<table>
+  <tr>
+    <th>label</th>
+    <th>maxrss pre</th>
+    <th>maxrss post</th>
+    <th>maxrss increase</th>
+    <th>increase percent</th>
+  </tr>
+
+  {% for event in profile %}
+  <tr>
+    <td>
+      {% for i in range(event['depth']) %}
+      &nbsp &nbsp &nbsp &nbsp
+      {% endfor %}
+      {{ event['label'] }}
+    </td>
+    <td>{{ "%.4f"|format(event['maxrss_pre']) }}</td>
+    <td>{{ "%.4f"|format(event['maxrss_post']) }}</td>
+    <td>{{ "%.4f"|format(event['maxrss_diff']) }}</td>
+    <td>{{ "%.4f"|format(100*event['maxrss_diff_percent']) }}</td>
+  </tr>
+  {% endfor %}
+
+</table>
+
+{% endblock %}

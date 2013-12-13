@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %} Job {{job_name }} | score >= {{ min_score }}, page {{ page_num + 1 }} of {{ num_pages }} {% endblock %}
+{% block content %}
+
+<table class="details">
+
+  <tr>
+    <th class="details"></th>
+    <th class="details"></th>
+    <th class="details"></th>
+    <th class="details" colspan="{{group_names|length}}">Mean</th>
+    <th class="details" colspan="{{fold_change_group_names|length}}">Fold Change</th>
+    <th class="details" colspan="{{coeff_names|length}}">Coefficient</th>
+  </tr>
+
+  <tr>
+    <th class="details"><a href="{{url_for('.details', job_id=job_id, conf_level=conf_level, page=page_num)}}">Feature id</a></th>
+    
+    <th class="details"><a href="{{url_for('.details', job_id=job_id, conf_level=conf_level, page=page_num, order='score_original')}}">Score</th>
+    <th class="details">{{ stat_name }} stat</th>
+
+    {% for name in group_names %}
+    <th class="details">{{ name }}</th>
+    {% endfor %}
+
+    {% for i in range(fold_change_group_names|length) %}
+    <th class="details"><a href="{{url_for('.details', job_id=job_id, conf_level=conf_level, page=page_num, order='foldchange_original', groupnum=i)}}">{{ fold_change_group_names[i] }}</a></th>
+    {% endfor %}
+
+    {% for name in coeff_names %}
+    <th class="details">{{ name }}</th>
+    {% endfor %}
+  </tr>
+
+  {% for i in range(feature_ids|length) %}
+  <tr>
+    <td class="details"><a href="{{url_for('.feature', job_id=job_id, feature_num=indexes[i])}}">{{ feature_ids[i] }}</a></td>
+
+    <!-- Confidence score -->
+    <td class="details">{{ "%.4f"|format(scores[i]) }}</td>
+
+    <!-- Statistic value -->
+    <td class="details">{{ "%.2f"|format(stats[i]) }}</td>
+
+    <!-- Mean for each condition -->
+    {% for mean in means[i] %}
+    <td class="details">{{ "%.2f"|format(mean) }}</td>
+    {% endfor %}
+
+    <!-- Mean for each condition -->
+    {% for fc in fold_change[i] %}
+    <td class="details">{{ "%.2f"|format(fc) }}</td>
+    {% endfor %}
+
+    <!-- Coefficient for each condition -->
+    {% for coeff in coeffs[i] %}
+    <td class="details">{{ "%.2f"|format(coeff) }}</td>
+    {% endfor %}
+
+  </tr>
+  {% endfor %}
+
+</table>
+
+<p>
+  Page {% for i in range(num_pages) %}
+  {% if i == page_num %}
+  {{ page_num + 1}}
+  {% else %}
+  <a href="{{url_for('.details', job_id=job_id, conf_level=conf_level, page=i
+           )}}">{{ i + 1 }}</a>
+  {% endif %}
+  {% endfor %}
+</p>
+
+
+{% endblock %}

@@ -427,3 +427,6 @@ expressed genes</A>,&nbsp; <i>Bioinformatics</i>, <b>16(8)</b>: 685-698.</font><
 If you have questions on the program or its usage or if you want to report any bugs, please contact: <tt><a href="mailto:ggrant@pcbi.upenn.edu">ggrant@pcbi.upenn.edu</a></tt>.</font>
 
 -----
+
+## Install PADE on your mac
+1. 
