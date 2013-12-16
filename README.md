@@ -427,3 +427,76 @@ expressed genes</A>,&nbsp; <i>Bioinformatics</i>, <b>16(8)</b>: 685-698.</font><
 If you have questions on the program or its usage or if you want to report any bugs, please contact: <tt><a href="mailto:ggrant@pcbi.upenn.edu">ggrant@pcbi.upenn.edu</a></tt>.</font>
 
 -----
+
+## Install PADE on your mac
+1. Make sure you have the **clang version of Python** and not the apple's version which is compiled with llvm-gcc. 
+		
+		brew install python
+
+	For more information, please see <http://pragmaticstartup.wordpress.com/2012/12/25/error-command-llvm-gcc-4-2-failed-with-exit-status-1/>
+
+2. Install command line tools with the latest version of Xcode. You can download the Xcode [here](https://developer.apple.com/xcode/). To install the command line tools:
+	
+	1. Start Xcode on the Mac.
+	2. Choose Preferences from the Xcode menu.
+	3. In the General panel, click Downloads.
+ 	4. On the Downloads window, choose the Components tab.
+	5. Click the Install button next to Command Line Tools.
+
+3. Install pip.
+		
+		sudo easy_install pip
+
+4. Install required dependencies.
+	
+	Install gfortran:
+
+		brew install gfortran
+
+
+	Install numpy, scipy, yaml and setuptools:
+
+		pip install numpy
+		
+		sudo pip install scipy
+
+		sudo pip install pyyaml
+
+		pip install setuptools	
+
+	Install hdf5:
+
+		brew install hdf5
+
+	(if that doesn't work, try: )
+
+	    brew tap homebrew/science
+    	brew install hdf5
+			
+    Then, you can install h5py:
+
+		sudo pip install h5py
+
+	Install redis-server and libpng:
+
+		brew install redis
+
+		brew install libpng
+
+	Install freetype. You can download it [here](http://sourceforge.net/projects/freetype/files/latest/download). Then: 
+
+		cd path/to/freetype-2.5.2
+		./configure
+		make
+		make install
+		sudo ln -s /usr/local/include/freetype2/ /usr/include/freetype 
+
+	Finally, install matplotlib:
+
+		sudo pip install matplotlib
+
+5. Git clone and Install PADE
+	
+		git clone git@github.com:itmat/pade.git
+		cd pade/
+		sudo python setup.py install
