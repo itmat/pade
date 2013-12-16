@@ -445,33 +445,43 @@ If you have questions on the program or its usage or if you want to report any b
 
 3. Install pip.
 		
-		easy-install pip
+		sudo easy_install pip
 
 4. Install required dependencies.
 	
+	Install gfortran:
+
+		brew install gfortran
+
+
 	Install numpy, scipy, yaml and setuptools:
 
 		pip install numpy
-		pip install scipy
-		pip install pyyaml
-		pip install setuptools
+
+		sudo pip install scipy
+
+		sudo pip install pyyaml
+
+		pip install setuptools	
 
 	Install hdf5:
 
 		brew install hdf5
-	
+
 	(if that doesn't work, try: )
 
 	    brew tap homebrew/science
     	brew install hdf5
-
+			
     Then, you can install h5py:
 
-		pip install h5py
+		sudo pip install h5py
 
-	Install redis-server:
+	Install redis-server and libpng:
 
 		brew install redis
+
+		brew install libpng
 
 	Install freetype. You can download it [here](http://sourceforge.net/projects/freetype/files/latest/download). Then: 
 
@@ -485,6 +495,8 @@ If you have questions on the program or its usage or if you want to report any b
 
 		sudo pip install matplotlib
 
-5. Install PADE
-
-		python setup.py install
+5. Git clone and Install PADE
+	
+		git clone git@github.com:itmat/pade.git
+		cd pade/
+		sudo python setup.py install
