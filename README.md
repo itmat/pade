@@ -457,7 +457,7 @@ If you have questions on the program or its usage or if you want to report any b
 	Install numpy, scipy, yaml and setuptools:
 
 		pip install numpy
-
+		
 		sudo pip install scipy
 
 		sudo pip install pyyaml
