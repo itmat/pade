@@ -1,5 +1,5 @@
-### Install PADE (cluster)
-
+### Install PADE 
+#### A. Cluster
 ##### 1. Create a virtualenv with python v2.7.5 or higher
     
     bsub -Is bash
@@ -15,7 +15,7 @@
     python setup.py install
 
 
-### Install PADE (mac)
+#### B. Mac
 
 ##### 1. Make sure you have python v2.7.5 or higher
 
